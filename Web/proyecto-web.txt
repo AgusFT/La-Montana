@@ -1,0 +1,473 @@
+Objetivo
+Desarrollar la web pública de clientes de la imprenta La Montaña, donde un cliente puede registrarse, iniciar sesión y operar su cuenta: crear pedidos de impresión/servicios, subir archivos (PDF/DOCX) dentro de su cuota, consultar historial y estados de pedidos, y realizar compras/solicitudes mediante un carrito con checkout y pago simulado (en una primera etapa), incluyendo validación de cobertura de delivery para CABA.
+
+Alcance funcional (incluye)
+
+Autenticación y onboarding
+
+Registro, login/logout, recuperación de contraseña.
+
+Creación de perfil mínimo del usuario en Firestore al registrarse.
+
+Dashboard cliente + perfil
+
+Dashboard con resumen de pedidos recientes/en curso.
+
+Edición de datos personales (nombre/contacto) y dirección/telefono.
+
+Vista de notificaciones in-app (preview) y visualización de uso de almacenamiento (used/max).
+
+Pedidos
+
+Crear pedidos de impresión/servicios (parámetros básicos).
+
+Ver historial de pedidos (lista + filtros básicos) y detalle.
+
+Cancelación controlada según estado permitido.
+
+Visualización del estado actual del pedido y timestamps relevantes.
+
+Archivos (PDF/DOCX)
+
+Subida de archivos y asociación a pedidos.
+
+Listado/visualización de archivos del cliente con metadatos (nombre, tamaño, tipo, fecha).
+
+Acceso restringido por ownership (cliente solo sus archivos).
+
+Catálogo
+
+Listado y detalle de productos/servicios (precio, imagen, descripción, disponibilidad).
+
+Acciones para “Agregar al carrito”.
+
+Carrito + Checkout
+
+Vista de checkout con dos paneles:
+
+Envío: formulario editable + checkbox “usar mis datos guardados”, botón “calcular envío”.
+
+Carrito: lista de ítems con sumar/restar unidades y eliminar.
+
+En MVP, el envío se considera gratis, pero debe validar cobertura:
+
+Si el código postal no corresponde a CABA, mostrar mensaje “no realizamos envíos a esa zona” y bloquear la confirmación del pedido.
+
+Botón “Realizar pedido” que crea el pedido con snapshot de ítems y datos de envío.
+
+Pago simulado
+
+Modal/pantalla de pago simulada (sin pasarela real).
+
+Al confirmar “pago simulado”, actualizar estado/pago del pedido para continuar flujo operativo.
+
+Fuera de alcance (por ahora)
+
+Integración real con pasarela de pagos (Mercado Pago u otra).
+
+Cálculo real de envío por distancia/zonas (solo validación CABA + envío gratis en MVP).
+
+Facturación/AFIP, comprobantes fiscales, pagos online reales.
+
+E-commerce completo con stock e inventario.
+
+Dependencias
+
+Requiere Plataforma Firebase (Auth + Firestore + Storage + Rules + Functions mínimas) para:
+
+roles/seguridad, acceso a datos por ownership,
+
+cuota de almacenamiento por usuario (10MB + upgrades),
+
+notificaciones y auditoría mínima (según diseño global).
+
+Criterio de “Done” del proyecto (MVP)
+
+Un cliente puede registrarse, iniciar sesión, ver su dashboard, crear pedidos, adjuntar archivos, consultar estados/historial, usar catálogo y completar checkout con validación CABA + pago simulado.
+
+Todo queda persistido en Firestore/Storage con seguridad correcta y se refleja operativamente para administración.
+M0: Infraestructura Web (Next.js + TS + Tailwind) + Hosting + Pipeline de Public:
+Objetivo
+Establecer la base técnica y operativa para desplegar a producción una web con landing pública SEO (estática) y área privada dinámica, incluyendo pipeline de publicación del catálogo desde Firestore.
+
+Incluye
+
+Stack y estándares:
+
+Next.js + React + TypeScript + Tailwind (estilo minimalista).
+
+Convenciones de carpeta/rutas (público vs privado).
+
+ESLint/format/lint básicos.
+
+Rendering/SEO:
+
+Landing pública pre-renderizada (SSG / static export) para SEO.
+
+Hosting:
+
+Deploy de sitio estático a Firebase Hosting (salida out/).
+
+Config de headers de cache para assets.
+
+Publicación del catálogo (CI/CD):
+
+GitHub Actions: exportar catálogo público desde Firestore → generar snapshot JSON → build → deploy Hosting.
+
+Workflow manual (trigger) y opcional por push a main.
+
+Seguridad operativa mínima:
+
+Uso de credenciales seguras para CI (ver M8 Firebase).
+
+Separación dev/prod (documentada, aunque sea fase posterior).
+
+No incluye
+
+SSR runtime (servidor Next ejecutándose en producción).
+
+Gestión de dominio (se agrega cuando compres dominio).
+
+Entregables
+
+Repo inicial con configuración Next/TS/Tailwind.
+
+firebase.json apuntando a out/.
+
+Workflow .github/workflows/deploy.yml.
+
+Documento docs/deploy.md con el procedimiento “actualizo catálogo → publico”.
+
+Criterios de aceptación
+
+Un deploy desde GitHub Actions publica una landing navegable y estable (HTTPS).
+
+La landing pública carga contenido del catálogo desde snapshot (sin depender de lecturas runtime).
+
+Área privada funciona (routing + auth gate) aunque el sitio sea estático.
+M1: Autenticacion y Onboarding:
+Objetivo: permitir que un cliente se registre, inicie sesión y quede provisionado correctamente para usar la plataforma.
+
+Incluye
+
+Registro con email/password.
+
+Inicio/cierre de sesión.
+
+Recuperación de contraseña via email.
+
+Rutas protegidas (no acceder a dashboard sin sesión).
+
+Creación automática de perfil mínimo en users/{uid} al registrarse.
+
+Estado de cuenta básico: verificación de email.
+
+No incluye
+
+Admin/roles .
+
+Gestión avanzada de privacidad o 2FA.
+
+Entregables
+
+Vistas: Register, Login, Forgot Password.
+
+Protección de rutas y manejo de sesión.
+
+Documento breve: docs/auth-flows.md con diagramas simples de flujo.
+
+Criterios de aceptación
+
+Un usuario nuevo puede crear cuenta y al primer login existe su users/{uid} con campos mínimos.
+
+Un usuario no autenticado no puede acceder al dashboard.
+
+Recuperación de contraseña envía email y permite reingresar con nueva contraseña.
+M2: Dashboard Cliente + Perfil + Direcciones:
+Objetivo: dashboard personal “operativo” donde el cliente gestiona su cuenta y ve su situación actual.
+
+Incluye:
+
+Resumen del estado del cliente:
+
+Últimos pedidos (ej. 5 más recientes) con estado actual.
+
+Pedidos “en curso” destacados.
+
+Acciones rápidas:
+
+Botón “Nuevo pedido”.
+
+Botón “Subir archivo” (si ya existe el módulo de archivos).
+
+Notificaciones in-app (preview):
+
+Barra superior de notificaciones + icono de campana.
+
+Última notificación , con link al pedido visible en la barra de notificaciones.
+
+Uso de almacenamiento (preview):
+
+Barra de uso: usedBytes / maxBytes .
+
+Perfil (vista: "Mis Datos"):
+
+Ver/editar: nombre, teléfono, teléfono de contacto, direcciones, email, contraseña.
+
+Direcciones:
+
+Dirección principal (calle, número, localidad, CP).
+
+Campo opcional: referencias (piso/depto/entrecalles).
+
+Estructura para georreferenciación (lat/lng).
+
+No incluye
+
+Geocoding automático ni mapa (eso es proyecto admin / fase posterior).
+
+Métricas avanzadas.
+
+Entregables
+
+Vista Dashboard Cliente con secciones definidas.
+
+Vista Mis datos.
+
+Modelo de users/{uid} con campos necesarios para el UI.
+
+Criterios de aceptación
+
+El cliente puede editar sus datos y persistirlos.
+
+Se muestra listado de pedidos recientes (si existe M3, si no, placeholder con estado).
+
+Se muestra preview de uso de almacenamiento aunque la cuota aún no bloquee.
+M3: Pedidos de impresión (Creación + Historial + Cancelación controlada):
+Objetivo: el cliente puede crear pedidos de impresión y gestionarlos dentro de reglas claras.
+
+Incluye
+
+Crear pedido (formulario):
+
+Tipo de servicio (impresión) según catálogo de servicios.
+
+Parámetros de impresión (ej.: BN/Color, simple faz/doble faz, tamaño hoja, copias, notas).
+
+Lugo se agrega al carrito ( M6 ).
+
+Historial de pedidos:
+
+Lista  con filtros básicos (estado, fecha).
+
+Detalle de pedido:
+
+Estado actual, contenido, timestamps principales, parámetros, costo estimado (si ya existe pricing).
+
+Cancelación:
+
+Permitida solo en estados “creado / pendiente” (definidos en plataforma).
+
+Al cancelar, registrar motivo opcional.
+
+Trazabilidad mínima:
+
+Guardar cambios clave (al menos createdAt, updatedAt, status).
+
+No incluye
+
+Asignación de impresora/responsable (admin).
+
+Facturación.
+
+Reglas avanzadas de pricing si aún no están.
+
+Entregables
+
+Vistas: Crear Pedido, Historial, Detalle.
+
+Estructura Firestore mínima para orders.
+
+Criterios de aceptación
+
+El cliente crea un pedido y aparece en su historial.
+
+El cliente no puede ver pedidos de otros usuarios.
+
+Cancelación solo funciona en estados permitidos y queda reflejada.
+M4: Archivos del cliente (PDF/DOCX) + asociación a pedidos + visualización:
+Objetivo: permitir que el cliente suba archivos y los adjunte a pedidos, con visibilidad clara del estado del archivo.
+
+Incluye
+
+Subida de PDF/DOCX a Storage.
+
+Asociación del archivo a un pedido (por orderId).
+
+Listado de archivos del cliente (por pedido y/o “mi biblioteca”).
+
+Metadatos del archivo: nombre, tamaño, fecha, tipo, estado (subiendo/ok/error).
+
+Visualización/descarga según permisos (cliente sobre sus archivos).
+
+No incluye
+
+Enforcement duro de cuota .
+
+Conversión de documentos o previsualización avanzada (p.ej. render PDF) salvo que lo decidas.
+
+Entregables
+
+UI de subida con feedback y reintentos.
+
+Modelo de referencia en pedido (ej. fileRef con path, size, contentType).
+
+Criterios de aceptación
+
+El cliente puede subir un PDF/DOCX y el pedido lo referencia.
+
+El cliente puede reabrir el pedido y ver el archivo asociado.
+
+Un cliente no puede acceder a archivos de otro.
+M5: Catálogo Cliente (Productos + Servicios):
+Objetivo
+Exponer un catálogo público claro y rápido (landing SEO) mostrando productos y servicios disponibles, incentivando registro/login para operar (carrito/checkout).
+
+Incluye
+
+Landing pública (SEO) con:
+
+Listado de productos (imagen, nombre, precio, disponibilidad/estado).
+
+Listado de servicios (impresión/encuadernado/anillado con precios base).
+
+CTA a “Crear cuenta / Iniciar sesión” para poder comprar.
+
+Performance:
+
+Render estático desde snapshot (JSON generado en pipeline).
+
+Búsqueda/filtros básicos (texto/categoría) client-side sobre snapshot (sin lecturas a Firestore).
+
+Acciones UX:
+
+Si el usuario está logueado, permitir “Agregar al carrito”.
+
+Si no está logueado, al intentar “Agregar” redirigir a login y volver (returnUrl).
+
+No incluye
+
+Detalle por producto/servicio (página individual).
+
+E-commerce avanzado (stock/inventario).
+
+Pagos reales.
+
+Entregables
+
+Vista landing con listado (productos + servicios).
+
+Snapshot público versionado (archivo generado) y contrato de datos consumidos.
+
+Integración visual con identidad (logo/paleta minimalista).
+
+Criterios de aceptación
+
+Carga rápida y estable (HTML visible aunque JS tarde).
+
+El listado se actualiza tras publicación (pipeline).
+
+No logueado no puede comprar (solo navegar y ver listado).
+M6: Carrito + Checkout + Pago simulado (confirmación de pedido):
+Objetivo
+Permitir que el cliente compile un carrito, configure envío, valide cobertura (CABA), cree el pedido (snapshot) y confirme el “pago simulado” de forma server-side y auditable.
+
+Incluye
+
+A) Carrito (local-first)
+
+Carrito con ítems (productos y/o servicios):
+
+sumar/restar unidades, eliminar ítem, subtotales y total.
+
+Persistencia:
+
+localStorage (consistente al recargar, sin costos Firestore).
+
+Integración con catálogo:
+
+“Agregar al carrito” disponible solo logueado (si no, redirect a login con returnUrl).
+
+B) Envío (panel izquierdo)
+
+Formulario editable con:
+
+nombre, teléfono, dirección, CP, etc.
+
+checkbox “Usar mis datos guardados” (autopopula desde users/{uid}).
+
+decisión: shippingSnapshot del pedido no pisa perfil salvo acción explícita.
+
+“Calcular envío”:
+
+MVP: $0, pero valida cobertura CABA (CPA o rango 1000–1499). (se mantiene igual)proyecto-web
+
+C) Confirmación y creación de pedido (snapshot)
+
+“Realizar pedido” crea orders/{orderId} con:
+
+items[] congelados (nombre, precio unitario, qty, tipo),
+
+shippingSnapshot,
+
+totals (envío=0),
+
+estado inicial coherente (pending_payment o similar),
+
+ownership + timestamps.
+
+D) Pago simulado (server-side)
+
+Pantalla/modal de pago simulado:
+
+botón “Pagar ahora (simulado)”.
+
+Confirmación NO escribe paid_simulated desde el cliente.
+
+Llama a Cloud Function confirmSimulatedPayment(orderId):
+
+valida auth + ownership,
+
+valida state machine,
+
+transiciona estado/paymentStatus,
+
+escribe auditEvent.
+
+No incluye
+
+Pasarela real (Mercado Pago).
+
+Cálculo real de envío por distancia.
+
+Cupones/promos/impuestos.
+
+Entregables
+
+UI carrito/checkout (dos paneles).
+
+Carrito persistente en localStorage.
+
+Creación de pedido snapshot.
+
+Integración de pago simulado vía Function + registro auditable.
+
+Criterios de aceptación
+
+El carrito sobrevive refresh sin lecturas/escrituras Firestore.
+
+Si CP no valida CABA, no permite confirmar pedido.
+
+Tras “pago simulado”, el pedido avanza de estado y aparece correcto en historial.
+
+No existe camino cliente para “marcar pagado” escribiendo directo en Firestore.
