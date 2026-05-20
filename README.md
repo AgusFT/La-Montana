@@ -23,7 +23,29 @@ El proyecto tiene finalidad académica, pero se diseña con criterio de producci
 
 ## Documentación
 
-La documentación del proyecto se organiza en:
+La documentación del proyecto se organiza en la carpeta `docs/`.
 
-```text
-docs/
+Documento inicial recomendado:
+
+`docs/01-planificacion/guia-uso-github-project.md`
+
+## Estado del repositorio
+
+Este repositorio fue limpiado para alinear su estructura con la arquitectura actual del proyecto.
+
+Las carpetas antiguas asociadas a Desktop, Firebase, Cursor, logs locales y placeholders iniciales fueron eliminadas porque ya no forman parte de la solución definida.
+
+## Gestión del proyecto
+
+El seguimiento oficial se realiza mediante GitHub Projects.
+
+El Project se organiza con:
+
+- campos personalizados;
+- vistas por área;
+- milestones;
+- backlog;
+- Kanban general;
+- roadmap general;
+- vista de ruta crítica;
+- vista de riesgos.
