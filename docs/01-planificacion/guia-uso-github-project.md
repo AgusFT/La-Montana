@@ -16,7 +16,7 @@ El objetivo es mantener una estructura única para issues, épicas, historias de
 
 La Montaña es un sistema integral para la gestión administrativa, operativa y productiva de una imprenta.
 
-El proyecto es universitario, pero se planifica con criterio de producción real: arquitectura mantenible, segura, trazable, escalable y defendible.
+El proyecto se planifica con criterio de producto real: arquitectura mantenible, segura, trazable, escalable y defendible.
 
 Decisiones cerradas:
 
@@ -40,7 +40,7 @@ Decisiones cerradas:
 
 No se usará Scrum completo porque el equipo tiene dos integrantes y dedicación semanal reducida.
 
-Se usará Kanban académico + milestones + puntos de control + backlog estructurado.
+Se usará Kanban liviano + milestones + puntos de control + backlog estructurado.
 
 Esto significa:
 
@@ -48,7 +48,7 @@ Esto significa:
 - Las tareas avanzan por estados Kanban.
 - Las entregas grandes se organizan con milestones.
 - Las tareas se estructuran en épicas, historias de usuario y tareas técnicas.
-- El avance debe poder ser explicado ante profesores o jurado.
+- El avance debe poder ser explicado y defendido con evidencia documental, funcional y técnica.
 
 ## 4. Jerarquía de trabajo
 
@@ -104,8 +104,9 @@ Cada issue debe tener, como mínimo:
 | Para hacer | Tarea refinada, estimada y lista para ser tomada |
 | En desarrollo | Tarea tomada por un integrante y actualmente en ejecución |
 | Bloqueado | Tarea detenida por dependencia, falta de definición o problema externo |
-| Testeo | Tarea terminada preliminarmente y pendiente de prueba, revisión o validación |
-| Terminado | Tarea completada según la Definition of Done |
+| Testeo | Tarea terminada preliminarmente y pendiente de prueba o validación funcional |
+| En revision | Tarea terminada por quien la trabajó y pendiente de revisión cruzada por otro integrante |
+| Terminado | Tarea completada, revisada y aceptada según la Definition of Done |
 | Descartado | Tarea fuera del alcance actual, cancelada o reemplazada |
 
 Importante: Status es el estado de avance del trabajo en GitHub Projects. No representa los estados internos de los pedidos del sistema.
@@ -121,7 +122,7 @@ Importante: Status es el estado de avance del trabajo en GitHub Projects. No rep
 | Android | App Android |
 | Impresion | Raspberry Pi, CUPS, gateway y print jobs |
 | Arquitectura | Diagramas, decisiones técnicas y estructura general |
-| Documentacion | Documentación académica, técnica y funcional |
+| Documentacion | Documentación de producto, técnica y funcional |
 | Testing | Pruebas, validación y QA |
 | Gestion | Organización, planificación, milestones y seguimiento |
 
@@ -153,7 +154,7 @@ Cada issue debe tener una sola Area principal.
 
 | MoSCoW | Significado |
 |---|---|
-| Debe estar | Imprescindible para MVP, entrega académica o defensa |
+| Debe estar | Imprescindible para MVP, producto base o validación del sistema |
 | Deberia estar | Importante, pero ajustable si el tiempo no alcanza |
 | Podria estar | Deseable si hay margen |
 | No entra ahora | Fuera del alcance actual o post-MVP |
@@ -191,7 +192,7 @@ Como el equipo dedica entre 2 y 4 horas semanales por integrante, una tarea de 8
 | Bajo | Impacto menor si se retrasa o falla |
 | Medio | Puede afectar planificación o calidad |
 | Alto | Puede afectar una entrega, integración o regla central |
-| Critico | Puede comprometer MVP, defensa, seguridad, datos o continuidad |
+| Critico | Puede comprometer MVP, seguridad, datos, continuidad o validación del sistema |
 
 ## 13. RutaCritica
 
@@ -236,7 +237,7 @@ La vista Ruta Critica es un roadmap manual. GitHub Projects no calcula automáti
 | M5 - MVP Android | App Android funcional |
 | M6 - Subsistema de impresion | Raspberry Pi, CUPS, gateway y print jobs |
 | M7 - Integracion end-to-end | Flujo completo punta a punta |
-| M8 - Documentacion final y defensa | Documentación final, demo y defensa |
+| M8 - Documentacion final y validacion | Documentación final, demo y validación del sistema |
 
 No usar milestones para áreas técnicas. Para eso existe Area.
 
@@ -244,7 +245,7 @@ No usar milestones para áreas técnicas. Para eso existe Area.
 
 1. Ir a Issues.
 2. Crear New issue.
-3. Usar título como: E01 - Gestion del proyecto y documentacion academica.
+3. Usar título como: E01 - Gestion del proyecto y documentacion base.
 4. Completar objetivo, alcance, fuera de alcance y criterios de aceptación.
 5. Asociar al Project La-Montana.
 6. Completar Status, Area, Tipo, Prioridad, MoSCoW, Puntos, Horas, Dificultad, Riesgo, RutaCritica, Milestone y Assignees.
@@ -278,7 +279,7 @@ Una tarea técnica debe tener una sola Area.
 
 Flujo normal:
 
-Backlog → Para hacer → En desarrollo → Testeo → Terminado.
+Backlog → Para hacer → En desarrollo → Testeo → En revision → Terminado.
 
 Si aparece un impedimento:
 
@@ -306,7 +307,7 @@ Una issue está lista para pasar a Para hacer cuando tiene:
 
 ## 21. Definition of Done
 
-Una issue puede pasar a Terminado cuando:
+Una issue puede pasar a Terminado cuando fue completada, revisada y aceptada:
 
 - Cumple sus criterios de aceptación.
 - El código fue implementado si corresponde.
@@ -318,7 +319,7 @@ Una issue puede pasar a Terminado cuando:
 
 ## 22. Prompt base para usar con ChatGPT o Codex
 
-Estoy trabajando en el proyecto universitario La Montaña junto con Agustín Tejero y Alejandro Herms.
+Estoy trabajando en el proyecto La Montaña junto con Agustín Tejero y Alejandro Herms.
 
 La Montaña es un sistema integral para gestión administrativa, operativa y productiva de una imprenta.
 
