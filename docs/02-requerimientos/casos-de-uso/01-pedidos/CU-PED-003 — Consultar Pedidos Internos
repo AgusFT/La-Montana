@@ -1,0 +1,102 @@
+# CU-PED-003 — Consultar Pedidos Internos
+
+## 1. Nombre del Caso de Uso
+
+**Consultar pedidos internos**
+
+## 2. Código
+
+**CU-PED-003**
+
+## 3. Actores
+
+* **Actor Principal:** Usuario del sistema (Administrativo / Producción / Depósito).
+* **Actores Secundarios:** Sistema de Gestión Interna.
+
+## 4. Breve Descripción
+
+El actor accede al sistema para consultar pedidos internos ya registrados. Puede filtrarlos por distintos criterios (fecha, estado, área, solicitante, tipo de pedido) y visualizar su información detallada.
+
+## 5. Disparador
+
+El usuario necesita revisar el estado o los detalles de un pedido interno previamente cargado.
+
+## 6. Precondiciones
+
+* El usuario debe estar autenticado en el sistema.
+* Debe existir al menos un pedido interno registrado.
+
+## 7. Postcondiciones
+
+* No se altera el estado del sistema.
+* El usuario obtiene información relevante sobre los pedidos consultados.
+
+## 8. Flujo Principal
+
+1. El actor navega al módulo **Pedidos Internos**.
+2. El sistema muestra la pantalla de **búsqueda y consulta**.
+3. El actor ingresa uno o más filtros de búsqueda (opcional).
+4. El actor presiona **Buscar**.
+5. El sistema consulta la base de datos y muestra el listado de pedidos que coinciden con los criterios.
+6. El actor selecciona un pedido del listado.
+7. El sistema muestra el **detalle completo del pedido interno**, incluyendo:
+
+   * Datos del solicitante.
+   * Área.
+   * Tipo de pedido.
+   * Fecha de creación.
+   * Detalle del pedido.
+   * Estado actual.
+   * Historial de movimientos / cambios de estado.
+8. El actor finaliza la consulta.
+
+## 9. Flujos Alternativos
+
+### A1 — No se ingresan filtros
+
+* El actor presiona **Buscar** sin completar filtros.
+* El sistema muestra **todos los pedidos existentes**.
+
+### A2 — No hay resultados
+
+* El actor ingresa filtros y presiona **Buscar**.
+* El sistema informa: *"No se encontraron pedidos con los criterios seleccionados"*.
+* El actor puede modificar los filtros y volver a intentarlo.
+
+### A3 — Error en la búsqueda
+
+* Ocurre un error en el sistema (problema de conexión o base de datos).
+* El sistema muestra un mensaje de error general.
+* El actor puede reintentar la búsqueda.
+
+## 10. Requerimientos Funcionales Asociados
+
+* **RF-PED-010:** El sistema debe permitir filtrar pedidos por fecha, área, estado, solicitante y tipo.
+* **RF-PED-011:** El sistema debe mostrar un listado de pedidos coincidentes.
+* **RF-PED-012:** El sistema debe permitir visualizar el detalle completo de un pedido.
+* **RF-PED-013:** El sistema debe mostrar el historial de cambios del pedido.
+
+## 11. Requerimientos No Funcionales Asociados
+
+* **RNF-001:** La búsqueda debe ejecutarse en menos de 3 segundos.
+* **RNF-002:** La visualización debe ser accesible desde navegadores modernos.
+* **RNF-003:** El sistema debe mantener registro de auditoría sin afectar la performance.
+
+## 12. Reglas de Negocio
+
+* **RN-PED-001:** Solo usuarios autorizados pueden ver pedidos de determinadas áreas.
+* **RN-PED-002:** La información de los pedidos debe mostrarse completa y sin modificaciones.
+
+## 13. Supuestos
+
+* Se asume que la información de pedidos internos está correctamente cargada.
+* Se asume que el usuario conoce los criterios por los cuales desea filtrar.
+
+## 14. Excepciones
+
+* **E1:** El sistema pierde conexión con la base de datos.
+* **E2:** El usuario no tiene permisos para ver el pedido seleccionado.
+
+---
+
+Si querés, puedo agregar el diagrama de caso de uso, diagramas UML complementarios o enlazar este CU a la matriz de trazabilidad.
