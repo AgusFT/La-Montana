@@ -96,7 +96,3 @@ El usuario necesita revisar el estado o los detalles de un pedido interno previa
 
 * **E1:** El sistema pierde conexión con la base de datos.
 * **E2:** El usuario no tiene permisos para ver el pedido seleccionado.
-
----
-
-Si querés, puedo agregar el diagrama de caso de uso, diagramas UML complementarios o enlazar este CU a la matriz de trazabilidad.
