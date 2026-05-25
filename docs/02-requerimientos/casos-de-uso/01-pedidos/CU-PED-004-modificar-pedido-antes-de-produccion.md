@@ -1,9 +1,9 @@
-# CU-PED-004 - Modificar pedido propio
+# CU-PED-004 - Modificar pedido antes de producción
 
 | Campo                        | Valor                                              |
 | ---------------------------- | -------------------------------------------------- |
 | ID                           | CU-PED-004                                         |
-| Caso de uso                  | Modificar pedido propio                            |
+| Caso de uso                  | Modificar pedido antes de producción               |
 | Área                         | Pedidos                                            |
 | Actor principal              | Cliente                                            |
 | Actores secundarios          | Sistema                                            |
