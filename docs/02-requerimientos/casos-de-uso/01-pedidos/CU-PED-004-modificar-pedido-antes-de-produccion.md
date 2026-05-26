@@ -1,133 +1,162 @@
-# CU-PED-004 - Modificar pedido antes de producción
+# CU-PED-004 — Modificar pedido antes de revisión
 
-| Campo                        | Valor                                              |
-| ---------------------------- | -------------------------------------------------- |
-| ID                           | CU-PED-004                                         |
-| Caso de uso                  | Modificar pedido antes de producción               |
-| Área                         | Pedidos                                            |
-| Actor principal              | Cliente                                            |
-| Actores secundarios          | Sistema                                            |
-| Prioridad                    | P1 Alta                                            |
-| Alcance                      | MVP                                                |
-| RF relacionados              | RF-PED-004, RF-ARC-002, RF-EST-003                 |
-| RNF relacionados             | RNF-SEG-003, RNF-SEG-004, RNF-AUD-001, RNF-RLS-002 |
-| HU relacionadas              | HU-CLI-004, HU-CLI-005                             |
-| Reglas críticas relacionadas | RFC-001, RFC-004, RFC-007, RNFC-001, RNFC-003      |
-| ---------------------------- | -------------------------------------------------- |
+| Campo                        | Valor                                                                 |
+| ---------------------------- | --------------------------------------------------------------------- |
+| **ID**                       | CU-PED-004                                                             |
+| **Caso de uso**              | Modificar pedido antes de revisión                                     |
+| **Área**                     | Pedidos                                                                |
+| **Actor principal**          | Cliente                                                                |
+| **Actores secundarios**      | Sistema                                                                |
+| **Prioridad**                | P1 Alta                                                                |
+| **Alcance**                  | MVP                                                                    |
+| **RF relacionados**          | RF-PED-004, RF-PED-006, RF-ARC-002, RF-EST-003                         |
+| **RNF relacionados**         | RNF-SEG-003, RNF-SEG-004, RNF-AUD-001, RNF-RLS-002                     |
+| **HU relacionadas**          | HU-CLI-005, HU-CLI-012                                                 |
+| **Reglas críticas**          | RFC-001, RFC-004, RFC-007, RNFC-001, RNFC-003                          |
 
-## 1. Caso de Uso
+---
 
-Modificar un pedido propio.
+## 1. Caso de uso
+El cliente modifica un pedido propio que aún no fue revisado por el personal interno ni autorizado para producción.
+
+---
 
 ## 2. Actores
-| Actor   | Participación                                                                                        |
-| ------- | ---------------------------------------------------------------------------------------------------- |
-| Cliente | Modifica archivos y detalles permitidos del pedido antes de la revisión                              |
-| Sistema | Valida autenticación, permisos, estado del pedido, propiedad, reglas de negocio y registra auditoría |
+| Actor    | Participación                                                                                         |
+|----------|---------------------------------------------------------------------------------------------------------|
+| Cliente  | Edita archivos y detalles permitidos del pedido.                                                        |
+| Sistema  | Valida autenticación, permisos, estado del pedido, propiedad y reglas de negocio; registra auditoría.   |
 
+---
 
 ## 3. Descripción
+Este caso de uso permite que un cliente realice modificaciones a un pedido que permanece en **Pendiente de revisión**, siempre que el pedido aún no haya sido revisado, cotizado, confirmado ni enviado a impresión.
 
-Este caso de uso describe el proceso mediante el cual un cliente modifica un pedido que todavía no fue revisado, confirmado ni enviado a impresión.
+El cliente puede modificar únicamente:
+- archivos adjuntos (agregar, reemplazar, eliminar);
+- descripción o aclaraciones;
+- cantidad estimada;
+- datos de contacto o punto de retiro;
+- observaciones del cliente.
 
-El cliente solo puede editar archivos y ciertos detalles no críticos del pedido (por ejemplo: nombre de archivo, aclaraciones, cantidad estimada, método de contacto, punto de entrega, observaciones del cliente).
+El cliente **no puede**:
+- modificar precios;
+- alterar estados internos, visibles o financieros;
+- cambiar cantidades definidas por el negocio;
+- acceder o modificar información administrativa;
+- revertir pasos avanzados del flujo.
 
-El cliente no puede modificar precios, estados, cantidades finales calculadas por el negocio, variaciones internas, información administrativa, financiera ni ningún dato controlado por el sistema o por el personal interno.
+El pedido conserva el estado **Pendiente de revisión** luego de la modificación.
 
-El pedido permanece en estado Pendiente de revisión hasta que el cliente finaliza y guarda los cambios.
+---
 
 ## 4. Precondición
 - El cliente está autenticado.
 - El pedido existe.
 - El pedido pertenece al cliente autenticado.
-- El pedido se encuentra en estado Pendiente de revisión.
-- El pedido no fue revisado, confirmado ni enviado a impresión.
-- El backend Supabase está disponible.
-- El sistema puede recuperar y validar la propiedad del pedido mediante RLS, RPC o políticas equivalentes.
-- Las políticas de acceso deben impedir que el cliente modifique pedidos ajenos o pedidos ya confirmados.
-- El sistema debe verificar permisos, propiedad y estado antes de permitir modificaciones.
+- El pedido está en estado **Pendiente de revisión**.
+- El pedido no fue revisado, cotizado, confirmado ni enviado a impresión.
+- Las políticas RLS del backend permiten acceso solo a pedidos propios.
+- Supabase (auth, storage y base de datos) está disponible.
+- El backend puede validar propiedad, permisos y estado antes de permitir cualquier modificación.
+
+---
 
 ## 5. Datos de entrada
 | Dato                | Obligatorio | Descripción                                                            |
-| ------------------- | ----------- | ---------------------------------------------------------------------- |
-| ID del pedido       | Sí          | Identificador del pedido que se desea modificar                        |
+|---------------------|-------------|------------------------------------------------------------------------|
+| ID del pedido       | Sí          | Identificador del pedido a modificar                                   |
 | Archivos del pedido | No          | Archivos a añadir, reemplazar o eliminar                               |
-| Detalles del pedido | No          | Aclaraciones, descripción, cantidad estimada u otros campos permitidos |
-| Canal de acceso     | Sí          | Web o Android (cliente final)                                          |
+| Detalles del pedido | No          | Campos editables permitidos                                             |
+| Canal de acceso     | Sí          | Web o Android                                                           |
+
+---
 
 ## 6. Datos de salida
-| Dato                  | Descripción                                                 |
-| --------------------- | ----------------------------------------------------------- |
-| Pedido actualizado    | El pedido queda actualizado con los cambios permitidos      |
-| Estado visible        | Permanece en Pendiente de revisión                          |
-| Registro de auditoría | Auditoría de modificaciones realizadas                      |
-| Archivos actualizados | Archivos agregados, reemplazados o eliminados correctamente |
+| Dato                  | Descripción                                                     |
+|-----------------------|-----------------------------------------------------------------|
+| Pedido actualizado    | Pedido registrado con los cambios permitidos                    |
+| Estado visible        | Permanece **Pendiente de revisión**                             |
+| Registro de auditoría | Evento de modificación guardado                                 |
+| Archivos actualizados | Archivos agregados, reemplazados o eliminados correctamente     |
+
+---
 
 ## 7. Permisos y seguridad
-| Aspecto              | Regla                                                                       |
-| -------------------- | --------------------------------------------------------------------------- |
-| Autenticación        | Requiere cliente autenticado                                                |
-| Autorización         | Solo el cliente propietario del pedido puede modificarlo                    |
-| RLS / acceso a datos | El backend debe validar propiedad y estado; prohibido depender del frontend |
-| Estados              | Solo pedidos en Pendiente de revisión pueden modificarse                    |
-| Archivos             | Deben almacenarse y asociarse mediante mecanismos autorizados               |
-| Validación backend   | Toda la lógica de verificación debe ejecutarse en backend/RPC               |
-| Seguridad            | Se deben registrar intentos de modificación no autorizados                  |
+| Aspecto              | Regla                                                                 |
+|----------------------|-----------------------------------------------------------------------|
+| Autenticación        | Requiere cliente autenticado                                           |
+| Autorización         | Solo el cliente propietario del pedido puede modificarlo              |
+| RLS / acceso a datos | Validación de propiedad y estado exclusivamente del lado backend       |
+| Estados              | Solo permitido en **Pendiente de revisión**                            |
+| Archivos             | Storage accesible por políticas autorizadas                            |
+| Backend-first        | Toda validación debe ejecutarse en RPC/Edge Function, nunca en client |
+| Seguridad            | Modificaciones no autorizadas deben registrarse como auditoría         |
+
+---
 
 ## 8. Flujo principal
-| Paso | Flujo principal                                                           | Flujo alternativo / excepciones                                                     |
-| ---- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| 1    | El cliente accede a la sección “Mis pedidos”.                             | Si el cliente no está autenticado, se solicita iniciar sesión.                      |
-| 2    | El cliente selecciona un pedido en estado Pendiente de revisión.          | Si el pedido no está en ese estado, el sistema rechaza la operación.                |
-| 3    | El sistema valida propiedad, autenticación y estado del pedido.           | Si el pedido no pertenece al cliente, se bloquea el acceso y se registra auditoría. |
-| 4    | El sistema muestra los archivos y detalles editables.                     | Si el pedido está bloqueado por error técnico, se informa al cliente.               |
-| 5    | El cliente edita archivos y/o detalles permitidos.                        | Si faltan datos requeridos (si aplica), el sistema indica qué datos corregir.       |
-| 6    | El cliente confirma los cambios.                                          | Si el cliente cancela, no se aplican modificaciones.                                |
-| 7    | El sistema valida las modificaciones y actualiza el pedido.               | Si los archivos tienen errores, se informa la falla sin exponer rutas internas.     |
-| 8    | El pedido permanece en estado Pendiente de revisión.                      | -                                                                                   |
-| 9    | El sistema registra un evento de auditoría correspondiente.               | Si la auditoría falla, se registra alerta técnica.                                  |
-| 10   | El sistema informa al cliente que el pedido fue modificado correctamente. | Si ocurre un error de guardado, se evita inconsistencia y se permite reintentar.    |
+| Paso | Flujo principal                                                                   | Alternativa / Excepción                                                                           |
+|------|-----------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|
+| 1    | El cliente accede a “Mis pedidos”.                                                | Si no está autenticado → solicitar inicio de sesión.                                               |
+| 2    | Selecciona un pedido en estado **Pendiente de revisión**.                         | Si el pedido está en otro estado → operación rechazada.                                            |
+| 3    | El sistema valida propiedad, estado y permisos.                                   | Si no pertenece al cliente → bloquear, auditar intento y denegar acceso.                           |
+| 4    | El sistema muestra archivos existentes y campos editables.                        | Si hay error técnico → notificar al cliente.                                                        |
+| 5    | El cliente edita archivos y/o detalles permitidos.                                | Si faltan datos requeridos → indicar corrección.                                                    |
+| 6    | El cliente confirma las modificaciones.                                           | Si cancela → no se registran cambios.                                                               |
+| 7    | El sistema valida las modificaciones y actualiza el pedido.                       | Si un archivo falla → indicar error sin exponer rutas internas.                                    |
+| 8    | El pedido permanece en **Pendiente de revisión**.                                 | —                                                                                                  |
+| 9    | El sistema registra auditoría de modificación.                                    | Si auditoría falla → registrar alerta técnica.                                                      |
+| 10   | El sistema confirma al cliente la modificación exitosa.                           | Si ocurre error interno → revertir cambios y permitir reintento.                                   |
+
+---
 
 ## 9. Impacto en estados
-| Estado                      | Impacto                                                      |
-| --------------------------- | ------------------------------------------------------------ |
-| Estado interno              | Sin cambios: permanece Pendiente de revisión                 |
-| Estado visible al cliente   | Permanece Pendiente de revisión                              |
-| Estado financiero           | Sin cambios                                                  |
-| Estado técnico de impresión | Sin cambios; no se genera ni modifica ningún trabajo técnico |
+| Estado                      | Impacto                                                    |
+|-----------------------------|------------------------------------------------------------|
+| Estado interno              | Sin cambios (Pendiente de revisión)                        |
+| Estado visible al cliente   | Sin cambios (Pendiente de revisión)                        |
+| Estado financiero           | Sin cambios                                                |
+| Estado técnico de impresión | Sin cambios; no se genera trabajo de impresión            |
+
+---
 
 ## 10. Eventos de auditoría
-| Evento                    | Cuándo se registra                                   |
-| ------------------------- | ---------------------------------------------------- |
-| Modificación de pedido    | Cuando el cliente modifica detalles o archivos       |
-| Modificación no permitida | Si se intenta modificar un pedido confirmado o ajeno |
-| Error al actualizar       | Cuando ocurre una falla técnica en el proceso        |
-| Archivo modificado        | Cuando se agrega, reemplaza o elimina un archivo     |
+| Evento                    | Momento                                                     |
+|---------------------------|--------------------------------------------------------------|
+| Modificación de pedido    | Cada vez que se edita un detalle o archivo                   |
+| Modificación no permitida | Intento sobre pedido ajeno o en estado no editable           |
+| Error al actualizar       | Fallas técnicas                                              |
+| Archivo modificado        | Alta, reemplazo o eliminación de archivo                     |
+
+---
 
 ## 11. Observaciones
-- Este caso de uso no modifica precios, estados, información financiera ni datos administrativos.
-- El cliente solo puede modificar detalles no críticos y archivos.
-- La validación debe ser obligatoriamente backend-first (RLS, RPC, políticas).
-- No se autoriza la producción ni se generan trabajos de impresión.
-- Este caso de uso se complementa con CU-ARC-002 (actualización de archivos).
-- Los cambios no deben exponer información interna del negocio.
-- La experiencia debe ser consistente entre Web y Android.
+- No se modifica información administrativa ni financiera.
+- El cliente solo altera elementos no críticos.
+- Toda validación es backend-first (Supabase RLS, RPC, Edge Functions).
+- No se genera producción ni estados nuevos.
+- Complementa el **CU-ARC-002** para manejo de archivos.
+- La experiencia debe ser equivalente entre Web y Android.
+
+---
 
 ## 12. Poscondición
-Al finalizar correctamente:
+- El pedido queda actualizado con los cambios permitidos.
+- El estado sigue siendo **Pendiente de revisión**.
+- Se registra auditoría.
+- No se generan trabajos de impresión.
+- No se alteran estados internos, visibles o financieros.
 
-- el pedido queda modificado con los cambios permitidos;
-- el pedido permanece en estado Pendiente de revisión;
-- no se modifican datos críticos ni administrativos;
-- el sistema registra la auditoría correspondiente;
-- no se generan trabajos de impresión ni estados internos nuevos.
+---
 
 ## 13. Criterios de aceptación
-- El cliente autenticado puede modificar únicamente pedidos propios.
-- El pedido solo puede modificarse si está en Pendiente de revisión.
-- El sistema rechaza modificaciones a pedidos confirmados o enviados a impresión.
-- El cliente solo puede modificar archivos y detalles permitidos.
-- Los cambios se guardan correctamente y se registra auditoría.
-- Los intentos no autorizados son bloqueados y auditados.
-- El pedido no cambia de estado ni modifica datos críticos.
-- El flujo cumple con RF, RNF, HU y reglas críticas asociadas.
+- El cliente autenticado puede modificar solo pedidos propios.
+- El pedido debe estar en **Pendiente de revisión**.
+- Cambios sobre pedidos confirmados o enviados a impresión deben rechazarse.
+- Solo se permiten modificaciones en archivos y detalles no críticos.
+- El sistema debe registrar auditoría.
+- No debe modificarse precio, estados ni datos internos.
+- Validaciones obligatoriamente en backend.
+- Cumplimiento completo de RF, RNF, HU y reglas críticas.
+

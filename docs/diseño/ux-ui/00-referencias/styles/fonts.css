@@ -1,0 +1,12 @@
+/* ============================================
+   LA MONTAÑA — Font Imports
+   ============================================ */
+
+/* Roboto Slab - Para títulos (display) */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&display=swap');
+
+/* Inter - Para cuerpo y UI */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+/* JetBrains Mono - Para especificaciones técnicas (opcional) */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
