@@ -12,7 +12,7 @@
 | RF relacionados | RF-PED-005, RF-AUT-003, RF-AUT-005, RF-EST-001, RF-EST-003, RF-EST-006, RF-WEB-006 |
 | RNF relacionados | RNF-SEG-003, RNF-SEG-005, RNF-RLS-002, RNF-USA-002, RNF-REN-001 |
 | HU relacionadas | HU-EMP-001, HU-ADM-008 |
-| Reglas críticas relacionadas | RFC-004, RNFC-001, RNFC-003, RNFC-005, RNFC-009 |
+| Reglas críticas relacionadas | RFC-004, RFC-009, RNFC-001, RNFC-003, RNFC-005, RNFC-009 |
 
 ## 1. Caso de Uso
 
@@ -23,16 +23,18 @@ Consultar pedidos internos.
 | Actor | Participación |
 |---|---|
 | Empleado | Consulta pedidos internos según los permisos asociados a su rol o función operativa |
-| Administrador | Consulta pedidos internos con permisos ampliados para supervisión y gestión |
+| Administrador | Consulta pedidos internos con permisos ampliados para supervisión, gestión y control |
 | Sistema | Valida identidad, permisos, reglas de acceso y visibilidad de la información interna |
 
 ## 3. Descripción
 
 Este caso de uso describe el flujo mediante el cual un empleado o administrador consulta pedidos internos del sistema **La Montaña** para tareas administrativas, operativas, productivas o de seguimiento.
 
-El sistema debe mostrar la información interna permitida según rol y permisos: estados internos, datos administrativos, detalles operativos, archivos autorizados, observaciones internas, auditoría relevante e información financiera cuando corresponda.
+El sistema debe mostrar únicamente la información interna permitida según rol y permisos. Esto puede incluir estados internos, datos administrativos, detalles operativos, archivos autorizados, observaciones internas, auditoría relevante e información financiera cuando corresponda.
 
 Cada usuario interno debe ver únicamente la información habilitada por su rol, permisos o función operativa. El sistema no debe exponer información interna por defecto ni depender únicamente del frontend para ocultar datos sensibles.
+
+Este caso de uso es estrictamente de consulta. No modifica pedidos, no cambia estados, no autoriza producción, no registra cobros, no genera trabajos de impresión y no cierra pedidos.
 
 ## 4. Precondición
 
@@ -42,6 +44,7 @@ Cada usuario interno debe ver únicamente la información habilitada por su rol,
 - El backend Supabase está disponible.
 - Las políticas de acceso a datos deben garantizar visibilidad adecuada según rol y permisos.
 - La consulta debe ejecutarse contra datos autorizados por backend, RLS, RPC o política equivalente.
+- El usuario no debe acceder a pedidos o información interna fuera de su alcance permitido.
 
 ## 5. Datos de entrada
 
