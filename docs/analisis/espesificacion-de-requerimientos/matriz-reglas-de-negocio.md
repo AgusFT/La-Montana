@@ -1,137 +1,215 @@
-# Matriz de reglas de negocio
+# Matriz de reglas de negocio - La Montaña
 
-## 1. Información del documento
+| Campo | Valor |
+|---|---|
+| Documento | Matriz de reglas de negocio |
+| Proyecto | La Montaña |
+| Épica relacionada | E02 - Alcance, requerimientos y planificación base |
+| Estado | Borrador inicial alineado a trazabilidad |
+| Alcance | MVP / Producto base |
+| Fuente principal | Matriz de trazabilidad inicial |
+| Última actualización | Pendiente de completar |
+| Responsable | Equipo del proyecto |
 
-| Campo                | Valor                                              |
-| -------------------- | -------------------------------------------------- |
-| Documento            | Matriz de reglas de negocio                        |
-| Proyecto             | La Montaña                                         |
-| Épica relacionada    | E02 - Alcance, requerimientos y planificación base |
-| Estado               | Borrador inicial                                   |
-| Alcance              | MVP                                                |
-| Última actualización | Pendiente de completar                             |
-| Responsable          | Equipo del proyecto                                |
+---
 
-## 2. Objetivo
+## 1. Objetivo del documento
 
-Este documento define la matriz de reglas de negocio del sistema La Montaña.
+Este documento define la matriz de reglas de negocio del sistema **La Montaña**.
 
-La matriz de reglas de negocio tiene como objetivo registrar, ordenar y hacer trazables las reglas operativas que gobiernan el comportamiento del sistema. Estas reglas determinan qué acciones están permitidas, bajo qué condiciones, quién puede ejecutarlas, qué estados se ven afectados y qué validaciones debe aplicar el sistema.
+Su objetivo es consolidar, en un único documento, las reglas críticas del negocio ya identificadas en la matriz de trazabilidad inicial.
 
-A diferencia de la matriz de trazabilidad, que demuestra la cobertura entre requerimientos, historias de usuario y casos de uso, esta matriz documenta las reglas propias del negocio de la imprenta.
+Esta matriz no agrega reglas nuevas, no expande el alcance funcional y no incorpora decisiones técnicas no validadas. Su función es ordenar las reglas críticas existentes y permitir que sean utilizadas como referencia para:
 
-## 3. Alcance de la matriz
+- diseño funcional;
+- casos de uso;
+- arquitectura;
+- modelo de datos;
+- seguridad;
+- backlog;
+- pruebas;
+- validación del MVP.
 
-Esta matriz cubre las reglas de negocio principales del MVP, especialmente las relacionadas con:
+---
 
-* gestión de pedidos;
-* revisión administrativa;
-* archivos asociados al pedido;
-* estados internos, visibles y financieros;
-* cotización;
-* seña;
-* producción;
-* impresión;
-* entrega;
-* cobro;
-* comprobantes;
-* auditoría;
-* cierre del pedido;
-* roles y permisos base.
+## 2. Relación con la matriz de trazabilidad
 
-## 4. Criterios de lectura
+La matriz de trazabilidad inicial relaciona objetivos, requerimientos funcionales, requerimientos no funcionales, historias de usuario y reglas críticas del negocio.
 
-Cada regla se identifica mediante un código único con el siguiente formato:
+Esta matriz de reglas de negocio toma como fuente esa trazabilidad y se limita a documentar las reglas críticas ya registradas allí.
 
-```text
-RN-AREA-000
-```
+Por lo tanto, las reglas incluidas en este documento deben existir previamente en la matriz de trazabilidad bajo alguno de estos tipos:
 
-Donde:
+- `RFC`: Regla funcional crítica.
+- `RNFC`: Regla no funcional crítica.
 
-* `RN` significa regla de negocio;
-* `AREA` identifica el módulo o dominio funcional;
-* `000` identifica el número secuencial de la regla.
+---
 
-Áreas iniciales utilizadas:
+## 3. Criterio de alcance
 
-| Código | Área                     |
-| ------ | ------------------------ |
-| PED    | Pedidos                  |
-| EST    | Estados                  |
-| FIN    | Finanzas                 |
-| ARC    | Archivos                 |
-| IMP    | Impresión                |
-| CIE    | Cierre del pedido        |
-| AUT    | Autenticación y permisos |
-| AUD    | Auditoría                |
-| CAN    | Canales del sistema      |
+Esta versión de la matriz de reglas de negocio incluye únicamente reglas críticas ya trazadas.
 
-## 5. Matriz de reglas de negocio
+No incluye todavía:
 
-| ID         | Área                     | Regla de negocio                                                                                                                       | Condición de aplicación                                                              | Resultado esperado                                                                                       | Actor responsable        | Estados impactados                                | Implementación sugerida                                               | Prioridad  | Riesgo si se viola                                                          |
-| ---------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------------- | --------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| RN-PED-001 | Pedidos                  | Ningún pedido creado por un cliente pasa automáticamente a producción.                                                                 | Un cliente crea un nuevo pedido.                                                     | El pedido queda registrado en estado interno `pendiente_de_revision`.                                    | Sistema                  | Estado interno                                    | RPC transaccional de creación de pedido + validación en base de datos | P0 Crítica | Un pedido podría producirse sin control administrativo.                     |
-| RN-PED-002 | Pedidos                  | Todo pedido nuevo requiere revisión administrativa humana antes de avanzar hacia producción.                                           | Pedido en estado `pendiente_de_revision`.                                            | Un empleado o administrador debe revisar el pedido antes de permitir cualquier avance productivo.        | Empleado / Administrador | Estado interno, estado visible                    | RPC de revisión administrativa + auditoría de transición              | P0 Crítica | Se elimina la mediación humana obligatoria del flujo operativo.             |
-| RN-PED-003 | Pedidos                  | Un pedido observado no debe avanzar hasta que la observación sea resuelta.                                                             | El empleado o administrador detecta datos incompletos, errores o archivos inválidos. | El pedido queda en un estado de revisión u observación y el cliente debe corregirlo o completarlo.       | Empleado / Administrador | Estado interno, estado visible                    | RPC de observación de pedido + registro de motivo                     | P1 Alta    | El pedido podría cotizarse o producirse con información incorrecta.         |
-| RN-PED-004 | Pedidos                  | La modificación de un pedido debe respetar el estado actual y los permisos del usuario.                                                | Cliente, empleado o administrador intenta modificar un pedido existente.             | El sistema permite o bloquea la modificación según estado, rol y reglas del flujo.                       | Sistema                  | Estado interno, estado financiero                 | RPC de modificación controlada + RLS                                  | P1 Alta    | Un usuario podría alterar pedidos fuera de tiempo o sin autorización.       |
-| RN-PED-005 | Pedidos                  | Si una modificación afecta cantidades, carillas, archivos o características productivas, puede requerir nueva revisión o recotización. | Se modifica un pedido ya revisado, cotizado o pendiente de confirmación.             | El sistema debe invalidar o recalcular información dependiente si corresponde.                           | Sistema / Administrador  | Estado interno, estado financiero                 | RPC transaccional con validación de impacto                           | P1 Alta    | El sistema podría mantener una cotización inválida o una seña incorrecta.   |
-| RN-EST-001 | Estados                  | El sistema debe distinguir entre estado interno, estado visible al cliente y estado financiero.                                        | Cualquier operación que consulte o modifique un pedido.                              | Cada tipo de estado se mantiene separado y cumple una función específica.                                | Sistema                  | Estado interno, estado visible, estado financiero | Modelo de datos separado + constraints + RPC                          | P0 Crítica | Se mezclaría información operativa, comercial y financiera.                 |
-| RN-EST-002 | Estados                  | El cliente solo debe visualizar estados adecuados para su rol.                                                                         | Cliente consulta el detalle o listado de pedidos.                                    | El sistema muestra el estado visible al cliente, no necesariamente el estado operativo interno completo. | Sistema                  | Estado visible                                    | Vistas, RPC de consulta según rol o políticas RLS                     | P1 Alta    | El cliente podría ver información interna innecesaria o confusa.            |
-| RN-EST-003 | Estados                  | Toda transición crítica de estado debe ser validada por backend.                                                                       | Se intenta cambiar el estado de un pedido.                                           | El cambio solo se aplica si la transición es válida según el flujo definido.                             | Sistema                  | Estado interno, visible y financiero              | RPC transaccional + tabla de historial de estados                     | P0 Crítica | El frontend podría forzar estados inválidos.                                |
-| RN-FIN-001 | Finanzas                 | Si un pedido supera las 200 carillas, requiere una seña del 30%.                                                                       | El total de carillas del pedido es mayor a 200.                                      | El estado financiero debe reflejar que existe una seña pendiente.                                        | Sistema                  | Estado financiero                                 | RPC de cálculo financiero + validación de umbral                      | P0 Crítica | El sistema podría habilitar producción sin seña obligatoria.                |
-| RN-FIN-002 | Finanzas                 | Un pedido con seña obligatoria pendiente no puede quedar habilitado para producción.                                                   | Pedido con más de 200 carillas y seña no confirmada.                                 | El sistema bloquea el avance a producción.                                                               | Sistema / Administrador  | Estado interno, estado financiero                 | RPC de habilitación para producción                                   | P0 Crítica | Se producirían pedidos grandes sin respaldo financiero mínimo.              |
-| RN-FIN-003 | Finanzas                 | El registro de pagos debe impactar el estado financiero del pedido.                                                                    | Se confirma una seña o cobro final.                                                  | El estado financiero se actualiza de forma consistente.                                                  | Empleado / Administrador | Estado financiero                                 | RPC de registro de pago + auditoría                                   | P1 Alta    | El pedido podría mostrar deuda o saldo incorrecto.                          |
-| RN-FIN-004 | Finanzas                 | El cobro final debe estar registrado antes del cierre definitivo del pedido.                                                           | Pedido listo para cerrar.                                                            | El sistema valida que la situación financiera esté completa o en estado aceptado por administración.     | Administrador            | Estado financiero, estado interno                 | RPC de cierre de pedido                                               | P0 Crítica | Se podrían cerrar pedidos sin control de cobro.                             |
-| RN-ARC-001 | Archivos                 | Los archivos del pedido son parte central del flujo operativo.                                                                         | Cliente crea o completa un pedido.                                                   | Los archivos deben asociarse formalmente al pedido.                                                      | Cliente / Sistema        | Estado interno                                    | Supabase Storage + tabla de archivos asociados                        | P0 Crítica | El pedido no podría revisarse ni imprimirse correctamente.                  |
-| RN-ARC-002 | Archivos                 | No se deben usar rutas locales del cliente como mecanismo de impresión.                                                                | Se requiere acceder a archivos para revisión o impresión.                            | El sistema debe usar archivos almacenados y autorizados desde el backend.                                | Sistema                  | N/A                                               | Supabase Storage + signed URLs o mecanismo autorizado equivalente     | P0 Crítica | La Raspberry no tendría acceso real, seguro ni reproducible a los archivos. |
-| RN-ARC-003 | Archivos                 | Todo archivo asociado a un pedido debe respetar ownership y permisos de acceso.                                                        | Un usuario intenta subir, consultar o descargar un archivo.                          | El acceso se permite solo si el usuario tiene autorización sobre el pedido.                              | Sistema                  | N/A                                               | Storage policies + RLS + validaciones backend                         | P0 Crítica | Un usuario podría acceder a archivos de pedidos ajenos.                     |
-| RN-ARC-004 | Archivos                 | Los archivos deben ser revisables antes de avanzar a producción.                                                                       | Pedido pendiente de revisión o revisión administrativa.                              | Empleado o administrador puede validar si los archivos son correctos para cotizar o producir.            | Empleado / Administrador | Estado interno                                    | Vista interna o RPC de detalle de pedido con archivos                 | P1 Alta    | Se podrían cotizar o imprimir archivos incorrectos.                         |
-| RN-IMP-001 | Impresión                | El subsistema de impresión no toma decisiones de negocio.                                                                              | Raspberry, CUPS o gateway reciben un trabajo de impresión.                           | El subsistema solo ejecuta trabajos previamente autorizados por el backend.                              | Gateway de impresión     | Estado técnico de impresión                       | Print jobs autorizados + Edge Function o RPC de generación            | P0 Crítica | La impresión podría saltarse reglas comerciales o administrativas.          |
-| RN-IMP-002 | Impresión                | Solo se deben generar print jobs para pedidos habilitados para producción.                                                             | Se solicita imprimir un pedido.                                                      | El backend valida que el pedido esté en estado productivo válido.                                        | Sistema                  | Estado interno, estado técnico de impresión       | RPC o Edge Function de generación de print job                        | P0 Crítica | Se podrían imprimir pedidos no aprobados.                                   |
-| RN-IMP-003 | Impresión                | La Raspberry/CUPS debe acceder a los archivos mediante un mecanismo real y autorizado.                                                 | Gateway necesita descargar o leer archivos para imprimir.                            | El backend entrega acceso temporal, seguro y controlado.                                                 | Sistema / Gateway        | N/A                                               | Signed URLs o mecanismo equivalente controlado por backend            | P0 Crítica | Fallaría la impresión o se expondrían archivos sin control.                 |
-| RN-IMP-004 | Impresión                | El estado técnico del print job no equivale automáticamente al cierre del pedido.                                                      | Un print job finaliza correctamente.                                                 | El pedido puede avanzar a control de calidad, pero no cerrarse automáticamente.                          | Sistema                  | Estado interno, estado técnico                    | RPC de actualización de print job + transición controlada             | P1 Alta    | Se cerrarían pedidos sin entrega, cobro ni comprobante.                     |
-| RN-CIE-001 | Cierre del pedido        | El cierre del pedido no depende solo de imprimir.                                                                                      | Pedido impreso o listo para entregar.                                                | Debe existir consistencia entre entrega, cobro, comprobante, auditoría y estado final.                   | Administrador / Sistema  | Estado interno, estado visible, estado financiero | RPC transaccional de cierre                                           | P0 Crítica | Se cerrarían pedidos incompletos o inconsistentes.                          |
-| RN-CIE-002 | Cierre del pedido        | La entrega debe registrarse antes o durante el proceso de cierre.                                                                      | Pedido listo para entregar.                                                          | El sistema registra la entrega y su responsable.                                                         | Empleado / Administrador | Estado interno, estado visible                    | RPC de registro de entrega + auditoría                                | P1 Alta    | No habría evidencia operativa de entrega.                                   |
-| RN-CIE-003 | Cierre del pedido        | Todo pedido cerrado debe tener comprobante asociado cuando corresponda.                                                                | Pedido con cobro final registrado y cierre operativo.                                | El comprobante queda asociado documentalmente al pedido.                                                 | Administrador / Sistema  | Estado financiero, estado interno                 | Storage + tabla de comprobantes + RPC de cierre                       | P1 Alta    | El cierre carecería de respaldo documental.                                 |
-| RN-AUT-001 | Autenticación y permisos | Las funciones disponibles dependen del rol del usuario.                                                                                | Usuario autenticado accede al sistema.                                               | Cliente, empleado y administrador ven y ejecutan acciones según permisos.                                | Sistema                  | N/A                                               | Supabase Auth + perfiles + RLS                                        | P0 Crítica | Usuarios podrían acceder a funciones no autorizadas.                        |
-| RN-AUT-002 | Autenticación y permisos | La seguridad y el ownership no deben depender solo del frontend.                                                                       | Cualquier operación sobre pedidos, archivos, pagos o estados.                        | El backend valida permisos y propiedad de los datos.                                                     | Sistema                  | N/A                                               | RLS + RPC con validación de usuario autenticado                       | P0 Crítica | Un cliente podría manipular datos ajenos mediante llamadas directas.        |
-| RN-AUT-003 | Autenticación y permisos | Los administradores tienen mayor capacidad operativa que empleados y clientes.                                                         | Usuario administrador opera el sistema.                                              | El sistema permite acciones administrativas restringidas.                                                | Administrador            | Según operación                                   | RLS + permisos por rol                                                | P1 Alta    | No habría diferenciación real entre operación y administración.             |
-| RN-AUD-001 | Auditoría                | Toda operación crítica debe dejar evidencia auditable.                                                                                 | Cambio de estado, revisión, pago, entrega, generación de print job o cierre.         | Se registra quién realizó la acción, cuándo y qué cambió.                                                | Sistema                  | Historial de estados / auditoría                  | Tabla de auditoría + RPC transaccional                                | P0 Crítica | No se podría reconstruir el historial del pedido.                           |
-| RN-AUD-002 | Auditoría                | El historial de estados debe conservar las transiciones relevantes del pedido.                                                         | El pedido cambia de estado interno, visible o financiero.                            | Se registra la transición anterior y nueva.                                                              | Sistema                  | Estado interno, visible y financiero              | Tabla de historial de estados                                         | P1 Alta    | No habría trazabilidad operativa del flujo.                                 |
-| RN-CAN-001 | Canales del sistema      | Web y Android deben consumir el mismo backend desde el MVP.                                                                            | Usuario opera desde Web o Android.                                                   | Ambos canales usan Supabase como fuente única de verdad.                                                 | Sistema                  | N/A                                               | Supabase Auth, PostgreSQL, Storage, RPC, Realtime y Edge Functions    | P0 Crítica | Se duplicaría lógica o se generarían inconsistencias entre canales.         |
-| RN-CAN-002 | Canales del sistema      | La web debe adaptar dashboard y funciones según rol.                                                                                   | Usuario ingresa a la aplicación web.                                                 | Cliente, empleado y administrador ven vistas y acciones diferenciadas.                                   | Sistema                  | N/A                                               | Frontend con control de rol + backend con RLS/RPC                     | P1 Alta    | Usuarios verían pantallas o acciones incorrectas.                           |
+- reglas operativas nuevas;
+- reglas derivadas no documentadas;
+- reglas específicas de implementación;
+- reglas técnicas no validadas;
+- casos de uso no cruzados formalmente;
+- reglas de pricing avanzadas;
+- reglas de configuración futura;
+- reglas post-MVP no trazadas.
 
-## 6. Relación con otros documentos
+Cualquier ampliación futura deberá justificarse primero mediante actualización de la matriz de trazabilidad.
 
-Esta matriz debe mantenerse alineada con:
+---
 
-* requerimientos funcionales;
-* requerimientos no funcionales;
-* historias de usuario;
-* casos de uso;
-* matriz de trazabilidad;
-* modelo de datos;
-* diseño de estados;
-* diseño de permisos;
-* diseño del subsistema de impresión;
-* documentación de Web y Android.
+## 4. Abreviaturas utilizadas
 
-## 7. Criterio de mantenimiento
+| Código | Significado |
+|---|---|
+| RFC | Regla funcional crítica |
+| RNFC | Regla no funcional crítica |
+| RF | Requerimiento funcional |
+| RNF | Requerimiento no funcional |
+| HU | Historia de usuario |
+| MVP | Primera versión funcional validable |
+| Producto base | Producto principal completo y coherente |
+| Post-MVP | Evolución futura o módulo opcional |
 
-Cada vez que se agregue, modifique o elimine un requerimiento, historia de usuario, caso de uso o regla crítica del flujo de pedidos, debe revisarse esta matriz.
+---
 
-Una regla de negocio no debe considerarse válida para implementación si contradice:
+## 5. Matriz de reglas funcionales críticas
 
-* la mediación administrativa obligatoria antes de producción;
-* la separación entre estado interno, estado visible y estado financiero;
-* la regla de seña del 30% para pedidos de más de 200 carillas;
-* el acceso seguro a archivos mediante backend;
-* la ejecución de impresión solo mediante trabajos autorizados;
-* el cierre consistente con entrega, cobro, comprobante, auditoría y estado final.
+| ID | Regla de negocio | Historias relacionadas | Requerimientos relacionados | Estado de cobertura | Alcance | Observación |
+|---|---|---|---|---|---|---|
+| RFC-001 | Ningún pedido creado por cliente pasa automáticamente a producción. | HU-CLI-002, HU-ADM-001, HU-SIS-001 | RF-PED-003, RF-REV-001 | Cubierta | MVP | Regla central del flujo de pedidos. Impide que un pedido creado por cliente salte la revisión administrativa. |
+| RFC-002 | Todo pedido nuevo queda inicialmente pendiente de revisión. | HU-CLI-002, HU-ADM-001, HU-SIS-001 | RF-PED-003, RF-REV-001 | Cubierta | MVP | Define el estado inicial obligatorio para pedidos creados por clientes. |
+| RFC-003 | Debe existir mediación administrativa humana antes de avanzar a producción. | HU-ADM-001, HU-ADM-002, HU-SIS-001 | RF-REV-001, RF-REV-002, RF-REV-005 | Cubierta | MVP | La revisión administrativa es una condición obligatoria antes de producción. |
+| RFC-004 | El sistema distingue estado interno, estado visible al cliente y estado financiero. | HU-CLI-004, HU-ADM-004, HU-SIS-002 | RF-EST-001, RF-EST-002, RF-EST-003 | Cubierta | MVP | Evita mezclar información operativa interna, información visible al cliente y situación financiera. |
+| RFC-005 | Si el pedido supera 200 carillas, requiere seña del 30%. | HU-CLI-006, HU-SIS-003 | RF-FIN-001, RF-FIN-002 | Cubierta | MVP | Regla financiera crítica para pedidos de mayor volumen. |
+| RFC-006 | El cierre requiere consistencia entre entrega, cobro, comprobante, auditoría y estado final. | HU-ADM-005, HU-ADM-006, HU-SIS-004 | RF-FIN-006, RF-AUD-004 | Cubierta | MVP / Producto base | El cierre no depende únicamente de imprimir el pedido. |
+| RFC-007 | Los archivos del pedido son parte central del flujo. | HU-CLI-003, HU-EMP-002, HU-IMP-002 | RF-ARC-001, RF-ARC-002, RF-ARC-006 | Cubierta | MVP | Los archivos son necesarios para revisión, producción e impresión. |
+| RFC-008 | No se usan rutas locales del cliente como mecanismo de impresión. | HU-CLI-003, HU-IMP-002 | RF-ARC-006, RNF-ARC-003 | Cubierta | MVP | El acceso a archivos debe resolverse mediante almacenamiento y autorización del backend. |
+| RFC-009 | Web y Android consumen el mismo backend. | HU-CLI-007, HU-CLI-008 | RF-WEB-001, RF-AND-001, RF-AND-005 | Cubierta | MVP | Evita duplicación de lógica y garantiza consistencia entre canales. |
+| RFC-010 | El subsistema de impresión solo ejecuta trabajos autorizados y no toma decisiones de negocio. | HU-IMP-001, HU-IMP-004 | RF-IMP-001, RF-IMP-005, RNF-IMP-001, RNF-IMP-002 | Cubierta | MVP / Producto base | Raspberry, CUPS y gateway no definen reglas comerciales ni administrativas. |
 
-## 8. Estado del documento
+---
 
-Este documento representa la versión inicial de la matriz de reglas de negocio del MVP.
+## 6. Matriz de reglas no funcionales críticas
 
-Las referencias exactas a RF, RNF, HU y CU deberán completarse o ajustarse al cruzar esta matriz con la matriz de trazabilidad consolidada.
+| ID | Regla de negocio / restricción crítica | Historias relacionadas | Documentación o etapa donde se profundiza | Estado de cobertura | Alcance | Observación |
+|---|---|---|---|---|---|---|
+| RNFC-001 | La seguridad no debe depender únicamente del frontend. | HU-SIS-005, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción | MVP | Las validaciones críticas deben existir en backend y base de datos. |
+| RNFC-002 | Supabase debe mantenerse como fuente única de verdad. | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura general y modelo de datos | Cubierta como restricción | MVP | Web, Android e impresión deben operar sobre el mismo backend. |
+| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security. | HU-SIS-005, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción | MVP | Las políticas de acceso deben proteger datos por rol y ownership. |
+| RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente. | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Storage, RLS, políticas de acceso y agente de impresión | Cubierta | MVP | Los archivos no deben quedar expuestos fuera del flujo autorizado. |
+| RNFC-005 | El cliente final no debe acceder a información interna del negocio. | HU-CLI-001, HU-CLI-004 | RLS, permisos y diseño de vistas | Cubierta | MVP | El cliente debe ver información adecuada a su rol. |
+| RNFC-006 | El agente de impresión solo debe ejecutar trabajos autorizados. | HU-IMP-001, HU-IMP-002, HU-IMP-004 | Subsistema de impresión y seguridad backend | Cubierta | MVP / Producto base | El gateway de impresión no puede operar por fuera de autorizaciones del backend. |
+| RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos. | HU-ADM-006, HU-SIS-006 | Auditoría y modelo de datos | Cubierta | MVP / Producto base | Permite reconstruir acciones críticas y cambios relevantes. |
+| RNFC-008 | El cierre del pedido no debe depender solo de la impresión. | HU-EMP-006, HU-ADM-005, HU-SIS-004 | Flujo de cierre y reglas de negocio | Cubierta | MVP / Producto base | Refuerza la regla funcional de cierre consistente. |
+| RNFC-009 | Web y Android deben respetar las mismas reglas de backend. | HU-CLI-007, HU-CLI-008, HU-SIS-005 | Arquitectura y backend Supabase | Cubierta | MVP | Ambos canales deben consumir las mismas reglas y validaciones. |
+| RNFC-010 | El producto debe evitar quedar rígidamente acoplado al cliente piloto. | HU-ADM-007 | Configuración, modularidad y arquitectura | Cubierta como criterio de diseño | Producto base | El sistema debe ser adaptable a otras imprentas en futuras etapas. |
+
+---
+
+## 7. Reglas agrupadas por área del negocio
+
+| Área | Reglas relacionadas | Descripción |
+|---|---|---|
+| Pedidos | RFC-001, RFC-002, RFC-003 | Controlan la creación del pedido, el estado inicial y la revisión administrativa obligatoria. |
+| Estados | RFC-004 | Define la separación entre estado interno, estado visible al cliente y estado financiero. |
+| Finanzas | RFC-005, RFC-006, RNFC-008 | Controlan seña, cobro, comprobantes y cierre consistente. |
+| Archivos | RFC-007, RFC-008, RNFC-004 | Definen que los archivos son parte central del flujo y deben ser accesibles de forma autorizada. |
+| Impresión | RFC-010, RNFC-006 | Limitan al subsistema de impresión a ejecutar trabajos autorizados sin decidir reglas de negocio. |
+| Seguridad | RNFC-001, RNFC-003, RNFC-005 | Definen restricciones de backend, RLS y visibilidad según rol. |
+| Arquitectura | RNFC-002, RNFC-009 | Definen Supabase como fuente única de verdad y backend común para Web y Android. |
+| Auditoría | RNFC-007 | Define la necesidad de registrar eventos críticos del flujo. |
+| Producto | RNFC-010 | Define que el producto debe evitar acoplarse rígidamente al cliente piloto. |
+| Canales | RFC-009, RNFC-009 | Definen coherencia entre Web, Android y backend. |
+
+---
+
+## 8. Cobertura por actor
+
+| Actor | Reglas relacionadas | Observación |
+|---|---|---|
+| Cliente | RFC-001, RFC-002, RFC-004, RFC-005, RFC-007, RFC-008, RFC-009, RNFC-004, RNFC-005, RNFC-009 | El cliente puede crear pedidos, adjuntar archivos y consultar estados, pero no puede saltar revisión ni acceder a información interna. |
+| Empleado | RFC-003, RFC-006, RFC-007, RFC-010, RNFC-004, RNFC-006, RNFC-008 | El empleado participa en revisión, operación, archivos, entrega e impresión dentro de reglas controladas. |
+| Administrador | RFC-003, RFC-004, RFC-006, RNFC-001, RNFC-003, RNFC-005, RNFC-007, RNFC-010 | El administrador tiene responsabilidad sobre revisión, control interno, cobros, auditoría y configuración. |
+| Agente de impresión | RFC-008, RFC-010, RNFC-004, RNFC-006 | El agente de impresión solo accede a archivos y trabajos autorizados. |
+| Sistema | RFC-001, RFC-002, RFC-004, RFC-005, RFC-006, RFC-009, RNFC-001, RNFC-002, RNFC-003, RNFC-007, RNFC-009 | El sistema aplica validaciones, estados, seguridad, trazabilidad y consistencia entre canales. |
+
+---
+
+## 9. Reglas que impactan directamente el MVP
+
+| Regla | Impacto en MVP |
+|---|---|
+| RFC-001 | El flujo de creación de pedidos debe impedir producción automática. |
+| RFC-002 | Todo pedido nuevo debe iniciar pendiente de revisión. |
+| RFC-003 | Debe existir revisión administrativa antes de producción. |
+| RFC-004 | El modelo de estados debe separar estado interno, visible y financiero. |
+| RFC-005 | El cálculo de seña debe existir para pedidos de más de 200 carillas. |
+| RFC-007 | La carga y asociación de archivos debe estar disponible desde el MVP. |
+| RFC-008 | El sistema no debe depender de rutas locales del cliente para imprimir. |
+| RFC-009 | Web y Android deben consumir el mismo backend desde el MVP. |
+| RFC-010 | El subsistema de impresión debe ejecutar solo trabajos autorizados. |
+| RNFC-001 | Las reglas críticas no pueden depender solo del frontend. |
+| RNFC-002 | Supabase debe operar como fuente única de verdad. |
+| RNFC-003 | Las tablas sensibles deben contemplar RLS. |
+| RNFC-004 | El acceso a archivos debe estar autorizado. |
+| RNFC-005 | El cliente no debe ver información interna. |
+| RNFC-006 | El agente de impresión no debe ejecutar trabajos no autorizados. |
+| RNFC-009 | Web y Android deben respetar las mismas reglas de backend. |
+
+---
+
+## 10. Reglas que requieren profundización posterior
+
+| Regla | Motivo de profundización | Documento o etapa futura |
+|---|---|---|
+| RFC-004 | La separación de estados requiere definir modelo de estados, transiciones válidas y representación en base de datos. | Arquitectura y modelo de datos |
+| RFC-006 | El cierre depende de entrega, cobro, comprobante, auditoría y estado final. | Casos de uso, modelo de datos y pruebas |
+| RFC-007 | Los archivos son centrales para revisión, producción e impresión. | Modelo de datos y arquitectura Storage |
+| RFC-010 | El agente de impresión requiere comunicación, autorización, errores y acceso a archivos. | Arquitectura del subsistema de impresión |
+| RNFC-001 | La seguridad debe traducirse a validaciones reales de backend. | Arquitectura, RLS, RPC y Edge Functions |
+| RNFC-003 | RLS debe diseñarse tabla por tabla. | Seguridad Supabase y base de datos |
+| RNFC-004 | El acceso a archivos requiere políticas Storage y permisos asociados al pedido. | Storage, RLS y agente de impresión |
+| RNFC-007 | La auditoría requiere definir eventos, tablas y escritura transaccional. | Auditoría y modelo de datos |
+| RNFC-010 | La adaptabilidad requiere definir configuración y modularidad. | Arquitectura modular y configuración |
+
+---
+
+## 11. Criterio de mantenimiento
+
+Esta matriz debe actualizarse únicamente cuando cambie la matriz de trazabilidad o cuando se apruebe formalmente una nueva regla crítica.
+
+No se deben agregar reglas nuevas directamente en este documento sin antes reflejarlas en la matriz de trazabilidad.
+
+Toda regla agregada deberá indicar como mínimo:
+
+- ID de regla crítica;
+- descripción;
+- historias relacionadas;
+- requerimientos relacionados o documentación donde se profundiza;
+- estado de cobertura;
+- alcance.
+
+---
+
+## 12. Criterios de aceptación del documento
+
+Este documento se considera válido cuando:
+
+- usa como fuente principal la matriz de trazabilidad inicial;
+- no agrega reglas no trazadas;
+- conserva las reglas funcionales críticas `RFC-001` a `RFC-010`;
+- conserva las reglas no funcionales críticas `RNFC-001` a `RNFC-010`;
+- mantiene relación con historias de usuario;
+- mantiene relación con requerimientos funcionales o no funcionales cuando corresponde;
+- identifica impacto sobre el MVP;
+- identifica reglas que requieren profundización posterior;
+- queda versionado en Git.
+
+---
