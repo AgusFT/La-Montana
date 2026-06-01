@@ -165,21 +165,6 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 
 ---
 
-## 10. Reglas que requieren profundización posterior
-
-| Regla | Motivo de profundización | Documento o etapa futura |
-|---|---|---|
-| RFC-004 | La separación de estados requiere definir modelo de estados, transiciones válidas y representación en base de datos. | Arquitectura y modelo de datos |
-| RFC-006 | El cierre depende de entrega, cobro, comprobante, auditoría y estado final. | Casos de uso, modelo de datos y pruebas |
-| RFC-007 | Los archivos son centrales para revisión, producción e impresión. | Modelo de datos y arquitectura Storage |
-| RFC-010 | El agente de impresión requiere comunicación, autorización, errores y acceso a archivos. | Arquitectura del subsistema de impresión |
-| RNFC-001 | La seguridad debe traducirse a validaciones reales de backend. | Arquitectura, RLS, RPC y Edge Functions |
-| RNFC-003 | RLS debe diseñarse tabla por tabla. | Seguridad Supabase y base de datos |
-| RNFC-004 | El acceso a archivos requiere políticas Storage y permisos asociados al pedido. | Storage, RLS y agente de impresión |
-| RNFC-007 | La auditoría requiere definir eventos, tablas y escritura transaccional. | Auditoría y modelo de datos |
-| RNFC-010 | La adaptabilidad requiere definir configuración y modularidad. | Arquitectura modular y configuración |
-
----
 
 ## 11. Criterio de mantenimiento
 
