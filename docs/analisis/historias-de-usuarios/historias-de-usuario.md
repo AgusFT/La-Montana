@@ -113,12 +113,10 @@ Cada historia incluye:
 
 | ID | Actor | Historia | Criterios de aceptación iniciales | Prioridad | Alcance | Requerimientos relacionados |
 |---|---|---|---|---|---|---|
-| HU-SIS-001 | Sistema | Como sistema, quiero impedir que pedidos creados por clientes pasen automáticamente a producción para asegurar revisión administrativa humana. | Todo pedido nuevo queda pendiente de revisión.<br>No existe avance automático a producción.<br>La aprobación requiere usuario autorizado. | P0 Crítica | MVP | RFC-001, RFC-002, RFC-003, RF-REV-001 |
-| HU-SIS-002 | Sistema | Como sistema, quiero separar estado interno, estado visible al cliente y estado financiero para evitar inconsistencias operativas. | Existen estados diferenciados.<br>El cliente no ve estados internos no destinados a él.<br>Los cambios requieren permisos. | P0 Crítica | MVP | RF-EST-001, RF-EST-002, RF-EST-003, RFC-004 |
-| HU-SIS-003 | Sistema | Como sistema, quiero aplicar la regla de seña del 30% cuando un pedido supere 200 carillas para respetar la regla financiera definida. | El sistema identifica pedidos mayores a 200 carillas.<br>El sistema marca o informa requerimiento de seña.<br>El estado financiero refleja la condición correspondiente. | P0 Crítica | MVP | RF-FIN-001, RF-FIN-002, RFC-005 |
-| HU-SIS-004 | Sistema | Como sistema, quiero validar condiciones de cierre para evitar finalizar pedidos con entrega, cobro, comprobante, auditoría o estado final inconsistentes. | El cierre valida condiciones mínimas.<br>El sistema evita cierres inconsistentes.<br>El cierre queda auditado. | P0 Crítica | Producto base | RF-FIN-006, RF-AUD-004, RFC-006 |
-| HU-SIS-005 | Sistema | Como sistema, quiero aplicar seguridad en backend y base de datos para que la protección no dependa solo del frontend. | Las operaciones sensibles validan permisos.<br>Las tablas sensibles contemplan RLS.<br>Las políticas de archivos son coherentes con pedidos y roles. | P0 Crítica | MVP | RNF-SEG-004, RNF-RLS-001, RNF-RLS-008 |
-| HU-SIS-006 | Sistema | Como sistema, quiero registrar eventos críticos del flujo de pedidos para permitir trazabilidad y auditoría. | Se registran eventos críticos.<br>Las decisiones administrativas quedan asociadas al pedido.<br>Los usuarios no autorizados no pueden modificar auditoría libremente. | P0 Crítica | MVP | RF-AUD-001, RF-AUD-002, RNF-AUD-001, RNF-AUD-004 |
+| HU-SIS-001 | Sistema | Como sistema, quiero separar estado interno, estado visible al cliente y estado financiero para evitar inconsistencias operativas. | Existen estados diferenciados.<br>El cliente no ve estados internos no destinados a él.<br>Los cambios requieren permisos. | P0 Crítica | MVP | RF-EST-001, RF-EST-002, RF-EST-003, RFC-004 |
+| HU-SIS-002 | Sistema | Como sistema, quiero aplicar la regla de seña del 30% cuando un pedido supere 200 carillas para respetar la regla financiera definida. | El sistema identifica pedidos mayores a 200 carillas.<br>El sistema marca o informa requerimiento de seña.<br>El estado financiero refleja la condición correspondiente. | P0 Crítica | MVP | RF-FIN-001, RF-FIN-002, RFC-005 |
+| HU-SIS-003 | Sistema | Como sistema, quiero aplicar seguridad en backend y base de datos para que la protección no dependa solo del frontend. | Las operaciones sensibles validan permisos.<br>Las tablas sensibles contemplan RLS.<br>Las políticas de archivos son coherentes con pedidos y roles. | P0 Crítica | MVP | RNF-SEG-004, RNF-RLS-001, RNF-RLS-008 |
+| HU-SIS-004 | Sistema | Como sistema, quiero registrar eventos críticos del flujo de pedidos para permitir trazabilidad y auditoría. | Se registran eventos críticos.<br>Las decisiones administrativas quedan asociadas al pedido.<br>Los usuarios no autorizados no pueden modificar auditoría libremente. | P0 Crítica | MVP | RF-AUD-001, RF-AUD-002, RNF-AUD-001, RNF-AUD-004 |
 
 ---
 
@@ -126,12 +124,12 @@ Cada historia incluye:
 
 | Regla | Historias relacionadas |
 |---|---|
-| Ningún pedido creado por cliente pasa automáticamente a producción | HU-CLI-002, HU-ADM-001, HU-SIS-001 |
-| Todo pedido nuevo queda pendiente de revisión | HU-CLI-002, HU-ADM-001, HU-SIS-001 |
-| Debe existir revisión administrativa humana antes de producción | HU-ADM-001, HU-ADM-002, HU-SIS-001 |
+| Ningún pedido creado por cliente pasa automáticamente a producción | HU-CLI-002, HU-ADM-001 |
+| Todo pedido nuevo queda pendiente de revisión | HU-CLI-002, HU-ADM-001 |
+| Debe existir revisión administrativa humana antes de producción | HU-ADM-001, HU-ADM-002 |
 | El sistema distingue estado interno, visible y financiero | HU-CLI-004, HU-ADM-004, HU-SIS-002 |
 | Si el pedido supera 200 carillas, requiere seña del 30% | HU-CLI-006, HU-SIS-003 |
-| El cierre requiere consistencia entre entrega, cobro, comprobante, auditoría y estado final | HU-ADM-005, HU-ADM-006, HU-SIS-004 |
+| El cierre requiere consistencia entre entrega, cobro, comprobante, auditoría y estado final | HU-ADM-005, HU-ADM-006 |
 | Los archivos del pedido son parte central del flujo | HU-CLI-003, HU-EMP-002, HU-IMP-002 |
 | No se usan rutas locales del cliente como mecanismo de impresión | HU-CLI-003, HU-IMP-002 |
 | Web y Android consumen el mismo backend | HU-CLI-007, HU-CLI-008 |
