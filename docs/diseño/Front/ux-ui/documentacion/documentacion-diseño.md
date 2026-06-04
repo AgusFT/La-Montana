@@ -44,16 +44,16 @@ Guía visual condensada con:
 ## 🎨 Paleta de Colores
 
 ### Primarios
-- **Mountain Slate** `#2C3E50` — Texto principal
-- **Mountain Blue** `#3498DB` — CTAs secundarios
-- **Summit White** `#FFFFFF` — Fondo principal
-- **Snow** `#F8F9FA` — Fondos alternos
+- **Mountain Slate** ` #2C3E50 ` — Texto principal
+- **Mountain Blue** ` #3498DB ` — CTAs secundarios
+- **Summit White** ` #CFCFCF ` — Fondo principal
+- **Mist** ` #95A5A6 ` — Fondos alternos 1
+- **Celeste** ` '#5892B9' ` — Fondo alternativo 2
 
 ### Acentos
-- **Sunset** `#E67E22` — CTA principal ⭐
-- **Earth** `#8B7355` — Acento cálido
-- **Forest** `#27AE60` — Success
-- **Mist** `#95A5A6` — Texto secundario
+- **Sunset** ` #E67E22 ` — CTA principal ⭐
+- **Earth** ` #8B7355 ` — Acento cálido
+- **Forest** ` #27AE60 ` — Success
 
 ---
 
