@@ -14,14 +14,15 @@ Documentar el flujo de negocio principal del cliente dentro de La Montaña y def
 - WF-CLI-007 — Detalle de pedido
 
 ### Fase 2
-- WF-CLI-008 — Corrección requerida
 - WF-CLI-009 — Pedido cotizado
+- WF-CLI-008 — Corrección/modificación
 - WF-CLI-011 — Pedido requiere seña
 
 ### Fase 4
 - WF-CLI-013 — Producción
-- WF-CLI-014 — Listo para retirar
-- WF-CLI-015 — Cerrado
+- WF-CLI-014 — Listo para entregar 
+- WF-CLI-015 — Ingresa código/palabra de entrega
+- WF-CLI-016 — Finalizar entrega
 
 ---
 
