@@ -11,21 +11,21 @@ Documentar el flujo de negocio principal del cliente dentro de La Montaña y def
 - WF-CLI-001 — Login
 - WF-CLI-002 — Dashboard 
 - WF-CLI-003 — Crear pedido
-- WF-CLI-007 — Detalle de pedido
+- WF-CLI-003 — Cargar Archivos y Configurar Pedido (Detalles, opcionales)
+- WF-CLI-004 — Confirmación de Archivo Cargado y Muestra conteo de número de Páginas
 
 ### Fase 2
-- WF-CLI-009 — Pedido cotizado
-- WF-CLI-008 — Corrección/modificación
-- WF-CLI-011 — Pedido requiere seña
+- WF-CLI-005 — Pedido cotizado y resumen. 
+- WF-CLI-005 — Selección de método de pago y seleccionar punto de entrega. 
+- WF-CLI-005 — Confirmar pedido.
 
-### Fase 4
-- WF-CLI-013 — Producción
-- WF-CLI-014 — Listo para entregar 
-- WF-CLI-015 — Ingresa código/palabra de entrega
-- WF-CLI-016 — Finalizar entrega
+### Fase 3
+- WF-CLI-006 — Pedido ya recibido a la espera de Revisión Administrativa
+- WF-CLI-006 — Detalles del trabajo, Archivo cargado e información del Pedido, tiempo de entrega, precio y código de retiro 
+- WF-CLI-006 — método de pago y punto de entrega
+- WF-CLI-006 — Mientras se encuentre en Revisión se puede Cancelar pedido
 
 ---
-
 # Fase 1 - Flujo Principal MVP
 
 ## WF-CLI-001 — Login
@@ -47,6 +47,7 @@ Proporcionar una vista general de la actividad del cliente.
 * Pedidos activos.
 * Pedidos recientes.
 * Acceso a creación de nuevos pedidos.
+* Acceso al detalle de cada pedido.
 
 ---
 
@@ -56,106 +57,218 @@ Proporcionar una vista general de la actividad del cliente.
 
 * HU-CLI-002
 
+### Objetivo
+
+Permitir al cliente cargar el archivo del trabajo y completar los parámetros básicos necesarios para solicitar una cotización.
+
 ### Funcionalidades principales
 
-* Ingreso de datos básicos del pedido.
-* Selección de tipo de trabajo.
-* Observaciones adicionales.
+#### Archivo del trabajo
+
+* Seleccionar archivo.
+* Validar formatos permitidos.
+* Validar tamaño máximo de 10 MB.
+* Detectar automáticamente la cantidad de páginas.
+
+#### Detalles del trabajo
+
+* Tamaño de hoja.
+* Cantidad de copias.
+* Tipo de impresión.
+  * Blanco y negro.
+  * Color.
+
+#### Opcionales
+
+* Anillado.
+* Encuadernado.
+* Doble faz.
+
+### Regla de negocio relacionada
+
+El cliente no define el precio final del pedido.
 
 ---
 
-## WF-CLI-004 — Cargar Archivos
+## WF-CLI-004 — Archivo Cargado y Previsualización de Cotización
 
 ### Historia asociada
 
 * HU-CLI-003
 
-### Funcionalidades principales
-
-* Adjuntar archivos al pedido.
-* Asociar correctamente los archivos al pedido creado.
-* Confirmar la carga de los archivos.
-
----
-
-## WF-CLI-005 — Confirmación de Creación
-
 ### Objetivo
 
-Informar al cliente que el pedido fue creado correctamente.
-
-### Estado inicial
-
-* Pendiente de revisión.
-
-### Regla de negocio relacionada
-
-Todo pedido nuevo queda inicialmente pendiente de revisión.
-
----
-
-## WF-CLI-006 — Listado de Pedidos
-
-### Historias asociadas
-
-* HU-CLI-004
-* HU-CLI-007
-
-### Funcionalidades principales
-
-* Consultar pedidos existentes.
-* Visualizar estados visibles.
-* Acceder al detalle de cada pedido.
-
----
-
-## WF-CLI-007 — Detalle de Pedido
-
-### Objetivo
-
-Permitir al cliente consultar toda la información visible del pedido.
+Mostrar al cliente la información obtenida del archivo cargado y una estimación preliminar antes de continuar.
 
 ### Información principal
 
-* Datos generales del pedido.
-* Archivos asociados.
-* Estado visible.
-* Observaciones.
-* Historial visible del pedido.
+#### Archivo cargado
+
+* Nombre del archivo.
+* Tamaño del archivo.
+* Estado de carga correcta.
+* Cantidad de páginas detectadas.
+
+#### Información estimada
+
+* Tiempo estimado de entrega.
+* Precio estimado.
+
+### Regla de negocio relacionada
+
+La cantidad de páginas se obtiene automáticamente a partir del archivo cargado.
 
 ---
 
-# Fase 2 - Revisión Administrativa
+# Fase 2 - Confirmación del Pedido
 
-## WF-CLI-008 — Pedido Requiere Corrección
+## WF-CLI-005 — Resumen y Confirmación del Pedido
+
+### Objetivo
+
+Permitir al cliente revisar toda la información antes de generar el pedido.
+
+### Información principal
+
+#### Resumen del trabajo
+
+* Cantidad de páginas.
+* Cantidad de copias.
+* Tamaño de hoja.
+* Tipo de impresión.
+* Opcionales seleccionados.
+
+#### Archivo asociado
+
+* Nombre del archivo.
+* Tamaño del archivo.
+
+#### Información económica
+
+* Precio cotizado.
+* Tiempo estimado de entrega.
+
+#### Método de pago
+
+* Efectivo.
+* Débito.
+* Transferencia.
+
+#### Punto de entrega
+
+* Selección de punto de entrega.
+* Cambio de punto de entrega.
+
+### Acciones disponibles
+
+* Volver.
+* Confirmar pedido.
+
+### Resultado esperado
+
+* Pedido creado.
+* Estado inicial: Pendiente de revisión.
+
+### Regla de negocio relacionada
+
+Todo pedido nuevo queda inicialmente pendiente de revisión administrativa.
+
+---
+
+# Fase 3 - Pedido Pendiente de Revisión
+
+## WF-CLI-006 — Pedido Recibido y En Revisión
+
+### Objetivo
+
+Permitir al cliente consultar el estado del pedido mientras es revisado por la imprenta.
+
+### Información principal
+
+#### Línea de tiempo del pedido
+
+* Pedido recibido.
+* En revisión.
+* Producción.
+* Control de calidad.
+* Listo para entregar.
+* En viaje.
+* Entregado.
+
+#### Detalles del trabajo
+
+* Cantidad de páginas.
+* Cantidad de copias.
+* Tamaño de hoja.
+* Tipo de impresión.
+* Opcionales seleccionados.
+
+#### Archivo asociado
+
+* Nombre del archivo.
+* Tamaño del archivo.
+* Descarga del archivo.
+
+#### Información del pedido
+
+* Tiempo estimado de entrega.
+* Precio.
+* Código de retiro.
+
+#### Método de pago
+
+* Método seleccionado.
+
+#### Punto de entrega
+
+* Punto seleccionado.
+
+### Acciones disponibles
+
+* Cancelar pedido.
+
+### Regla de negocio relacionada
+
+El cliente puede cancelar el pedido mientras continúe en revisión administrativa.
+
+---
+
+# Fase 4 - Revisión Administrativa
+
+## WF-CLI-007 — Pedido Requiere Corrección
 
 ### Historia asociada
 
 * HU-CLI-005
 
+### Objetivo
+
+Permitir al cliente corregir información solicitada por la imprenta.
+
 ### Funcionalidades principales
 
-* Consultar observaciones realizadas por la imprenta.
-* Identificar información faltante o incorrecta.
-* Volver a cargar archivos o corregir información.
+* Consultar observaciones.
+* Reemplazar archivos.
+* Modificar información requerida.
+* Reenviar para revisión.
 
 ---
 
-## WF-CLI-009 — Pedido Cotizado
+## WF-CLI-008 — Pedido Cotizado
 
 ### Objetivo
 
-Presentar al cliente la cotización generada por la imprenta.
+Mostrar la cotización definitiva generada por la imprenta.
 
 ### Información principal
 
-* Precio.
-* Condiciones.
-* Información relevante para la aceptación.
+* Precio definitivo.
+* Observaciones.
+* Condiciones comerciales.
 
 ---
 
-## WF-CLI-010 — Aceptar o Rechazar Cotización
+## WF-CLI-009 — Aceptar o Rechazar Cotización
 
 ### Objetivo
 
@@ -168,9 +281,9 @@ Permitir al cliente decidir si continúa o no con el pedido.
 
 ---
 
-# Fase 3 - Flujo Financiero
+# Fase 5 - Flujo Financiero
 
-## WF-CLI-011 — Pedido Requiere Seña
+## WF-CLI-010 — Pedido Requiere Seña
 
 ### Historia asociada
 
@@ -178,84 +291,75 @@ Permitir al cliente decidir si continúa o no con el pedido.
 
 ### Información principal
 
-* Monto requerido.
-* Motivo de la seña.
-* Estado financiero visible.
+* Monto de seña requerido.
+* Porcentaje aplicado.
+* Estado financiero.
 
 ### Regla de negocio relacionada
 
-Los pedidos que superen 200 carillas requieren una seña del 30%.
+Los pedidos superiores a 200 carillas requieren una seña del 30%.
 
 ---
 
-## WF-CLI-012 — Seña Registrada
+## WF-CLI-011 — Seña Registrada
 
 ### Objetivo
 
-Informar al cliente que la seña fue registrada correctamente y que el pedido puede continuar su flujo.
+Informar al cliente que la seña fue registrada correctamente.
+
+### Resultado esperado
+
+* Pedido habilitado para producción.
 
 ---
 
-# Fase 4 - Seguimiento del Pedido
+# Fase 6 - Seguimiento y Entrega
 
-## WF-CLI-013 — Pedido en Producción
+## WF-CLI-012 — Pedido en Producción
 
 ### Objetivo
 
-Permitir al cliente conocer que el pedido se encuentra siendo producido.
+Informar que el trabajo se encuentra en proceso de impresión.
 
 ---
 
-## WF-CLI-014 — Pedido Listo para Retirar
+## WF-CLI-013 — Control de Calidad
 
 ### Objetivo
 
-Informar al cliente que el trabajo se encuentra disponible para entrega o retiro.
+Informar que el trabajo se encuentra en control de calidad.
 
 ---
 
-## WF-CLI-015 — Pedido Entregado / Cerrado
+## WF-CLI-014 — Pedido Listo para Entregar
 
 ### Objetivo
 
-Mostrar la finalización del flujo del pedido.
+Informar que el pedido se encuentra disponible para entrega.
 
 ---
 
-# Resumen del Flujo Principal del Negocio - Cliente (MVP)
+## WF-CLI-015 — Pedido En Viaje
 
-```text
-Login
-    ↓
-Dashboard
-    ↓
-Crear Pedido
-    ↓
-Cargar Archivos
-    ↓
-Pedido Pendiente de Revisión
-    ↓
-┌─────────────────────────┐
-│ Requiere Corrección     │
-└──────────┬──────────────┘
-           ↓
-Corregir Pedido
-           ↓
-Pendiente de Revisión
-           ↓
-Pedido Cotizado
-           ↓
-Aceptar Cotización
-           ↓
-┌─────────────────────────┐
-│ Requiere Seña           │
-└──────────┬──────────────┘
-           ↓
-Registrar Seña
-           ↓
-Pedido en Producción
-           ↓
-Listo para Retirar
-           ↓
-Entregado / Cerrado
-```
+### Objetivo
+
+Permitir al cliente conocer que el pedido se encuentra en distribución.
+
+### Información principal
+
+* Estado de entrega.
+* Código de retiro.
+
+---
+
+## WF-CLI-016 — Pedido Entregado / Cerrado
+
+### Objetivo
+
+Mostrar la finalización completa del pedido.
+
+### Información principal
+
+* Entrega realizada.
+* Cobro registrado.
+* Pedido cerrado.
