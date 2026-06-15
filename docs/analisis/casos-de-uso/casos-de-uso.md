@@ -35,13 +35,13 @@ Cada caso de uso debe representar una intención operativa clara:
 
 Los casos de uso toman como base:
 
-- `../alcance-general.md`
-- `../objetivos-del-proyecto.md`
-- `../stakeholders-y-actores.md`
-- `../requerimientos-funcionales.md`
-- `../requerimientos-no-funcionales.md`
-- `../historias-de-usuario.md`
-- `../matriz-trazabilidad.md`
+- `../../marco-del-proyecto/alcance-general.md`
+- `../../marco-del-proyecto/objetivos-del-proyecto.md`
+- `../../marco-del-proyecto/stakeholders-y-actores.md`
+- `../espesificacion-de-requerimientos/requerimientos-funcionales.md`
+- `../espesificacion-de-requerimientos/requerimientos-no-funcionales.md`
+- `../historias-de-usuarios/historias-de-usuario.md`
+- `../../marco-del-proyecto/matriz-trazabilidad.md`
 
 ## 4. Organización
 

@@ -13,7 +13,7 @@ Este documento define el objetivo general y los objetivos específicos del siste
 
 Su finalidad es establecer con claridad qué busca lograr el sistema y qué resultados concretos deben alcanzarse para considerar que el producto cumple su propósito.
 
-Los objetivos definidos en este documento toman como base el alcance general del proyecto documentado en `docs/02-requerimientos/alcance-general.md`.
+Los objetivos definidos en este documento toman como base el alcance general del proyecto documentado en `docs/marco-del-proyecto/alcance-general.md`.
 
 ---
 

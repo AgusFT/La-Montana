@@ -11,7 +11,7 @@
 | Alcance | Producto base |
 | RF relacionados | RF-AUT-002, RF-AUT-003, RF-AUT-004, RF-AUT-005, RF-AUD-001, RF-AUD-002 |
 | RNF relacionados | RNF-SEG-003, RNF-SEG-004, RNF-SEG-006, RNF-AUT-002, RNF-AUT-004, RNF-AUT-005, RNF-RLS-003, RNF-AUD-001, RNF-AUD-004 |
-| HU relacionadas | HU-ADM-003, HU-SIS-005 |
+| HU relacionadas | HU-ADM-003, HU-SIS-003 |
 | Reglas críticas relacionadas | RNFC-001, RNFC-003, RNFC-005, RNFC-007 |
 
 ## 1. Caso de Uso

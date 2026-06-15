@@ -27,7 +27,7 @@ La documentación del proyecto se organiza en la carpeta `docs/`.
 
 Documento inicial recomendado:
 
-`docs/01-planificacion/guia-uso-github-project.md`
+`docs/marco-del-proyecto/guia-uso-github-project.md`
 
 ## Estado del repositorio
 

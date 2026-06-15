@@ -15,9 +15,9 @@ Los requerimientos funcionales describen qué debe hacer el sistema desde el pun
 
 Este documento toma como base:
 
-- `docs/02-requerimientos/alcance-general.md`
-- `docs/02-requerimientos/objetivos-del-proyecto.md`
-- `docs/02-requerimientos/stakeholders-y-actores.md`
+- `docs/marco-del-proyecto/alcance-general.md`
+- `docs/marco-del-proyecto/objetivos-del-proyecto.md`
+- `docs/marco-del-proyecto/stakeholders-y-actores.md`
 
 ---
 

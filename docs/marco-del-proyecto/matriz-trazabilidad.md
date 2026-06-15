@@ -3,8 +3,8 @@
 | Campo | Valor |
 |---|---|
 | Versión | 1.0 |
-| Estado | Borrador inicial |
-| Fecha | 2026-05-24 |
+| Estado | Actualizada con Product Backlog por épicas |
+| Fecha | 2026-06-15 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -29,12 +29,14 @@ Esta matriz toma como base los siguientes documentos:
 
 | Documento | Uso dentro de la matriz |
 |---|---|
-| `docs/02-requerimientos/alcance-general.md` | Define el alcance general y las reglas críticas del producto |
-| `docs/02-requerimientos/objetivos-del-proyecto.md` | Define objetivo general y objetivos específicos |
-| `docs/02-requerimientos/stakeholders-y-actores.md` | Define actores, stakeholders y cliente piloto |
-| `docs/02-requerimientos/requerimientos-funcionales.md` | Define qué debe hacer el sistema |
-| `docs/02-requerimientos/requerimientos-no-funcionales.md` | Define cualidades, restricciones y condiciones técnicas del sistema |
-| `docs/02-requerimientos/historias-de-usuario.md` | Define necesidades concretas desde el punto de vista de los actores |
+| `docs/marco-del-proyecto/alcance-general.md` | Define el alcance general y las reglas críticas del producto |
+| `docs/marco-del-proyecto/objetivos-del-proyecto.md` | Define objetivo general y objetivos específicos |
+| `docs/marco-del-proyecto/stakeholders-y-actores.md` | Define actores, stakeholders y cliente piloto |
+| `docs/analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md` | Define qué debe hacer el sistema |
+| `docs/analisis/espesificacion-de-requerimientos/requerimientos-no-funcionales.md` | Define cualidades, restricciones y condiciones técnicas del sistema |
+| `docs/analisis/historias-de-usuarios/historias-de-usuario.md` | Define necesidades concretas desde el punto de vista de los actores |
+| `docs/analisis/casos-de-uso/casos-de-uso.md` | Define flujos funcionales detallados por dominio |
+| `docs/marco-del-proyecto/guia-uso-github-project.md` | Define el uso del Project, épicas, milestones y criterios de seguimiento |
 
 ---
 
@@ -48,6 +50,7 @@ La trazabilidad se organiza en cuatro niveles:
 | Requerimiento | Condición funcional o no funcional necesaria para cumplir el objetivo |
 | Historia de usuario | Necesidad concreta expresada desde un actor del sistema |
 | Regla crítica | Condición de negocio que no debe romperse durante diseño, desarrollo ni operación |
+| Épica de Product Backlog | Iniciativa grande del Project que agrupa trabajo por milestone y permite planificar la entrega |
 
 ---
 
@@ -59,6 +62,7 @@ La trazabilidad se organiza en cuatro niveles:
 | RF | Requerimiento funcional |
 | RNF | Requerimiento no funcional |
 | HU | Historia de usuario |
+| E | Épica del Product Backlog |
 | RFC | Regla funcional crítica |
 | RNFC | Regla no funcional crítica |
 | MVP | Primera versión funcional validable |
@@ -73,14 +77,14 @@ La trazabilidad se organiza en cuatro niveles:
 |---|---|---|---|---|---|
 | OBJ-001 | Centralizar la gestión del pedido | RF-PED-001, RF-PED-002, RF-PED-004, RF-PED-005, RNF-ESC-002 | HU-CLI-002, HU-CLI-004, HU-EMP-001, HU-ADM-008 | Pedidos | MVP |
 | OBJ-002 | Garantizar revisión administrativa antes de producción | RF-REV-001, RF-REV-002, RF-REV-005, RNF-AUT-006 | HU-ADM-001, HU-ADM-002, HU-SIS-001 | Revisión administrativa | MVP |
-| OBJ-003 | Gestionar usuarios, roles y permisos | RF-AUT-001, RF-AUT-002, RF-AUT-003, RF-AUT-005, RNF-AUT-001, RNF-AUT-002 | HU-CLI-001, HU-ADM-003, HU-SIS-005 | Usuarios y seguridad | MVP |
+| OBJ-003 | Gestionar usuarios, roles y permisos | RF-AUT-001, RF-AUT-002, RF-AUT-003, RF-AUT-005, RNF-AUT-001, RNF-AUT-002 | HU-CLI-001, HU-ADM-003, HU-SIS-003 | Usuarios y seguridad | MVP |
 | OBJ-004 | Centralizar archivos del pedido | RF-ARC-001, RF-ARC-002, RF-ARC-003, RF-ARC-004, RF-ARC-006, RNF-ARC-001, RNF-ARC-002 | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Archivos | MVP |
 | OBJ-005 | Separar estados del pedido | RF-EST-001, RF-EST-002, RF-EST-003, RF-EST-004, RNF-SEG-005 | HU-CLI-004, HU-ADM-004, HU-SIS-002 | Estados | MVP |
 | OBJ-006 | Implementar reglas de negocio críticas | RF-REV-001, RF-FIN-002, RF-FIN-006, RF-IMP-005, RNF-SEG-004 | HU-SIS-001, HU-SIS-003, HU-SIS-004, HU-IMP-004 | Reglas de negocio | MVP / Producto base |
 | OBJ-007 | Desarrollar Web multirol | RF-WEB-001, RF-WEB-002, RF-WEB-003, RF-WEB-004, RF-WEB-005, RF-WEB-006 | HU-CLI-007, HU-ADM-008 | Web | MVP |
 | OBJ-008 | Desarrollar Android conectado al mismo backend | RF-AND-001, RF-AND-002, RF-AND-003, RF-AND-005, RNF-COM-002, RNF-COM-003 | HU-CLI-008 | Android | MVP |
 | OBJ-009 | Integrar subsistema de impresión autorizado | RF-IMP-001, RF-IMP-002, RF-IMP-003, RF-IMP-004, RF-IMP-005, RNF-IMP-001, RNF-IMP-002 | HU-IMP-001, HU-IMP-002, HU-IMP-003, HU-IMP-004 | Impresión | MVP / Producto base |
-| OBJ-010 | Garantizar trazabilidad y auditoría | RF-AUD-001, RF-AUD-002, RF-AUD-004, RF-AUD-005, RNF-AUD-001, RNF-AUD-004 | HU-EMP-003, HU-ADM-006, HU-SIS-006 | Auditoría | MVP / Producto base |
+| OBJ-010 | Garantizar trazabilidad y auditoría | RF-AUD-001, RF-AUD-002, RF-AUD-004, RF-AUD-005, RNF-AUD-001, RNF-AUD-004 | HU-EMP-003, HU-ADM-006, HU-SIS-004 | Auditoría | MVP / Producto base |
 | OBJ-011 | Mantener producto modular y adaptable | RF-CFG-001, RF-CFG-002, RF-CFG-003, RNF-MOD-001, RNF-MOD-004 | HU-ADM-007 | Configuración | Producto base |
 | OBJ-012 | Mantener documentación coherente y versionada | RNF-DOC-001, RNF-DOC-002, RNF-DOC-003, RNF-DOC-004, RNF-DOC-006 | No aplica como historia operativa directa | Documentación | MVP / Producto base |
 
@@ -90,7 +94,7 @@ La trazabilidad se organiza en cuatro niveles:
 
 | Grupo RF | Descripción | Historias relacionadas | Cobertura inicial |
 |---|---|---|---|
-| RF-AUT | Autenticación, usuarios, roles y permisos | HU-CLI-001, HU-ADM-003, HU-SIS-005 | Cubierto |
+| RF-AUT | Autenticación, usuarios, roles y permisos | HU-CLI-001, HU-ADM-003, HU-SIS-003 | Cubierto |
 | RF-PED | Gestión de pedidos | HU-CLI-002, HU-CLI-004, HU-EMP-001, HU-EMP-003, HU-ADM-008 | Cubierto |
 | RF-ARC | Gestión de archivos | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Cubierto |
 | RF-REV | Revisión administrativa | HU-ADM-001, HU-ADM-002, HU-SIS-001, HU-CLI-005, HU-EMP-004 | Cubierto |
@@ -99,7 +103,7 @@ La trazabilidad se organiza en cuatro niveles:
 | RF-WEB | Aplicación Web | HU-CLI-007, HU-ADM-008, HU-EMP-006 | Cubierto |
 | RF-AND | Aplicación Android | HU-CLI-008 | Cobertura inicial mínima |
 | RF-IMP | Subsistema de impresión | HU-IMP-001, HU-IMP-002, HU-IMP-003, HU-IMP-004, HU-EMP-005 | Cubierto |
-| RF-AUD | Trazabilidad y auditoría | HU-EMP-003, HU-EMP-005, HU-ADM-006, HU-SIS-006 | Cubierto |
+| RF-AUD | Trazabilidad y auditoría | HU-EMP-003, HU-EMP-005, HU-ADM-006, HU-SIS-004 | Cubierto |
 | RF-CFG | Configuración y adaptación del producto | HU-ADM-007 | Cobertura inicial mínima |
 
 ---
@@ -108,16 +112,16 @@ La trazabilidad se organiza en cuatro niveles:
 
 | Grupo RNF | Descripción | Historias relacionadas | Cobertura inicial |
 |---|---|---|---|
-| RNF-SEG | Seguridad | HU-CLI-001, HU-CLI-004, HU-ADM-003, HU-SIS-005 | Cubierto |
-| RNF-AUT | Autenticación, autorización y permisos | HU-CLI-001, HU-EMP-001, HU-EMP-004, HU-ADM-002, HU-ADM-003, HU-SIS-005 | Cubierto |
-| RNF-RLS | Row Level Security en Supabase | HU-CLI-001, HU-CLI-004, HU-IMP-002, HU-SIS-005 | Cubierto como restricción técnica |
+| RNF-SEG | Seguridad | HU-CLI-001, HU-CLI-004, HU-ADM-003, HU-SIS-003 | Cubierto |
+| RNF-AUT | Autenticación, autorización y permisos | HU-CLI-001, HU-EMP-001, HU-EMP-004, HU-ADM-002, HU-ADM-003, HU-SIS-003 | Cubierto |
+| RNF-RLS | Row Level Security en Supabase | HU-CLI-001, HU-CLI-004, HU-IMP-002, HU-SIS-003 | Cubierto como restricción técnica |
 | RNF-ARC | Protección y acceso a archivos | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Cubierto |
-| RNF-AUD | Trazabilidad y auditoría | HU-EMP-003, HU-ADM-006, HU-SIS-006 | Cubierto |
+| RNF-AUD | Trazabilidad y auditoría | HU-EMP-003, HU-ADM-006, HU-SIS-004 | Cubierto |
 | RNF-MAN | Mantenibilidad | No aplica como historia operativa directa | Debe tratarse en arquitectura y desarrollo |
 | RNF-MOD | Modularidad y extensibilidad | HU-ADM-007 | Cobertura inicial |
 | RNF-ESC | Escalabilidad | HU-ADM-007, HU-IMP-001 | Debe tratarse en arquitectura |
 | RNF-REN | Rendimiento | HU-CLI-004, HU-CLI-007, HU-CLI-008, HU-EMP-001 | Debe tratarse en arquitectura y pruebas |
-| RNF-DIS | Disponibilidad y continuidad operativa | HU-EMP-005, HU-SIS-006 | Cobertura inicial |
+| RNF-DIS | Disponibilidad y continuidad operativa | HU-EMP-005, HU-SIS-004 | Cobertura inicial |
 | RNF-USA | Usabilidad | HU-CLI-004, HU-CLI-007, HU-CLI-008, HU-ADM-008 | Cubierto |
 | RNF-COM | Compatibilidad | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Cubierto |
 | RNF-IMP | Operación del subsistema de impresión | HU-IMP-001, HU-IMP-002, HU-IMP-003, HU-IMP-004 | Cubierto |
@@ -146,15 +150,15 @@ La trazabilidad se organiza en cuatro niveles:
 
 | Regla crítica | Descripción | Historias relacionadas | Documentación o etapa donde se profundiza | Estado de cobertura |
 |---|---|---|---|---|
-| RNFC-001 | La seguridad no debe depender únicamente del frontend | HU-SIS-005, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción |
+| RNFC-001 | La seguridad no debe depender únicamente del frontend | HU-SIS-003, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción |
 | RNFC-002 | Supabase debe mantenerse como fuente única de verdad | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura general y modelo de datos | Cubierta como restricción |
-| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security | HU-SIS-005, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción |
+| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security | HU-SIS-003, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción |
 | RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Storage, RLS, políticas de acceso y agente de impresión | Cubierta |
 | RNFC-005 | El cliente final no debe acceder a información interna del negocio | HU-CLI-001, HU-CLI-004 | RLS, permisos y diseño de vistas | Cubierta |
 | RNFC-006 | El agente de impresión solo debe ejecutar trabajos autorizados | HU-IMP-001, HU-IMP-002, HU-IMP-004 | Subsistema de impresión y seguridad backend | Cubierta |
-| RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos | HU-ADM-006, HU-SIS-006 | Auditoría y modelo de datos | Cubierta |
+| RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos | HU-ADM-006, HU-SIS-004 | Auditoría y modelo de datos | Cubierta |
 | RNFC-008 | El cierre del pedido no debe depender solo de la impresión | HU-EMP-006, HU-ADM-005, HU-SIS-004 | Flujo de cierre y reglas de negocio | Cubierta |
-| RNFC-009 | Web y Android deben respetar las mismas reglas de backend | HU-CLI-007, HU-CLI-008, HU-SIS-005 | Arquitectura y backend Supabase | Cubierta |
+| RNFC-009 | Web y Android deben respetar las mismas reglas de backend | HU-CLI-007, HU-CLI-008, HU-SIS-003 | Arquitectura y backend Supabase | Cubierta |
 | RNFC-010 | El producto debe evitar quedar rígidamente acoplado al cliente piloto | HU-ADM-007 | Configuración, modularidad y arquitectura | Cubierta como criterio de diseño |
 
 ---
@@ -167,11 +171,31 @@ La trazabilidad se organiza en cuatro niveles:
 | Empleado | HU-EMP-001 a HU-EMP-006 | Consulta operativa, archivos, observaciones, producción, incidencias, entrega | Cobertura operativa inicial |
 | Administrador | HU-ADM-001 a HU-ADM-008 | Revisión, aprobación, usuarios, estados, cobros, auditoría, configuración, panel Web | Cobertura fuerte para control interno |
 | Agente de impresión | HU-IMP-001 a HU-IMP-004 | Print jobs, archivos autorizados, reporte técnico, separación de negocio | Cobertura suficiente para definir arquitectura del subsistema |
-| Sistema | HU-SIS-001 a HU-SIS-006 | Reglas automáticas, estados, seña, cierre, seguridad, auditoría | Cobertura fuerte de reglas críticas |
+| Sistema | HU-SIS-001 a HU-SIS-004 | Reglas automáticas, estados, seña, cierre, seguridad, auditoría | Cobertura fuerte de reglas críticas |
 
 ---
 
-## 11. Brechas y puntos a profundizar
+## 11. Trazabilidad con Product Backlog y milestones
+
+El GitHub Project se organiza como Product Backlog de alto nivel mediante épicas asociadas a milestones. Las historias de usuario, casos de uso, requerimientos y reglas críticas quedan como documentación de soporte y trazabilidad funcional.
+
+| Épica | Issue | Milestone | Objetivos relacionados | Evidencia o issues relacionados |
+|---|---:|---|---|---|
+| E01 - Gestion del proyecto y documentacion academica | #14 | M0 - Setup del repo y Project | OBJ-012 | #15, #16, #17, #18 |
+| E02 - Alcance, requerimientos y planificacion base | #19 | M1 - Documentacion base de alcance y planificacion | OBJ-001 a OBJ-012 | #20, #21, #22, #23, #25, #26, #27, #28, #35 |
+| E03 - Diseño UX/UI y prototipo MVP | #43 | M1 - Documentacion base de alcance y planificacion | OBJ-007, OBJ-012 | #32, #33, #36, #38, #39, #40, #41 |
+| E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #24, diagramas de arquitectura |
+| E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | RF, RNF, casos de uso y reglas críticas |
+| E06 - Portal Web cliente MVP | #46 | M4 - MVP Web | OBJ-001, OBJ-004, OBJ-007 | #36, #38, #39, #40, #41, HU de cliente |
+| E07 - Panel Web administrativo MVP | #47 | M4 - MVP Web | OBJ-002, OBJ-005, OBJ-006, OBJ-007, OBJ-010 | Wireflows administrador, CU-REV, CU-CIE |
+| E08 - Aplicación Android MVP | #48 | M5 - MVP Android | OBJ-008 | CU-AND-001, CU-AND-002, HU-CLI-008 |
+| E09 - Subsistema de impresión | #49 | M6 - Subsistema de impresion | OBJ-009 | CU-IMP-001 a CU-IMP-006 |
+| E10 - Integración end-to-end del flujo de pedidos | #50 | M7 - Integracion end-to-end | OBJ-001 a OBJ-010 | Flujo completo de pedido, cierre y auditoría |
+| E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #37, README, demo y evidencias finales |
+
+---
+
+## 12. Brechas y puntos a profundizar
 
 La matriz no detecta reglas críticas sin cobertura inicial.
 
@@ -189,12 +213,12 @@ Sin embargo, existen puntos que deberán profundizarse en documentos posteriores
 
 ---
 
-## 12. Uso de esta matriz
+## 13. Uso de esta matriz
 
 Esta matriz debe usarse como referencia para:
 
 - crear casos de uso;
-- priorizar backlog;
+- priorizar el Product Backlog por épicas;
 - validar que cada historia tenga respaldo;
 - detectar requerimientos sin implementación planificada;
 - diseñar el modelo de datos;
@@ -202,15 +226,16 @@ Esta matriz debe usarse como referencia para:
 - definir pruebas funcionales;
 - validar la coherencia entre documentación, GitHub Project y desarrollo.
 
-Cuando se agreguen nuevos requerimientos o historias, esta matriz debe actualizarse para evitar pérdida de trazabilidad.
+Cuando se agreguen nuevos requerimientos, historias, épicas o milestones, esta matriz debe actualizarse para evitar pérdida de trazabilidad.
 
 ---
 
-## 13. Criterios de aceptación del documento
+## 14. Criterios de aceptación del documento
 
 Este documento se considera completo cuando:
 
 - relaciona objetivos, requerimientos, historias y reglas críticas;
+- relaciona épicas del Product Backlog con milestones y evidencia existente;
 - permite verificar cobertura de reglas de negocio;
 - identifica brechas o puntos a profundizar;
 - mantiene coherencia con los documentos base de requerimientos;

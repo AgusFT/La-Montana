@@ -11,7 +11,7 @@
 | Alcance | MVP |
 | RF relacionados | RF-AND-001, RF-AND-002, RF-AND-003, RF-AND-005, RF-PED-004, RF-EST-002, RF-EST-006, RF-AUT-001, RF-AUT-003 |
 | RNF relacionados | RNF-SEG-003, RNF-SEG-005, RNF-AUT-001, RNF-AUT-002, RNF-RLS-002, RNF-USA-002, RNF-REN-001, RNF-COM-002, RNF-COM-003 |
-| HU relacionadas | HU-CLI-004, HU-CLI-008, HU-SIS-005 |
+| HU relacionadas | HU-CLI-004, HU-CLI-008, HU-SIS-003 |
 | Reglas críticas relacionadas | RFC-004, RFC-009, RNFC-001, RNFC-003, RNFC-005, RNFC-009 |
 
 ## 1. Caso de Uso

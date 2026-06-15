@@ -8,7 +8,7 @@
 | Estado | Borrador inicial alineado a trazabilidad |
 | Alcance | MVP / Producto base |
 | Fuente principal | Matriz de trazabilidad inicial |
-| Última actualización | Pendiente de completar |
+| Última actualización | 2026-06-15 |
 | Responsable | Equipo del proyecto |
 
 ---
@@ -100,15 +100,15 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 
 | ID | Regla de negocio / restricción crítica | Historias relacionadas | Documentación o etapa donde se profundiza | Estado de cobertura | Alcance | Observación |
 |---|---|---|---|---|---|---|
-| RNFC-001 | La seguridad no debe depender únicamente del frontend. | HU-SIS-005, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción | MVP | Las validaciones críticas deben existir en backend y base de datos. |
+| RNFC-001 | La seguridad no debe depender únicamente del frontend. | HU-SIS-003, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción | MVP | Las validaciones críticas deben existir en backend y base de datos. |
 | RNFC-002 | Supabase debe mantenerse como fuente única de verdad. | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura general y modelo de datos | Cubierta como restricción | MVP | Web, Android e impresión deben operar sobre el mismo backend. |
-| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security. | HU-SIS-005, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción | MVP | Las políticas de acceso deben proteger datos por rol y ownership. |
+| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security. | HU-SIS-003, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción | MVP | Las políticas de acceso deben proteger datos por rol y ownership. |
 | RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente. | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Storage, RLS, políticas de acceso y agente de impresión | Cubierta | MVP | Los archivos no deben quedar expuestos fuera del flujo autorizado. |
 | RNFC-005 | El cliente final no debe acceder a información interna del negocio. | HU-CLI-001, HU-CLI-004 | RLS, permisos y diseño de vistas | Cubierta | MVP | El cliente debe ver información adecuada a su rol. |
 | RNFC-006 | El agente de impresión solo debe ejecutar trabajos autorizados. | HU-IMP-001, HU-IMP-002, HU-IMP-004 | Subsistema de impresión y seguridad backend | Cubierta | MVP / Producto base | El gateway de impresión no puede operar por fuera de autorizaciones del backend. |
-| RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos. | HU-ADM-006, HU-SIS-006 | Auditoría y modelo de datos | Cubierta | MVP / Producto base | Permite reconstruir acciones críticas y cambios relevantes. |
+| RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos. | HU-ADM-006, HU-SIS-004 | Auditoría y modelo de datos | Cubierta | MVP / Producto base | Permite reconstruir acciones críticas y cambios relevantes. |
 | RNFC-008 | El cierre del pedido no debe depender solo de la impresión. | HU-EMP-006, HU-ADM-005, HU-SIS-004 | Flujo de cierre y reglas de negocio | Cubierta | MVP / Producto base | Refuerza la regla funcional de cierre consistente. |
-| RNFC-009 | Web y Android deben respetar las mismas reglas de backend. | HU-CLI-007, HU-CLI-008, HU-SIS-005 | Arquitectura y backend Supabase | Cubierta | MVP | Ambos canales deben consumir las mismas reglas y validaciones. |
+| RNFC-009 | Web y Android deben respetar las mismas reglas de backend. | HU-CLI-007, HU-CLI-008, HU-SIS-003 | Arquitectura y backend Supabase | Cubierta | MVP | Ambos canales deben consumir las mismas reglas y validaciones. |
 | RNFC-010 | El producto debe evitar quedar rígidamente acoplado al cliente piloto. | HU-ADM-007 | Configuración, modularidad y arquitectura | Cubierta como criterio de diseño | Producto base | El sistema debe ser adaptable a otras imprentas en futuras etapas. |
 
 ---

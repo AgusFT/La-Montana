@@ -40,19 +40,21 @@ Decisiones cerradas:
 
 No se usará Scrum completo porque el equipo tiene dos integrantes y dedicación semanal reducida.
 
-Se usará Kanban liviano + milestones + puntos de control + backlog estructurado.
+Se usará Kanban liviano + milestones + puntos de control + Product Backlog estructurado por épicas.
 
 Esto significa:
 
 - No hay sprints rígidos por defecto.
 - Las tareas avanzan por estados Kanban.
 - Las entregas grandes se organizan con milestones.
-- Las tareas se estructuran en épicas, historias de usuario y tareas técnicas.
+- El Product Backlog se organiza primero por épicas grandes asociadas a milestones.
+- Las historias de usuario, casos de uso y requerimientos documentados sirven como trazabilidad funcional.
+- Cuando una épica entra en ejecución, puede bajarse a historias de usuario implementables, tareas técnicas, spikes o bugs.
 - El avance debe poder ser explicado y defendido con evidencia documental, funcional y técnica.
 
 ## 4. Jerarquía de trabajo
 
-La estructura recomendada es:
+La estructura recomendada para el Project es:
 
 - Épica.
   - Historia de usuario.
@@ -61,7 +63,9 @@ La estructura recomendada es:
 
 Regla:
 
-Si una tarea toca muchas áreas, se debe dividir en sub-issues.
+En el Product Backlog principal deben aparecer primero las épicas grandes del producto o de la entrega. Las historias de usuario no tienen que duplicarse todas como issues si ya están documentadas en `docs/analisis/historias-de-usuarios/historias-de-usuario.md`; deben crearse como issues cuando se transformen en trabajo ejecutable.
+
+Si una tarea toca muchas áreas, se debe dividir en sub-issues o issues derivados.
 
 Ejemplo incorrecto:
 
@@ -241,6 +245,22 @@ La vista Ruta Critica es un roadmap manual. GitHub Projects no calcula automáti
 
 No usar milestones para áreas técnicas. Para eso existe Area.
 
+### 15.1 Mapa actual de épicas y milestones
+
+| Épica | Issue | Milestone | Propósito |
+|---|---:|---|---|
+| E01 - Gestion del proyecto y documentacion academica | #14 | M0 | Organización inicial del repo, Project y documentación base |
+| E02 - Alcance, requerimientos y planificacion base | #19 | M1 | Alcance, objetivos, stakeholders, RF, RNF, HU, casos de uso y trazabilidad |
+| E03 - Diseño UX/UI y prototipo MVP | #43 | M1 | Wireflows, wireframes, mockups y soporte visual del MVP |
+| E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 | Arquitectura, modelo de datos, estados, Storage, Auth y RLS |
+| E05 - Backend MVP en Supabase | #45 | M3 | Backend funcional para pedidos, archivos, estados, auditoría y reglas críticas |
+| E06 - Portal Web cliente MVP | #46 | M4 | Portal Web para clientes: login, dashboard, creación y seguimiento de pedidos |
+| E07 - Panel Web administrativo MVP | #47 | M4 | Panel interno para revisión, aprobación, corrección, producción y entrega |
+| E08 - Aplicación Android MVP | #48 | M5 | App Android conectada al mismo backend para consulta de pedidos y estados |
+| E09 - Subsistema de impresión | #49 | M6 | Raspberry Pi, CUPS, agente/gateway y print jobs autorizados |
+| E10 - Integración end-to-end del flujo de pedidos | #50 | M7 | Integración completa entre Web, Android, backend e impresión |
+| E11 - Validación, pruebas y documentación final | #51 | M8 | Pruebas, evidencia, demo, defensa y cierre documental |
+
 ## 16. Flujo de uso: crear una épica
 
 1. Ir a Issues.
@@ -344,6 +364,8 @@ El GitHub Project se usa como dashboard oficial.
 
 Cuando propongas issues, respetá esta estructura:
 
+- Para backlog inicial, proponé primero épicas grandes vinculadas a milestones.
+- Para implementación, bajá cada épica a historias de usuario, tareas técnicas o spikes según corresponda.
 - Status.
 - Area.
 - Tipo.

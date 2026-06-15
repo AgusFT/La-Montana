@@ -15,11 +15,11 @@ Las historias de usuario describen necesidades concretas desde el punto de vista
 
 Este documento toma como base:
 
-- `docs/02-requerimientos/alcance-general.md`
-- `docs/02-requerimientos/objetivos-del-proyecto.md`
-- `docs/02-requerimientos/stakeholders-y-actores.md`
-- `docs/02-requerimientos/requerimientos-funcionales.md`
-- `docs/02-requerimientos/requerimientos-no-funcionales.md`
+- `docs/marco-del-proyecto/alcance-general.md`
+- `docs/marco-del-proyecto/objetivos-del-proyecto.md`
+- `docs/marco-del-proyecto/stakeholders-y-actores.md`
+- `docs/analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md`
+- `docs/analisis/espesificacion-de-requerimientos/requerimientos-no-funcionales.md`
 
 ---
 
@@ -127,8 +127,8 @@ Cada historia incluye:
 | Ningún pedido creado por cliente pasa automáticamente a producción | HU-CLI-002, HU-ADM-001 |
 | Todo pedido nuevo queda pendiente de revisión | HU-CLI-002, HU-ADM-001 |
 | Debe existir revisión administrativa humana antes de producción | HU-ADM-001, HU-ADM-002 |
-| El sistema distingue estado interno, visible y financiero | HU-CLI-004, HU-ADM-004, HU-SIS-002 |
-| Si el pedido supera 200 carillas, requiere seña del 30% | HU-CLI-006, HU-SIS-003 |
+| El sistema distingue estado interno, visible y financiero | HU-CLI-004, HU-ADM-004, HU-SIS-001 |
+| Si el pedido supera 200 carillas, requiere seña del 30% | HU-CLI-006, HU-SIS-002 |
 | El cierre requiere consistencia entre entrega, cobro, comprobante, auditoría y estado final | HU-ADM-005, HU-ADM-006 |
 | Los archivos del pedido son parte central del flujo | HU-CLI-003, HU-EMP-002, HU-IMP-002 |
 | No se usan rutas locales del cliente como mecanismo de impresión | HU-CLI-003, HU-IMP-002 |
