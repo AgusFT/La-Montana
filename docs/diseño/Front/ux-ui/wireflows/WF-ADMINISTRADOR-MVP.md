@@ -21,28 +21,42 @@ El administrador es responsable de:
 
 ## Fase 1 - Gestión Inicial
 
-- WF-ADM-001 — Login
-- WF-ADM-002 — Dashboard Administrativo
-- WF-ADM-003 — Listado de Pedidos Pendientes
-- WF-ADM-004 — Revisar Pedido
+
+- WF-ADM-001 — Dashboard Administrativo
+- WF-ADM-001 — Listado de Pedidos Pendientes
+- WF-ADM-002 — Revisar Pedido
 
 ## Fase 2 - Decisión Administrativa
 
-- WF-ADM-005 — Solicitar Corrección
-- WF-ADM-006 — Pedido Rechazado
-- WF-ADM-007 — Aprobar Pedido
+- WF-ADM-002 — Pedido Rechazado / Aprobar Pedido
+- WF-ADM-003 — Solicitar Corrección
 
-## Fase 3 - Producción
+## Fase 3 - Pedidos Aprobados
 
-- WF-ADM-008 — Enviar a Producción
-- WF-ADM-009 — Pedido en Producción
-- WF-ADM-010 — Control de Calidad
+- WF-ADM-004 — Pedidos Aprobados
+- WF-ADM-005 — Detalle Pedido Aprobado
 
-## Fase 4 - Entrega
 
-- WF-ADM-011 — Listo para Entregar
-- WF-ADM-012 — Registrar Entrega
-- WF-ADM-013 — Pedido Entregado
+## Fase 4 - Producción
+
+- WF-ADM-006 — Producción
+- WF-ADM-007 — Control de Calidad
+
+## Fase 4 - Listo Para Entregar
+
+- WF-ADM-008 — Lista Entregas Pendientes
+- WF-ADM-009 — Ver Detalle Pedido A Entregar
+
+## Fase 5 - En Viaje 
+
+- WF-ADM-010 — Entregas del día
+- WF-ADM-011 — Ingresar Código de Pedido
+- WF-ADM-012 — Código Validado
+
+## Fase 6 - Entregado
+
+- WF-ADM-012 — Finalizar Entrega
+- WF-ADM-013 — Registrar Cobro
 
 ---
 
