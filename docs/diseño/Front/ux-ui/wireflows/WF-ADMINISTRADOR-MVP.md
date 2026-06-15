@@ -62,15 +62,7 @@ El administrador es responsable de:
 
 # Fase 1 - Gestión Inicial
 
-## WF-ADM-001 — Login
-
-### Objetivo
-
-Permitir al administrador autenticarse en el sistema.
-
----
-
-## WF-ADM-002 — Dashboard Administrativo
+## WF-ADM-001 — Dashboard Administrativo
 
 ### Objetivo
 
@@ -78,56 +70,80 @@ Proporcionar una vista consolidada de la operación diaria.
 
 ### Información principal
 
-- Pedidos pendientes de revisión.
-- Pedidos aprobados.
-- Pedidos esperando seña.
-- Pedidos en producción.
-- Entregas pendientes.
-- Alertas operativas.
+#### Pendientes de revisión
+
+Pedidos que requieren validación administrativa.
+
+#### En revisión
+
+Pedidos actualmente analizados por administración.
+
+#### Esperando seña
+
+Pedidos que requieren pago parcial para continuar.
+
+#### Entregas pendientes
+
+Pedidos listos para ser programados para entrega.
+
+#### Facturación
+
+Resumen financiero del período.
+
+#### Alertas
+
+Incidencias operativas que requieren atención.
 
 ### Acciones disponibles
 
-- Ver detalle de pedido.
 - Revisar pedido.
+- Gestionar correcciones.
+- Aprobar pedidos.
 - Gestionar producción.
 - Gestionar entregas.
 
 ---
 
-## WF-ADM-003 — Listado de Pedidos Pendientes
+## WF-ADM-002 — Listado de Pedidos Pendientes
 
 ### Objetivo
 
-Mostrar todos los pedidos que requieren intervención administrativa.
+Mostrar los pedidos que requieren intervención administrativa.
 
 ### Información principal
 
 - Número de pedido.
 - Cliente.
-- Fecha de creación.
+- Fecha de recepción.
 - Cantidad de páginas.
+- Cantidad de copias.
 - Estado actual.
+
+### Acciones disponibles
+
+- Revisar pedido.
 
 ---
 
-## WF-ADM-004 — Revisar Pedido
+## WF-ADM-002 — Revisar Pedido
 
 ### Objetivo
 
-Analizar el pedido antes de habilitar cualquier avance.
+Analizar el pedido antes de tomar una decisión administrativa.
 
 ### Información visible
 
 #### Cliente
 
 - Nombre.
-- Contacto.
+- Teléfono.
 - Email.
 
 #### Archivo
 
-- Nombre del archivo.
+- Nombre.
 - Tamaño.
+- Vista previa.
 - Descarga.
 
 #### Trabajo
@@ -141,8 +157,9 @@ Analizar el pedido antes de habilitar cualquier avance.
 #### Pedido
 
 - Fecha.
-- Requiere seña.
 - Estado.
+- Requiere seña.
+- Monto estimado.
 
 ### Acciones disponibles
 
@@ -154,16 +171,58 @@ Analizar el pedido antes de habilitar cualquier avance.
 
 # Fase 2 - Decisión Administrativa
 
-## WF-ADM-005 — Solicitar Corrección
+## WF-ADM-002 — Pedido Rechazado / Aprobar Pedido
 
 ### Objetivo
 
-Enviar observaciones al cliente para corregir información o archivos.
+Registrar la decisión administrativa sobre el pedido.
+
+### Escenario A — Rechazar
+
+#### Información principal
+
+- Motivo de rechazo.
+- Fecha.
+- Usuario responsable.
+
+### Resultado esperado
+
+Estado interno:
+
+- Rechazado.
+
+Estado visible:
+
+- Pedido rechazado.
+
+### Escenario B — Aprobar
+
+#### Validaciones mínimas
+
+- Archivo válido.
+- Datos completos.
+- Configuración correcta.
+- Reglas de negocio cumplidas.
+
+### Resultado esperado
+
+Estado interno:
+
+- Aprobado.
+
+---
+
+## WF-ADM-003 — Solicitar Corrección
+
+### Objetivo
+
+Solicitar modificaciones o correcciones al cliente.
 
 ### Información principal
 
-- Datos del pedido.
-- Observaciones administrativas.
+- Pedido.
+- Observaciones.
+- Archivos observados.
 
 ### Acciones disponibles
 
@@ -172,82 +231,116 @@ Enviar observaciones al cliente para corregir información o archivos.
 
 ### Resultado esperado
 
-Pedido pasa a:
+Estado interno:
 
 - Corrección solicitada.
 
+Estado visible:
+
+- Requiere corrección.
+
 ---
 
-## WF-ADM-006 — Pedido Rechazado
+# Fase 3 - Pedidos Aprobados
+
+## WF-ADM-004 — Pedidos Aprobados
 
 ### Objetivo
 
-Registrar que el pedido fue rechazado.
+Mostrar los pedidos aprobados que todavía no fueron enviados a producción.
 
 ### Información principal
 
-- Motivo de rechazo.
-- Fecha.
-- Usuario responsable.
+- Pedido.
+- Cliente.
+- Lugar de entrega.
+- Fecha de solicitud.
+- Fecha de entrega.
+- Franja horaria.
+
+### Acciones disponibles
+
+- Ver detalle.
+- Enviar a producción.
 
 ### Resultado esperado
 
-Pedido finaliza sin avanzar a producción.
+El administrador selecciona qué pedido enviar a producción.
 
 ---
 
-## WF-ADM-007 — Aprobar Pedido
+## WF-ADM-005 — Detalle Pedido Aprobado
 
 ### Objetivo
 
-Validar formalmente el pedido.
+Visualizar toda la información del pedido aprobado antes de enviarlo a producción.
 
-### Validaciones mínimas
+### Información visible
 
-- Archivo presente.
-- Datos completos.
-- Configuración válida.
-- Reglas de negocio cumplidas.
+#### Cliente
 
-### Resultado esperado
+- Nombre.
+- Contacto.
+- Email.
 
-Pedido pasa a:
+#### Trabajo
 
-- Aprobado.
+- Tamaño de hoja.
+- Tipo de impresión.
+- Cantidad de hojas.
+- Cantidad de copias.
+- Opcionales.
+
+#### Entrega
+
+- Dirección.
+- Franja horaria.
+- Fecha programada.
+
+#### Archivo
+
+- Nombre.
+- Tamaño.
+- Visualización.
+
+### Acciones disponibles
+
+- Ver documento.
+- Enviar a producción.
 
 ---
 
-# Fase 3 - Producción
+# Fase 4 - Producción
 
-## WF-ADM-008 — Enviar a Producción
+## WF-ADM-006 — Producción
 
 ### Objetivo
 
-Generar la orden de impresión.
+Configurar el trabajo para impresión.
 
-### Información principal
+### Información visible
 
 #### Cliente
 
 - Datos básicos.
 
-#### Archivo
-
-- Archivo aprobado.
-- Tamaño.
-
 #### Trabajo
 
-- Configuración seleccionada.
+- Configuración aprobada.
 
-#### Producción
+#### Archivo
+
+- Archivo seleccionado para impresión.
+
+#### Impresora
 
 - Impresora seleccionada.
 
 ### Acciones disponibles
 
+- Seleccionar archivo.
 - Seleccionar impresora.
-- Enviar a producción.
+- Imprimir.
 - Cancelar.
 
 ### Resultado esperado
@@ -256,28 +349,15 @@ Se genera un Print Job autorizado.
 
 ---
 
-## WF-ADM-009 — Pedido en Producción
+## WF-ADM-007 — Control de Calidad
 
 ### Objetivo
 
-Monitorear el avance del trabajo.
+Validar que la impresión sea correcta antes de habilitar la entrega.
 
 ### Información principal
 
-- Estado técnico.
-- Impresora utilizada.
-- Progreso.
-
----
-
-## WF-ADM-010 — Control de Calidad
-
-### Objetivo
-
-Validar el resultado de impresión antes de habilitar la entrega.
-
-### Información principal
-
+- Pedido.
 - Archivo impreso.
 - Impresora utilizada.
 - Configuración aplicada.
@@ -290,15 +370,15 @@ Validar el resultado de impresión antes de habilitar la entrega.
 
 ### Resultado esperado
 
-Pedido pasa a:
+Estado interno:
 
 - Listo para entregar.
 
 ---
 
-# Fase 4 - Entrega
+# Fase 5 - Listo Para Entregar
 
-## WF-ADM-011 — Listo para Entregar
+## WF-ADM-008 — Lista Entregas Pendientes
 
 ### Objetivo
 
@@ -306,42 +386,192 @@ Administrar pedidos preparados para entrega.
 
 ### Información principal
 
+- Pedido.
 - Cliente.
-- Punto de entrega.
+- Lugar de entrega.
+- Fecha programada.
+- Franja horaria.
 - Código de retiro.
+
+### Acciones disponibles
+
+- Ver detalle.
 
 ---
 
-## WF-ADM-012 — Registrar Entrega
+## WF-ADM-009 — Ver Detalle Pedido A Entregar
 
 ### Objetivo
 
-Confirmar la entrega física del pedido.
+Consultar toda la información del pedido antes de iniciar la entrega.
+
+### Información visible
+
+#### Cliente
+
+- Nombre.
+- Contacto.
+- Email.
+
+#### Trabajo
+
+- Configuración solicitada.
+
+#### Entrega
+
+- Dirección.
+- Fecha.
+- Franja horaria.
+- Código de retiro.
+
+#### Archivo
+
+- Nombre.
+- Tamaño.
+- Vista previa.
+
+### Acciones disponibles
+
+- Ver documento.
+- Reprogramar entrega.
+
+---
+
+# Fase 6 - En Viaje
+
+## WF-ADM-010 — Entregas del Día
+
+### Objetivo
+
+Gestionar los pedidos asignados para entregar.
 
 ### Información principal
 
-- Código de retiro.
-- Palabra clave.
-- Fecha y hora.
+- Pedido.
+- Cliente.
+- Lugar de entrega.
+- Franja horaria.
+- Estado de entrega.
+
+### Acciones disponibles
+
+- Enviar mensaje.
+- Ver detalle.
+- Ir.
+- Ingresar código.
+
+### Resultado esperado
+
+El repartidor llega al destino e inicia la validación del cliente.
+
+---
+
+## WF-ADM-011 — Ingresar Código de Pedido
+
+### Objetivo
+
+Validar la identidad del cliente antes de entregar el pedido.
+
+### Información visible
+
+- Número de pedido.
+- Cliente.
+- Código ingresado.
 
 ### Validaciones
 
 - Código correcto.
-- Pedido listo para entregar.
+- Pedido asignado al cliente.
+
+### Acciones disponibles
+
+- Validar código.
+- Cancelar.
+
+### Resultado esperado
+
+Estado de entrega:
+
+- Código validado.
 
 ---
 
-## WF-ADM-013 — Pedido Entregado
+## WF-ADM-012 — Código Validado
 
 ### Objetivo
 
-Cerrar operativamente el pedido.
+Confirmar que la identidad del cliente fue verificada.
+
+### Información visible
+
+- Pedido.
+- Cliente.
+- Estado validado.
+
+### Acciones disponibles
+
+- Finalizar entrega.
+
+### Resultado esperado
+
+Se habilita el cierre operativo y financiero.
+
+---
+
+# Fase 7 - Entregado
+
+## WF-ADM-012 — Finalizar Entrega
+
+### Objetivo
+
+Registrar la entrega física del pedido.
+
+### Información visible
+
+#### Pedido
+
+- Número de pedido.
+
+#### Cliente
+
+- Datos de contacto.
+
+#### Entrega
+
+- Fecha.
+- Hora.
+- Responsable.
+
+#### Estado financiero
+
+- Total.
+- Seña.
+- Saldo pendiente.
+
+### Acciones disponibles
+
+- Registrar cobro.
+- Confirmar entrega.
+
+---
+
+## WF-ADM-013 — Registrar Cobro
+
+### Objetivo
+
+Registrar el pago final del pedido y cerrar el flujo operativo.
 
 ### Información principal
 
-- Entrega registrada.
-- Fecha.
-- Responsable.
+- Total del pedido.
+- Seña registrada.
+- Saldo pendiente.
+- Método de pago.
+
+### Acciones disponibles
+
+- Confirmar cobro.
+- Confirmar entrega sin cobro (si ya fue abonado).
 
 ### Resultado esperado
 
@@ -349,49 +579,10 @@ Estado visible:
 
 - Entregado.
 
+Estado financiero:
+
+- Pagado.
+
 Estado interno:
 
 - Cerrado.
-
----
-
-# Flujo Principal del Negocio - Administrador
-
-```text
-Login
-    ↓
-Dashboard Administrativo
-    ↓
-Pedidos Pendientes
-    ↓
-Revisar Pedido
-    ↓
- ┌─────────────────────┐
- │ Solicitar Corrección│
- └──────────┬──────────┘
-            ↓
- Esperar Corrección
-            ↓
- Revisar Pedido
-            ↓
-
- ┌─────────────────────┐
- │ Rechazar Pedido     │
- └─────────────────────┘
-
-            ó
-
- Aprobar Pedido
-            ↓
- Enviar a Producción
-            ↓
- Pedido en Producción
-            ↓
- Control de Calidad
-            ↓
- Listo para Entregar
-            ↓
- Registrar Entrega
-            ↓
- Pedido Entregado
-```
