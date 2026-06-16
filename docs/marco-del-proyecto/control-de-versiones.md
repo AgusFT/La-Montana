@@ -3,7 +3,7 @@
 | Campo | Valor |
 |---|---|
 | Documento | Sistema de control de versiones |
-| Versión del criterio | 1.1 |
+| Versión del criterio | 1.1.1 |
 | Fecha | 2026-06-16 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
@@ -23,7 +23,21 @@ De esta forma, el profesor puede revisar qué cambió, cuándo cambió, quién l
 
 ---
 
-## 2. Criterio general
+## 2. Vigencia del criterio
+
+Este criterio de control de versiones entra en vigencia a partir del commit:
+
+`e1f31023 - docs(project): actualizar criterio de versionado`
+
+A partir de ese commit, los cambios relevantes del proyecto deben documentar su versionado dentro del mensaje del commit, indicando la versión anterior, la nueva versión y el motivo del cambio.
+
+Los commits anteriores a `e1f31023` forman parte del historial previo del proyecto y no necesariamente respetan este formato, porque fueron realizados antes de que el equipo definiera formalmente esta metodología de control de versiones.
+
+Este criterio no se aplica de manera retroactiva a commits anteriores.
+
+---
+
+## 3. Criterio general
 
 El proyecto usa **Git y GitHub** como sistema principal de control de versiones.
 
@@ -39,7 +53,7 @@ No es obligatorio que cada archivo tenga un encabezado interno con su versión. 
 
 ---
 
-## 3. Versión del proyecto
+## 4. Versión del proyecto
 
 | Elemento | Criterio |
 |---|---|
@@ -55,7 +69,7 @@ Cuando el proyecto tenga una entrega importante, una modificación grande de alc
 
 ---
 
-## 4. Regla de numeración
+## 5. Regla de numeración
 
 Se usa una numeración simple:
 
@@ -70,7 +84,7 @@ Para el parcial se prioriza el formato `1.0`, `1.1`, `1.2`. El tercer número se
 
 ---
 
-## 5. Versionado de archivos
+## 6. Versionado de archivos
 
 Cada archivo puede tener su propia evolución, pero esa evolución se registra en Git.
 
@@ -108,7 +122,7 @@ Cambios:
 
 ---
 
-## 6. Mensajes de commit
+## 7. Mensajes de commit
 
 Los commits deben ser claros y verificables.
 
@@ -150,7 +164,7 @@ chore(repo): reorganizar estructura documental
 
 ---
 
-## 7. Verificación del historial
+## 8. Verificación del historial
 
 El historial puede revisarse desde GitHub o desde la terminal.
 
@@ -189,7 +203,7 @@ En GitHub también puede verificarse desde:
 
 ---
 
-## 8. Relación con issues y Project
+## 9. Relación con issues y Project
 
 Cuando un cambio responda a una tarea planificada, debe vincularse con una issue o sub-issue.
 
@@ -203,7 +217,7 @@ La issue permite ver el objetivo del cambio, el estado dentro del Project y los 
 
 ---
 
-## 9. Criterio para nuevas versiones
+## 10. Criterio para nuevas versiones
 
 Debe registrarse una nueva versión cuando ocurra alguno de estos casos:
 
@@ -219,7 +233,7 @@ No hace falta incrementar versión por cambios mínimos de formato, tildes, espa
 
 ---
 
-## 10. Resumen operativo
+## 11. Resumen operativo
 
 El sistema de versionado del proyecto queda definido así:
 
@@ -229,5 +243,6 @@ El sistema de versionado del proyecto queda definido así:
 4. Las issues y el Project dan contexto de planificación y seguimiento.
 5. No se exige encabezado de versión dentro de cada archivo.
 6. Los cambios importantes deben indicar versión anterior, versión nueva y motivo.
+7. Este criterio rige desde el commit `e1f31023` y no se aplica retroactivamente.
 
 Este criterio permite mantener el proyecto ordenado sin agregar información repetida dentro de todos los archivos.
