@@ -85,6 +85,10 @@ El alcance se expresa como:
 | RF-PED-006 | Editar datos antes de producción | El sistema debe permitir modificar o completar datos del pedido antes de que avance a producción, según permisos. | P1 Alta | MVP |
 | RF-PED-007 | Registrar observaciones internas | Los usuarios internos deben poder registrar observaciones operativas o administrativas asociadas a un pedido. | P1 Alta | Entrega final |
 | RF-PED-008 | Historial del pedido | El sistema debe permitir consultar el recorrido general del pedido desde su creación hasta su cierre. | P1 Alta | Entrega final |
+| RF-PED-009 | Mostrar resumen previo del pedido | El sistema debe mostrar al cliente un resumen de la información ingresada antes de confirmar la creación del pedido. | P0 Crítica | MVP |
+| RF-PED-010 | Mostrar costo estimado | El sistema debe calcular y mostrar un costo estimado del pedido antes de su confirmación. | P0 Crítica | MVP |
+| RF-PED-011 | Mostrar tiempo estimado de entrega | El sistema debe informar un tiempo estimado de entrega basado en las características del pedido. | P0 Crítica | MVP |
+
 
 ---
 
@@ -138,6 +142,7 @@ El alcance se expresa como:
 | RF-FIN-005 | Asociar comprobante | El sistema debe permitir asociar un comprobante de pago cuando corresponda. | P1 Alta | Entrega final |
 | RF-FIN-006 | Validar cierre financiero | El sistema debe validar que el pedido no se cierre si existen inconsistencias financieras relevantes. | P0 Crítica | Entrega final |
 | RF-FIN-007 | Facturación legal | El sistema podrá incorporar facturación legal como módulo opcional. | P3 Baja | Post-MVP |
+| RF-FIN-008 | El cliente debe poder indicar el método de pago previsto durante la creación del pedido. | P1 Alta | MVP |
 
 ---
 
@@ -204,6 +209,7 @@ El alcance se expresa como:
 | RF-CFG-003 | Servicios de impresión | El sistema debe poder representar servicios ofrecidos por la imprenta. | P1 Alta | Entrega final |
 | RF-CFG-004 | Módulo de inventario | El sistema podrá incorporar inventario como módulo opcional. | P3 Baja | Post-MVP |
 | RF-CFG-005 | Reportes avanzados | El sistema podrá incorporar reportes avanzados como módulo opcional. | P3 Baja | Post-MVP |
+| RF-CFG-006 | Seleccionar punto de entrega | El cliente debe poder seleccionar un punto de entrega o retiro al momento de crear el pedido. | P1 Alta | MVP |
 
 ---
 
