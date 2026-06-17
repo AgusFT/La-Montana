@@ -42,20 +42,19 @@ El administrador es responsable de:
 - WF-ADM-006 — Producción
 - WF-ADM-007 — Control de Calidad
 
-## Fase 4 - Listo Para Entregar
+## Fase 5 - Listo Para Entregar
 
 - WF-ADM-008 — Lista Entregas Pendientes
 - WF-ADM-009 — Ver Detalle Pedido A Entregar
 
-## Fase 5 - En Viaje 
+## Fase 6 - En Viaje 
 
-- WF-ADM-010 — Entregas del día
-- WF-ADM-011 — Ingresar Código de Pedido
-- WF-ADM-012 — Código Validado
+- WF-ADM-010 — Listado operativo de entregas del día.
+- WF-ADM-011 — Validación del código de entrega.
+- WF-ADM-012 — Código validado y habilitación de finalización de entrega.
 
-## Fase 6 - Entregado
+## Fase 7 - Entregado
 
-- WF-ADM-012 — Finalizar Entrega
 - WF-ADM-013 — Registrar Cobro
 
 ---
