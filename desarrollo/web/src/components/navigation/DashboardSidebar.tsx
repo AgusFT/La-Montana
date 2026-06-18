@@ -8,14 +8,19 @@ export function Sidebar() {
 
   // a futuro supabase haria aca el   await supabase.auth.signOut();
   function handleLogout() {
-      router.push("/login");
-    }
+    router.push("/login");
+  }
+
+  function navigateToDashboard() {
+    router.push("/dashboard");
+  }
+
 
   return (
     <aside className="sidebar">
       <BrandLockup />
       <nav className="side-nav" aria-label="Navegación del panel">
-        <button className="is-active" type="button">
+        <button className="is-active" type="button" onClick={navigateToDashboard}>
           Inicio
         </button>
         <button type="button">Mis pedidos</button>

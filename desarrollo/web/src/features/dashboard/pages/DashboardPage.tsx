@@ -4,27 +4,20 @@ import { Sidebar } from "@/components/navigation/DashboardSidebar";
 import { BrandLockup } from "@/components/brand/BrandLockup";
 import { orders } from "@/mocks/orders";
 import { timeline } from "@/mocks/timeline";
-
+import { useRouter } from "next/navigation";
+import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
 export function DashboardView() {
+  const router = useRouter(); 
+
+  // redirige a la vista para crear una nueva orden
+   function navigateToCreateOrder() {
+      router.push("/pedidos/nuevo");
+    }
+
   return (
-    <main className="dashboard-shell app-screen">
-
-      {/* Sidebar de navegacion */}
-      <Sidebar />
-
-      <section className="dashboard-content">
-        <header className="topbar">
-          <BrandLockup compact />
-          <div className="topbar-actions">
-            <a>Contacto</a>
-            <span className="avatar" aria-label="Usuario Alejandro">
-              A
-            </span>
-            <span>Alejandro</span>
-          </div>
-        </header>
-
+    
+    <ClienteLayout >
         <div className="dashboard-main">
           <section className="welcome-grid">
             <div className="welcome-panel panel-card">
@@ -170,14 +163,14 @@ export function DashboardView() {
                     Comenzá un nuevo trabajo subiendo tus archivos.
                   </p>
                 </div>
-                <button className="primary-button --radius-lg" type="button" >
+                <button className="primary-button --radius-lg" type="button" onClick={navigateToCreateOrder}>
                   Crear pedido
                 </button>
               </article>
             </aside>
           </section>
         </div>
-      </section>
-    </main>
+    </ClienteLayout>
+
   );
 }
