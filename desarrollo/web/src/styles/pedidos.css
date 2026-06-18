@@ -1,0 +1,77 @@
+/* CSS del contenedor principal */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Cabecera del paso */
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Número azul */
+.step-badge {
+  width: 2rem;
+  height: 2rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: var(--color-primary);
+  color: white;
+
+  font-weight: 700;
+}
+
+/* Caja punteada */
+.upload-dropzone {
+  border: 2px dashed #d6dfec;
+
+  border-radius: 1rem;
+
+  min-height: 18rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: white;
+}
+
+/* Contenido Centrado */
+.upload-content {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  text-align: center;
+
+  gap: 0.5rem;
+}
+
+/* Titulo */
+.upload-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+
+  color: #1f4170;
+}
+
+/* Subtitulo  */
+.upload-subtitle {
+  color: #5e6b7d;
+}
+
+/* textos inferiores */
+.upload-info {
+  font-size: 0.9rem;
+  color: #7c8aa0;
+}

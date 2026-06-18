@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../styles/pedidos.css";
 
 :root {
   --color-mountain-slate: #2c3e50;
