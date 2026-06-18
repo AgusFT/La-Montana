@@ -113,7 +113,7 @@ button {
 .primary-button {
   min-height: 2.75rem;
   border: 0;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   background: var(--color-sunset);
   color: white;
   font-weight: 700;

@@ -170,7 +170,7 @@ export function DashboardView() {
                     Comenzá un nuevo trabajo subiendo tus archivos.
                   </p>
                 </div>
-                <button className="primary-button" type="button">
+                <button className="primary-button --radius-lg" type="button" >
                   Crear pedido
                 </button>
               </article>
