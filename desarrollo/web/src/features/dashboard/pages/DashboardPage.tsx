@@ -1,13 +1,17 @@
+"use client";
+
 import { Sidebar } from "@/components/navigation/DashboardSidebar";
 import { BrandLockup } from "@/components/brand/BrandLockup";
 import { orders } from "@/mocks/orders";
 import { timeline } from "@/mocks/timeline";
 
 
-export function DashboardView({ onLogout }: { onLogout: () => void; }) {
+export function DashboardView() {
   return (
     <main className="dashboard-shell app-screen">
-      <Sidebar onLogout={onLogout} />
+
+      {/* Sidebar de navegacion */}
+      <Sidebar />
 
       <section className="dashboard-content">
         <header className="topbar">

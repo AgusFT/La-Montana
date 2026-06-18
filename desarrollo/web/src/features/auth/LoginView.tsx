@@ -1,15 +1,20 @@
+"use client";
+
 import { BrandLockup } from "@/components/brand/BrandLockup";
 import Image from "next/image";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 
-export function LoginView({ onLogin }: { onLogin: () => void; }) {
+export function LoginView() {
+  const router = useRouter();
+  
   const [email, setEmail] = useState("alejandro@email.com");
   const [password, setPassword] = useState("demo1234");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onLogin();
+    router.push("/dashboard");
   }
 
   return (

@@ -1,7 +1,16 @@
+"use client"
+
 import { BrandLockup } from "../brand/BrandLockup";
+import { useRouter } from "next/navigation";
 
+export function Sidebar() {
+  const router = useRouter(); 
 
-export function Sidebar({ onLogout }: { onLogout: () => void; }) {
+  // a futuro supabase haria aca el   await supabase.auth.signOut();
+  function handleLogout() {
+      router.push("/login");
+    }
+
   return (
     <aside className="sidebar">
       <BrandLockup />
@@ -20,7 +29,7 @@ export function Sidebar({ onLogout }: { onLogout: () => void; }) {
         <span>Escribinos por WhatsApp para revisar tu pedido.</span>
       </div>
 
-      <button className="secondary-button" type="button" onClick={onLogout}>
+      <button className="secondary-button" type="button" onClick={handleLogout}>
         Cerrar sesión
       </button>
     </aside>
