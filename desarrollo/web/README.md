@@ -1,36 +1,208 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+# Arquitectura Frontend - La Montaña
 
-First, run the development server:
+## Objetivo
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Este directorio contiene todo el código fuente del frontend web de La Montaña.
+
+La aplicación está desarrollada utilizando:
+
+- Next.js (App Router)
+- React
+- TypeScript
+
+La organización del código sigue una estructura basada en responsabilidades y dominios de negocio.
+
+La aplicación es única para todos los usuarios del sistema:
+
+- Cliente
+- Empleado
+- Administrador
+
+Las funcionalidades visibles para cada usuario se determinan mediante autenticación, roles y permisos obtenidos desde Supabase.
+
+---
+
+## Principios Arquitectónicos
+
+### 1. Las rutas viven en `app`
+
+La carpeta `app` define las URLs y la navegación de la aplicación.
+
+No debe contener lógica de negocio compleja.
+
+---
+
+### 2. La lógica de negocio vive en `features`
+
+La carpeta `features` agrupa funcionalidades por dominio de negocio.
+
+Ejemplos:
+
+- pedidos
+- auth
+- usuarios
+- produccion
+
+---
+
+### 3. Los componentes reutilizables viven en `components`
+
+Los componentes de esta carpeta son compartidos entre distintos módulos.
+
+No deberían depender de reglas específicas del negocio.
+
+---
+
+### 4. Los layouts viven en `layouts`
+
+Los layouts representan estructuras visuales reutilizables.
+
+Ejemplos:
+
+- DashboardLayout
+- DashboardSidebar
+- DashboardTopbar
+
+---
+
+### 5. La infraestructura vive en `lib`
+
+Todo acceso a servicios externos debe centralizarse en esta carpeta.
+
+Ejemplos:
+
+- Supabase
+- Storage
+- Auth
+- Realtime
+
+---
+
+## Estructura General
+
+```txt
+src/
+│
+├── app/
+├── components/
+├── features/
+├── layouts/
+├── hooks/
+├── lib/
+├── types/
+├── constants/
+├── mocks/
+└── styles/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Qué NO hacer
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### No colocar lógica de negocio dentro de `app`
 
-## Learn More
+Incorrecto:
 
-To learn more about Next.js, take a look at the following resources:
+```tsx
+app/dashboard/page.tsx
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+con cientos de líneas de lógica.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+### No duplicar funcionalidades por rol
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Incorrecto:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```txt
+cliente/pedidos
+empleado/pedidos
+admin/pedidos
+```
+
+La funcionalidad debe organizarse por dominio de negocio.
+
+---
+
+### No acceder a Supabase desde componentes visuales
+
+Incorrecto:
+
+```tsx
+OrdersTable.tsx
+```
+
+realizando consultas directas.
+
+La comunicación con servicios externos debe centralizarse en `lib` y `features`.
+
+---
+
+## Objetivo de la estructura
+
+Mantener un frontend:
+
+- mantenible
+- escalable
+- desacoplado
+- fácil de navegar
+- alineado con la arquitectura general del proyecto
+
+
+
+src/
+│
+├── app/
+│   ├── login/
+│   │   └── page.tsx
+│   │
+│   ├── dashboard/
+│   │   └── page.tsx
+│   │
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── globals.css
+│
+├── components/
+│   │
+│   ├── brand/
+│   │   └── BrandLockup.tsx
+│   │
+│   └── ui/
+│       ├── Button.tsx
+│       ├── Badge.tsx
+│       └── Card.tsx
+│
+├── layouts/
+│   ├── DashboardSidebar.tsx
+│   ├── DashboardTopbar.tsx
+│   └── DashboardLayout.tsx
+│
+├── features/
+│   │
+│   ├── auth/
+│   │   └── components/
+│   │       └── LoginForm.tsx
+│   │
+│   ├── dashboard/
+│   │   ├── pages/
+│   │   │   └── DashboardPage.tsx
+│   │   │
+│   │   └── components/
+│   │       ├── WelcomePanel.tsx
+│   │       ├── SummaryPanel.tsx
+│   │       └── CurrentOrderCard.tsx
+│   │
+│   └── pedidos/
+│       ├── components/
+│       │   ├── OrdersTable.tsx
+│       │   └── OrderTimeline.tsx
+│       │
+│       └── mocks/
+│           └── pedidos.ts
+│
+├── types/
+├── constants/
+└── styles/

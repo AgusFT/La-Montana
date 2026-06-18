@@ -1,0 +1,13 @@
+
+> web@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://169.254.83.107:3000
+✓ Ready in 622ms
+Creating turbopack project {
+  dir: 'E:\\AhH\\Facultad\\Da Vinci\\5to Cuatrimestre\\Tesis\\La-Montana\\desarrollo\\web',
+  testMode: true
+}
+

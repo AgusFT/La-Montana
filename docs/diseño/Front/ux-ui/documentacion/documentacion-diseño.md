@@ -257,6 +257,24 @@ Al agregar nuevos componentes o variantes:
 
 ## 📝 Notas de Versión
 
+### Decision aplicada - Login y Dashboard web inicial (Junio 2026)
+
+La primera implementacion en `desarrollo/web` toma como referencia directa el prototipo exportado desde Figma ubicado en `desarrollo/prototipo-figma` y las capturas de `docs/diseño/Front/ux-ui/vistas-web-mockups/cliente`.
+
+Decisiones tomadas:
+- Se conserva la estructura funcional del prototipo: login, dashboard cliente, pedido actual, timeline de estados, tabla de pedidos, resumen general, punto de entrega y CTA para crear pedido.
+- Se evita copiar literalmente todos los estilos del prototipo para alinear la web con la guia visual del sistema: estetica minimalista con acentos brutalist.
+- Los colores se centralizan como tokens CSS en `src/app/globals.css`: `--color-mountain-slate`, `--color-mountain-ink`, `--color-mountain-blue`, `--color-sunset`, `--color-earth`, `--color-forest`, `--color-mist`, `--color-snow` y `--color-border`.
+- La accion principal usa `--color-sunset` y boton sin border-radius para sostener el criterio brutalist definido en la guia.
+- Las acciones secundarias usan outline azul con `--color-mountain-blue`, manteniendo jerarquia clara sin competir con la accion primaria.
+- Se declaran stacks tipograficos para `Roboto Slab` en titulos y marca, `Inter` para interfaz y `JetBrains Mono` para precios. En esta primera version se usan como tokens CSS con fallbacks locales para que el build funcione sin depender de descargas externas.
+- Las cards mantienen borde sutil, radio moderado y sombra baja. El objetivo es que el panel se sienta profesional y utilitario, no como landing decorativa.
+- El recurso visual de montaña se usa como fondo abstracto liviano en login y bienvenida del dashboard para mantener identidad sin depender de imagenes pesadas o genericas.
+- El logo real de La Montaña se copia a `desarrollo/web/public/logo.jpg` y se usa como identificador visual principal.
+
+Justificacion:
+El prototipo resuelve bien los flujos internos del cliente, por eso se toma como base UX. La implementacion web ajusta la estetica para acercarla al sistema de diseño documentado: mayor limpieza, tokens reutilizables, jerarquia de botones consistente y menos dependencia de estilos hardcodeados. Esta decision permite evolucionar el dashboard, el flujo de cotizacion y futuras pantallas sin romper coherencia visual.
+
 ### v1.0 (Mayo 2026)
 - ✅ Sistema de colores completo
 - ✅ Tipografía (Roboto Slab + Inter + JetBrains Mono)
@@ -267,4 +285,3 @@ Al agregar nuevos componentes o variantes:
 - ✅ Tokens CSS implementados
 
 ---
-
