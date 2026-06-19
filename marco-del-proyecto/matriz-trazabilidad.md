@@ -2,8 +2,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.1 |
-| Estado | Actualizada con Project, WBS V3 y setup inicial Supabase |
+| Versión | 1.1.1 |
+| Estado | Actualizada con Project, WBS V3, E03 y setup inicial Supabase |
 | Fecha | 2026-06-19 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
@@ -184,7 +184,7 @@ El GitHub Project se organiza como Product Backlog de alto nivel mediante épica
 |---|---:|---|---|---|
 | E01 - Gestion del proyecto y documentacion | #14 | M0 - Setup del repo y Project | OBJ-012 | #15, #16, #17, #18 |
 | E02 - Alcance, requerimientos y planificacion base | #19 | M1 - Documentacion base de alcance y planificacion | OBJ-001 a OBJ-012 | #20, #21, #22, #23, #25, #26, #27, #28, #35 |
-| E03 - Diseño UX/UI y prototipo MVP | #43 | M1 - Documentacion base de alcance y planificacion | OBJ-007, OBJ-012 | #32, #33, #36, #38, #39, #40, #41 |
+| E03 - Diseño UX/UI y prototipo MVP | #43 | M1 - Documentacion base de alcance y planificacion | OBJ-007, OBJ-012 | #32, #33, #36, #38, #39, #40, #41, #82, #83, #84, #85, #87, #88, #89 |
 | E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #92, diagramas de arquitectura |
 | E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #93, #95, #96, #97, #98, #99, #100, #101, #102 |
 | E06 - Portal Web cliente MVP | #46 | M4 - MVP Web | OBJ-001, OBJ-004, OBJ-007 | #36, #38, #39, #40, #41, #91, #94, #103, #104, #105, #106, #107, #108 |
