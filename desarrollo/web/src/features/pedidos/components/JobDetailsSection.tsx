@@ -37,11 +37,12 @@ export function JobDetailsSection({
       </div>
 
       <div className="form-group">
-        <label className="form-label">
+        <label className="form-label" htmlFor="paper-size">
           Tamaño de hoja
         </label>
 
         <select
+          id="paper-size"
           className="form-select"
           value={form.paperSize}
           onChange={(e) =>
