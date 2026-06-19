@@ -145,7 +145,7 @@ export function DashboardView() {
                 <div className="delivery-box">
                   <h3>Sucursal Centro</h3>
                   <p className="muted">
-                    Av. Corrientes 1234
+                    Av. Lope de Vega 2150
                     <br />
                     CABA, Argentina
                   </p>
