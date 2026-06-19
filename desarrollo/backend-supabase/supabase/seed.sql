@@ -1,0 +1,2 @@
+-- Seed data inicial del entorno local.
+-- Completar en issues posteriores cuando se definan datos mínimos de prueba.
