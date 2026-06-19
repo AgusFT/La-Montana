@@ -119,7 +119,7 @@ Cuando un cambio responda a una tarea planificada, debe vincularse con una issue
 
 Para este criterio de versionado se usa como referencia:
 
-- Issue: `#90 - [DOC] Adecuar encabezados a la matriz de versionado`
+- Issue: `#90 - [DOC] Definir criterio de control de versiones`
 - Épica relacionada: `#14 - E01 - Gestion del proyecto y documentacion academica`
 - Project: `La-Montana`
 
@@ -140,4 +140,3 @@ El sistema de versionado del proyecto queda definido así:
 5. No se exige encabezado de versión dentro de cada archivo.
 6. Cada commit relevante debe indicar si la versión de los archivos importantes cambió o quedó sin cambio.
 7. Este criterio rige desde el commit `e1f31023` y no se aplica retroactivamente.
-

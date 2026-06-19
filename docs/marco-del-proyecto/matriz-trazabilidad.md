@@ -191,7 +191,7 @@ El GitHub Project se organiza como Product Backlog de alto nivel mediante épica
 | E08 - Aplicación Android MVP | #48 | M5 - MVP Android | OBJ-008 | CU-AND-001, CU-AND-002, HU-CLI-008 |
 | E09 - Subsistema de impresión | #49 | M6 - Subsistema de impresion | OBJ-009 | CU-IMP-001 a CU-IMP-006 |
 | E10 - Integración end-to-end del flujo de pedidos | #50 | M7 - Integracion end-to-end | OBJ-001 a OBJ-010 | Flujo completo de pedido, cierre y auditoría |
-| E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #37, README, demo y evidencias finales |
+| E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #90, README, demo y evidencias finales |
 
 ---
 
