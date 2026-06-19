@@ -63,7 +63,7 @@ La estructura recomendada para el Project es:
 
 Regla:
 
-En el Product Backlog principal deben aparecer primero las épicas grandes del producto o de la entrega. Las historias de usuario no tienen que duplicarse todas como issues si ya están documentadas en `docs/analisis/historias-de-usuarios/historias-de-usuario.md`; deben crearse como issues cuando se transformen en trabajo ejecutable.
+En el Product Backlog principal deben aparecer primero las épicas grandes del producto o de la entrega. Las historias de usuario no tienen que duplicarse todas como issues si ya están documentadas en `analisis/historias-de-usuarios/historias-de-usuario.md`; deben crearse como issues cuando se transformen en trabajo ejecutable.
 
 Si una tarea toca muchas áreas, se debe dividir en sub-issues o issues derivados.
 

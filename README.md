@@ -23,11 +23,16 @@ El proyecto tiene finalidad académica, pero se diseña con criterio de producci
 
 ## Documentación
 
-La documentación del proyecto se organiza en la carpeta `docs/`.
+La documentación del proyecto se organiza en las carpetas de raíz definidas por el WBS:
+
+- `marco-del-proyecto/`
+- `analisis/`
+- `diseño/`
+- `marketing/`
 
 Documento inicial recomendado:
 
-`docs/marco-del-proyecto/guia-uso-github-project.md`
+`marco-del-proyecto/guia-uso-github-project.md`
 
 ## Estado del repositorio
 

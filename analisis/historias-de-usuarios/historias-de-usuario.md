@@ -15,11 +15,11 @@ Las historias de usuario describen necesidades concretas desde el punto de vista
 
 Este documento toma como base:
 
-- `docs/marco-del-proyecto/alcance-general.md`
-- `docs/marco-del-proyecto/objetivos-del-proyecto.md`
-- `docs/marco-del-proyecto/stakeholders-y-actores.md`
-- `docs/analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md`
-- `docs/analisis/espesificacion-de-requerimientos/requerimientos-no-funcionales.md`
+- `marco-del-proyecto/alcance-general.md`
+- `marco-del-proyecto/objetivos-del-proyecto.md`
+- `marco-del-proyecto/stakeholders-y-actores.md`
+- `analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md`
+- `analisis/espesificacion-de-requerimientos/requerimientos-no-funcionales.md`
 
 ---
 

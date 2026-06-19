@@ -13,7 +13,7 @@ Este documento define los requerimientos no funcionales iniciales del sistema **
 
 Los requerimientos no funcionales describen las cualidades que debe cumplir el sistema para operar de forma segura, mantenible, trazable, escalable y confiable.
 
-Este documento complementa a los requerimientos funcionales definidos en `docs/analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md`.
+Este documento complementa a los requerimientos funcionales definidos en `analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md`.
 
 ---
 
