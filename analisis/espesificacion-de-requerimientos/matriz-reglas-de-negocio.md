@@ -5,11 +5,11 @@
 | Documento | Matriz de reglas de negocio |
 | Proyecto | La Montaña |
 | Épica relacionada | E02 - Alcance, requerimientos y planificación base |
-| Estado | Borrador inicial alineado a trazabilidad |
+| Estado | Actualizada con matriz de trazabilidad vigente |
 | Alcance | MVP / Producto base |
-| Fuente principal | Matriz de trazabilidad inicial |
-| Última actualización | 2026-06-15 |
-| Responsable | Equipo del proyecto |
+| Fuente principal | Matriz de trazabilidad |
+| Última actualización | 2026-06-19 |
+| Responsable | Agustín Tejero y Alejandro Herms |
 
 ---
 
@@ -17,7 +17,7 @@
 
 Este documento define la matriz de reglas de negocio del sistema **La Montaña**.
 
-Su objetivo es consolidar, en un único documento, las reglas críticas del negocio ya identificadas en la matriz de trazabilidad inicial.
+Su objetivo es consolidar, en un único documento, las reglas críticas del negocio ya identificadas en la matriz de trazabilidad vigente.
 
 Esta matriz no agrega reglas nuevas, no expande el alcance funcional y no incorpora decisiones técnicas no validadas. Su función es ordenar las reglas críticas existentes y permitir que sean utilizadas como referencia para:
 
@@ -34,7 +34,7 @@ Esta matriz no agrega reglas nuevas, no expande el alcance funcional y no incorp
 
 ## 2. Relación con la matriz de trazabilidad
 
-La matriz de trazabilidad inicial relaciona objetivos, requerimientos funcionales, requerimientos no funcionales, historias de usuario y reglas críticas del negocio.
+La matriz de trazabilidad relaciona objetivos, requerimientos funcionales, requerimientos no funcionales, historias de usuario y reglas críticas del negocio.
 
 Esta matriz de reglas de negocio toma como fuente esa trazabilidad y se limita a documentar las reglas críticas ya registradas allí.
 
@@ -86,8 +86,8 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 | RFC-001 | Ningún pedido creado por cliente pasa automáticamente a producción. | HU-CLI-002, HU-ADM-001, HU-SIS-001 | RF-PED-003, RF-REV-001 | Cubierta | MVP | Regla central del flujo de pedidos. Impide que un pedido creado por cliente salte la revisión administrativa. |
 | RFC-002 | Todo pedido nuevo queda inicialmente pendiente de revisión. | HU-CLI-002, HU-ADM-001, HU-SIS-001 | RF-PED-003, RF-REV-001 | Cubierta | MVP | Define el estado inicial obligatorio para pedidos creados por clientes. |
 | RFC-003 | Debe existir mediación administrativa humana antes de avanzar a producción. | HU-ADM-001, HU-ADM-002, HU-SIS-001 | RF-REV-001, RF-REV-002, RF-REV-005 | Cubierta | MVP | La revisión administrativa es una condición obligatoria antes de producción. |
-| RFC-004 | El sistema distingue estado interno, estado visible al cliente y estado financiero. | HU-CLI-004, HU-ADM-004, HU-SIS-002 | RF-EST-001, RF-EST-002, RF-EST-003 | Cubierta | MVP | Evita mezclar información operativa interna, información visible al cliente y situación financiera. |
-| RFC-005 | Si el pedido supera 200 carillas, requiere seña del 30%. | HU-CLI-006, HU-SIS-003 | RF-FIN-001, RF-FIN-002 | Cubierta | MVP | Regla financiera crítica para pedidos de mayor volumen. |
+| RFC-004 | El sistema distingue estado interno, estado visible al cliente y estado financiero. | HU-CLI-004, HU-ADM-004, HU-SIS-001 | RF-EST-001, RF-EST-002, RF-EST-003 | Cubierta | MVP | Evita mezclar información operativa interna, información visible al cliente y situación financiera. |
+| RFC-005 | Si el pedido supera 200 carillas, requiere seña del 30%. | HU-CLI-006, HU-SIS-002 | RF-FIN-001, RF-FIN-002 | Cubierta | MVP | Regla financiera crítica para pedidos de mayor volumen. |
 | RFC-006 | El cierre requiere consistencia entre entrega, cobro, comprobante, auditoría y estado final. | HU-ADM-005, HU-ADM-006, HU-SIS-004 | RF-FIN-006, RF-AUD-004 | Cubierta | MVP / Producto base | El cierre no depende únicamente de imprimir el pedido. |
 | RFC-007 | Los archivos del pedido son parte central del flujo. | HU-CLI-003, HU-EMP-002, HU-IMP-002 | RF-ARC-001, RF-ARC-002, RF-ARC-006 | Cubierta | MVP | Los archivos son necesarios para revisión, producción e impresión. |
 | RFC-008 | No se usan rutas locales del cliente como mecanismo de impresión. | HU-CLI-003, HU-IMP-002 | RF-ARC-006, RNF-ARC-003 | Cubierta | MVP | El acceso a archivos debe resolverse mediante almacenamiento y autorización del backend. |
@@ -166,6 +166,22 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 ---
 
 
+## 10. Reglas y puntos que requieren profundización
+
+La matriz no detecta reglas críticas sin cobertura inicial, pero sí identifica reglas que deberán profundizarse en diseño, arquitectura, modelo de datos, seguridad o implementación backend.
+
+| Punto a profundizar | Reglas relacionadas | Profundización prevista |
+|---|---|---|
+| Modelo de estados del pedido | RFC-004, RNFC-005 | #92 - Modelo de datos inicial y estrategia RLS |
+| Regla de seña y estado financiero | RFC-005, RFC-006, RNFC-008 | #92 - Modelo de datos inicial y estrategia RLS |
+| Estrategia RLS y permisos | RNFC-001, RNFC-003, RNFC-005 | #92 - Modelo de datos inicial y estrategia RLS; #98 - políticas RLS iniciales |
+| Acceso autorizado a archivos | RFC-007, RFC-008, RNFC-004 | #97 - Storage para archivos de pedidos |
+| Auditoría de eventos críticos | RFC-006, RNFC-007, RNFC-008 | #100 - auditoría de eventos críticos |
+| Subsistema de impresión autorizado | RFC-010, RNFC-006 | #49 - subsistema de impresión |
+
+---
+
+
 ## 11. Criterio de mantenimiento
 
 Esta matriz debe actualizarse únicamente cuando cambie la matriz de trazabilidad o cuando se apruebe formalmente una nueva regla crítica.
@@ -187,7 +203,7 @@ Toda regla agregada deberá indicar como mínimo:
 
 Este documento se considera válido cuando:
 
-- usa como fuente principal la matriz de trazabilidad inicial;
+- usa como fuente principal la matriz de trazabilidad;
 - no agrega reglas no trazadas;
 - conserva las reglas funcionales críticas `RFC-001` a `RFC-010`;
 - conserva las reglas no funcionales críticas `RNFC-001` a `RNFC-010`;
