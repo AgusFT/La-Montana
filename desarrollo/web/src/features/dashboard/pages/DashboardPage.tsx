@@ -1,7 +1,5 @@
 "use client";
 
-import { Sidebar } from "@/components/navigation/DashboardSidebar";
-import { BrandLockup } from "@/components/brand/BrandLockup";
 import { orders } from "@/mocks/orders";
 import { timeline } from "@/mocks/timeline";
 import { useRouter } from "next/navigation";

@@ -2,9 +2,19 @@
 
 import { BrandLockup } from "../brand/BrandLockup";
 import { useRouter } from "next/navigation";
+// utilizado para obtener la ruta actual
+import { usePathname } from "next/navigation";
 
 export function Sidebar() {
+
   const router = useRouter(); 
+  // guardo la ruta actual
+  const pathname = usePathname();
+
+  // sirve para verificar si la ruta actual esta activa o no
+  function isActive(path: string) {
+    return pathname.startsWith(path);
+  }
 
   // a futuro supabase haria aca el   await supabase.auth.signOut();
   function handleLogout() {
@@ -15,18 +25,23 @@ export function Sidebar() {
     router.push("/dashboard");
   }
 
+  
+  function navigateToCrearPedido() {
+    router.push("/pedidos/nuevo");
+  }
+
 
   return (
     <aside className="sidebar">
       <BrandLockup />
       <nav className="side-nav" aria-label="Navegación del panel">
-        <button className="is-active" type="button" onClick={navigateToDashboard}>
+        <button className={isActive("/dashboard") ? "is-active" : ""} type="button" onClick={navigateToDashboard}>
           Inicio
         </button>
-        <button type="button">Mis pedidos</button>
-        <button type="button">Crear pedido</button>
-        <button type="button">Puntos de entrega</button>
-        <button type="button">Contacto</button>
+        <button className={isActive("/mis-pedidos") ? "is-active" : ""} type="button">Mis pedidos</button>
+        <button className={isActive("/pedidos/nuevo") ? "is-active" : ""} type="button" onClick={navigateToCrearPedido}>Crear pedido</button>
+        <button className={isActive("/puntos-de-entrega") ? "is-active" : ""} type="button">Puntos de entrega</button>
+        <button className={isActive("/contacto") ? "is-active" : ""} type="button">Contacto</button>
       </nav>
 
       <div className="sidebar-help">
