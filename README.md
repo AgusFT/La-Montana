@@ -48,7 +48,7 @@ La-Montana/
 │   │   ├── 06-usuarios-y-permisos/
 │   │   ├── 07-trazabilidad-y-cierre/
 │   │   └── 08-web-y-android/
-│   ├── espesificacion-de-requerimientos/
+│   ├── especificacion-de-requerimientos/
 │   │   ├── matriz-reglas-de-negocio.md
 │   │   ├── requerimientos-funcionales.md
 │   │   └── requerimientos-no-funcionales.md
@@ -103,7 +103,7 @@ La-Montana/
 │   │   ├── 06-usuarios-y-permisos/
 │   │   ├── 07-trazabilidad-y-cierre/
 │   │   └── 08-web-y-android/
-│   ├── espesificacion-de-requerimientos/
+│   ├── especificacion-de-requerimientos/
 │   └── historias-de-usuarios/
 ├── diseño/
 │   ├── Back/

@@ -38,8 +38,8 @@ Los casos de uso toman como base:
 - `../../marco-del-proyecto/alcance-general.md`
 - `../../marco-del-proyecto/objetivos-del-proyecto.md`
 - `../../marco-del-proyecto/stakeholders-y-actores.md`
-- `../espesificacion-de-requerimientos/requerimientos-funcionales.md`
-- `../espesificacion-de-requerimientos/requerimientos-no-funcionales.md`
+- `../especificacion-de-requerimientos/requerimientos-funcionales.md`
+- `../especificacion-de-requerimientos/requerimientos-no-funcionales.md`
 - `../historias-de-usuarios/historias-de-usuario.md`
 - `../../marco-del-proyecto/matriz-trazabilidad.md`
 

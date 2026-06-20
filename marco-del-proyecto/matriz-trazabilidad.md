@@ -32,9 +32,9 @@ Esta matriz toma como base los siguientes documentos:
 | `marco-del-proyecto/alcance-general.md` | Define el alcance general y las reglas críticas del producto |
 | `marco-del-proyecto/objetivos-del-proyecto.md` | Define objetivo general y objetivos específicos |
 | `marco-del-proyecto/stakeholders-y-actores.md` | Define actores, stakeholders y cliente piloto |
-| `analisis/espesificacion-de-requerimientos/requerimientos-funcionales.md` | Define qué debe hacer el sistema |
-| `analisis/espesificacion-de-requerimientos/requerimientos-no-funcionales.md` | Define cualidades, restricciones y condiciones técnicas del sistema |
-| `analisis/espesificacion-de-requerimientos/matriz-reglas-de-negocio.md` | Consolida reglas funcionales y no funcionales críticas |
+| `analisis/especificacion-de-requerimientos/requerimientos-funcionales.md` | Define qué debe hacer el sistema |
+| `analisis/especificacion-de-requerimientos/requerimientos-no-funcionales.md` | Define cualidades, restricciones y condiciones técnicas del sistema |
+| `analisis/especificacion-de-requerimientos/matriz-reglas-de-negocio.md` | Consolida reglas funcionales y no funcionales críticas |
 | `analisis/historias-de-usuarios/historias-de-usuario.md` | Define necesidades concretas desde el punto de vista de los actores |
 | `analisis/casos-de-uso/casos-de-uso.md` | Define flujos funcionales detallados por dominio |
 | `marco-del-proyecto/guia-uso-github-project.md` | Define el uso del Project, épicas, milestones y criterios de seguimiento |
