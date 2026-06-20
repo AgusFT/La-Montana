@@ -1,7 +1,17 @@
 @import "tailwindcss";
 @import "../styles/pedidos.css";
+@import "../styles/resumen_pedido.css";
 
 :root {
+  --color-primary-light: #3d7be0;
+
+  --color-text-primary: #2f67b6;
+  --color-text-secondary: #5e6b7d;
+  --color-text-muted: #7c8aa0;
+
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #f8f9fb;
+
   --color-mountain-slate: #2c3e50;
   --color-mountain-ink: #132b45;
   --color-mountain-blue: #3498db;

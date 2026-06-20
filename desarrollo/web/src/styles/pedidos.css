@@ -5,14 +5,6 @@
   gap: 0.75rem;
 }
 
-/* Cabecera del paso */
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
 /* Número azul */
 .step-badge {
   width: 2rem;
@@ -204,8 +196,45 @@
   flex: 1;
 }
 
+
+/* boton cotizar pedido */
+.create-order-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  margin-top: 2rem;
+}
+
+.submit-order-button {
+  min-width: 320px;
+}
+
+.form-security-note {
+  font-size: 0.875rem;
+   color: var( --color-text-muted);
+}
+
+.contact-confirmation{
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+  padding: 1rem;
+  color: var(--color-text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+ background:var(--color-summit-white);
+}
+
+.form-group-cantidad-de-copias{
+  display: flex;
+  justify-content: space-evenly
+}
+
 @media (max-width: 768px) {
   .order-config-row {
     flex-direction: column;
   }
 }
+

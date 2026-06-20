@@ -14,7 +14,4 @@ export interface CreateOrderForm {
   doubleSided: boolean;
   bound: boolean;
   spiralBound: boolean;
-
-  hasCover: boolean;
-  hasBinding: boolean;
 }

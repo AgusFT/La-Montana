@@ -1,0 +1,13 @@
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  margin-bottom: 2rem;
+}
+
+.summary-subtitle {
+  margin-top: 0.5rem;
+
+  color: #5e6b7d;
+}

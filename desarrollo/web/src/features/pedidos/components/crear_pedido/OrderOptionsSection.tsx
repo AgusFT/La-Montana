@@ -1,4 +1,4 @@
-import { CreateOrderForm } from "../types/create-order";
+import { CreateOrderForm } from "../../types/create-order";
 
 interface OrderOptionsSectionProps {
   form: CreateOrderForm;

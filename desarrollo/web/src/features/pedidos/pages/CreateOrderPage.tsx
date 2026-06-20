@@ -2,28 +2,33 @@
 
 import { useState } from "react";
 
+import {useRouter} from "next/navigation";
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
-import { FileUploadSection } from "../components/FileUploadSection";
-import { JobDetailsSection } from "../components/JobDetailsSection";
-import { OrderOptionsSection } from "../components/OrderOptionsSection";
-// import { CreateOrderActions } from "../components/CreateOrderActions";
+import { FileUploadSection } from "../components/crear_pedido/FileUploadSection";
+import { JobDetailsSection } from "../components/crear_pedido/JobDetailsSection";
+import { OrderOptionsSection } from "../components/crear_pedido/OrderOptionsSection";
+import { CreateOrderActions } from "../components/crear_pedido/CreateOrderActions";
 
 import { CreateOrderForm } from "../types/create-order";
 
+
 export function CreateOrderPage() {
+  const router = useRouter();
   const [form, setForm] = useState<CreateOrderForm>({
     file: null,
     pages: null,
     copies: 1,
     paperSize: "A4",
     printType: "byn",
-    hasCover: false,
-    hasBinding: false,
     doubleSided: false,
     bound: false,
     spiralBound: false,
   });
+
+  const handleContinue = () => {
+  router.push("/pedidos/resumen");
+};
 
   return (
     <ClienteLayout>
@@ -53,6 +58,7 @@ export function CreateOrderPage() {
 
           <OrderOptionsSection 
             form={form}
+            
             onChange={(field, value) =>
               setForm((prev) => ({
               ...prev,
@@ -62,7 +68,11 @@ export function CreateOrderPage() {
           />
         </div>
 
-        {/* <CreateOrderActions /> */}
+        <CreateOrderActions
+            onSubmit={handleContinue}
+                          // console.log("Pedido enviado a cotizacion");
+           
+        />
       </div>
     </ClienteLayout>
   );
