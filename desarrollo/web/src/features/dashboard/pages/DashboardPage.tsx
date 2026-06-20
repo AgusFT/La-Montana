@@ -35,8 +35,8 @@ export function DashboardView() {
               <div className="summary-list">
                 <div className="summary-row">
                   <span
-                    className="metric-dot"
-                    style={{ background: "#3498db" }}
+                    className="metric-dot resumen"
+               
                   >
                     3
                   </span>
@@ -44,8 +44,8 @@ export function DashboardView() {
                 </div>
                 <div className="summary-row">
                   <span
-                    className="metric-dot"
-                    style={{ background: "#e67e22" }}
+                    className="metric-dot realizado"
+             
                   >
                     1
                   </span>
@@ -53,8 +53,7 @@ export function DashboardView() {
                 </div>
                 <div className="summary-row">
                   <span
-                    className="metric-dot"
-                    style={{ background: "#27ae60" }}
+                    className="metric-dot sucursal"
                   >
                     L
                   </span>

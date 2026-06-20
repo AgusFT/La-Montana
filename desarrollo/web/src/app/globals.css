@@ -178,6 +178,19 @@ button {
   font-weight: 800;
 }
 
+.metric-dot.resumen{
+  background: var(--color-mountain-blue);
+}
+
+.metric-dot.realizado{
+  background: var(--color-sunset);
+
+}
+
+.metric-dot.sucursal{
+  background: var(--color-forest);
+}
+
 .mountain-mark {
   position: relative;
   min-height: 13rem;

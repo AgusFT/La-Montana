@@ -5,9 +5,18 @@ import { useRouter } from "next/navigation";
 
 import { SummaryHeader } from "../components/resumen_pedido/SummaryHeader";
 
-export function OrderSummaryPage() {
+import { useCreateOrder } from "../context/CreateOrderContext";
+
+
+
+export function OrderSummaryPage()
+  {
   const router = useRouter();
 
+  // importo del context el form 
+  const { form } =  useCreateOrder();
+
+  console.log("form",form)
   const handleBack = () => {
     router.push("/pedidos/nuevo");
   };
@@ -20,6 +29,7 @@ export function OrderSummaryPage() {
     <ClienteLayout>
       <div className="dashboard-main">
 
+      {/* componente que contiene titulo, subtitulo y botón Volver */}
         <SummaryHeader
           onBack={handleBack}
         />

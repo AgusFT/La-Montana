@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+// import { useState } from "react";
 
 import {useRouter} from "next/navigation";
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
@@ -10,21 +10,13 @@ import { JobDetailsSection } from "../components/crear_pedido/JobDetailsSection"
 import { OrderOptionsSection } from "../components/crear_pedido/OrderOptionsSection";
 import { CreateOrderActions } from "../components/crear_pedido/CreateOrderActions";
 
-import { CreateOrderForm } from "../types/create-order";
+import { useCreateOrder } from "../context/CreateOrderContext";
 
 
 export function CreateOrderPage() {
   const router = useRouter();
-  const [form, setForm] = useState<CreateOrderForm>({
-    file: null,
-    pages: null,
-    copies: 1,
-    paperSize: "A4",
-    printType: "byn",
-    doubleSided: false,
-    bound: false,
-    spiralBound: false,
-  });
+
+  const { form, setForm } =  useCreateOrder();
 
   const handleContinue = () => {
   router.push("/pedidos/resumen");
@@ -69,9 +61,7 @@ export function CreateOrderPage() {
         </div>
 
         <CreateOrderActions
-            onSubmit={handleContinue}
-                          // console.log("Pedido enviado a cotizacion");
-           
+            onSubmit={handleContinue}           
         />
       </div>
     </ClienteLayout>

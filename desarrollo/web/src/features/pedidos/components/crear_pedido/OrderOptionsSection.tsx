@@ -1,3 +1,6 @@
+"use client";
+ 
+
 import { CreateOrderForm } from "../../types/create-order";
 
 interface OrderOptionsSectionProps {
