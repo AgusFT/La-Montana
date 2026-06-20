@@ -21,11 +21,12 @@ export function JobDetailsSection({
       </div>
 
       <div className="form-group">
-        <label className="form-label">
+        <label className="form-label" htmlFor="form-input">
           Número de páginas
         </label>
 
         <input
+          id="form-input"
           className="form-input"
           value={
             form.pages ??

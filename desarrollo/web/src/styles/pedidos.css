@@ -166,3 +166,46 @@
   width: 40px;
   height: 40px;
 }
+
+/* Seccion 3 */
+
+.order-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  cursor: pointer;
+}
+
+.checkbox-option input {
+  width: 18px;
+  height: 18px;
+}
+
+.section-help {
+  margin-top: 1rem;
+
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.order-config-row {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.order-config-row > * {
+  flex: 1;
+}
+
+@media (max-width: 768px) {
+  .order-config-row {
+    flex-direction: column;
+  }
+}
