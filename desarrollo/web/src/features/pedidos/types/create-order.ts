@@ -14,4 +14,10 @@ export interface CreateOrderForm {
   doubleSided: boolean;
   bound: boolean;
   spiralBound: boolean;
+
+  // Para la sección de metodo de pago
+  paymentMethod: "Efectivo" | "Transferencia" | "Debito";
+
+    // Delivery
+  deliveryPointId: string;
 }

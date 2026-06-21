@@ -15,8 +15,10 @@
 .summary-card {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
   gap: 2rem;
-
+  justify-content: flex-start;
   padding: 2rem;
 
   border: 1px solid #e4e7ec;
@@ -30,7 +32,6 @@
 .summary-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-
   gap: 1rem;
 }
 
@@ -145,4 +146,101 @@
   font-weight: 700;
 
   color: var(--color-primary);
+}
+
+.summary-bottom-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: var(--space-2);
+}
+
+.summary-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  color: var(--color-primary);
+}
+
+.delivery-point-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  align-items: center;
+}
+
+.delivery-point-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+
+  color: var(--color-primary);
+}
+
+.delivery-point-address {
+  color: #667085;
+}
+
+.estimate-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.estimate-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  font-weight: 600;
+}
+
+.summary-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  margin-top: 2rem;
+}.summary-create-order-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+
+  min-width: 320px;
+  height: 52px;
+
+  border: none;
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  font-size: 1.1rem;
+  font-weight: 600;
+
+  color: white;
+
+  background: linear-gradient(
+    180deg,
+    #ff7a00 0%,
+    #ff6600 100%
+  );
+
+  transition: transform 0.2s ease,
+              box-shadow 0.2s ease;
+}
+
+.summary-create-order-btn:hover {
+  transform: translateY(-2px);
+
+  box-shadow: 0 8px 20px rgba(
+    255,
+    102,
+    0,
+    0.25
+  );
 }

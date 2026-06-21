@@ -1,13 +1,27 @@
 // OrderSummaryActions
 
-// Responsabilidad:
+import { StickyNotePlus } from "lucide-react";
 
-// [Crear Pedido]
+interface OrderSummaryActionsProps {
+  onConfirm: () => void;
+}
 
-// Nos pondremos en contacto...
+export function OrderSummaryActions({
+  onConfirm,
+}: OrderSummaryActionsProps) {
+  return (
+    <section className="summary-actions">
+     <button
+        className="summary-create-order-btn"
+        onClick={onConfirm}
+      >
+        <StickyNotePlus size={20} />
+        Crear Pedido
+        </button>   
 
-// Props:
-
-// type OrderSummaryActionsProps = {
-//   onConfirm: () => void;
-// };
+      <p className="summary-actions-note">
+        Nos pondremos en contacto para revisar y aprobar tu pedido.
+      </p>
+    </section>
+  );
+}

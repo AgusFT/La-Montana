@@ -1,3 +1,5 @@
+import { Clock5, TicketCheck } from "lucide-react";
+
 interface OrderEstimateCardProps {
   estimatedPrice: number;
   responseTime: string;
@@ -11,6 +13,7 @@ export function OrderEstimateCard({
     <section className="summary-estimate-card panel-card">
       <div className="estimate-item">
         <span className="estimate-label">
+          <Clock5 />
           Tiempo estimado de respuesta: 
         </span>
 
@@ -23,6 +26,7 @@ export function OrderEstimateCard({
 
       <div className="estimate-item">
         <span className="estimate-label">
+          <TicketCheck />
           Precio Final:  
         </span>
 

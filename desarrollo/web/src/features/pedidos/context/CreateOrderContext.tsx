@@ -33,6 +33,8 @@ export function CreateOrderProvider({
       doubleSided: false,
       bound: false,
       spiralBound: false,
+      paymentMethod: "Efectivo",
+      deliveryPointId: "local"
     });
 
   return (
