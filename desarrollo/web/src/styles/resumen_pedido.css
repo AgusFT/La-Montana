@@ -103,3 +103,46 @@
 
   font-weight: 500;
 }
+
+.summary-estimate-card {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  margin-top: 1rem;
+  padding: 1.5rem;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+
+  background: white;
+}
+
+.summary-estimate-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+
+  flex: 1;
+}
+
+.summary-estimate-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-estimate-divider {
+  width: 1px;
+  height: 60px;
+
+  background: #e4e7ec;
+}
+
+.summary-estimate-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+
+  color: var(--color-primary);
+}

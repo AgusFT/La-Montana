@@ -7,6 +7,8 @@ import { SummaryHeader } from "../components/resumen_pedido/SummaryHeader";
 import { OrderSummaryCard } from "../components/resumen_pedido/OrderSummaryCard";
 
 import { useCreateOrder } from "../context/CreateOrderContext";
+import { OrderEstimateCard } from "../components/resumen_pedido/OrderEstimateCard";
+import { calculateEstimatedPrice } from "@/features/utils/calculateEstimatedPrice";
 
 
 
@@ -26,6 +28,9 @@ export function OrderSummaryPage()
     console.log("Pedido confirmado");
   };
 
+  const estimatedPrice =
+  calculateEstimatedPrice(form);
+
   return (
     <ClienteLayout>
       <div className="dashboard-main">
@@ -39,6 +44,10 @@ export function OrderSummaryPage()
           form={form}
         />
 
+        <OrderEstimateCard
+          estimatedPrice={estimatedPrice}
+          responseTime="Dentro de las 24 hs hábiles"
+        />
         {/* <div className="summary-bottom-row">
 
           <PaymentMethodCard

@@ -11,7 +11,7 @@ import { OrderOptionsSection } from "../components/crear_pedido/OrderOptionsSect
 import { CreateOrderActions } from "../components/crear_pedido/CreateOrderActions";
 
 import { useCreateOrder } from "../context/CreateOrderContext";
-import { getPdfPageCount } from "@/features/orders/utils/getPdfPageCount";
+import { getPdfPageCount } from "@/features/utils/getPdfPageCount";
 
 
 export function CreateOrderPage() {
