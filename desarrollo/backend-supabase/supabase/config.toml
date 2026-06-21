@@ -85,7 +85,8 @@ allowed_cidrs_v6 = ["::/0"]
 # enabled = true
 
 [realtime]
-enabled = true
+# MVP: keep Realtime disabled until a state-tracking workflow needs it.
+enabled = false
 # Bind realtime via either IPv4 or IPv6. (default: IPv4)
 # ip_version = "IPv6"
 # The maximum length in bytes of HTTP request headers. (default: 4096)
@@ -114,8 +115,8 @@ port = 54324
 
 [storage]
 enabled = true
-# The maximum file size allowed (e.g. "5MB", "500KB").
-file_size_limit = "50MiB"
+# MVP: initial encrypted order files are limited to 10 MiB.
+file_size_limit = "10MiB"
 
 # Uncomment to configure local storage buckets
 # [storage.buckets.images]
