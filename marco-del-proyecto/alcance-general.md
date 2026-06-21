@@ -206,6 +206,7 @@ El MVP incluye:
 - app Android consumiendo el mismo backend;
 - integración mínima con subsistema de impresión;
 - trazabilidad básica de eventos relevantes.
+- Solo se aceptaran archivos .pdf
 
 El MVP no implica que todas las funcionalidades comerciales futuras estén completas, sino que el flujo central del negocio esté representado correctamente.
 
