@@ -2,8 +2,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.2 |
-| Estado | Actualizada con Project, WBS V3, E03, setup inicial Supabase y refinamiento backend Supabase |
+| Versión | 1.3 |
+| Estado | Actualizada con Project, WBS V3, E03, setup inicial Supabase, refinamiento backend Supabase y diseño de datos |
 | Fecha | 2026-06-21 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
@@ -185,14 +185,14 @@ El GitHub Project se organiza como Product Backlog de alto nivel mediante épica
 | E01 - Gestion del proyecto y documentacion | #14 | M0 - Setup del repo y Project | OBJ-012 | #15, #16, #17, #18 |
 | E02 - Alcance, requerimientos y planificacion base | #19 | M1 - Documentacion base de alcance y planificacion | OBJ-001 a OBJ-012 | #20, #21, #22, #23, #25, #26, #27, #28, #35 |
 | E03 - Diseño UX/UI y prototipo MVP | #43 | M1 - Documentacion base de alcance y planificacion | OBJ-007, OBJ-012 | #32, #33, #36, #38, #39, #40, #41, #82, #83, #84, #85, #87, #88, #89 |
-| E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #92, diagramas de arquitectura |
+| E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #92, #119, #120, #121, #122, diagramas de arquitectura |
 | E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #93, #95, #96, #97, #98, #99, #100, #101, #102, #110, #111, #112, #113, #114, #115 |
 | E06 - Portal Web cliente MVP | #46 | M4 - MVP Web | OBJ-001, OBJ-004, OBJ-007 | #36, #38, #39, #40, #41, #91, #94, #103, #104, #105, #106, #107, #108, #109, #116, #117 |
 | E07 - Panel Web administrativo MVP | #47 | M4 - MVP Web | OBJ-002, OBJ-005, OBJ-006, OBJ-007, OBJ-010 | Wireflows administrador, CU-REV, CU-CIE |
 | E08 - Aplicación Android MVP | #48 | M5 - MVP Android | OBJ-008 | CU-AND-001, CU-AND-002, HU-CLI-008 |
 | E09 - Subsistema de impresión | #49 | M6 - Subsistema de impresion | OBJ-009 | CU-IMP-001 a CU-IMP-006 |
 | E10 - Integración end-to-end del flujo de pedidos | #50 | M7 - Integracion end-to-end | OBJ-001 a OBJ-010 | Flujo completo de pedido, cierre y auditoría |
-| E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #90, README, demo y evidencias finales |
+| E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #90, README, MVP y evidencias finales |
 
 ---
 
@@ -206,9 +206,10 @@ Sin embargo, existen puntos que deberán profundizarse en documentos posteriores
 |---|---|---|
 | Modelo de estados del pedido | La separación entre estado interno, visible y financiero requiere diseño preciso | #92 - Modelo de datos inicial y estrategia RLS |
 | Estrategia RLS | La seguridad depende de políticas concretas en tablas, Storage y RPC | #92 - Modelo de datos inicial y estrategia RLS; #98 - políticas RLS iniciales |
+| Modelo de datos Supabase | El diseño de tablas requiere guia de estilo, documentacion de relaciones, DER y flujo de construccion/poblado antes de migraciones | #119 - guia de estilo BDD; #120 - tablas y relaciones; #121 - DER; #122 - flujo de construccion y poblado |
 | Modelo de archivos | Los archivos son centrales para revisión, producción e impresión | #92 - Modelo de datos inicial; #97 - Storage para archivos; #113 - cifrado cliente de archivos |
 | Edge Functions del flujo mínimo | El backend debe centralizar creación, carga cifrada, confirmación y errores sin acceso directo del frontend a tablas críticas | #99 - Edge Functions del flujo mínimo; #110 - orders-create; #111 - order-file-upload; #112 - orders-confirm; #114 - contrato estándar de errores |
-| Configuración local Supabase | La demo debe respetar límites del plan Free, archivos de 10 MB y Realtime postergado salvo necesidad concreta | #101 - seguimiento Realtime postergado; #115 - configuración local Supabase |
+| Configuración local Supabase | El MVP debe respetar límites del plan Free, archivos de 10 MB y Realtime postergado salvo necesidad concreta | #101 - seguimiento Realtime postergado; #115 - configuración local Supabase |
 | Integración Web con backend | El Portal Cliente debe pasar de vistas funcionales a Auth real, rutas protegidas y consumo de Edge Functions | #108 - Login Cliente; #116 - Supabase Auth y rutas protegidas; #117 - Crear/Resumen Pedido con Edge Functions |
 | Flujo de cierre del pedido | El cierre depende de entrega, cobro, comprobante, auditoría y estado final | Casos de uso, modelo de datos y pruebas |
 | Agente de impresión | Debe definirse comunicación, autorización, errores y acceso a archivos | Arquitectura del subsistema de impresión |
