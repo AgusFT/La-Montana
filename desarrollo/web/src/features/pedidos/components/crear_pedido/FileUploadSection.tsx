@@ -22,10 +22,18 @@ export function FileUploadSection({
     const selectedFile = event.target.files?.[0];
       if (!selectedFile) return;
           const maxSize = 10 * 1024 * 1024;
+
+      if (selectedFile.type !== "application/pdf") {
+        alert("Solo se permiten archivos PDF.");
+       return;
+      }
+      
       if (selectedFile.size > maxSize) {
         alert(
           "El archivo supera los 10 MB permitidos."
         );
+
+        
         return;
       }
     onFileSelect(selectedFile);
@@ -72,13 +80,13 @@ export function FileUploadSection({
           <input
             ref={inputRef}
             type="file"
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            accept=".pdf"
             onChange={handleChange}
             hidden
           />
 
           <p className="upload-info">
-            Formatos permitidos: PDF, DOC, DOCX, JPG, PNG
+            Formato permitido: PDF
           </p>
 
           <p className="upload-info">
@@ -100,6 +108,7 @@ export function FileUploadSection({
             <span>
               Detectaremos automáticamente
               el número de páginas.
+              Si su pedido NO es PDF, envienos un mensaje para cotización.
             </span>
           </li>
 

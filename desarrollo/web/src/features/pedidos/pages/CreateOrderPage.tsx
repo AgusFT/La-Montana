@@ -11,6 +11,7 @@ import { OrderOptionsSection } from "../components/crear_pedido/OrderOptionsSect
 import { CreateOrderActions } from "../components/crear_pedido/CreateOrderActions";
 
 import { useCreateOrder } from "../context/CreateOrderContext";
+import { getPdfPageCount } from "@/features/orders/utils/getPdfPageCount";
 
 
 export function CreateOrderPage() {
@@ -22,6 +23,25 @@ export function CreateOrderPage() {
   router.push("/pedidos/resumen");
 };
 
+// función para contar la cantidad de paginas
+      async function handleFileSelect(file: File) {
+      try {
+        const pages = await getPdfPageCount(file);
+
+        setForm((prev) => ({
+          ...prev,
+          file,
+          pages,
+        }));
+      } catch (error) {
+        console.error(error);
+
+        alert(
+          "No fue posible leer el PDF."
+        );
+      }
+    }
+
   return (
     <ClienteLayout>
       <div className="dashboard-main">
@@ -29,12 +49,7 @@ export function CreateOrderPage() {
 
         <FileUploadSection
           file={form.file}
-          onFileSelect={(file) =>
-            setForm((prev) => ({
-              ...prev,
-              file,
-            }))
-          }
+          onFileSelect={handleFileSelect}
         />
 
         <div className="order-config-row">

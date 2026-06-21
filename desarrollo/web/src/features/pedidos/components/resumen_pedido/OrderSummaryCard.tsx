@@ -40,7 +40,7 @@ export function OrderSummaryCard({
                 Número de Páginas:
             </span>
 
-            <strong className="metric-value">
+            <strong className="metric-value  step-badge--form">
                 {form.pages ?? "-"}
             </strong>
             </div>
