@@ -18,13 +18,13 @@
   --color-summit-white: #ffffff;
   --color-snow: #f8f9fa;
   --color-snow-blue: #eef5fb;
-  --color-mist: #95a5a6;
+  --color-mist: #95a5a6a1;
   --color-earth: #8b7355;
   --color-sunset: #e67e22;
   --color-forest: #27ae60;
   --color-warning: #f39c12;
   --color-error: #e74c3c;
-  --color-border: rgb(149 165 166 / 0.24);
+  --color-border: rgb(71, 71, 71);
 
   --font-display: "Roboto Slab", Georgia, "Times New Roman", serif;
   --font-body: Inter, Arial, Helvetica, sans-serif;

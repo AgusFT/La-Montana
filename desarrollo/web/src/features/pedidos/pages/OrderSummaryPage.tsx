@@ -4,6 +4,7 @@ import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 import { useRouter } from "next/navigation";
 
 import { SummaryHeader } from "../components/resumen_pedido/SummaryHeader";
+import { OrderSummaryCard } from "../components/resumen_pedido/OrderSummaryCard";
 
 import { useCreateOrder } from "../context/CreateOrderContext";
 
@@ -34,11 +35,11 @@ export function OrderSummaryPage()
           onBack={handleBack}
         />
 
-        {/* <OrderSummaryCard
-          form={mockForm}
+        <OrderSummaryCard
+          form={form}
         />
 
-        <div className="summary-bottom-row">
+        {/* <div className="summary-bottom-row">
 
           <PaymentMethodCard
             paymentMethod="cash"
@@ -49,9 +50,9 @@ export function OrderSummaryPage()
             deliveryPoint="Lope de Vega 2150, CABA"
           />
 
-        </div>
+        </div> */}
 
-        <OrderSummaryActions
+        {/* <OrderSummaryActions
           onConfirm={handleConfirmOrder}
         /> */}
 
