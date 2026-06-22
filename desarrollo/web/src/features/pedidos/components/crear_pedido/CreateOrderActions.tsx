@@ -1,15 +1,18 @@
 
 interface CreateOrderActionsProps {
+ disabled: boolean;
   onSubmit: () => void;
 }
 
 export function CreateOrderActions({
+  disabled,
   onSubmit,
 }: CreateOrderActionsProps) {
   return (
     <section className="create-order-actions">
       <button
         type="button"
+        disabled={disabled}
         className="primary-button submit-order-button"
         onClick={onSubmit}
       >

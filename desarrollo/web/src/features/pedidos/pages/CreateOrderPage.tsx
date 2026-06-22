@@ -76,6 +76,7 @@ export function CreateOrderPage() {
         </div>
 
         <CreateOrderActions
+            disabled={!form.file}
             onSubmit={handleContinue}           
         />
       </div>

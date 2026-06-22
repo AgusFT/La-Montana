@@ -232,6 +232,21 @@
   justify-content: space-evenly
 }
 
+
+.submit-order-button:disabled:hover {
+  background: #d0d5dd;
+  border-color: #d0d5dd;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+
+/* .submit-order-button:hover {
+  background: #5a5958;
+  box-shadow: 0 0.75rem 1.5rem rgb(230 126 34 / 0.22);
+  transform: translateY(-1px);
+} */
+
 @media (max-width: 768px) {
   .order-config-row {
     flex-direction: column;
