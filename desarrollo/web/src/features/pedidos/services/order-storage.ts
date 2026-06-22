@@ -40,6 +40,20 @@ export function getOrderById(
   );
 }
 
+// obtener la ultima orden
+export function getLastOrder():
+  | Order
+  | undefined {
+  const orders = getOrders();
+
+
+  if (orders.length === 0) {
+    return undefined;
+  }
+  
+  return orders[orders.length - 1];
+}
+
 // actualizar pedido
 export function updateOrder(
   updatedOrder: Order
@@ -65,3 +79,4 @@ export function clearOrders(): void {
     STORAGE_KEY
   );
 }
+

@@ -1,6 +1,7 @@
 import { CreateOrderForm } from "../pedidos/types/create-order";
 import { Order } from "../pedidos/types/order";
 
+// formulario de lo que tiene una orden
 export function createOrderFromForm(
   form: CreateOrderForm,
   estimatedPrice: number
