@@ -6,10 +6,6 @@ import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
 import { getLastOrder } from "../services/order-storage";
 
-
-
-import { useCreateOrder } from "../context/CreateOrderContext";
-
 import { CurrentOrderHeader } from "../components/pedido_actual/CurrentOrderHeader";
 import { OrderStatusTimeline } from "../components/pedido_actual/OrderStatusTimeline";
 
@@ -17,11 +13,11 @@ import { Order } from "../types/order";
 import { OrderDetailsCard } from "../components/pedido_actual/OrderDetailsCard";
 import { OrderJobCard } from "../components/pedido_actual/OrderInfoCard";
 import { OrderFileCard } from "../components/pedido_actual/OrderFileCard";
+import { OrderPaymentCard } from "../components/pedido_actual/OrderPaymentCard";
+import { OrderDeliveryPointCard } from "../components/pedido_actual/OrderDeliveryPointCard";
 
 export function PedidoActualPage() {
   const [order, setOrder] = useState<Order | null>(null);
-  
-   const { form, setForm } =  useCreateOrder();
 
   const [loading, setLoading] = useState(true);
 
@@ -75,10 +71,6 @@ export function PedidoActualPage() {
           <OrderDetailsCard
             form={order.form}
           />
-            {/* <section className="order-card">
-              <h2>Detalles del trabajo</h2>
-                
-            </section> */}
 
           <OrderFileCard 
             fileName={order.fileName}
@@ -93,13 +85,15 @@ export function PedidoActualPage() {
           </div>
 
           <div className="order-secondary-grid">
-              <section className="order-card">
-                <h2>Método de pago</h2>
-              </section>
+          
+              <OrderPaymentCard
+                paymentMethod={order.form.paymentMethod}
+              />
 
-              <section className="order-card">
-                <h2>Punto de entrega</h2>
-              </section>
+            <OrderDeliveryPointCard
+                deliveryPointId={order.form.deliveryPointId}
+            />
+           
             </div>
           </div>
     </ClienteLayout>
