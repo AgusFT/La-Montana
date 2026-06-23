@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
-import { getLastOrder } from "../services/order-storage";
+import { getLastActiveOrder, getLastOrder } from "../services/order-storage";
 
 import { CurrentOrderHeader } from "../components/pedido_actual/CurrentOrderHeader";
 import { OrderStatusTimeline } from "../components/pedido_actual/OrderStatusTimeline";
@@ -15,6 +15,7 @@ import { OrderJobCard } from "../components/pedido_actual/OrderInfoCard";
 import { OrderFileCard } from "../components/pedido_actual/OrderFileCard";
 import { OrderPaymentCard } from "../components/pedido_actual/OrderPaymentCard";
 import { OrderDeliveryPointCard } from "../components/pedido_actual/OrderDeliveryPointCard";
+import { CancelOrderAction } from "../components/pedido_actual/CancelOrderAction";
 
 export function PedidoActualPage() {
   const [order, setOrder] = useState<Order | null>(null);
@@ -22,7 +23,7 @@ export function PedidoActualPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const lastOrder = getLastOrder();
+    const lastOrder = getLastActiveOrder();
     setOrder(lastOrder ?? null);
 
     setLoading(false);
@@ -84,17 +85,26 @@ export function PedidoActualPage() {
 
           </div>
 
+          <div className="btn-cancelar--div">
+
+       
           <div className="order-secondary-grid">
           
               <OrderPaymentCard
                 paymentMethod={order.form.paymentMethod}
-              />
+                />
 
             <OrderDeliveryPointCard
                 deliveryPointId={order.form.deliveryPointId}
             />
            
             </div>
+              <CancelOrderAction
+                  onCancelled={() => {
+                    window.location.reload();
+                  }}
+                />
+             </div>
           </div>
     </ClienteLayout>
   );

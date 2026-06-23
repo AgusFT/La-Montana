@@ -39,18 +39,36 @@ export function getOrderById(
   );
 }
 
+
+
 // obtener el ultimo pedido. (para la vista de pedido actual)
-export function getLastOrder():
-  | Order
+const ACTIVE_STATUSES: Order["status"][] = [
+  "pendiente_revision",
+  "corregir",
+  "aprobado",
+  "produccion",
+  "control_de_calidad",
+  "listo_para_entregar",
+  "en_viaje",
+];
+
+function isActiveOrder(
+  order: Order
+): boolean {
+  return ACTIVE_STATUSES.includes(
+    order.status
+  );
+}
+
+export function getLastActiveOrder():
+    | Order
   | undefined {
+
   const orders = getOrders();
 
-
-  if (orders.length === 0) {
-    return undefined;
-  }
-  
-  return orders[orders.length - 1];
+  return [...orders]
+    .reverse()
+    .find(isActiveOrder);
 }
 
 // actualizar pedido
@@ -71,6 +89,47 @@ export function updateOrder(
     JSON.stringify(updatedOrders)
   );
 }
+
+// cancelar ultimo pedido cancelable
+
+// Estados posibles que el usuario podria cancelar
+const CANCELABLE_STATUSES: Order["status"][] = [
+  "pendiente_revision",
+  "corregir", // este estado lo asignaria el admin 
+];
+
+function isOrderCancelable(
+  order: Order
+): boolean {
+  return CANCELABLE_STATUSES.includes(
+    order.status
+  );
+}
+
+// Para boton que cancela el ultimo pedido  
+export function cancelLastCancelableOrder(): boolean {
+  // obtengo todos los pedidos
+  const orders = getOrders();
+
+  // traigo el ultimo pedido con estado pendiente_revision
+  const orderToCancel = [...orders]
+    .reverse()
+    .find(isOrderCancelable); // que busque directamente si el pedido es cancelable
+
+  if (!orderToCancel) {
+    return false;
+  }
+
+  orderToCancel.status = "cancelado";
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(orders)
+  );
+
+  return true;
+}
+
 
 // Limpiar Storage
 export function clearOrders(): void {

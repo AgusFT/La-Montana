@@ -444,6 +444,14 @@ button {
   padding: var(--space-8);
 }
 
+.btn-cancelar--div{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8);
+}
+
+
 .welcome-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 24rem;

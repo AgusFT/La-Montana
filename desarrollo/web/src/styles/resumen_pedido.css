@@ -12,6 +12,24 @@
   color: #5e6b7d;
 }
 
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0.5rem 0;
+}
+
+.summary-row-label {
+  color: #667085;
+  font-weight: 500;
+}
+
+.summary-row-value {
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
 .summary-card {
   display: flex;
   flex-direction: column;

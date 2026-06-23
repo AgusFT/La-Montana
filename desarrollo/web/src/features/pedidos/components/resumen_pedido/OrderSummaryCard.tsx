@@ -56,47 +56,51 @@ export function OrderSummaryCard({
 
         </div>
 
+{/* configuracion */}
         <div className="summary-metric-card">
             <h3> Configuración </h3>
             <div className="resumen-texto">
-                <span className="metric-label">
-                    Tamaño de Hoja
-                </span>
+                <div className="summary-row">
+                  <span className="summary-row-label">
+                    Tamaño de hoja
+                  </span>
 
-                <strong className="metric-value step-badge--form">
+                  <span className="summary-row-value">
                     {form.paperSize}
-                </strong>
+                  </span>
+                </div>
             </div>
+            <div className="summary-details">
+                <div className="summary-row">
+                  <span>Tipo de impresión</span>
 
-            <ul className="summary-list">
-                <li>
-                Tipo de impresión:
-                {" "}
-                {form.printType === "color"
-                    ? "Color"
-                    : "Blanco y negro"}
-                </li>
+                  <span>
+                    {form.printType === "color"
+                      ? "Color"
+                      : "Blanco y negro"}
+                  </span>
+                </div>
+                    
+                <div className="summary-row">
+                  <span>Doble faz</span>
+                    
+                  <span>
+                    {form.doubleSided ? "Sí" : "No"}
+                  </span>
 
-                <li>
-                Doble faz:
-                
-                {" "}
-                
-                {form.doubleSided ? "✅" : "✖️"}
-                </li>
+                  <span>Encuadernado</span>
 
-                <li>
-                Encuadernado:
-                {" "}
-                {form.bound ? "✅" : "✖️"}
-                </li>
+                  <span>
+                    {form.bound ? "Sí" : "No"}
+                  </span>
 
-                <li>
-                Anillado:
-                {" "}
-                {form.spiralBound ? "✅" : "✖️"}
-                </li>
-            </ul>
+                   <span>Anillado</span>
+                    
+                  <span>
+                    {form.spiralBound ? "Sí" : "No"}
+                  </span>
+                </div>
+            </div>
         </div>
         
         {/* Archivo */}
