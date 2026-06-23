@@ -6,10 +6,6 @@ import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
 import { getLastOrder } from "../services/order-storage";
 
-
-
-import { useCreateOrder } from "../context/CreateOrderContext";
-
 import { CurrentOrderHeader } from "../components/pedido_actual/CurrentOrderHeader";
 import { OrderStatusTimeline } from "../components/pedido_actual/OrderStatusTimeline";
 
@@ -21,7 +17,6 @@ import { OrderFileCard } from "../components/pedido_actual/OrderFileCard";
 export function PedidoActualPage() {
   const [order, setOrder] = useState<Order | null>(null);
   
-   const { form, setForm } =  useCreateOrder();
 
   const [loading, setLoading] = useState(true);
 
