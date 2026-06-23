@@ -14,7 +14,8 @@ export interface Order {
      | "control_de_calidad"
      | "listo_para_entregar"
      | "en_viaje"
-     | "entregado";
+     | "entregado"
+     | "cancelado";
 
   price: number;
 
