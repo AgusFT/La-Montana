@@ -13,14 +13,15 @@ export function OrderJobCard({
 }: OrderJobCardProps){
     return(
 <section className="order-card">
+  <div className="order-card-title">
         <h2>Información del pedido</h2>
-            <p> Fecha de creación: </p>
-
+            <p> Fecha de creación: 
             <strong>
               {new Date(
                 createdAt
               ).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short"})}
             </strong>
+            </p>
 
             <p>
               Precio: 
@@ -31,6 +32,7 @@ export function OrderJobCard({
               )}
             </strong>
             </p>
+  </div>
 
 </section>
     )

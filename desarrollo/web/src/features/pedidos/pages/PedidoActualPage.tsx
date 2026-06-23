@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
 import { getLastOrder } from "../services/order-storage";
-import { formatFileSize } from "@/features/utils/formatFileSize";
+
 
 
 import { useCreateOrder } from "../context/CreateOrderContext";
@@ -15,7 +15,8 @@ import { OrderStatusTimeline } from "../components/pedido_actual/OrderStatusTime
 
 import { Order } from "../types/order";
 import { OrderDetailsCard } from "../components/pedido_actual/OrderDetailsCard";
-import { OrderJobCard } from "../components/pedido_actual/OrderJobCard";
+import { OrderJobCard } from "../components/pedido_actual/OrderInfoCard";
+import { OrderFileCard } from "../components/pedido_actual/OrderFileCard";
 
 export function PedidoActualPage() {
   const [order, setOrder] = useState<Order | null>(null);
@@ -79,13 +80,11 @@ export function PedidoActualPage() {
                 
             </section> */}
 
-            <section className="order-card">
-              <h2>Archivo</h2>
-            </section>
+          <OrderFileCard 
+            fileName={order.fileName}
+            fileSize={order.fileSize}
+          />
 
-            {/* <section className="order-card order-highlight-card">
-              <h2>Información del pedido</h2>
-            </section> */}
             <OrderJobCard 
               price={order.price}
               createdAt={order.createdAt}
