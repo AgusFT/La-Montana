@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 |
-| Estado | Borrador inicial |
-| Fecha | 2026-05-20 |
+| Versión | 1.1 |
+| Estado | Actualizado con OKR |
+| Fecha | 2026-06-23 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -23,33 +23,54 @@ Desarrollar un sistema integral de gestión para una imprenta que permita centra
 
 ---
 
-## 3. Objetivos específicos
+## 3. Objetivo OKR
 
-### 3.1 Centralizar la gestión del pedido
+Se adopta el enfoque OKR para expresar el objetivo general del proyecto y sus resultados verificables.
+
+**Objective:** Consolidar una primera versión validable de **La Montaña** que centralice la gestión de pedidos de impresión, mantenga trazabilidad operativa y deje una base técnica escalable sobre Supabase, Web, Android e impresión autorizada.
+
+| Resultado clave | Criterio de verificación |
+|---|---|
+| KR1 | Mantener documentados y trazables alcance, stakeholders, requerimientos, historias de usuario, casos de uso, reglas de negocio, arquitectura, modelo de datos y Project. |
+| KR2 | Implementar o simular en código el flujo Web MVP del cliente: login/dashboard, creación de pedido con PDF, estimación, resumen, confirmación, seguimiento y cancelación. |
+| KR3 | Dejar definida y versionada la base técnica Supabase: modelo de datos, migración inicial, guía BDD, estrategia RLS y estructura para Auth, Storage y Edge Functions. |
+| KR4 | Gestionar el avance con GitHub Project público, milestones, issues e historias trazables, responsables, estados y estimaciones. |
+
+### 3.1 Justificación de OKR sobre SMART
+
+Se elige OKR y no SMART porque **La Montaña** no persigue una única meta aislada, sino un conjunto de resultados coordinados entre documentación, planificación, prototipo funcional, backend, arquitectura y seguimiento del trabajo. El enfoque OKR permite vincular un objetivo amplio de producto con resultados clave verificables en el repositorio, el GitHub Project y las ramas de desarrollo, sin reducir el proyecto a una sola métrica cerrada.
+
+SMART podría aplicarse a tareas puntuales, pero para este parcial resulta más adecuado OKR porque permite mostrar avance por evidencia: documentos versionados, backlog trazable, milestones, código simulado o funcional y decisiones técnicas justificadas.
+
+---
+
+## 4. Objetivos específicos
+
+### 4.1 Centralizar la gestión del pedido
 
 Permitir que los pedidos sean registrados, consultados y gestionados desde una fuente única de verdad, evitando información dispersa, duplicada o inconsistente.
 
 Este objetivo implica que el pedido tenga trazabilidad desde su creación hasta su cierre.
 
-### 3.2 Garantizar revisión administrativa antes de producción
+### 4.2 Garantizar revisión administrativa antes de producción
 
 Asegurar que ningún pedido creado por un cliente avance automáticamente a producción.
 
 Todo pedido nuevo debe quedar inicialmente pendiente de revisión y requerir una intervención administrativa antes de continuar el flujo operativo.
 
-### 3.3 Gestionar usuarios, roles y permisos
+### 4.3 Gestionar usuarios, roles y permisos
 
 Implementar una base inicial de roles y permisos que permita diferenciar las funciones disponibles para clientes, empleados y administradores.
 
 El sistema debe mostrar vistas, acciones y datos según el rol y los permisos correspondientes.
 
-### 3.4 Centralizar los archivos del pedido
+### 4.4 Centralizar los archivos del pedido
 
 Permitir la carga, asociación, consulta y uso autorizado de archivos vinculados a cada pedido.
 
 Los archivos deben ser almacenados de forma centralizada y segura, evitando depender de rutas locales del cliente como mecanismo de impresión.
 
-### 3.5 Separar los estados principales del pedido
+### 4.5 Separar los estados principales del pedido
 
 Representar de forma diferenciada:
 
@@ -59,7 +80,7 @@ Representar de forma diferenciada:
 
 Esta separación permite evitar inconsistencias entre la operación interna, la comunicación con el cliente y la situación de cobro.
 
-### 3.6 Implementar reglas de negocio críticas
+### 4.6 Implementar reglas de negocio críticas
 
 Incorporar las reglas centrales del negocio dentro del flujo del sistema.
 
@@ -71,7 +92,7 @@ Entre ellas:
 - consistencia entre entrega, cobro, comprobante, auditoría y cierre;
 - autorización previa antes de imprimir.
 
-### 3.7 Desarrollar una aplicación Web multirol
+### 4.7 Desarrollar una aplicación Web multirol
 
 Construir una aplicación Web que permita el acceso de clientes, empleados y administradores.
 
@@ -84,13 +105,13 @@ La Web debe permitir, según el rol:
 - operar funciones administrativas;
 - dar soporte al flujo principal del sistema.
 
-### 3.8 Desarrollar una aplicación Android conectada al mismo backend
+### 4.8 Desarrollar una aplicación Android conectada al mismo backend
 
 Construir una aplicación Android que consuma el mismo backend central utilizado por la Web.
 
 La app debe respetar la misma lógica de autenticación, permisos, pedidos, archivos y estados definidos para el sistema.
 
-### 3.9 Implementar backend central con Supabase
+### 4.9 Implementar backend central con Supabase
 
 Utilizar Supabase como backend central del sistema, incluyendo:
 
@@ -103,7 +124,7 @@ Utilizar Supabase como backend central del sistema, incluyendo:
 
 El backend debe actuar como fuente única de verdad para Web, Android y subsistema de impresión.
 
-### 3.10 Integrar un subsistema de impresión autorizado
+### 4.10 Integrar un subsistema de impresión autorizado
 
 Implementar un subsistema de impresión que permita ejecutar trabajos autorizados mediante Raspberry Pi, CUPS y un agente/gateway de impresión.
 
@@ -111,13 +132,13 @@ Este subsistema debe consultar o recibir trabajos autorizados, acceder a los arc
 
 El subsistema de impresión no debe tomar decisiones de negocio.
 
-### 3.11 Registrar trazabilidad y eventos relevantes
+### 4.11 Registrar trazabilidad y eventos relevantes
 
 Mantener registro de eventos importantes del flujo del pedido, especialmente aquellos relacionados con revisión administrativa, cambios de estado, archivos, impresión, entrega, cobro, comprobantes y cierre.
 
 La trazabilidad debe permitir entender qué ocurrió, cuándo ocurrió y bajo qué contexto operativo.
 
-### 3.12 Producir documentación clara y mantenible
+### 4.12 Producir documentación clara y mantenible
 
 Generar documentación suficiente para explicar el producto, su alcance, sus decisiones principales, su arquitectura, su modelo de datos, sus requerimientos, sus flujos y sus criterios de validación.
 
@@ -125,7 +146,7 @@ La documentación debe acompañar al desarrollo y mantener coherencia con el có
 
 ---
 
-## 4. Clasificación de objetivos
+## 5. Clasificación de objetivos
 
 | Tipo de objetivo | Objetivos relacionados |
 |---|---|
@@ -137,7 +158,7 @@ La documentación debe acompañar al desarrollo y mantener coherencia con el có
 
 ---
 
-## 5. Relación con el alcance general
+## 6. Relación con el alcance general
 
 Los objetivos definidos en este documento se desprenden del alcance general del proyecto.
 
@@ -149,7 +170,7 @@ Por lo tanto, cualquier objetivo nuevo que se agregue en el futuro deberá ser r
 
 ---
 
-## 6. Criterios de cumplimiento
+## 7. Criterios de cumplimiento
 
 Los objetivos se considerarán cumplidos cuando el sistema logre:
 

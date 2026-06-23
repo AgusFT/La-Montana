@@ -165,6 +165,10 @@ Las carpetas antiguas asociadas a Desktop, Firebase, Cursor, logs locales y plac
 
 El seguimiento oficial se realiza mediante GitHub Projects.
 
+Tablero público de seguimiento:
+
+https://github.com/users/AgusFT/projects/4
+
 El Project se organiza con:
 
 - campos personalizados;
