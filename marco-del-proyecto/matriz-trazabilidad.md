@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.3 |
-| Estado | Actualizada con Project, WBS V3, E03, setup inicial Supabase, refinamiento backend Supabase y diseño de datos |
-| Fecha | 2026-06-21 |
+| Versión | 1.4 |
+| Estado | Actualizada con Project, WBS V3, E03, setup inicial Supabase, refinamiento backend Supabase, diseño de datos y redistribución de HU por milestones |
+| Fecha | 2026-06-23 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -186,11 +186,11 @@ El GitHub Project se organiza como Product Backlog de alto nivel mediante épica
 | E02 - Alcance, requerimientos y planificacion base | #19 | M1 - Documentacion base de alcance y planificacion | OBJ-001 a OBJ-012 | #20, #21, #22, #23, #25, #26, #27, #28, #35 |
 | E03 - Diseño UX/UI y prototipo MVP | #43 | M1 - Documentacion base de alcance y planificacion | OBJ-007, OBJ-012 | #32, #33, #36, #38, #39, #40, #41, #82, #83, #84, #85, #87, #88, #89 |
 | E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #92, #119, #120, #121, #122, diagramas de arquitectura |
-| E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #93, #95, #96, #97, #98, #99, #100, #101, #102, #110, #111, #112, #113, #114, #115 |
-| E06 - Portal Web cliente MVP | #46 | M4 - MVP Web | OBJ-001, OBJ-004, OBJ-007 | #36, #38, #39, #40, #41, #91, #94, #103, #104, #105, #106, #107, #108, #109, #116, #117 |
-| E07 - Panel Web administrativo MVP | #47 | M4 - MVP Web | OBJ-002, OBJ-005, OBJ-006, OBJ-007, OBJ-010 | Wireflows administrador, CU-REV, CU-CIE |
-| E08 - Aplicación Android MVP | #48 | M5 - MVP Android | OBJ-008 | CU-AND-001, CU-AND-002, HU-CLI-008 |
-| E09 - Subsistema de impresión | #49 | M6 - Subsistema de impresion | OBJ-009 | CU-IMP-001 a CU-IMP-006 |
+| E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | HU-CLI-006 (#57), HU-SIS-001 a HU-SIS-004 (#78 a #81), #93, #95, #96, #97, #98, #99, #100, #101, #102, #110, #111, #112, #113, #114, #115 |
+| E06 - Portal Web cliente MVP | #46 | M4 - MVP Web | OBJ-001, OBJ-004, OBJ-007 | HU-CLI-001 a HU-CLI-005 (#52 a #56), HU-CLI-007 (#58), HU-CLI-009 (#91), #36, #38, #39, #40, #41, #94, #103, #104, #105, #106, #107, #108, #109, #116, #117 |
+| E07 - Panel Web administrativo MVP | #47 | M4 - MVP Web | OBJ-002, OBJ-005, OBJ-006, OBJ-007, OBJ-010 | HU-EMP-001 a HU-EMP-006 (#60 a #65), HU-ADM-001 a HU-ADM-008 (#66 a #73), wireflows administrador, CU-REV, CU-CIE |
+| E08 - Aplicación Android MVP | #48 | M5 - MVP Android | OBJ-008 | HU-CLI-008 (#59), CU-AND-001, CU-AND-002 |
+| E09 - Subsistema de impresión | #49 | M6 - Subsistema de impresion | OBJ-009 | HU-IMP-001 a HU-IMP-004 (#74 a #77), CU-IMP-001 a CU-IMP-006 |
 | E10 - Integración end-to-end del flujo de pedidos | #50 | M7 - Integracion end-to-end | OBJ-001 a OBJ-010 | Flujo completo de pedido, cierre y auditoría |
 | E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #90, README, MVP y evidencias finales |
 
