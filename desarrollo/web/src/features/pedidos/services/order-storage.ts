@@ -7,8 +7,7 @@ const STORAGE_KEY = "orders";
 
 // obtengo todos los pedidos
 export function getOrders(): Order[] {
-  const storedOrders =
-    localStorage.getItem(STORAGE_KEY);
+  const storedOrders = localStorage.getItem(STORAGE_KEY);
 
   if (!storedOrders) {
     return [];
@@ -40,7 +39,7 @@ export function getOrderById(
   );
 }
 
-// obtener la ultima orden
+// obtener el ultimo pedido. (para la vista de pedido actual)
 export function getLastOrder():
   | Order
   | undefined {

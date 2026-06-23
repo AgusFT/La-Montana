@@ -13,6 +13,8 @@ export function DashboardView() {
       router.push("/pedidos/nuevo");
     }
 
+     
+
   return (
     
     <ClienteLayout >

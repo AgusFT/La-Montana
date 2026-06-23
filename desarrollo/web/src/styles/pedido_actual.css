@@ -1,0 +1,321 @@
+/* =======================================================
+   Pedido Actual
+   ======================================================= */
+
+.current-order-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* =======================================================
+   Header
+   ======================================================= */
+
+.current-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.current-order-subtitle {
+  margin-top: 0.5rem;
+  color: #667085;
+}
+
+/* =======================================================
+   Estado Pedido
+   ======================================================= */
+
+.order-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  padding: 1.5rem;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+
+  background: white;
+}
+
+.order-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  width: fit-content;
+
+  padding: 0.5rem 1rem;
+
+  border-radius: 999px;
+
+  background: #eef4ff;
+
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* =======================================================
+   Grid Principal
+   ======================================================= */
+
+.order-main-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 1.5rem;
+}
+
+/* =======================================================
+   Tarjetas
+   ======================================================= */
+
+.order-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  padding: 1.5rem;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+
+  background: white;
+}
+
+.order-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  color: var(--color-primary);
+}
+
+.order-card-title h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* =======================================================
+   Filas Información
+   ======================================================= */
+
+.order-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-info-label {
+  color: #667085;
+}
+
+.order-info-value {
+  font-weight: 600;
+}
+
+/* =======================================================
+   Badges
+   ======================================================= */
+
+.order-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 2rem;
+  height: 2rem;
+
+  padding: 0 0.75rem;
+
+  border-radius: 8px;
+
+  background: var(--color-mist);
+  color: var(--color-border);
+
+  font-weight: 600;
+}
+
+/* =======================================================
+   Archivo
+   ======================================================= */
+
+.order-file-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+
+  color: var(--color-primary);
+
+  word-break: break-word;
+}
+
+.order-file-size {
+  color: #667085;
+}
+
+/* =======================================================
+   Tarjeta Destacada (precio)
+   ======================================================= */
+
+.order-highlight-card {
+  background: #f5f8ff;
+
+  border: 1px solid #dbe5ff;
+}
+
+.order-price {
+  font-size: 2rem;
+  font-weight: 700;
+
+  color: var(--color-primary);
+}
+
+.order-status-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* =======================================================
+   Grid Inferior
+   ======================================================= */
+
+.order-secondary-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+
+  gap: 1.5rem;
+}
+
+/* =======================================================
+   Pago
+   ======================================================= */
+
+.order-payment-method {
+  font-size: 1.5rem;
+  font-weight: 700;
+
+  color: var(--color-primary);
+}
+
+/* =======================================================
+   Entrega
+   ======================================================= */
+
+.order-delivery-name {
+  font-size: 1.4rem;
+  font-weight: 700;
+
+  color: var(--color-primary);
+}
+
+.order-delivery-address {
+  color: #667085;
+}
+
+/* =======================================================
+   Notas
+   ======================================================= */
+
+.order-note {
+  color: #667085;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* =======================================================
+   Empty State
+   ======================================================= */
+
+.order-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  padding: 3rem;
+
+  border: 1px dashed #d0d5dd;
+  border-radius: 12px;
+
+  background: white;
+}
+
+.order-empty-state p {
+  color: #667085;
+}
+
+/* =======================================================
+   Responsive
+   ======================================================= */
+
+@media (max-width: 1024px) {
+
+  .order-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-secondary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .current-order-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+.timeline-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  padding: 2rem;
+
+  background: white;
+
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+}
+
+.status-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  flex: 1;
+
+  gap: 0.75rem;
+}
+
+.status-circle {
+  width: 20px;
+  height: 20px;
+
+  border-radius: 50%;
+}
+
+.status-circle--completed {
+  background: #22c55e;
+}
+
+.status-circle--current {
+  background: #f97316;
+}
+
+.status-circle--pending {
+  background: #64748b;
+}
+
+.status-label {
+  text-align: center;
+
+  font-size: 0.875rem;
+  font-weight: 600;
+}

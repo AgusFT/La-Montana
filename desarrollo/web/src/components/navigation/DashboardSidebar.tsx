@@ -30,6 +30,9 @@ export function Sidebar() {
     router.push("/pedidos/nuevo");
   }
 
+  function navigateToPedidoActual() {
+    router.push("/pedidos/actual");
+  }
 
   return (
     <aside className="sidebar">
@@ -38,7 +41,7 @@ export function Sidebar() {
         <button className={isActive("/dashboard") ? "is-active" : ""} type="button" onClick={navigateToDashboard}>
           Inicio
         </button>
-        <button className={isActive("/mis-pedidos") ? "is-active" : ""} type="button">Mis pedidos</button>
+        <button className={isActive("/mis-pedidos") ? "is-active" : ""} type="button" onClick={navigateToPedidoActual}>Mis pedidos</button>
         <button className={isActive("/pedidos/nuevo") ? "is-active" : ""} type="button" onClick={navigateToCrearPedido}>Crear pedido</button>
         <button className={isActive("/puntos-de-entrega") ? "is-active" : ""} type="button">Puntos de entrega</button>
         <button className={isActive("/contacto") ? "is-active" : ""} type="button">Contacto</button>

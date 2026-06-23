@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "../styles/pedidos.css";
 @import "../styles/resumen_pedido.css";
+@import "../styles/pedido_actual.css";
 
 :root {
   --color-primary-light: #3d7be0;
