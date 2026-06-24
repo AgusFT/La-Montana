@@ -64,7 +64,7 @@ El bloque `Desarrollo > Backend - Supabase` del WBS V3 se implementa en este dir
 | Acceso autorizado a archivos | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Flujo de revision administrativa | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Edge Functions implementadas | `supabase/functions/` |
-| Contrato de errores Edge Functions | `diseño/Back/edge-functions/functions-errors.md` y `supabase/functions/_shared/api-response.ts` |
+| Contrato de errores Edge Functions | helper versionado en `supabase/functions/_shared/api-response.ts`; documento funcional en `main/diseño/Back/edge-functions/functions-errors.md` |
 | Pruebas bdd, rls, unitarias, funcionales, otras | `supabase/tests/database/` |
 
 ## Convencion de migraciones
