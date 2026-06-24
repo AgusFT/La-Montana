@@ -21,23 +21,6 @@ export function JobDetailsSection({
       </div>
 
       <div className="form-group">
-        <label className="form-label" htmlFor="form-input">
-          Número de páginas
-        </label>
-
-        <input
-          id="form-input"
-          className="form-input"
-          value={
-            form.pages ??
-            "Se completará al cargar el archivo"
-          }
-          disabled
-          readOnly
-        />
-      </div>
-
-      <div className="form-group">
         <label className="form-label" htmlFor="paper-size">
           Tamaño de hoja
         </label>

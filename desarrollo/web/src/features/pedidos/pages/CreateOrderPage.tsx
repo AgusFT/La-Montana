@@ -23,7 +23,7 @@ export function CreateOrderPage() {
   router.push("/pedidos/resumen");
 };
 
-// función para contar la cantidad de paginas
+// función para contar la cantidad de paginas (esta funcion deberá ser reemplazada en supabase)
       async function handleFileSelect(file: File) {
       try {
         const pages = await getPdfPageCount(file);

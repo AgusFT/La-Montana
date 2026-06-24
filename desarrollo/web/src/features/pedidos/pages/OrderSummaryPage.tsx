@@ -32,23 +32,28 @@ export function OrderSummaryPage()
   };
 
   // funcion que confirma la orden y la guarda en el localStorage 
-  const handleConfirmOrder = () => {  
-
-    const order = createOrderFromForm(
-        form,
-        estimatedPrice
+const handleConfirmOrder = () => {
+  if (!form.file) {
+    alert(
+      "Debe seleccionar un archivo antes de crear el pedido."
     );
+    return;
+  }
 
-    // guardo en el localStorage el pedido
-    saveOrder(order);
-    console.log(order);
+  const order = createOrderFromForm(
+    form,
+    estimatedPrice
+  );
 
+  saveOrder(order);
 
-    alert("Pedido creado correctamente.");
-    // redirección al dashboard
-    
-    router.push("/dashboard");
-  };
+  alert("Pedido creado correctamente.");
+
+  router.push("/dashboard");
+};
+
+  console.log("file", form.file);
+  console.log("disabled", !form.file);
 
   const estimatedPrice =
   calculateEstimatedPrice(form);
@@ -62,12 +67,14 @@ export function OrderSummaryPage()
           onBack={handleBack}
         />
 
+        {/* Detalles del Trabajo (cantidad de paginas calculadas, cantidad de copias solicitadas) */}
         <OrderSummaryCard
           form={form}
         />
 
       {/* se debera modificar el responseTime acorde a reglas de negocio */}
         <OrderEstimateCard
+          disabled={!form.file}
           estimatedPrice={estimatedPrice}
           responseTime=" 24 hs hábiles"
         />
@@ -97,6 +104,7 @@ export function OrderSummaryPage()
         </div> 
 
         <OrderSummaryActions
+          disabled={!form.file}
           onConfirm={handleConfirmOrder}
         /> 
 

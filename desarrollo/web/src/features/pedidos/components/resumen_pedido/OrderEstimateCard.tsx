@@ -1,11 +1,13 @@
 import { Clock5, TicketCheck } from "lucide-react";
 
 interface OrderEstimateCardProps {
+  disabled: boolean;
   estimatedPrice: number;
   responseTime: string;
 }
 
 export function OrderEstimateCard({
+  disabled,
   estimatedPrice,
   responseTime,
 }: OrderEstimateCardProps) {
@@ -14,11 +16,11 @@ export function OrderEstimateCard({
       <div className="estimate-item">
         <span className="estimate-label">
           <Clock5 />
-          Tiempo estimado de respuesta: 
+         {disabled ? " " : "Tiempo estimado de respuesta:" }
         </span>
-
+        
         <strong className="estimate-value">
-          {responseTime}
+         {disabled ? "Cargá un archivo para obtener la cotización" : responseTime}
         </strong>
       </div>
 
@@ -27,7 +29,7 @@ export function OrderEstimateCard({
       <div className="estimate-item">
         <span className="estimate-label">
           <TicketCheck />
-          Precio Final:  
+          {disabled ? " " : "Precio Final:" }  
         </span>
 
         <strong className="estimate-value">

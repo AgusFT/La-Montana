@@ -12,6 +12,12 @@
   color: #5e6b7d;
 }
 
+.summary-group{
+  display: flex;
+      flex-direction: column;
+    align-items: center;
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;
@@ -251,6 +257,18 @@
 
   transition: transform 0.2s ease,
               box-shadow 0.2s ease;
+}
+
+.summary-create-order-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: none;
+}
+
+.summary-create-order-btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
 }
 
 .summary-create-order-btn:hover {

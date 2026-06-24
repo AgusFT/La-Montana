@@ -34,27 +34,29 @@ export function OrderSummaryCard({
       <div className="summary-metrics">
 
         <div className="summary-metric-card">
-            <h3> Trabajo </h3>
-            <div className="resumen-texto">
-            <span className="metric-label">
-                Número de Páginas:
+         <h3>Trabajo</h3>
+        <div className="summary-group">
+          <div className="summary-row">
+            <span className="summary-row-label">
+              Número de páginas
             </span>
-
-            <strong className="metric-value  step-badge--form">
-                {form.pages ?? "-"}
-            </strong>
-            </div>
-
-            <div className="resumen-texto">
-            <span className="metric-label">
-                Cantidad de Copias:
+          
+            <span className="summary-row-value">
+              {form.pages ?? "-"}
             </span>
-            <strong className="metric-value step-badge--form">
-                {form.copies}
-            </strong>
-            </div>
-
+          </div>
+          
+          <div className="summary-row">
+            <span className="summary-row-label">
+              Cantidad de copias
+            </span>
+          
+            <span className="summary-row-value">
+              {form.copies}
+            </span>
+          </div>
         </div>
+      </div>
 
 {/* configuracion */}
         <div className="summary-metric-card">
