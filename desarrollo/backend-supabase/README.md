@@ -27,6 +27,7 @@ desarrollo/backend-supabase/
     ├── config.toml
     ├── seed.sql
     ├── functions/
+    │   └── _shared/
     ├── migrations/
     └── tests/
         └── database/
@@ -40,6 +41,7 @@ desarrollo/backend-supabase/
 | `supabase/seed.sql` | Datos iniciales para entornos reproducibles de desarrollo |
 | `supabase/migrations/` | Migraciones SQL versionadas y aplicables al proyecto Supabase |
 | `supabase/functions/` | Edge Functions desplegables |
+| `supabase/functions/_shared/` | Helpers compartidos para contratos HTTP, errores y utilidades comunes |
 | `supabase/tests/database/` | Pruebas de base de datos, RLS, RPC y reglas criticas |
 
 ## Relacion con el WBS
@@ -62,6 +64,7 @@ El bloque `Desarrollo > Backend - Supabase` del WBS V3 se implementa en este dir
 | Acceso autorizado a archivos | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Flujo de revision administrativa | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Edge Functions implementadas | `supabase/functions/` |
+| Contrato de errores Edge Functions | `diseño/Back/edge-functions/functions-errors.md` y `supabase/functions/_shared/api-response.ts` |
 | Pruebas bdd, rls, unitarias, funcionales, otras | `supabase/tests/database/` |
 
 ## Convencion de migraciones
