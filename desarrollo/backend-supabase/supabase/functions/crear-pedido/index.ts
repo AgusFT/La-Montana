@@ -58,7 +58,7 @@ Deno.serve(async (request) => {
     const cuerpo = await parseJsonBody<CuerpoCrearPedido>(request);
     const pedido = normalizarCuerpoCrearPedido(cuerpo, requestId);
 
-    const { data, error } = await supabase.rpc<PedidoCreado>("crear_pedido_cliente", {
+    const { data: pedidoCreadoRpc, error } = await supabase.rpc("crear_pedido_cliente", {
       p_cantidad_carillas: pedido.cantidadCarillas,
       p_cantidad_copias: pedido.cantidadCopias,
       p_tamano_hoja: pedido.tamanoHoja,
@@ -72,6 +72,7 @@ Deno.serve(async (request) => {
       p_metodo_pago_preferido: pedido.metodoPagoPreferido,
       p_request_id: requestId,
     });
+    const data = pedidoCreadoRpc as PedidoCreado | null;
 
     if (error) {
       throw mapearErrorSupabase(error);
