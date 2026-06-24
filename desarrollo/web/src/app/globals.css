@@ -258,19 +258,28 @@ button {
 }
 
 .login-main {
+
   position: relative;
   display: grid;
   min-height: 38rem;
   place-items: center;
   padding: var(--space-8) var(--space-6);
+
+  background-image:
+    linear-gradient(
+      rgba(248, 250, 252, 0.519),
+      rgba(248, 250, 252, 0.542)
+    ),
+    url("/images/login-background.png");
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
 }
 
 .login-main .mountain-mark {
-  position: absolute;
-  inset: var(--space-6);
-  z-index: 0;
-  min-height: auto;
-  opacity: 0.8;
+display: none;
 }
 
 .login-card {
