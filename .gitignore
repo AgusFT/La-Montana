@@ -1,2 +1,10 @@
 .cursor/rules/generales.mdc
 _logs/git_push_2026-01-29_174150.log
+
+# Dependencias y artefactos locales
+node_modules/
+
+# Variables de entorno y secretos locales
+.env
+.env.*
+!.env.example

@@ -1,0 +1,15 @@
+{
+  "name": "backend-supabase",
+  "private": true,
+  "scripts": {
+    "supabase:version": "supabase --version",
+    "supabase:link": "supabase link --project-ref acmytbjkopdbbwlnovoe",
+    "supabase:start": "supabase start",
+    "supabase:status": "supabase status",
+    "supabase:db:reset": "supabase db reset",
+    "supabase:test:db": "supabase test db --db-url postgresql://postgres:postgres@127.0.0.1:54322/postgres supabase/tests/database"
+  },
+  "devDependencies": {
+    "supabase": "^2.107.0"
+  }
+}
