@@ -91,7 +91,7 @@ begin
   cantidad_estimada_calculada := cantidad_estimada_num::integer;
   requiere_senia_calculada := cantidad_estimada_calculada > 200;
   porcentaje_senia_calculado := case
-    when requiere_senia_calculada then 50.00
+    when requiere_senia_calculada then 30.00
     else 0.00
   end;
   codigo_impresion := case

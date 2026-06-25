@@ -79,8 +79,8 @@ select is(
 
 select is(
   (select (respuesta ->> 'porcentaje_senia')::numeric from tmp_cotizacion_senia),
-  50.00::numeric,
-  'cotizacion aplica senia del 50 por ciento'
+  30.00::numeric,
+  'cotizacion aplica senia del 30 por ciento'
 );
 
 select is(
@@ -130,7 +130,7 @@ select is(
 select ok(
   (
     select p.requiere_senia
-      and p.porcentaje_senia = 50.00::numeric
+      and p.porcentaje_senia = 30.00::numeric
       and p.cantidad_estimada = 202
     from public.pedido p
     join tmp_pedido_cotizado t on t.id_pedido = p.id_pedido
