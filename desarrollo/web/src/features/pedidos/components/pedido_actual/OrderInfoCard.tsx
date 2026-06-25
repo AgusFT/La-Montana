@@ -11,6 +11,10 @@ export function OrderJobCard({
   price,
   createdAt
 }: OrderJobCardProps){
+  const formattedPrice = typeof price === "number"
+    ? `$ ${price.toLocaleString("es-AR")}`
+    : "A confirmar";
+
     return(
 <section className="order-card">
   <div className="order-card-title">
@@ -26,10 +30,7 @@ export function OrderJobCard({
             <p>
               Precio: 
             <strong>
-               $ 
-              {price.toLocaleString(
-                "es-AR"
-              )}
+              {formattedPrice}
             </strong>
             </p>
   </div>

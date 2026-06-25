@@ -9,15 +9,21 @@ export function createOrderFromForm(
   return {
     id: crypto.randomUUID(),
 
+    code: "Pedido local",
+
     createdAt: new Date().toISOString(),
 
     status: "pendiente_revision",
+
+    statusLabel: "En revisión",
 
     price: estimatedPrice,
 
     fileName: form.file?.name ?? "",
 
     fileSize: form.file?.size ?? 0,
+
+    deliveryPoint: null,
 
     form: {
       pages: form.pages,

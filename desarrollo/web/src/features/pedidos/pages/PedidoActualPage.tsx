@@ -98,7 +98,10 @@ export function PedidoActualPage() {
       
       <div className="dashboard-main">
 
-        <CurrentOrderHeader />
+        <CurrentOrderHeader
+          code={order.code}
+          statusLabel={order.statusLabel}
+        />
 
         <OrderStatusTimeline
           status={order.status}
@@ -133,7 +136,7 @@ export function PedidoActualPage() {
                 />
 
             <OrderDeliveryPointCard
-                deliveryPointId={order.form.deliveryPointId}
+                deliveryPoint={order.deliveryPoint}
             />
 
             </div>
