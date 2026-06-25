@@ -54,16 +54,47 @@ npm run supabase:test:db
 Para validar Edge Functions localmente:
 
 ```bash
-./node_modules/.bin/supabase functions serve crear-pedido cargar-archivo confirmar-pedido --no-verify-jwt
+./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cargar-archivo confirmar-pedido --no-verify-jwt
 ```
 
 Endpoints locales:
 
 | Funcion | URL |
 |---|---|
+| `clave-publica-cifrado` | `http://127.0.0.1:54321/functions/v1/clave-publica-cifrado` |
 | `crear-pedido` | `http://127.0.0.1:54321/functions/v1/crear-pedido` |
 | `cargar-archivo` | `http://127.0.0.1:54321/functions/v1/cargar-archivo` |
 | `confirmar-pedido` | `http://127.0.0.1:54321/functions/v1/confirmar-pedido` |
+
+## Contrato de cifrado para archivos
+
+Antes de invocar `cargar-archivo`, el frontend debe consultar
+`clave-publica-cifrado` para obtener:
+
+- `algoritmo_archivo`: `AES-GCM`;
+- `longitud_clave_archivo_bits`: `256`;
+- `algoritmo_envoltura_clave`: `RSA-OAEP`;
+- `hash_envoltura_clave`: `SHA-256`;
+- `version_cifrado`;
+- `clave_publica_spki_pem`.
+
+Con esos datos el frontend debe cifrar el PDF en cliente, calcular SHA-256 del
+ciphertext y enviar a `cargar-archivo` un `multipart/form-data` con:
+
+- `archivo`: ciphertext con `Content-Type: application/octet-stream`;
+- `hash_archivo`: SHA-256 hexadecimal del ciphertext;
+- `clave_envuelta`: clave AES envuelta con la clave publica backend;
+- `iv`: IV usado por AES-GCM;
+- `version_cifrado`: version devuelta por `clave-publica-cifrado`;
+- metadata funcional: `id_pedido`, `nombre_original`, `mime_original` y
+  `tamano_original_bytes`.
+
+Variables necesarias:
+
+| Variable | Uso |
+|---|---|
+| `CLAVE_PUBLICA_CIFRADO_ARCHIVOS` | Clave publica SPKI/PEM que consume `clave-publica-cifrado`. Puede cargarse con saltos `\n` escapados. |
+| `VERSION_CIFRADO_ARCHIVOS` | Version del contrato de cifrado. Si no se configura, usa `aes-256-gcm+rsa-oaep-sha256:v1`. |
 
 ## Cobertura de tests
 
@@ -83,7 +114,8 @@ Los tests de `supabase/tests/database` validan:
 
 ## Pendientes para integracion
 
-- #113: el front debe cifrar el archivo antes de llamar `cargar-archivo`.
+- #113: el front debe consumir `clave-publica-cifrado`, cifrar el archivo antes
+  de llamar `cargar-archivo` y enviar solo ciphertext + metadata segura.
 - #116: el front debe obtener JWT real con Supabase Auth.
 - #117: el front debe reemplazar `localStorage` por Edge Functions y resolver el
   mapeo de `deliveryPointId` del mock hacia `id_punto_entrega`.

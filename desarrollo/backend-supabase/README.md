@@ -64,6 +64,7 @@ El bloque `Desarrollo > Backend - Supabase` del WBS V3 se implementa en este dir
 | Acceso autorizado a archivos | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Flujo de revision administrativa | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Edge Functions implementadas | `supabase/functions/` |
+| Contrato de cifrado cliente de archivos | Edge Function `clave-publica-cifrado` y variables `CLAVE_PUBLICA_CIFRADO_ARCHIVOS` / `VERSION_CIFRADO_ARCHIVOS` |
 | Contrato de errores Edge Functions | helper versionado en `supabase/functions/_shared/api-response.ts`; documento funcional en `main/diseño/Back/edge-functions/functions-errors.md` |
 | Pruebas bdd, rls, unitarias, funcionales, otras | `supabase/tests/database/` y `supabase/tests/VALIDACION_BACKEND_MVP.md` |
 
