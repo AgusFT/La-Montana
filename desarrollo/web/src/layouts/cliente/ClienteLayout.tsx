@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 
 import { Sidebar } from "@/components/navigation/DashboardSidebar";
 import { BrandLockup } from "@/components/brand/BrandLockup";
+import { PerfilClienteActual } from "@/features/auth/components/PerfilClienteActual";
 
 interface ClienteLayoutProps {
   children: ReactNode;
@@ -21,14 +22,7 @@ export function ClienteLayout({
           <div className="topbar-actions">
             <a>Contacto</a>
 
-            <span
-              className="avatar"
-              aria-label="Usuario Alejandro"
-            >
-              A
-            </span>
-
-            <span>Alejandro</span>
+            <PerfilClienteActual />
           </div>
         </header>
 

@@ -140,6 +140,20 @@ La comunicación con servicios externos debe centralizarse en `lib` y `features`
 
 ---
 
+## Variables de entorno
+
+Para usar Supabase Auth en el Portal Cliente, configurar:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<publishable-o-anon-key>
+```
+
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` tambien se acepta como alias temporal para
+entornos locales.
+
+---
+
 ## Objetivo de la estructura
 
 Mantener un frontend:
