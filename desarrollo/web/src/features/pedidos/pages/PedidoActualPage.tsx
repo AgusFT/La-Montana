@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
-
-import { getLastActiveOrder } from "../services/order-storage";
 
 import { CurrentOrderHeader } from "../components/pedido_actual/CurrentOrderHeader";
 import { OrderStatusTimeline } from "../components/pedido_actual/OrderStatusTimeline";
@@ -15,14 +13,71 @@ import { OrderJobCard } from "../components/pedido_actual/OrderInfoCard";
 import { OrderFileCard } from "../components/pedido_actual/OrderFileCard";
 import { OrderPaymentCard } from "../components/pedido_actual/OrderPaymentCard";
 import { OrderDeliveryPointCard } from "../components/pedido_actual/OrderDeliveryPointCard";
-import { CancelOrderAction } from "../components/pedido_actual/CancelOrderAction";
+import {
+  obtenerMensajeErrorPedido,
+  obtenerPedidoActualCliente,
+} from "../services/pedido-api";
 
 export function PedidoActualPage() {
-  const [order] = useState<Order | null>(() => {
-    const lastOrder = getLastActiveOrder();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    return lastOrder ?? null;
-  });
+  useEffect(() => {
+    let isMounted = true;
+
+    async function cargarPedidoActual() {
+      try {
+        const pedidoActual = await obtenerPedidoActualCliente();
+
+        if (isMounted) {
+          setOrder(pedidoActual);
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setError(obtenerMensajeErrorPedido(loadError));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    cargarPedidoActual();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <ClienteLayout>
+        <div className="dashboard-main">
+          <h1>Pedido Actual</h1>
+
+          <p>
+            Cargando pedido...
+          </p>
+        </div>
+      </ClienteLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <ClienteLayout>
+        <div className="dashboard-main">
+          <h1>Pedido Actual</h1>
+
+          <p className="form-error">
+            {error}
+          </p>
+        </div>
+      </ClienteLayout>
+    );
+  }
 
   if (!order) {
     return (
@@ -80,13 +135,8 @@ export function PedidoActualPage() {
             <OrderDeliveryPointCard
                 deliveryPointId={order.form.deliveryPointId}
             />
-           
+
             </div>
-              <CancelOrderAction
-                  onCancelled={() => {
-                    window.location.reload();
-                  }}
-                />
              </div>
           </div>
     </ClienteLayout>

@@ -2,6 +2,7 @@
 
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { SummaryHeader } from "../components/resumen_pedido/SummaryHeader";
 import { OrderSummaryCard } from "../components/resumen_pedido/OrderSummaryCard";
@@ -12,51 +13,50 @@ import { PaymentMethodCard } from "../components/resumen_pedido/PaymentMethodCar
 import { DeliveryPointCard } from "../components/resumen_pedido/DeliveryPointCard"
 import { calculateEstimatedPrice } from "@/features/utils/calculateEstimatedPrice";
 import { OrderSummaryActions } from "../components/resumen_pedido/OrderSummaryActions"
-import { createOrderFromForm } from "@/features/utils/createOrderFromForm";
-import { saveOrder } from "../services/order-storage";
+import {
+  crearPedidoCompleto,
+  obtenerMensajeErrorPedido,
+} from "../services/pedido-api";
 
 
 
 export function OrderSummaryPage()
   {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   // importo del context el form 
   const { form, setForm } =  useCreateOrder();
+  const estimatedPrice =
+  calculateEstimatedPrice(form);
 
-  
-
-  console.log("form",form)
   const handleBack = () => {
     router.push("/pedidos/nuevo");
   };
 
-  // funcion que confirma la orden y la guarda en el localStorage 
-const handleConfirmOrder = () => {
+  // funcion que confirma el pedido contra Supabase Edge Functions
+const handleConfirmOrder = async () => {
   if (!form.file) {
-    alert(
-      "Debe seleccionar un archivo antes de crear el pedido."
-    );
+    setSubmitError("Debe seleccionar un archivo antes de crear el pedido.");
     return;
   }
 
-  const order = createOrderFromForm(
-    form,
-    estimatedPrice
-  );
+  setIsSubmitting(true);
+  setSubmitError("");
 
-  saveOrder(order);
+  try {
+    await crearPedidoCompleto(form);
 
-  alert("Pedido creado correctamente.");
-
-  router.push("/dashboard");
+    router.push("/pedidos/actual");
+    router.refresh();
+  } catch (error) {
+    setSubmitError(obtenerMensajeErrorPedido(error));
+  } finally {
+    setIsSubmitting(false);
+  }
 };
 
-  console.log("file", form.file);
-  console.log("disabled", !form.file);
-
-  const estimatedPrice =
-  calculateEstimatedPrice(form);
 
   return (
     <ClienteLayout>
@@ -105,6 +105,8 @@ const handleConfirmOrder = () => {
 
         <OrderSummaryActions
           disabled={!form.file}
+          isLoading={isSubmitting}
+          error={submitError}
           onConfirm={handleConfirmOrder}
         /> 
 

@@ -18,7 +18,6 @@ export function OrderDeliveryPointCard({
           point => point.id === deliveryPointId
         );
 
-        console.log("selec ",selectedPoint)
     return(
         <section className="order-card">
           
