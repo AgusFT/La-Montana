@@ -1,7 +1,6 @@
 // import { CreateOrderForm } from "@/features/pedidos/types/create-order";
 // interfaz, tipado el formulario para crear orden
 export interface OrderActualForm {
-
   // Job Details Section
   pages: number | null;
   copies: number;
@@ -16,8 +15,8 @@ export interface OrderActualForm {
   // Para la sección de metodo de pago
   paymentMethod: "Efectivo" | "Transferencia" | "Debito";
 
-    // Delivery
-  deliveryPointId: string;
+  // Delivery
+  deliveryPointId: number | null;
 
-//   form: Omit<CreateOrderForm, "file">;
+  //   form: Omit<CreateOrderForm, "file">;
 }

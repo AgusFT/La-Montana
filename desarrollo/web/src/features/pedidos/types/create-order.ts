@@ -1,4 +1,3 @@
-
 // interfaz, tipado el formulario para crear orden
 export interface CreateOrderForm {
   // file upload section
@@ -18,6 +17,6 @@ export interface CreateOrderForm {
   // Para la sección de metodo de pago
   paymentMethod: "Efectivo" | "Transferencia" | "Debito";
 
-    // Delivery
-  deliveryPointId: string;
+  // Delivery
+  deliveryPointId: number | null;
 }

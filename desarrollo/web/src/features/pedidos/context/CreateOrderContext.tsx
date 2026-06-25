@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-} from "react";
+import { createContext, useContext, useState } from "react";
 
 import { CreateOrderForm } from "../types/create-order";
 
@@ -15,29 +11,27 @@ interface CreateOrderContextType {
   >;
 }
 
-const CreateOrderContext =
-  createContext<CreateOrderContextType | null>(
-    null
-  );
+const CreateOrderContext = createContext<CreateOrderContextType | null>(
+  null,
+);
 
 export function CreateOrderProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [form, setForm] =
-    useState<CreateOrderForm>({
-      file: null,
-      pages: null,
-      copies: 1,
-      paperSize: "A4",
-      printType: "byn",
-      doubleSided: false,
-      bound: false,
-      spiralBound: false,
-      paymentMethod: "Efectivo",
-      deliveryPointId: "local"
-    });
+  const [form, setForm] = useState<CreateOrderForm>({
+    file: null,
+    pages: null,
+    copies: 1,
+    paperSize: "A4",
+    printType: "byn",
+    doubleSided: false,
+    bound: false,
+    spiralBound: false,
+    paymentMethod: "Efectivo",
+    deliveryPointId: null,
+  });
 
   return (
     <CreateOrderContext.Provider
@@ -49,12 +43,11 @@ export function CreateOrderProvider({
 }
 
 export function useCreateOrder() {
-  const context =
-    useContext(CreateOrderContext);
+  const context = useContext(CreateOrderContext);
 
   if (!context) {
     throw new Error(
-      "useCreateOrder debe usarse dentro de CreateOrderProvider"
+      "useCreateOrder debe usarse dentro de CreateOrderProvider",
     );
   }
 
