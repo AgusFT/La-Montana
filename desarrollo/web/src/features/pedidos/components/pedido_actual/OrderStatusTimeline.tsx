@@ -9,16 +9,19 @@ interface OrderStatusTimelineProps {
 export function OrderStatusTimeline({
   status,
 }: OrderStatusTimelineProps) {
+  const steps = status === "cancelado"
+    ? [{ id: "cancelado", label: "Cancelado" }]
+    : ORDER_STATUS_STEPS;
 
   const currentIndex =
-    ORDER_STATUS_STEPS.findIndex(
+    steps.findIndex(
       (step) => step.id === status
     );
 
   return (
     <section className="timeline-card">
 
-      {ORDER_STATUS_STEPS.map(
+      {steps.map(
         (step, index) => {
 
           let variant:

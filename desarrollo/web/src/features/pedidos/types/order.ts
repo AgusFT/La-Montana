@@ -14,6 +14,8 @@ export interface Order {
 
   createdAt: string;
 
+  fechaConfirmacionCliente: string | null;
+
   status:
      | "pendiente_revision"
      | "aprobado"

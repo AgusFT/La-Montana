@@ -84,6 +84,16 @@ interface PedidoConfirmado {
   ya_confirmado: boolean;
 }
 
+export interface PedidoCanceladoCliente {
+  id_pedido: number;
+  codigo: string;
+  estado_visible_cliente: Extract<Order["status"], "cancelado">;
+  estado_interno: "cancelado";
+  estado_financiero: "cancelado";
+  fecha_cancelacion: string | null;
+  cancelado: boolean;
+}
+
 interface PedidoClienteBackend {
   id_pedido: number;
   id_punto_entrega: number | null;
@@ -219,6 +229,7 @@ export async function obtenerPedidoActualCliente(): Promise<Order | null> {
     id: String(pedido.id_pedido),
     code: pedido.codigo,
     createdAt: pedido.fecha_creacion,
+    fechaConfirmacionCliente: pedido.fecha_confirmacion_cliente,
     status: pedido.estado_visible_cliente,
     statusLabel: obtenerEtiquetaEstadoPedido(pedido.estado_visible_cliente),
     price: pedido.total_estimado,
@@ -253,6 +264,29 @@ export async function obtenerPuntosEntregaPedido(): Promise<
   }
 
   return data ?? [];
+}
+
+export async function cancelarPedidoCliente(
+  idPedido: number,
+  motivo?: string,
+): Promise<PedidoCanceladoCliente> {
+  if (!Number.isInteger(idPedido) || idPedido <= 0) {
+    throw new PedidoApiError("No pudimos identificar el pedido a cancelar.");
+  }
+
+  const motivoNormalizado = motivo?.trim();
+  const body: Record<string, unknown> = {
+    id_pedido: idPedido,
+  };
+
+  if (motivoNormalizado) {
+    body.motivo = motivoNormalizado;
+  }
+
+  return llamarEdgeFunction<PedidoCanceladoCliente>("cancelar-pedido", {
+    method: "POST",
+    body,
+  });
 }
 
 export function obtenerMensajeErrorPedido(error: unknown): string {
