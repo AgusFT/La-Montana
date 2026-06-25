@@ -84,6 +84,23 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+  transform: none;
+}
+
+.form-error {
+  margin: 0;
+  border: 1px solid rgb(231 76 60 / 0.28);
+  border-radius: var(--radius-md);
+  background: rgb(231 76 60 / 0.08);
+  color: var(--color-error);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: var(--space-3);
+}
+
 .app-screen {
   min-height: 100vh;
   background:
