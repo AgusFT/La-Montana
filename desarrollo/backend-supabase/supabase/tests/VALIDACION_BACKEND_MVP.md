@@ -42,7 +42,7 @@ Los servicios del seed reproducen `MOCK_PRICING`:
 La cotizacion backend se calcula con esos servicios activos. La impresion se
 cobra por `cantidad_carillas * cantidad_copias`; `encuadernado` y `anillado`
 son cargos fijos por pedido. La seña MVP se requiere cuando
-`cantidad_carillas * cantidad_copias > 200` y el porcentaje aplicado es `50%`.
+`cantidad_carillas * cantidad_copias > 200` y el porcentaje aplicado es `30%`.
 
 ## Comandos de validacion
 
