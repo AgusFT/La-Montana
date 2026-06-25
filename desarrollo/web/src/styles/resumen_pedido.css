@@ -223,6 +223,27 @@
   font-weight: 600;
 }
 
+.estimate-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 12rem;
+}
+
+.estimate-helper {
+  color: #667085;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.estimate-error {
+  max-width: 20rem;
+  text-align: center;
+}
+
 .summary-actions {
   display: flex;
   flex-direction: column;
