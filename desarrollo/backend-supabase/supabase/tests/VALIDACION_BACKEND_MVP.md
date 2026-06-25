@@ -59,7 +59,7 @@ npm run supabase:test:db
 Para validar Edge Functions localmente:
 
 ```bash
-./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cotizar-pedido cargar-archivo confirmar-pedido resumen-dashboard-cliente --no-verify-jwt
+./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cotizar-pedido cargar-archivo confirmar-pedido cancelar-pedido resumen-dashboard-cliente --no-verify-jwt
 ```
 
 Endpoints locales:
@@ -71,6 +71,7 @@ Endpoints locales:
 | `cotizar-pedido` | `http://127.0.0.1:54321/functions/v1/cotizar-pedido` |
 | `cargar-archivo` | `http://127.0.0.1:54321/functions/v1/cargar-archivo` |
 | `confirmar-pedido` | `http://127.0.0.1:54321/functions/v1/confirmar-pedido` |
+| `cancelar-pedido` | `http://127.0.0.1:54321/functions/v1/cancelar-pedido` |
 | `resumen-dashboard-cliente` | `http://127.0.0.1:54321/functions/v1/resumen-dashboard-cliente` |
 
 `cotizar-pedido` se invoca con metodo `POST`, JWT de cliente y cuerpo:
@@ -94,6 +95,19 @@ cotizacion backend y persiste el detalle en `pedido_servicio`.
 `resumen-dashboard-cliente` se invoca con metodo `GET` y JWT de cliente. Devuelve
 totales, pedido actual, pedidos recientes y punto de entrega principal para
 reemplazar los mocks del Dashboard Cliente (#105).
+
+`cancelar-pedido` se invoca con metodo `POST`, JWT de cliente y cuerpo:
+
+```json
+{
+  "id_pedido": 123,
+  "motivo": "El cliente decidio no continuar."
+}
+```
+
+Solo cancela pedidos propios en `pendiente_revision` que todavia no fueron
+confirmados por el cliente. Devuelve estados `cancelado` y registra auditoria
+`pedido_cancelado`.
 
 ## Contrato de cifrado para archivos
 
@@ -140,6 +154,8 @@ Los tests de `supabase/tests/database` validan:
 - auditoria de `pedido_creado`, `archivo_pedido_cargado` y
   `pedido_confirmado`;
 - confirmacion idempotente de pedido.
+- cancelacion de pedido propio no confirmado y bloqueo de cancelaciones sobre
+  pedidos confirmados, ya cancelados, ajenos o con id invalido.
 - contrato agregado del Dashboard Cliente mediante `resumen-dashboard-cliente`.
 - cotizacion real de pedidos con servicios del seed, persistencia de
   `pedido_servicio` y regla de seña `> 200` carillas/copias.

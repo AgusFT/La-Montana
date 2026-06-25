@@ -4,6 +4,7 @@ export type AccionAuditoria =
   | "pedido_creado"
   | "archivo_pedido_cargado"
   | "pedido_confirmado"
+  | "pedido_cancelado"
   | "revision_pedido_iniciada"
   | "pedido_aprobado"
   | "pedido_rechazado"
@@ -40,6 +41,7 @@ export const ACCIONES_AUDITORIA = {
   pedidoCreado: "pedido_creado",
   archivoPedidoCargado: "archivo_pedido_cargado",
   pedidoConfirmado: "pedido_confirmado",
+  pedidoCancelado: "pedido_cancelado",
   revisionPedidoIniciada: "revision_pedido_iniciada",
   pedidoAprobado: "pedido_aprobado",
   pedidoRechazado: "pedido_rechazado",
