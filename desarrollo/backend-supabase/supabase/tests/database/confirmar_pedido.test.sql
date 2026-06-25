@@ -2,7 +2,7 @@ create extension if not exists pgtap;
 
 begin;
 
-select plan(8);
+select plan(9);
 
 create temporary table tmp_confirmar_pedido (
   id_pedido bigint not null,
@@ -105,6 +105,15 @@ select is(
 select ok(
   (select respuesta ->> 'fecha_confirmacion_cliente' from tmp_confirmacion) is not null,
   'devuelve fecha de confirmacion cliente'
+);
+
+select ok(
+  (
+    select pc.fecha_confirmacion_cliente is not null
+    from public.pedido_cliente pc
+    join tmp_confirmar_pedido t on t.id_pedido = pc.id_pedido
+  ),
+  'vista pedido_cliente expone fecha de confirmacion cliente'
 );
 
 create temporary table tmp_reintento_confirmacion (
