@@ -473,6 +473,7 @@ select
   p.requiere_senia,
   p.porcentaje_senia,
   p.total_estimado,
+  p.fecha_confirmacion_cliente,
   p.fecha_creacion,
   p.fecha_modificacion,
   p.eliminado,
