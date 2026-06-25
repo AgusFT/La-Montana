@@ -1,0 +1,255 @@
+/* CSS del contenedor principal */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Número azul */
+.step-badge {
+  width: 2rem;
+  height: 2rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-2);
+  border-radius: 50%;
+
+  background: var(--color-mountain-ink);
+  color: var(--color-summit-white);
+
+  font-weight: 700;
+}
+
+/* Caja punteada */
+.upload-dropzone {
+  border: 2px dashed #d6dfec;
+
+  border-radius: 1rem;
+  margin-bottom: var(--space-2);
+
+  min-height: 18rem;
+  margin-left: var(--space-2);;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: white;
+}
+
+/* Contenido Centrado */
+.upload-content {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  text-align: center;
+
+  gap: 0.5rem;
+}
+
+/* Titulo */
+.upload-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+
+  color: #1f4170;
+}
+
+/* Subtitulo  */
+.upload-subtitle {
+  color: #5e6b7d;
+}
+
+/* textos inferiores */
+.upload-info {
+  font-size: 0.9rem;
+  color: #7c8aa0;
+}
+
+
+/* Para la estructura principal: */
+.upload-layout {
+  display: grid;
+  grid-template-columns: 2fr 320px;
+  gap: 1.5rem;
+}
+
+/* Card lateral: */
+.upload-info-card {
+  border: 1px solid #e4e7ec;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-right: var(--space-2);
+  margin-bottom: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.selected-file {
+  margin-top: 1rem;
+  padding: 0.75rem;
+
+  border-radius: 8px;
+  background: #f8f9fb;
+}
+
+.upload-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.upload-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.upload-benefit-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+
+/* Section 2  */
+
+.job-details-card {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: var(--space-2);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+.form-input,
+.form-select {
+  padding: 0.75rem;
+  border: 1px solid #d6dfec;
+  border-radius: 8px;
+}
+
+.copies-control {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.copies-control button {
+  width: 40px;
+  height: 40px;
+}
+
+/* Seccion 3 */
+
+.order-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  cursor: pointer;
+}
+
+.checkbox-option input {
+  width: 18px;
+  height: 18px;
+}
+
+.section-help {
+  margin-top: 1rem;
+
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.order-config-row {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.order-config-row > * {
+  flex: 1;
+}
+
+
+/* boton cotizar pedido */
+.create-order-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+
+  margin-top: 2rem;
+}
+
+.submit-order-button {
+  min-width: 320px;
+}
+
+.form-security-note {
+  font-size: 0.875rem;
+   color: var( --color-text-muted);
+}
+
+.contact-confirmation{
+  width: 100%;
+  text-align: center;
+  font-weight: bold;
+  padding: 1rem;
+  color: var(--color-text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+ background:var(--color-summit-white);
+}
+
+.form-group-cantidad-de-copias{
+  display: flex;
+  justify-content: space-evenly
+}
+
+
+.submit-order-button:disabled:hover {
+  background: #d0d5dd;
+  border-color: #d0d5dd;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+
+/* .submit-order-button:hover {
+  background: #5a5958;
+  box-shadow: 0 0.75rem 1.5rem rgb(230 126 34 / 0.22);
+  transform: translateY(-1px);
+} */
+
+@media (max-width: 768px) {
+  .order-config-row {
+    flex-direction: column;
+  }
+}
+
