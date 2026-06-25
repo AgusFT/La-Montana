@@ -146,3 +146,111 @@ set
   estado = 'activo',
   eliminado = false,
   fecha_eliminacion = null;
+
+with puntos_front (
+  codigo_front,
+  nombre,
+  direccion_texto
+) as (
+  values
+    ('local', 'Retiro Local', 'Lope de Vega 2150 (C.A.B.A.)'),
+    ('medicina', 'Facultad de Medicina', 'Paraguay 2155 (C.A.B.A.)'),
+    ('filosofia', 'Facultad de Filosofía', 'Púan 480 (C.A.B.A.)')
+)
+update public.punto_entrega pe
+set
+  nombre = pf.nombre,
+  descripcion = 'front_id:' || pf.codigo_front,
+  direccion_texto = pf.direccion_texto,
+  horario_atencion = 'A coordinar',
+  activo = true,
+  eliminado = false,
+  fecha_eliminacion = null
+from puntos_front pf
+where pe.descripcion = 'front_id:' || pf.codigo_front
+  or (
+    pe.nombre = pf.nombre
+    and pe.direccion_texto = pf.direccion_texto
+  );
+
+with puntos_front (
+  codigo_front,
+  nombre,
+  direccion_texto
+) as (
+  values
+    ('local', 'Retiro Local', 'Lope de Vega 2150 (C.A.B.A.)'),
+    ('medicina', 'Facultad de Medicina', 'Paraguay 2155 (C.A.B.A.)'),
+    ('filosofia', 'Facultad de Filosofía', 'Púan 480 (C.A.B.A.)')
+)
+insert into public.punto_entrega (
+  nombre,
+  descripcion,
+  direccion_texto,
+  horario_atencion,
+  activo
+)
+select
+  pf.nombre,
+  'front_id:' || pf.codigo_front,
+  pf.direccion_texto,
+  'A coordinar',
+  true
+from puntos_front pf
+where not exists (
+  select 1
+  from public.punto_entrega pe
+  where pe.descripcion = 'front_id:' || pf.codigo_front
+    and pe.eliminado = false
+);
+
+insert into public.servicio (
+  codigo,
+  nombre,
+  descripcion,
+  precio_base,
+  tipo_moneda,
+  activo
+)
+values
+  (
+    'impresion_byn_pagina',
+    'Impresion blanco y negro por pagina',
+    'Alineado a MOCK_PRICING.blackAndWhitePage del front.',
+    20,
+    'ARS',
+    true
+  ),
+  (
+    'impresion_color_pagina',
+    'Impresion color por pagina',
+    'Alineado a MOCK_PRICING.colorPage del front.',
+    50,
+    'ARS',
+    true
+  ),
+  (
+    'encuadernado',
+    'Encuadernado',
+    'Alineado a MOCK_PRICING.bound del front.',
+    500,
+    'ARS',
+    true
+  ),
+  (
+    'anillado',
+    'Anillado',
+    'Alineado a MOCK_PRICING.spiralBound del front.',
+    700,
+    'ARS',
+    true
+  )
+on conflict (codigo) do update
+set
+  nombre = excluded.nombre,
+  descripcion = excluded.descripcion,
+  precio_base = excluded.precio_base,
+  tipo_moneda = excluded.tipo_moneda,
+  activo = true,
+  eliminado = false,
+  fecha_eliminacion = null;

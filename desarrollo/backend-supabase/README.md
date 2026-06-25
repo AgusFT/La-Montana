@@ -65,7 +65,7 @@ El bloque `Desarrollo > Backend - Supabase` del WBS V3 se implementa en este dir
 | Flujo de revision administrativa | migraciones en `supabase/migrations/` y pruebas en `supabase/tests/database/` |
 | Edge Functions implementadas | `supabase/functions/` |
 | Contrato de errores Edge Functions | helper versionado en `supabase/functions/_shared/api-response.ts`; documento funcional en `main/diseño/Back/edge-functions/functions-errors.md` |
-| Pruebas bdd, rls, unitarias, funcionales, otras | `supabase/tests/database/` |
+| Pruebas bdd, rls, unitarias, funcionales, otras | `supabase/tests/database/` y `supabase/tests/VALIDACION_BACKEND_MVP.md` |
 
 ## Convencion de migraciones
 
@@ -97,3 +97,12 @@ npm run supabase:start
 ```
 
 El archivo `.env` es local y no debe versionarse. Para compartir la estructura de variables se usa `.env.example`.
+
+## Validacion backend MVP
+
+La guia de seed, usuarios locales, datos alineados con front, comandos de
+validacion y pendientes de integracion vive en:
+
+```txt
+supabase/tests/VALIDACION_BACKEND_MVP.md
+```
