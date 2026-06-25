@@ -31,6 +31,7 @@ interface PedidoCreado {
   estado_visible_cliente: Order["status"];
   cantidad_carillas: number;
   cantidad_copias: number;
+  cantidad_estimada: number;
   tamano_hoja: CreateOrderForm["paperSize"];
   tipo_impresion: CreateOrderForm["printType"];
   doble_faz: boolean;
@@ -38,6 +39,31 @@ interface PedidoCreado {
   anillado: boolean;
   id_punto_entrega: number | null;
   metodo_pago_preferido: string | null;
+  requiere_senia: boolean;
+  porcentaje_senia: number;
+  total_estimado: number;
+  tipo_moneda: "ARS" | "USD";
+  cotizacion: CotizacionPedido;
+}
+
+interface LineaCotizacionPedido {
+  id_servicio: number;
+  codigo_servicio: string;
+  nombre: string;
+  tipo: "impresion" | "adicional";
+  cantidad: number;
+  precio_unitario: number;
+  subtotal: number;
+  tipo_moneda: "ARS" | "USD";
+}
+
+export interface CotizacionPedido {
+  cantidad_estimada: number;
+  requiere_senia: boolean;
+  porcentaje_senia: number;
+  total_estimado: number;
+  tipo_moneda: "ARS" | "USD";
+  lineas: LineaCotizacionPedido[];
 }
 
 interface ArchivoRegistrado {
@@ -126,7 +152,9 @@ export async function crearPedidoCompleto(
   confirmacion: PedidoConfirmado;
 }> {
   if (!form.file || !form.pages) {
-    throw new PedidoApiError("Completá el archivo PDF antes de crear el pedido.");
+    throw new PedidoApiError(
+      "Completá el archivo PDF antes de crear el pedido.",
+    );
   }
 
   const pedido = await crearPedido(form);
@@ -140,6 +168,21 @@ export async function crearPedidoCompleto(
     archivo,
     confirmacion,
   };
+}
+
+export async function cotizarPedido(
+  form: CreateOrderForm,
+  signal?: AbortSignal,
+): Promise<CotizacionPedido> {
+  if (!form.file || !form.pages) {
+    throw new PedidoApiError("Cargá un archivo PDF para cotizar el pedido.");
+  }
+
+  return llamarEdgeFunction<CotizacionPedido>("cotizar-pedido", {
+    method: "POST",
+    body: obtenerCuerpoCotizacion(form),
+    signal,
+  });
 }
 
 export async function obtenerPedidoActualCliente(): Promise<Order | null> {
@@ -208,18 +251,14 @@ export function obtenerMensajeErrorPedido(error: unknown): string {
 }
 
 async function crearPedido(form: CreateOrderForm): Promise<PedidoCreado> {
-  const idPuntoEntrega = await obtenerIdPuntoEntregaBackend(form.deliveryPointId);
+  const idPuntoEntrega = await obtenerIdPuntoEntregaBackend(
+    form.deliveryPointId,
+  );
 
   return llamarEdgeFunction<PedidoCreado>("crear-pedido", {
     method: "POST",
     body: {
-      cantidad_carillas: form.pages,
-      cantidad_copias: form.copies,
-      tamano_hoja: form.paperSize,
-      tipo_impresion: form.printType,
-      doble_faz: form.doubleSided,
-      encuadernado: form.bound,
-      anillado: form.spiralBound,
+      ...obtenerCuerpoCotizacion(form),
       descripcion: form.file?.name ?? "Pedido web",
       id_punto_entrega: idPuntoEntrega,
       metodo_pago_preferido: mapearMetodoPagoBackend(form.paymentMethod),
@@ -242,7 +281,10 @@ async function cargarArchivoCifrado(
   formData.set("id_pedido", String(idPedido));
   formData.set("nombre_original", archivoCifrado.nombreOriginal);
   formData.set("mime_original", archivoCifrado.mimeOriginal);
-  formData.set("tamano_original_bytes", String(archivoCifrado.tamanoOriginalBytes));
+  formData.set(
+    "tamano_original_bytes",
+    String(archivoCifrado.tamanoOriginalBytes),
+  );
   formData.set("hash_archivo", archivoCifrado.hashArchivo);
   formData.set("clave_envuelta", archivoCifrado.claveEnvuelta);
   formData.set("iv", archivoCifrado.iv);
@@ -269,6 +311,7 @@ async function llamarEdgeFunction<TData>(
   options: {
     method: "GET" | "POST";
     body?: Record<string, unknown> | FormData;
+    signal?: AbortSignal;
   },
 ): Promise<TData> {
   const supabase = crearClienteSupabaseBrowser();
@@ -294,11 +337,15 @@ async function llamarEdgeFunction<TData>(
     body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(`${url.replace(/\/$/, "")}/functions/v1/${nombre}`, {
-    method: options.method,
-    headers,
-    body,
-  });
+  const response = await fetch(
+    `${url.replace(/\/$/, "")}/functions/v1/${nombre}`,
+    {
+      method: options.method,
+      headers,
+      body,
+      signal: options.signal,
+    },
+  );
   const envelope = await leerEnvelope<TData>(response);
 
   if (!response.ok || !envelope.ok) {
@@ -310,6 +357,20 @@ async function llamarEdgeFunction<TData>(
   }
 
   return envelope.data;
+}
+
+function obtenerCuerpoCotizacion(
+  form: CreateOrderForm,
+): Record<string, unknown> {
+  return {
+    cantidad_carillas: form.pages,
+    cantidad_copias: form.copies,
+    tamano_hoja: form.paperSize,
+    tipo_impresion: form.printType,
+    doble_faz: form.doubleSided,
+    encuadernado: form.bound,
+    anillado: form.spiralBound,
+  };
 }
 
 async function leerEnvelope<TData>(
@@ -343,7 +404,9 @@ async function obtenerIdPuntoEntregaBackend(
   }
 
   if (!data) {
-    throw new PedidoApiError("No encontramos el punto de entrega seleccionado.");
+    throw new PedidoApiError(
+      "No encontramos el punto de entrega seleccionado.",
+    );
   }
 
   return data.id_punto_entrega;
