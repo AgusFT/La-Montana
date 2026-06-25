@@ -1,11 +1,15 @@
 export const ORDER_STATUS_STEPS = [
   {
-    id: "pedido_recibido",
-    label: "Pedido Recibido",
-  },
-  {
     id: "pendiente_revision",
     label: "En Revisión",
+  },
+  {
+    id: "corregir",
+    label: "A Corregir",
+  },
+  {
+    id: "aprobado",
+    label: "Aprobado",
   },
   {
     id: "produccion",

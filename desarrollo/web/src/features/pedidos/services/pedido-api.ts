@@ -1,7 +1,5 @@
-import { calculateEstimatedPrice } from "@/features/utils/calculateEstimatedPrice";
 import { crearClienteSupabaseBrowser } from "@/lib/supabase/client";
 import { obtenerConfigSupabase } from "@/lib/supabase/config";
-import { MOCK_DELIVERY_POINTS } from "@/mocks/delivery-points";
 
 import { CreateOrderForm } from "../types/create-order";
 import { Order } from "../types/order";
@@ -91,6 +89,8 @@ interface ArchivoClienteBackend {
 
 interface PuntoEntregaBackend {
   id_punto_entrega: number;
+  nombre: string;
+  direccion_texto: string;
   descripcion: string | null;
 }
 
@@ -164,19 +164,33 @@ export async function obtenerPedidoActualCliente(): Promise<Order | null> {
     return null;
   }
 
-  const archivo = await obtenerArchivoPrincipal(pedido.id_pedido);
-  const deliveryPointId = await obtenerFrontIdPuntoEntrega(
+  const [archivo, puntoEntrega] = await Promise.all([
+    obtenerArchivoPrincipal(pedido.id_pedido),
+    obtenerPuntoEntrega(pedido.id_punto_entrega),
+  ]);
+  const deliveryPointId = obtenerFrontIdPuntoEntrega(
+    puntoEntrega,
     pedido.id_punto_entrega,
   );
   const form = mapearPedidoAFormulario(pedido, deliveryPointId);
 
   return {
     id: String(pedido.id_pedido),
+    code: pedido.codigo,
     createdAt: pedido.fecha_creacion,
     status: pedido.estado_visible_cliente,
-    price: pedido.total_estimado ?? calculateEstimatedPrice({ ...form, file: null }),
+    statusLabel: obtenerEtiquetaEstadoPedido(pedido.estado_visible_cliente),
+    price: pedido.total_estimado,
     fileName: archivo?.nombre_original ?? pedido.descripcion ?? pedido.codigo,
     fileSize: archivo?.tamano_original_bytes ?? archivo?.tamano_bytes ?? 0,
+    deliveryPoint: puntoEntrega
+      ? {
+        id: puntoEntrega.id_punto_entrega,
+        name: puntoEntrega.nombre,
+        address: puntoEntrega.direccion_texto,
+        reference: puntoEntrega.descripcion,
+      }
+      : null,
     form,
   };
 }
@@ -320,7 +334,7 @@ async function obtenerIdPuntoEntregaBackend(
   const supabase = crearClienteSupabaseBrowser();
   const { data, error } = await supabase
     .from("punto_entrega")
-    .select("id_punto_entrega,descripcion")
+    .select("id_punto_entrega,nombre,direccion_texto,descripcion")
     .eq("descripcion", `front_id:${deliveryPointId}`)
     .maybeSingle<PuntoEntregaBackend>();
 
@@ -335,26 +349,42 @@ async function obtenerIdPuntoEntregaBackend(
   return data.id_punto_entrega;
 }
 
-async function obtenerFrontIdPuntoEntrega(
+function obtenerFrontIdPuntoEntrega(
+  puntoEntrega: PuntoEntregaBackend | null,
   idPuntoEntrega: number | null,
-): Promise<string> {
+): string {
   if (!idPuntoEntrega) {
     return "local";
   }
 
-  const supabase = crearClienteSupabaseBrowser();
-  const { data } = await supabase
-    .from("punto_entrega")
-    .select("id_punto_entrega,descripcion")
-    .eq("id_punto_entrega", idPuntoEntrega)
-    .maybeSingle<PuntoEntregaBackend>();
-  const frontId = data?.descripcion?.replace(/^front_id:/, "");
+  const frontId = puntoEntrega?.descripcion?.replace(/^front_id:/, "");
 
-  if (frontId && MOCK_DELIVERY_POINTS.some((point) => point.id === frontId)) {
+  if (frontId) {
     return frontId;
   }
 
-  return MOCK_DELIVERY_POINTS[idPuntoEntrega - 1]?.id ?? "local";
+  return String(idPuntoEntrega);
+}
+
+async function obtenerPuntoEntrega(
+  idPuntoEntrega: number | null,
+): Promise<PuntoEntregaBackend | null> {
+  if (!idPuntoEntrega) {
+    return null;
+  }
+
+  const supabase = crearClienteSupabaseBrowser();
+  const { data, error } = await supabase
+    .from("punto_entrega")
+    .select("id_punto_entrega,nombre,direccion_texto,descripcion")
+    .eq("id_punto_entrega", idPuntoEntrega)
+    .maybeSingle<PuntoEntregaBackend>();
+
+  if (error) {
+    return null;
+  }
+
+  return data ?? null;
 }
 
 async function obtenerArchivoPrincipal(
@@ -421,4 +451,21 @@ function mapearMetodoPagoFront(
   }
 
   return "Efectivo";
+}
+
+function obtenerEtiquetaEstadoPedido(status: Order["status"]): string {
+  const labels: Record<Order["status"], string> = {
+    pendiente_revision: "En revisión",
+    aprobado: "Aprobado",
+    corregir: "A corregir",
+    rechazado: "Rechazado",
+    produccion: "En producción",
+    control_de_calidad: "Control de calidad",
+    listo_para_entregar: "Listo para entregar",
+    en_viaje: "En viaje",
+    entregado: "Entregado",
+    cancelado: "Cancelado",
+  };
+
+  return labels[status];
 }
