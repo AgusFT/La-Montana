@@ -113,12 +113,14 @@ interface ArchivoClienteBackend {
   fecha_creacion: string;
 }
 
-interface PuntoEntregaBackend {
+export interface PuntoEntregaPedido {
   id_punto_entrega: number;
   nombre: string;
   direccion_texto: string;
   descripcion: string | null;
 }
+
+type PuntoEntregaBackend = PuntoEntregaPedido;
 
 type MetodoPagoBackend = "efectivo" | "transferencia" | "tarjeta";
 
@@ -211,11 +213,7 @@ export async function obtenerPedidoActualCliente(): Promise<Order | null> {
     obtenerArchivoPrincipal(pedido.id_pedido),
     obtenerPuntoEntrega(pedido.id_punto_entrega),
   ]);
-  const deliveryPointId = obtenerFrontIdPuntoEntrega(
-    puntoEntrega,
-    pedido.id_punto_entrega,
-  );
-  const form = mapearPedidoAFormulario(pedido, deliveryPointId);
+  const form = mapearPedidoAFormulario(pedido);
 
   return {
     id: String(pedido.id_pedido),
@@ -238,6 +236,25 @@ export async function obtenerPedidoActualCliente(): Promise<Order | null> {
   };
 }
 
+export async function obtenerPuntosEntregaPedido(): Promise<
+  PuntoEntregaPedido[]
+> {
+  const supabase = crearClienteSupabaseBrowser();
+  const { data, error } = await supabase
+    .from("punto_entrega")
+    .select("id_punto_entrega,nombre,direccion_texto,descripcion")
+    .eq("activo", true)
+    .eq("eliminado", false)
+    .order("nombre", { ascending: true })
+    .returns<PuntoEntregaPedido[]>();
+
+  if (error) {
+    throw new PedidoApiError("No pudimos cargar los puntos de entrega.");
+  }
+
+  return data ?? [];
+}
+
 export function obtenerMensajeErrorPedido(error: unknown): string {
   if (error instanceof PedidoApiError) {
     return error.message;
@@ -251,7 +268,7 @@ export function obtenerMensajeErrorPedido(error: unknown): string {
 }
 
 async function crearPedido(form: CreateOrderForm): Promise<PedidoCreado> {
-  const idPuntoEntrega = await obtenerIdPuntoEntregaBackend(
+  const idPuntoEntrega = obtenerIdPuntoEntregaSeleccionado(
     form.deliveryPointId,
   );
 
@@ -389,44 +406,14 @@ async function leerEnvelope<TData>(
   }
 }
 
-async function obtenerIdPuntoEntregaBackend(
-  deliveryPointId: string,
-): Promise<number | null> {
-  const supabase = crearClienteSupabaseBrowser();
-  const { data, error } = await supabase
-    .from("punto_entrega")
-    .select("id_punto_entrega,nombre,direccion_texto,descripcion")
-    .eq("descripcion", `front_id:${deliveryPointId}`)
-    .maybeSingle<PuntoEntregaBackend>();
-
-  if (error) {
-    throw new PedidoApiError("No pudimos validar el punto de entrega.");
+function obtenerIdPuntoEntregaSeleccionado(
+  deliveryPointId: CreateOrderForm["deliveryPointId"],
+): number {
+  if (!deliveryPointId) {
+    throw new PedidoApiError("Seleccioná un punto de entrega.");
   }
 
-  if (!data) {
-    throw new PedidoApiError(
-      "No encontramos el punto de entrega seleccionado.",
-    );
-  }
-
-  return data.id_punto_entrega;
-}
-
-function obtenerFrontIdPuntoEntrega(
-  puntoEntrega: PuntoEntregaBackend | null,
-  idPuntoEntrega: number | null,
-): string {
-  if (!idPuntoEntrega) {
-    return "local";
-  }
-
-  const frontId = puntoEntrega?.descripcion?.replace(/^front_id:/, "");
-
-  if (frontId) {
-    return frontId;
-  }
-
-  return String(idPuntoEntrega);
+  return deliveryPointId;
 }
 
 async function obtenerPuntoEntrega(
@@ -473,7 +460,6 @@ async function obtenerArchivoPrincipal(
 
 function mapearPedidoAFormulario(
   pedido: PedidoClienteBackend,
-  deliveryPointId: string,
 ): Omit<CreateOrderForm, "file"> {
   return {
     pages: pedido.cantidad_carillas,
@@ -484,7 +470,7 @@ function mapearPedidoAFormulario(
     bound: pedido.encuadernado,
     spiralBound: pedido.anillado,
     paymentMethod: mapearMetodoPagoFront(pedido.metodo_pago_preferido),
-    deliveryPointId,
+    deliveryPointId: pedido.id_punto_entrega,
   };
 }
 

@@ -2,7 +2,7 @@
 
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { SummaryHeader } from "../components/resumen_pedido/SummaryHeader";
 import { OrderSummaryCard } from "../components/resumen_pedido/OrderSummaryCard";
@@ -81,6 +81,16 @@ export function OrderSummaryPage() {
     router.push("/pedidos/nuevo");
   };
 
+  const handleFormChange = useCallback(
+    (field: keyof typeof form, value: unknown) => {
+      setForm((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    [setForm],
+  );
+
   const handleConfirmOrder = async () => {
     if (!form.file) {
       setSubmitError("Debe seleccionar un archivo antes de crear el pedido.");
@@ -131,20 +141,12 @@ export function OrderSummaryPage() {
         <div className="summary-bottom-row">
           <PaymentMethodCard
             form={form}
-            onChange={(field, value) =>
-              setForm((prev) => ({
-                ...prev,
-                [field]: value,
-              }))}
+            onChange={handleFormChange}
           />
 
           <DeliveryPointCard
             form={form}
-            onChange={(field, value) =>
-              setForm((prev) => ({
-                ...prev,
-                [field]: value,
-              }))}
+            onChange={handleFormChange}
           />
         </div>
 
