@@ -1,8 +1,6 @@
 "use client";
 
 import { BrandLockup } from "@/components/brand/BrandLockup";
-import { obtenerPerfilAutenticado } from "@/lib/auth/profile";
-import { crearClienteSupabaseBrowser } from "@/lib/supabase/client";
 import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,49 +9,12 @@ import { useRouter } from "next/navigation";
 export function LoginView() {
   const router = useRouter();
   
-  const [email, setEmail] = useState("cliente@cliente.com");
-  const [password, setPassword] = useState("cliente");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [email, setEmail] = useState("alejandro@email.com");
+  const [password, setPassword] = useState("demo1234");
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!email.trim() || !password) {
-      setError("Ingresá email y contraseña.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      const supabase = crearClienteSupabaseBrowser();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (signInError) {
-        setError("No pudimos iniciar sesión con esos datos.");
-        return;
-      }
-
-      const perfil = await obtenerPerfilAutenticado(supabase);
-
-      if (perfil?.rolCodigo !== "cliente") {
-        await supabase.auth.signOut();
-        setError("Esta cuenta no tiene acceso al Portal Cliente.");
-        return;
-      }
-
-      router.replace("/dashboard");
-      router.refresh();
-    } catch {
-      setError("No pudimos conectar con Supabase.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.push("/dashboard");
   }
 
     function goToSignUp() {
@@ -93,8 +54,6 @@ export function LoginView() {
             <input
               id="email"
               type="email"
-              autoComplete="email"
-              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="tu@email.com" />
@@ -105,18 +64,14 @@ export function LoginView() {
             <input
               id="password"
               type="password"
-              autoComplete="current-password"
-              required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Tu contraseña" />
           </div>
 
-          {error ? <p className="form-error">{error}</p> : null}
-
           <div className="login-actions">
-            <button className="primary-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Ingresando..." : "Iniciar sesión"}
+            <button className="primary-button" type="submit">
+              Iniciar sesión
             </button>
             <button className="secondary-button" type="button" onClick={goToSignUp}>
               Crear cuenta

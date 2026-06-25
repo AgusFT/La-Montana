@@ -1,7 +1,6 @@
 "use client"
 
 import { BrandLockup } from "../brand/BrandLockup";
-import { crearClienteSupabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 // utilizado para obtener la ruta actual
 import { usePathname } from "next/navigation";
@@ -17,12 +16,9 @@ export function Sidebar() {
     return pathname.startsWith(path);
   }
 
-  async function handleLogout() {
-    const supabase = crearClienteSupabaseBrowser();
-
-    await supabase.auth.signOut();
-    router.replace("/login");
-    router.refresh();
+  // a futuro supabase haria aca el   await supabase.auth.signOut();
+  function handleLogout() {
+    router.push("/login");
   }
 
   function navigateToDashboard() {

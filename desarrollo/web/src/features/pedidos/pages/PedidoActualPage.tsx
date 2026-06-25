@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ClienteLayout } from "@/layouts/cliente/ClienteLayout";
 
@@ -18,11 +18,28 @@ import { OrderDeliveryPointCard } from "../components/pedido_actual/OrderDeliver
 import { CancelOrderAction } from "../components/pedido_actual/CancelOrderAction";
 
 export function PedidoActualPage() {
-  const [order] = useState<Order | null>(() => {
-    const lastOrder = getLastActiveOrder();
+  const [order, setOrder] = useState<Order | null>(null);
 
-    return lastOrder ?? null;
-  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const lastOrder = getLastActiveOrder();
+    setOrder(lastOrder ?? null);
+
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <ClienteLayout>
+        <div className="dashboard-main">
+          <h1>Pedido Actual</h1>
+
+          <p>Cargando pedido...</p>
+        </div>
+      </ClienteLayout>
+    );
+  }
 
   if (!order) {
     return (

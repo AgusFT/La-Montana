@@ -1,8 +1,6 @@
 "use client";
 
 import { BrandLockup } from "@/components/brand/BrandLockup";
-import { obtenerPerfilAutenticado } from "@/lib/auth/profile";
-import { crearClienteSupabaseBrowser } from "@/lib/supabase/client";
 import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,71 +14,12 @@ export function SignUpView() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!email.trim() || !password) {
-      setError("Email y contraseña son obligatorios.");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError("");
-
-    try {
-      const supabase = crearClienteSupabaseBrowser();
-      const metadata = crearMetadataUsuario({
-        firstName,
-        lastName,
-        phone,
-      });
-
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: metadata,
-        },
-      });
-
-      if (signUpError) {
-        setError("No pudimos crear la cuenta con esos datos.");
-        return;
-      }
-
-      if (!data.session) {
-        router.replace("/login");
-        return;
-      }
-
-      const perfil = await obtenerPerfilAutenticado(supabase);
-
-      if (perfil?.rolCodigo !== "cliente") {
-        await supabase.auth.signOut();
-        setError("La cuenta creada no quedó habilitada como cliente.");
-        return;
-      }
-
-      router.replace("/dashboard");
-      router.refresh();
-    } catch {
-      setError("No pudimos conectar con Supabase.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    // TODO: Integrar con Supabase Auth
+    router.push("/dashboard");
   }
 
   return (
@@ -122,7 +61,6 @@ export function SignUpView() {
             <input
               id="firstName"
               type="text"
-              autoComplete="given-name"
               value={firstName}
               onChange={(event) => setFirstName(event.target.value)}
               placeholder="Tu nombre"
@@ -134,7 +72,6 @@ export function SignUpView() {
             <input
               id="lastName"
               type="text"
-              autoComplete="family-name"
               value={lastName}
               onChange={(event) => setLastName(event.target.value)}
               placeholder="Tu apellido"
@@ -146,7 +83,6 @@ export function SignUpView() {
             <input
               id="phone"
               type="tel"
-              autoComplete="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
               placeholder="11 1234 5678"
@@ -158,8 +94,6 @@ export function SignUpView() {
             <input
               id="email"
               type="email"
-              autoComplete="email"
-              required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               placeholder="tu@email.com"
@@ -171,8 +105,6 @@ export function SignUpView() {
             <input
               id="password"
               type="password"
-              autoComplete="new-password"
-              required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="Elegí una contraseña"
@@ -187,19 +119,15 @@ export function SignUpView() {
             <input
               id="confirmPassword"
               type="password"
-              autoComplete="new-password"
-              required
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
               placeholder="Repetí la contraseña"
             />
           </div>
 
-          {error ? <p className="form-error">{error}</p> : null}
-
           <div className="login-actions">
-            <button className="primary-button" type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creando..." : "Crear cuenta"}
+            <button className="primary-button" type="submit">
+              Crear cuenta
             </button>
 
             <button
@@ -250,23 +178,5 @@ export function SignUpView() {
         </div>
       </footer>
     </main>
-  );
-}
-
-function crearMetadataUsuario({
-  firstName,
-  lastName,
-  phone,
-}: {
-  firstName: string;
-  lastName: string;
-  phone: string;
-}) {
-  return Object.fromEntries(
-    [
-      ["nombre", firstName.trim()],
-      ["apellido", lastName.trim()],
-      ["telefono", phone.trim()],
-    ].filter(([, value]) => value),
   );
 }
