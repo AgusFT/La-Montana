@@ -54,7 +54,7 @@ npm run supabase:test:db
 Para validar Edge Functions localmente:
 
 ```bash
-./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cargar-archivo confirmar-pedido --no-verify-jwt
+./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cargar-archivo confirmar-pedido resumen-dashboard-cliente --no-verify-jwt
 ```
 
 Endpoints locales:
@@ -65,6 +65,11 @@ Endpoints locales:
 | `crear-pedido` | `http://127.0.0.1:54321/functions/v1/crear-pedido` |
 | `cargar-archivo` | `http://127.0.0.1:54321/functions/v1/cargar-archivo` |
 | `confirmar-pedido` | `http://127.0.0.1:54321/functions/v1/confirmar-pedido` |
+| `resumen-dashboard-cliente` | `http://127.0.0.1:54321/functions/v1/resumen-dashboard-cliente` |
+
+`resumen-dashboard-cliente` se invoca con metodo `GET` y JWT de cliente. Devuelve
+totales, pedido actual, pedidos recientes y punto de entrega principal para
+reemplazar los mocks del Dashboard Cliente (#105).
 
 ## Contrato de cifrado para archivos
 
@@ -111,6 +116,7 @@ Los tests de `supabase/tests/database` validan:
 - auditoria de `pedido_creado`, `archivo_pedido_cargado` y
   `pedido_confirmado`;
 - confirmacion idempotente de pedido.
+- contrato agregado del Dashboard Cliente mediante `resumen-dashboard-cliente`.
 
 ## Pendientes para integracion
 
