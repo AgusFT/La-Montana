@@ -39,6 +39,11 @@ Los servicios del seed reproducen `MOCK_PRICING`:
 | `encuadernado` | 500 ARS | `bound` |
 | `anillado` | 700 ARS | `spiralBound` |
 
+La cotizacion backend se calcula con esos servicios activos. La impresion se
+cobra por `cantidad_carillas * cantidad_copias`; `encuadernado` y `anillado`
+son cargos fijos por pedido. La seña MVP se requiere cuando
+`cantidad_carillas * cantidad_copias > 200` y el porcentaje aplicado es `50%`.
+
 ## Comandos de validacion
 
 Desde `desarrollo/backend-supabase`:
@@ -54,7 +59,7 @@ npm run supabase:test:db
 Para validar Edge Functions localmente:
 
 ```bash
-./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cargar-archivo confirmar-pedido resumen-dashboard-cliente --no-verify-jwt
+./node_modules/.bin/supabase functions serve clave-publica-cifrado crear-pedido cotizar-pedido cargar-archivo confirmar-pedido resumen-dashboard-cliente --no-verify-jwt
 ```
 
 Endpoints locales:
@@ -63,9 +68,28 @@ Endpoints locales:
 |---|---|
 | `clave-publica-cifrado` | `http://127.0.0.1:54321/functions/v1/clave-publica-cifrado` |
 | `crear-pedido` | `http://127.0.0.1:54321/functions/v1/crear-pedido` |
+| `cotizar-pedido` | `http://127.0.0.1:54321/functions/v1/cotizar-pedido` |
 | `cargar-archivo` | `http://127.0.0.1:54321/functions/v1/cargar-archivo` |
 | `confirmar-pedido` | `http://127.0.0.1:54321/functions/v1/confirmar-pedido` |
 | `resumen-dashboard-cliente` | `http://127.0.0.1:54321/functions/v1/resumen-dashboard-cliente` |
+
+`cotizar-pedido` se invoca con metodo `POST`, JWT de cliente y cuerpo:
+
+```json
+{
+  "cantidad_carillas": 101,
+  "cantidad_copias": 2,
+  "tamano_hoja": "A4",
+  "tipo_impresion": "color",
+  "doble_faz": false,
+  "encuadernado": false,
+  "anillado": true
+}
+```
+
+Devuelve `total_estimado`, `cantidad_estimada`, `requiere_senia`,
+`porcentaje_senia`, `tipo_moneda` y `lineas`. `crear-pedido` reutiliza la misma
+cotizacion backend y persiste el detalle en `pedido_servicio`.
 
 `resumen-dashboard-cliente` se invoca con metodo `GET` y JWT de cliente. Devuelve
 totales, pedido actual, pedidos recientes y punto de entrega principal para
@@ -117,6 +141,8 @@ Los tests de `supabase/tests/database` validan:
   `pedido_confirmado`;
 - confirmacion idempotente de pedido.
 - contrato agregado del Dashboard Cliente mediante `resumen-dashboard-cliente`.
+- cotizacion real de pedidos con servicios del seed, persistencia de
+  `pedido_servicio` y regla de seña `> 200` carillas/copias.
 
 ## Pendientes para integracion
 

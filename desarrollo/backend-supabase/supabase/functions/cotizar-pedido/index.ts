@@ -10,30 +10,7 @@ import {
   successResponse,
 } from "../_shared/api-response.ts";
 
-type CuerpoCrearPedido = Record<string, unknown>;
-
-interface PedidoCreado {
-  id_pedido: number;
-  codigo: string;
-  estado_visible_cliente: "pendiente_revision";
-  estado_interno: "pendiente_revision";
-  estado_financiero: "pendiente_evaluacion";
-  cantidad_carillas: number;
-  cantidad_copias: number;
-  cantidad_estimada: number;
-  tamano_hoja: "A4" | "A3" | "OFICIO";
-  tipo_impresion: "byn" | "color";
-  doble_faz: boolean;
-  encuadernado: boolean;
-  anillado: boolean;
-  id_punto_entrega: number | null;
-  metodo_pago_preferido: string | null;
-  requiere_senia: boolean;
-  porcentaje_senia: number;
-  total_estimado: number;
-  tipo_moneda: "ARS" | "USD";
-  cotizacion: CotizacionPedido;
-}
+type CuerpoCotizarPedido = Record<string, unknown>;
 
 interface LineaCotizacionPedido {
   id_servicio: number;
@@ -64,8 +41,6 @@ interface SupabaseErrorDebug {
 
 const TAMANOS_HOJA_PERMITIDOS = new Set(["A4", "A3", "OFICIO"]);
 const TIPOS_IMPRESION_PERMITIDOS = new Set(["byn", "color"]);
-const MAX_TEXTO_CORTO = 500;
-const MAX_OBSERVACION = 1000;
 
 Deno.serve(async (request) => {
   const requestId = resolveRequestId(request);
@@ -82,30 +57,29 @@ Deno.serve(async (request) => {
     const token = obtenerBearerToken(request);
     const supabase = crearClienteSupabaseAutenticado(token);
 
-    const { data: usuarioAuth, error: errorUsuarioAuth } = await supabase.auth.getUser(token);
+    const { data: usuarioAuth, error: errorUsuarioAuth } =
+      await supabase.auth.getUser(token);
 
     if (errorUsuarioAuth || !usuarioAuth.user) {
       throw new ApiError({ code: "UNAUTHENTICATED" });
     }
 
-    const cuerpo = await parseJsonBody<CuerpoCrearPedido>(request);
-    const pedido = normalizarCuerpoCrearPedido(cuerpo, requestId);
+    const cuerpo = await parseJsonBody<CuerpoCotizarPedido>(request);
+    const pedido = normalizarCuerpoCotizarPedido(cuerpo, requestId);
 
-    const { data: pedidoCreadoRpc, error } = await supabase.rpc("crear_pedido_cliente", {
-      p_cantidad_carillas: pedido.cantidadCarillas,
-      p_cantidad_copias: pedido.cantidadCopias,
-      p_tamano_hoja: pedido.tamanoHoja,
-      p_tipo_impresion: pedido.tipoImpresion,
-      p_doble_faz: pedido.dobleFaz,
-      p_encuadernado: pedido.encuadernado,
-      p_anillado: pedido.anillado,
-      p_observacion_cliente: pedido.observacionCliente,
-      p_descripcion: pedido.descripcion,
-      p_id_punto_entrega: pedido.idPuntoEntrega,
-      p_metodo_pago_preferido: pedido.metodoPagoPreferido,
-      p_request_id: requestId,
-    });
-    const data = pedidoCreadoRpc as PedidoCreado | null;
+    const { data: cotizacionRpc, error } = await supabase.rpc(
+      "calcular_cotizacion_pedido_cliente",
+      {
+        p_cantidad_carillas: pedido.cantidadCarillas,
+        p_cantidad_copias: pedido.cantidadCopias,
+        p_tamano_hoja: pedido.tamanoHoja,
+        p_tipo_impresion: pedido.tipoImpresion,
+        p_doble_faz: pedido.dobleFaz,
+        p_encuadernado: pedido.encuadernado,
+        p_anillado: pedido.anillado,
+      },
+    );
+    const data = cotizacionRpc as CotizacionPedido | null;
 
     if (error) {
       throw mapearErrorSupabase(error);
@@ -166,7 +140,10 @@ function obtenerBearerToken(request: Request): string {
   return match[1];
 }
 
-function normalizarCuerpoCrearPedido(cuerpo: CuerpoCrearPedido, requestId: string) {
+function normalizarCuerpoCotizarPedido(
+  cuerpo: CuerpoCotizarPedido,
+  requestId: string,
+) {
   if (!cuerpo || Array.isArray(cuerpo) || typeof cuerpo !== "object") {
     throw new ApiError({
       code: "VALIDATION_ERROR",
@@ -175,10 +152,26 @@ function normalizarCuerpoCrearPedido(cuerpo: CuerpoCrearPedido, requestId: strin
     });
   }
 
-  const cantidadCarillas = leerEnteroPositivo(cuerpo, ["cantidad_carillas", "pages"], "cantidad_carillas");
-  const cantidadCopias = leerEnteroPositivo(cuerpo, ["cantidad_copias", "copies"], "cantidad_copias");
-  const tamanoHoja = leerTextoRequerido(cuerpo, ["tamano_hoja", "paperSize"], "tamano_hoja").toUpperCase();
-  const tipoImpresion = leerTextoRequerido(cuerpo, ["tipo_impresion", "printType"], "tipo_impresion").toLowerCase();
+  const cantidadCarillas = leerEnteroPositivo(
+    cuerpo,
+    ["cantidad_carillas", "pages"],
+    "cantidad_carillas",
+  );
+  const cantidadCopias = leerEnteroPositivo(
+    cuerpo,
+    ["cantidad_copias", "copies"],
+    "cantidad_copias",
+  );
+  const tamanoHoja = leerTextoRequerido(
+    cuerpo,
+    ["tamano_hoja", "paperSize"],
+    "tamano_hoja",
+  ).toUpperCase();
+  const tipoImpresion = leerTextoRequerido(
+    cuerpo,
+    ["tipo_impresion", "printType"],
+    "tipo_impresion",
+  ).toLowerCase();
 
   if (!TAMANOS_HOJA_PERMITIDOS.has(tamanoHoja)) {
     throw new ApiError({
@@ -204,41 +197,15 @@ function normalizarCuerpoCrearPedido(cuerpo: CuerpoCrearPedido, requestId: strin
     dobleFaz: leerBooleano(cuerpo, ["doble_faz", "doubleSided"], false),
     encuadernado: leerBooleano(cuerpo, ["encuadernado", "bound"], false),
     anillado: leerBooleano(cuerpo, ["anillado", "spiralBound"], false),
-    observacionCliente: leerTextoOpcional(cuerpo, ["observacion_cliente", "customerNote"], MAX_OBSERVACION),
-    descripcion: leerTextoOpcional(cuerpo, ["descripcion", "description"], MAX_TEXTO_CORTO),
-    idPuntoEntrega: leerEnteroPositivoOpcional(cuerpo, ["id_punto_entrega", "deliveryPointId"], "id_punto_entrega"),
-    metodoPagoPreferido: leerTextoOpcional(
-      cuerpo,
-      ["metodo_pago_preferido", "paymentMethod"],
-      MAX_TEXTO_CORTO,
-    ),
   };
 }
 
-function leerEnteroPositivo(cuerpo: CuerpoCrearPedido, claves: string[], campo: string): number {
-  const valor = leerValor(cuerpo, claves);
-
-  if (!Number.isInteger(valor) || (valor as number) <= 0) {
-    throw new ApiError({
-      code: "VALIDATION_ERROR",
-      details: { [campo]: "Debe ser un entero mayor a cero." },
-      exposeDetails: true,
-    });
-  }
-
-  return valor as number;
-}
-
-function leerEnteroPositivoOpcional(
-  cuerpo: CuerpoCrearPedido,
+function leerEnteroPositivo(
+  cuerpo: CuerpoCotizarPedido,
   claves: string[],
   campo: string,
-): number | null {
+): number {
   const valor = leerValor(cuerpo, claves);
-
-  if (valor === undefined || valor === null || valor === "") {
-    return null;
-  }
 
   if (!Number.isInteger(valor) || (valor as number) <= 0) {
     throw new ApiError({
@@ -251,7 +218,11 @@ function leerEnteroPositivoOpcional(
   return valor as number;
 }
 
-function leerTextoRequerido(cuerpo: CuerpoCrearPedido, claves: string[], campo: string): string {
+function leerTextoRequerido(
+  cuerpo: CuerpoCotizarPedido,
+  claves: string[],
+  campo: string,
+): string {
   const valor = leerValor(cuerpo, claves);
 
   if (typeof valor !== "string" || valor.trim() === "") {
@@ -265,39 +236,11 @@ function leerTextoRequerido(cuerpo: CuerpoCrearPedido, claves: string[], campo: 
   return valor.trim();
 }
 
-function leerTextoOpcional(cuerpo: CuerpoCrearPedido, claves: string[], maximo: number): string | null {
-  const valor = leerValor(cuerpo, claves);
-
-  if (valor === undefined || valor === null || valor === "") {
-    return null;
-  }
-
-  if (typeof valor !== "string") {
-    throw new ApiError({
-      code: "VALIDATION_ERROR",
-      details: { [claves[0]]: "Debe ser texto." },
-      exposeDetails: true,
-    });
-  }
-
-  const texto = valor.trim();
-
-  if (!texto) {
-    return null;
-  }
-
-  if (texto.length > maximo) {
-    throw new ApiError({
-      code: "VALIDATION_ERROR",
-      details: { [claves[0]]: `No debe superar ${maximo} caracteres.` },
-      exposeDetails: true,
-    });
-  }
-
-  return texto;
-}
-
-function leerBooleano(cuerpo: CuerpoCrearPedido, claves: string[], valorDefault: boolean): boolean {
+function leerBooleano(
+  cuerpo: CuerpoCotizarPedido,
+  claves: string[],
+  valorDefault: boolean,
+): boolean {
   const valor = leerValor(cuerpo, claves);
 
   if (valor === undefined || valor === null) {
@@ -315,7 +258,7 @@ function leerBooleano(cuerpo: CuerpoCrearPedido, claves: string[], valorDefault:
   return valor;
 }
 
-function leerValor(cuerpo: CuerpoCrearPedido, claves: string[]): unknown {
+function leerValor(cuerpo: CuerpoCotizarPedido, claves: string[]): unknown {
   for (const clave of claves) {
     if (Object.prototype.hasOwnProperty.call(cuerpo, clave)) {
       return cuerpo[clave];
@@ -336,14 +279,6 @@ function mapearErrorSupabase(error: SupabaseErrorDebug): ApiError {
   if (error.code === "42501") {
     return new ApiError({
       code: "FORBIDDEN",
-      details,
-      exposeDetails: true,
-    });
-  }
-
-  if (error.code === "23503") {
-    return new ApiError({
-      code: "VALIDATION_ERROR",
       details,
       exposeDetails: true,
     });
