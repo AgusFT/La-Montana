@@ -20,8 +20,9 @@ El proyecto se planifica con criterio de producto real: arquitectura mantenible,
 
 Decisiones cerradas:
 
-- Supabase es la fuente única de verdad.
-- Se usa Supabase para PostgreSQL, Auth, Storage, Realtime, RPC y Edge Functions.
+- El backend vigente se planifica sobre Spring Boot.
+- PostgreSQL es la persistencia principal del backend vigente.
+- Supabase queda deprecado como backend y fuente de verdad; sus issues y documentos se conservan solo como trazabilidad histórica.
 - No existe módulo Desktop.
 - La Web será usada por clientes, empleados y administradores.
 - Habrá app Android desde el MVP.
@@ -107,11 +108,11 @@ Cada issue debe tener, como mínimo:
 | Backlog | Tarea registrada pero todavía no refinada ni lista para ejecutar |
 | Para hacer | Tarea refinada, estimada y lista para ser tomada |
 | En desarrollo | Tarea tomada por un integrante y actualmente en ejecución |
-| Bloqueado | Tarea detenida por dependencia, falta de definición o problema externo |
 | Testeo | Tarea terminada preliminarmente y pendiente de prueba o validación funcional |
 | En revision | Tarea terminada por quien la trabajó y pendiente de revisión cruzada por otro integrante |
 | Terminado | Tarea completada, revisada y aceptada según la Definition of Done |
 | Descartado | Tarea fuera del alcance actual, cancelada o reemplazada |
+| Deprecado | Tarea o decisión que fue reemplazada por una arquitectura vigente, pero se conserva por trazabilidad |
 
 Importante: Status es el estado de avance del trabajo en GitHub Projects. No representa los estados internos de los pedidos del sistema.
 
@@ -119,7 +120,8 @@ Importante: Status es el estado de avance del trabajo en GitHub Projects. No rep
 
 | Area | Uso |
 |---|---|
-| Backend/Supabase | Backend general en Supabase |
+| Backend/Supabase | Backend Supabase histórico o trabajo específico de deprecación |
+| Backend/Spring Boot | Backend vigente basado en Spring Boot |
 | BDD | Modelo de datos, tablas, relaciones, estados y persistencia |
 | API/RPC/Edge | RPC, Edge Functions y operaciones server-side |
 | Web/Frontend | Interfaz Web |
@@ -131,6 +133,20 @@ Importante: Status es el estado de avance del trabajo en GitHub Projects. No rep
 | Gestion | Organización, planificación, milestones y seguimiento |
 
 Cada issue debe tener una sola Area principal.
+
+### 7.1 Labels de arquitectura y deprecación
+
+Los labels complementan Area, Tipo y Milestone; no los reemplazan.
+
+| Label | Uso |
+|---|---|
+| Spring Boot | Trabajo asociado al backend vigente Spring Boot |
+| PostgreSQL | Trabajo asociado a la base de datos vigente PostgreSQL |
+| Supabase deprecado | Trabajo específico de Supabase reemplazado por Spring Boot; se conserva por trazabilidad |
+
+Usar `Supabase deprecado` cuando un issue, documento o decisión pertenezca al histórico Supabase. Si el item ya no requiere acción futura, usar además Status `Deprecado`. Si todavía hay que mover, limpiar o documentar algo del histórico, mantener el Status operativo que corresponda hasta terminar esa acción.
+
+Para trabajo backend vigente, usar Area `Backend/Spring Boot` y, cuando aporte claridad, labels `Spring Boot` o `PostgreSQL`. No usar milestones como si fueran áreas técnicas.
 
 ## 8. Tipo
 
@@ -242,8 +258,16 @@ La vista Ruta Critica es un roadmap manual. GitHub Projects no calcula automáti
 | M6 - Subsistema de impresion | Raspberry Pi, CUPS, gateway y print jobs |
 | M7 - Integracion end-to-end | Flujo completo punta a punta |
 | M8 - Documentacion final y validacion | Documentación final, demo y validación del sistema |
+| M9 - Replanteo arquitectonico y deprecacion Supabase | Supabase deprecado, Spring Boot vigente, limpieza documental y diagramas v3 |
+| M10 - Fundacion Spring Boot y PostgreSQL | Base técnica del backend Spring Boot y PostgreSQL |
+| M11 - Seguridad, usuarios y permisos backend | Autenticación, autorización, usuarios, roles y permisos en Spring Boot/PostgreSQL |
+| M12 - Flujo clientes backend | Endpoints backend para autenticación, pedidos, archivos, resumen y seguimiento del cliente |
+| M13 - Flujo administracion backend | Endpoints backend administrativos, revisión, cotización, pagos, estados y auditoría |
+| M14 - Deploy | Despliegue, hosting, secretos, archivos, backups y validación de entorno |
 
 No usar milestones para áreas técnicas. Para eso existe Area.
+
+Los milestones M2 y M3 conservan el histórico Supabase. El trabajo backend vigente debe planificarse en M9 a M14 según su entrega y marcarse con Area `Backend/Spring Boot`, no con un milestone usado como área.
 
 ### 15.1 Mapa actual de épicas y milestones
 
@@ -260,6 +284,12 @@ No usar milestones para áreas técnicas. Para eso existe Area.
 | E09 - Subsistema de impresión | #49 | M6 | Raspberry Pi, CUPS, agente/gateway y print jobs autorizados |
 | E10 - Integración end-to-end del flujo de pedidos | #50 | M7 | Integración completa entre Web, Android, backend e impresión |
 | E11 - Validación, pruebas y documentación final | #51 | M8 | Pruebas, evidencia, demo, defensa y cierre documental |
+| E12 - Replanteo arquitectonico: Supabase deprecado y Spring Boot vigente | #140 | M9 | Cambio de criterio arquitectónico, deprecación Supabase y documentación v3 |
+| E13 - Fundacion backend Spring Boot y PostgreSQL | #155 | M10 | Base técnica del backend Spring Boot y PostgreSQL |
+| E14 - Seguridad, usuarios y permisos backend Spring Boot | #164 | M11 | Seguridad, autenticación, autorización, usuarios, roles y permisos |
+| E15 - Flujo clientes backend Spring Boot | #171 | M12 | Backend para pedidos y consultas del flujo cliente |
+| E16 - Flujo administracion backend Spring Boot | #179 | M13 | Backend para revisión, cotización, estados, pagos, impresión autorizada y auditoría |
+| E17 - Deploy backend Spring Boot | #188 | M14 | Estrategia y preparación de despliegue del backend vigente |
 
 ## 16. Flujo de uso: crear una épica
 
@@ -303,7 +333,7 @@ Backlog → Para hacer → En desarrollo → Testeo → En revision → Terminad
 
 Si aparece un impedimento:
 
-En desarrollo → Bloqueado.
+Dejar comentario de bloqueo en el issue y mantener el Status operativo más cercano hasta que exista una columna específica de bloqueo.
 
 Si se descarta:
 
@@ -345,8 +375,9 @@ La Montaña es un sistema integral para gestión administrativa, operativa y pro
 
 Respetá estas decisiones cerradas:
 
-- Supabase es la fuente única de verdad.
-- Se usa Supabase para PostgreSQL, Auth, Storage, Realtime, RPC y Edge Functions.
+- El backend vigente se planifica sobre Spring Boot.
+- PostgreSQL es la persistencia principal del backend vigente.
+- Supabase queda deprecado como backend y fuente de verdad; sus issues y documentos se conservan solo como trazabilidad histórica.
 - No existe módulo Desktop.
 - La Web será usada por clientes, empleados y administradores según rol/permisos.
 - Habrá app Android desde el MVP consumiendo el mismo backend.
