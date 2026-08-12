@@ -5,10 +5,10 @@
 | Documento | Matriz de reglas de negocio |
 | Proyecto | La Montaña |
 | Épica relacionada | E02 - Alcance, requerimientos y planificación base |
-| Estado | Actualizada con matriz de trazabilidad vigente |
+| Estado | Actualizada por replanteo arquitectónico M9 |
 | Alcance | MVP / Producto base |
 | Fuente principal | Matriz de trazabilidad |
-| Última actualización | 2026-06-19 |
+| Última actualización | 2026-08-12 |
 | Responsable | Agustín Tejero y Alejandro Herms |
 
 ---
@@ -100,15 +100,15 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 
 | ID | Regla de negocio / restricción crítica | Historias relacionadas | Documentación o etapa donde se profundiza | Estado de cobertura | Alcance | Observación |
 |---|---|---|---|---|---|---|
-| RNFC-001 | La seguridad no debe depender únicamente del frontend. | HU-SIS-003, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción | MVP | Las validaciones críticas deben existir en backend y base de datos. |
-| RNFC-002 | Supabase debe mantenerse como fuente única de verdad. | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura general y modelo de datos | Cubierta como restricción | MVP | Web, Android e impresión deben operar sobre el mismo backend. |
-| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security. | HU-SIS-003, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción | MVP | Las políticas de acceso deben proteger datos por rol y ownership. |
-| RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente. | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Storage, RLS, políticas de acceso y agente de impresión | Cubierta | MVP | Los archivos no deben quedar expuestos fuera del flujo autorizado. |
-| RNFC-005 | El cliente final no debe acceder a información interna del negocio. | HU-CLI-001, HU-CLI-004 | RLS, permisos y diseño de vistas | Cubierta | MVP | El cliente debe ver información adecuada a su rol. |
+| RNFC-001 | La seguridad no debe depender únicamente del frontend. | HU-SIS-003, HU-ADM-003 | Arquitectura backend, autorización Spring Boot, servicios y persistencia PostgreSQL | Cubierta como restricción | MVP | Las validaciones críticas deben existir en backend y base de datos. |
+| RNFC-002 | Spring Boot/PostgreSQL debe operar como backend y persistencia vigentes. | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura v3, M10 y M11 | Actualizada por M9 | MVP | Web, Android e impresión deben operar sobre el mismo backend. |
+| RNFC-003 | Las operaciones y datos sensibles deben validar permisos del lado backend. | HU-SIS-003, HU-CLI-001, HU-IMP-002 | Seguridad backend Spring Boot, roles, permisos y PostgreSQL | Reemplaza RLS Supabase | MVP | Las reglas de autorización deben proteger datos por rol y ownership. |
+| RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente. | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Almacenamiento protegido, autorización backend y agente de impresión | Cubierta | MVP | Los archivos no deben quedar expuestos fuera del flujo autorizado. |
+| RNFC-005 | El cliente final no debe acceder a información interna del negocio. | HU-CLI-001, HU-CLI-004 | Permisos backend, consultas autorizadas y diseño de vistas | Cubierta | MVP | El cliente debe ver información adecuada a su rol. |
 | RNFC-006 | El agente de impresión solo debe ejecutar trabajos autorizados. | HU-IMP-001, HU-IMP-002, HU-IMP-004 | Subsistema de impresión y seguridad backend | Cubierta | MVP / Producto base | El gateway de impresión no puede operar por fuera de autorizaciones del backend. |
 | RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos. | HU-ADM-006, HU-SIS-004 | Auditoría y modelo de datos | Cubierta | MVP / Producto base | Permite reconstruir acciones críticas y cambios relevantes. |
 | RNFC-008 | El cierre del pedido no debe depender solo de la impresión. | HU-EMP-006, HU-ADM-005, HU-SIS-004 | Flujo de cierre y reglas de negocio | Cubierta | MVP / Producto base | Refuerza la regla funcional de cierre consistente. |
-| RNFC-009 | Web y Android deben respetar las mismas reglas de backend. | HU-CLI-007, HU-CLI-008, HU-SIS-003 | Arquitectura y backend Supabase | Cubierta | MVP | Ambos canales deben consumir las mismas reglas y validaciones. |
+| RNFC-009 | Web y Android deben respetar las mismas reglas de backend. | HU-CLI-007, HU-CLI-008, HU-SIS-003 | Arquitectura y backend Spring Boot/PostgreSQL | Cubierta | MVP | Ambos canales deben consumir las mismas reglas y validaciones. |
 | RNFC-010 | El producto debe evitar quedar rígidamente acoplado al cliente piloto. | HU-ADM-007 | Configuración, modularidad y arquitectura | Cubierta como criterio de diseño | Producto base | El sistema debe ser adaptable a otras imprentas en futuras etapas. |
 
 ---
@@ -122,8 +122,8 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 | Finanzas | RFC-005, RFC-006, RNFC-008 | Controlan seña, cobro, comprobantes y cierre consistente. |
 | Archivos | RFC-007, RFC-008, RNFC-004 | Definen que los archivos son parte central del flujo y deben ser accesibles de forma autorizada. |
 | Impresión | RFC-010, RNFC-006 | Limitan al subsistema de impresión a ejecutar trabajos autorizados sin decidir reglas de negocio. |
-| Seguridad | RNFC-001, RNFC-003, RNFC-005 | Definen restricciones de backend, RLS y visibilidad según rol. |
-| Arquitectura | RNFC-002, RNFC-009 | Definen Supabase como fuente única de verdad y backend común para Web y Android. |
+| Seguridad | RNFC-001, RNFC-003, RNFC-005 | Definen restricciones de backend, autorización y visibilidad según rol. |
+| Arquitectura | RNFC-002, RNFC-009 | Definen Spring Boot/PostgreSQL como backend vigente y backend común para Web y Android. |
 | Auditoría | RNFC-007 | Define la necesidad de registrar eventos críticos del flujo. |
 | Producto | RNFC-010 | Define que el producto debe evitar acoplarse rígidamente al cliente piloto. |
 | Canales | RFC-009, RNFC-009 | Definen coherencia entre Web, Android y backend. |
@@ -156,8 +156,8 @@ Cualquier ampliación futura deberá justificarse primero mediante actualizació
 | RFC-009 | Web y Android deben consumir el mismo backend desde el MVP. |
 | RFC-010 | El subsistema de impresión debe ejecutar solo trabajos autorizados. |
 | RNFC-001 | Las reglas críticas no pueden depender solo del frontend. |
-| RNFC-002 | Supabase debe operar como fuente única de verdad. |
-| RNFC-003 | Las tablas sensibles deben contemplar RLS. |
+| RNFC-002 | Spring Boot/PostgreSQL debe operar como backend y persistencia vigentes. |
+| RNFC-003 | Las operaciones y datos sensibles deben validar permisos del lado backend. |
 | RNFC-004 | El acceso a archivos debe estar autorizado. |
 | RNFC-005 | El cliente no debe ver información interna. |
 | RNFC-006 | El agente de impresión no debe ejecutar trabajos no autorizados. |
@@ -172,11 +172,11 @@ La matriz no detecta reglas críticas sin cobertura inicial, pero sí identifica
 
 | Punto a profundizar | Reglas relacionadas | Profundización prevista |
 |---|---|---|
-| Modelo de estados del pedido | RFC-004, RNFC-005 | #92 - Modelo de datos inicial y estrategia RLS |
-| Regla de seña y estado financiero | RFC-005, RFC-006, RNFC-008 | #92 - Modelo de datos inicial y estrategia RLS |
-| Estrategia RLS y permisos | RNFC-001, RNFC-003, RNFC-005 | #92 - Modelo de datos inicial y estrategia RLS; #98 - políticas RLS iniciales |
-| Acceso autorizado a archivos | RFC-007, RFC-008, RNFC-004 | #97 - Storage para archivos de pedidos |
-| Auditoría de eventos críticos | RFC-006, RNFC-007, RNFC-008 | #100 - auditoría de eventos críticos |
+| Modelo de estados del pedido | RFC-004, RNFC-005 | Histórico: #92. Vigente: #158 y #183 |
+| Regla de seña y estado financiero | RFC-005, RFC-006, RNFC-008 | #158, #175, #183 y #184 |
+| Seguridad, autorización y permisos | RNFC-001, RNFC-003, RNFC-005 | #164 a #170 |
+| Acceso autorizado a archivos | RFC-007, RFC-008, RNFC-004 | #169, #174 y #191 |
+| Auditoría de eventos críticos | RFC-006, RNFC-007, RNFC-008 | Histórico: #100. Vigente: #183 |
 | Subsistema de impresión autorizado | RFC-010, RNFC-006 | #49 - subsistema de impresión |
 
 ---

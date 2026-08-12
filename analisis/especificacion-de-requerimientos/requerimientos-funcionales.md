@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 |
-| Estado | Borrador inicial |
-| Fecha | 2026-05-20 |
+| Versión | 1.1 |
+| Estado | Actualizado por replanteo arquitectónico M9 |
+| Fecha | 2026-08-12 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -98,7 +98,7 @@ El alcance se expresa como:
 |---|---|---|---|---|
 | RF-ARC-001 | Cargar archivos al pedido | El cliente debe poder cargar archivos asociados a un pedido. | P0 Crítica | MVP |
 | RF-ARC-002 | Asociar archivos a pedidos | El sistema debe vincular cada archivo cargado con el pedido correspondiente. | P0 Crítica | MVP |
-| RF-ARC-003 | Almacenamiento centralizado | Los archivos del pedido deben almacenarse de forma centralizada en Supabase Storage. | P0 Crítica | MVP |
+| RF-ARC-003 | Almacenamiento centralizado | Los archivos del pedido deben almacenarse de forma centralizada mediante el backend vigente. | P0 Crítica | MVP |
 | RF-ARC-004 | Acceso autorizado a archivos | El sistema debe permitir el acceso a archivos solo a usuarios o componentes autorizados. | P0 Crítica | MVP |
 | RF-ARC-005 | Consulta de archivos por usuarios internos | Empleados y administradores deben poder consultar archivos asociados a pedidos según permisos. | P0 Crítica | MVP |
 | RF-ARC-006 | Archivos disponibles para impresión | Los archivos autorizados deben estar disponibles para el subsistema de impresión sin depender de rutas locales del cliente. | P0 Crítica | MVP |
@@ -250,6 +250,6 @@ Este documento se considera completo cuando:
 - cada requerimiento tiene descripción, prioridad y alcance;
 - los requerimientos cubren el flujo principal del sistema;
 - las reglas críticas del negocio están contempladas;
-- Web, Android, Supabase y subsistema de impresión están representados;
+- Web, Android, backend vigente y subsistema de impresión están representados;
 - existe coherencia con alcance, objetivos, stakeholders y actores;
 - el documento puede usarse como base para historias de usuario, modelo de datos, arquitectura y pruebas.

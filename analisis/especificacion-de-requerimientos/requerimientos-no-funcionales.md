@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 |
-| Estado | Borrador inicial |
-| Fecha | 2026-05-24 |
+| Versión | 1.1 |
+| Estado | Actualizado por replanteo arquitectónico M9 |
+| Fecha | 2026-08-12 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -25,7 +25,7 @@ Cada requerimiento se identifica con un código único.
 |---|---|
 | RNF-SEG | Seguridad |
 | RNF-AUT | Autenticación, autorización y permisos |
-| RNF-RLS | Row Level Security en Supabase |
+| RNF-RLS | Seguridad de acceso a datos |
 | RNF-ARC | Protección y acceso a archivos |
 | RNF-AUD | Trazabilidad y auditoría |
 | RNF-MAN | Mantenibilidad |
@@ -37,6 +37,8 @@ Cada requerimiento se identifica con un código único.
 | RNF-COM | Compatibilidad |
 | RNF-IMP | Operación del subsistema de impresión |
 | RNF-DOC | Documentación |
+
+El código `RNF-RLS` se conserva por trazabilidad histórica, pero ya no define Row Level Security de Supabase como restricción vigente. En la arquitectura actual representa seguridad de acceso a datos mediante autorización backend Spring Boot, roles, permisos y persistencia PostgreSQL.
 
 La prioridad se expresa como:
 
@@ -66,7 +68,7 @@ El alcance se expresa como:
 | RNF-SEG-001 | Seguridad por diseño | El sistema debe diseñarse considerando seguridad desde el inicio, no como agregado posterior. | P0 Crítica | MVP |
 | RNF-SEG-002 | Protección de datos sensibles | El sistema debe proteger datos de usuarios, pedidos, archivos, estados, pagos, comprobantes y auditoría. | P0 Crítica | MVP |
 | RNF-SEG-003 | Mínimo privilegio | Cada usuario, rol o componente debe acceder solo a la información y operaciones necesarias para cumplir su función. | P0 Crítica | MVP |
-| RNF-SEG-004 | Validaciones del lado servidor | Las operaciones sensibles deben validarse en backend, RPC, Edge Functions o políticas de base de datos, evitando depender solo del frontend. | P0 Crítica | MVP |
+| RNF-SEG-004 | Validaciones del lado servidor | Las operaciones sensibles deben validarse en el backend vigente, servicios, reglas de autorización o persistencia, evitando depender solo del frontend. | P0 Crítica | MVP |
 | RNF-SEG-005 | Separación entre cliente y operación interna | El cliente final no debe acceder a información interna del negocio, de otros clientes ni de estados operativos no visibles. | P0 Crítica | MVP |
 | RNF-SEG-006 | Protección contra acciones no autorizadas | El sistema debe impedir modificaciones no autorizadas sobre pedidos, archivos, estados, cobros, comprobantes, auditoría y trabajos de impresión. | P0 Crítica | MVP |
 
@@ -76,7 +78,7 @@ El alcance se expresa como:
 
 | ID | Requerimiento | Descripción | Prioridad | Alcance |
 |---|---|---|---|---|
-| RNF-AUT-001 | Autenticación centralizada | La autenticación debe centralizarse mediante Supabase Auth. | P0 Crítica | MVP |
+| RNF-AUT-001 | Autenticación centralizada | La autenticación debe centralizarse mediante el backend vigente y su estrategia de sesiones o tokens. | P0 Crítica | MVP |
 | RNF-AUT-002 | Autorización basada en roles y permisos | Las acciones del sistema deben autorizarse según roles y permisos definidos. | P0 Crítica | MVP |
 | RNF-AUT-003 | Control de sesión | El sistema debe manejar sesiones de usuario de forma segura y coherente entre Web y Android. | P0 Crítica | MVP |
 | RNF-AUT-004 | Usuarios internos diferenciados | Los usuarios internos deben diferenciarse de los clientes finales para evitar mezclas de permisos. | P0 Crítica | MVP |
@@ -85,19 +87,19 @@ El alcance se expresa como:
 
 ---
 
-### 3.3 Row Level Security en Supabase
+### 3.3 Seguridad de acceso a datos
 
 | ID | Requerimiento | Descripción | Prioridad | Alcance |
 |---|---|---|---|---|
-| RNF-RLS-001 | RLS obligatorio | Las tablas sensibles de Supabase deben tener Row Level Security habilitado. | P0 Crítica | MVP |
-| RNF-RLS-002 | RLS en pedidos | Los pedidos deben protegerse para que cada cliente acceda solo a sus propios pedidos y los usuarios internos accedan según permisos. | P0 Crítica | MVP |
-| RNF-RLS-003 | RLS en perfiles y usuarios | La información de perfiles, roles y permisos debe protegerse mediante políticas adecuadas. | P0 Crítica | MVP |
-| RNF-RLS-004 | RLS en estados | Los estados internos, visibles al cliente y financieros deben protegerse para evitar lectura o modificación indebida. | P0 Crítica | MVP |
-| RNF-RLS-005 | RLS en auditoría | Los registros de auditoría deben estar protegidos contra modificación indebida y acceso no autorizado. | P0 Crítica | Producto base |
-| RNF-RLS-006 | RLS y Storage | Las políticas de acceso a archivos en Supabase Storage deben ser coherentes con las políticas de datos del pedido. | P0 Crítica | MVP |
-| RNF-RLS-007 | RLS para agente de impresión | El agente/gateway de impresión debe acceder solo a trabajos y archivos autorizados. | P0 Crítica | MVP |
+| RNF-RLS-001 | Control de acceso obligatorio | Los datos sensibles deben protegerse mediante autorización backend, roles, permisos y controles de persistencia. | P0 Crítica | MVP |
+| RNF-RLS-002 | Acceso a pedidos | Los pedidos deben protegerse para que cada cliente acceda solo a sus propios pedidos y los usuarios internos accedan según permisos. | P0 Crítica | MVP |
+| RNF-RLS-003 | Acceso a perfiles y usuarios | La información de perfiles, roles y permisos debe protegerse mediante reglas de autorización adecuadas. | P0 Crítica | MVP |
+| RNF-RLS-004 | Acceso a estados | Los estados internos, visibles al cliente y financieros deben protegerse para evitar lectura o modificación indebida. | P0 Crítica | MVP |
+| RNF-RLS-005 | Acceso a auditoría | Los registros de auditoría deben estar protegidos contra modificación indebida y acceso no autorizado. | P0 Crítica | Producto base |
+| RNF-RLS-006 | Acceso a archivos | Las reglas de acceso a archivos deben ser coherentes con los permisos del pedido y el almacenamiento centralizado. | P0 Crítica | MVP |
+| RNF-RLS-007 | Acceso del agente de impresión | El agente/gateway de impresión debe acceder solo a trabajos y archivos autorizados. | P0 Crítica | MVP |
 | RNF-RLS-008 | No depender solo del frontend | La seguridad de datos no debe depender únicamente de ocultar botones, rutas o pantallas en la interfaz. | P0 Crítica | MVP |
-| RNF-RLS-009 | Documentación de políticas | La estrategia RLS debe quedar documentada antes de implementar el backend real. | P0 Crítica | Producto base |
+| RNF-RLS-009 | Documentación de autorización | La estrategia de seguridad, roles, permisos y acceso a datos debe quedar documentada antes de implementar el backend real. | P0 Crítica | Producto base |
 
 ---
 
@@ -172,7 +174,7 @@ El alcance se expresa como:
 | RNF-REN-002 | Consultas eficientes | Las consultas a base de datos deben diseñarse evitando lecturas innecesarias o excesivas. | P1 Alta | Producto base |
 | RNF-REN-003 | Carga de archivos controlada | La carga de archivos debe contemplar límites, validaciones y feedback adecuado al usuario. | P1 Alta | Producto base |
 | RNF-REN-004 | Operaciones transaccionales consistentes | Las operaciones críticas deben ejecutarse de forma consistente, evitando estados parciales o contradictorios. | P0 Crítica | MVP |
-| RNF-REN-005 | Uso responsable de Realtime | Supabase Realtime debe utilizarse solo cuando aporte valor operativo real. | P2 Media | Producto base |
+| RNF-REN-005 | Actualización de estados justificada | Las actualizaciones en tiempo real o casi real deben implementarse solo cuando aporten valor operativo real. | P2 Media | Producto base |
 
 ---
 
@@ -180,7 +182,7 @@ El alcance se expresa como:
 
 | ID | Requerimiento | Descripción | Prioridad | Alcance |
 |---|---|---|---|---|
-| RNF-DIS-001 | Backend central disponible | Supabase debe ser tratado como servicio central necesario para Web, Android y operación principal. | P0 Crítica | MVP |
+| RNF-DIS-001 | Backend central disponible | El backend Spring Boot y PostgreSQL deben tratarse como servicios centrales necesarios para Web, Android y operación principal. | P0 Crítica | MVP |
 | RNF-DIS-002 | Manejo de errores | El sistema debe informar errores de forma clara cuando una operación no pueda completarse. | P1 Alta | MVP |
 | RNF-DIS-003 | Evitar pérdida de información crítica | Las operaciones críticas deben reducir el riesgo de pérdida de pedidos, archivos, estados o registros de auditoría. | P0 Crítica | MVP |
 | RNF-DIS-004 | Recuperación ante fallas operativas | El sistema debe contemplar recuperación o reintento ante errores de impresión, carga de archivos u operaciones transaccionales. | P1 Alta | Producto base |
@@ -231,7 +233,7 @@ El alcance se expresa como:
 | RNF-DOC-001 | Documentación de alcance | El sistema debe contar con documentación clara de alcance, objetivos, stakeholders y requerimientos. | P0 Crítica | MVP |
 | RNF-DOC-002 | Documentación de arquitectura | Las decisiones arquitectónicas principales deben quedar documentadas. | P0 Crítica | Producto base |
 | RNF-DOC-003 | Documentación de modelo de datos | El modelo de datos, tablas, relaciones, estados y reglas relevantes deben quedar documentados. | P0 Crítica | Producto base |
-| RNF-DOC-004 | Documentación de seguridad | La estrategia de seguridad, roles, permisos, RLS y acceso a archivos debe quedar documentada. | P0 Crítica | Producto base |
+| RNF-DOC-004 | Documentación de seguridad | La estrategia de seguridad, roles, permisos, autorización backend y acceso a archivos debe quedar documentada. | P0 Crítica | Producto base |
 | RNF-DOC-005 | Documentación del subsistema de impresión | La operación del agente/gateway, CUPS, print jobs y acceso a archivos debe quedar documentada. | P1 Alta | Producto base |
 | RNF-DOC-006 | Coherencia documental | La documentación debe mantenerse coherente con el GitHub Project, los issues y el código. | P1 Alta | Producto base |
 
@@ -244,8 +246,8 @@ Las siguientes reglas deben respetarse durante el diseño, implementación y evo
 | Regla | Descripción |
 |---|---|
 | RNFC-001 | La seguridad no debe depender únicamente del frontend. |
-| RNFC-002 | Supabase debe mantenerse como fuente única de verdad. |
-| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security. |
+| RNFC-002 | Spring Boot/PostgreSQL debe operar como backend y persistencia vigentes. |
+| RNFC-003 | Las operaciones y datos sensibles deben validar permisos del lado backend. |
 | RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente. |
 | RNFC-005 | El cliente final no debe acceder a información interna del negocio. |
 | RNFC-006 | El agente de impresión solo debe ejecutar trabajos autorizados. |
@@ -273,10 +275,10 @@ Este documento se considera completo cuando:
 
 - los requerimientos no funcionales están identificados con códigos únicos;
 - cada requerimiento tiene descripción, prioridad y alcance;
-- contempla seguridad, autorización y Row Level Security;
+- contempla seguridad, autorización backend y acceso a datos;
 - contempla protección de archivos;
 - contempla trazabilidad y auditoría;
 - contempla mantenibilidad, modularidad y escalabilidad;
-- contempla Web, Android, Supabase y subsistema de impresión;
+- contempla Web, Android, backend vigente y subsistema de impresión;
 - mantiene coherencia con los requerimientos funcionales;
 - sirve como base para arquitectura, modelo de datos, implementación y pruebas.
