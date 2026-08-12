@@ -11,15 +11,16 @@ Proyecto desarrollado por:
 
 El proyecto se diseña con criterio de producción real: mantenibilidad, seguridad, trazabilidad, escalabilidad y documentación defendible.
 
-## Arquitectura confirmada
+## Arquitectura vigente
 
-- Supabase como fuente única de verdad.
-- Supabase para PostgreSQL, Auth, Storage, Realtime, RPC y Edge Functions.
+- Backend vigente planificado sobre Spring Boot.
+- PostgreSQL como persistencia principal.
 - Web para clientes, empleados y administradores.
-- App Android desde el MVP.
+- App Android desde el MVP, consumiendo el mismo backend.
 - Subsistema de impresión con Raspberry Pi, CUPS, gateway/agente y print jobs.
 - Sin módulo Desktop.
 - El subsistema de impresión no toma decisiones de negocio; solo ejecuta trabajos autorizados.
+- Supabase queda deprecado como backend y fuente de verdad; su documentación histórica se conserva en `deprecados/supabase/`.
 
 ## Documentación
 
@@ -30,6 +31,11 @@ En `main` hoy se conserva la documentación vigente, diseño, análisis y market
 Documento inicial recomendado:
 
 `marco-del-proyecto/guia-uso-github-project.md`
+
+Documentos de referencia:
+
+- `marco-del-proyecto/motor-de-configuracion-del-sistema.md`
+- `deprecados/supabase/README.md`
 
 ## Mapa del repositorio
 
@@ -54,6 +60,11 @@ La-Montana/
 │   │   └── requerimientos-no-funcionales.md
 │   └── historias-de-usuarios/
 │       └── historias-de-usuario.md
+├── deprecados/
+│   └── supabase/
+│       ├── README.md
+│       ├── diseño-de-datos/
+│       └── edge-functions/
 ├── diseño/
 │   ├── Back/
 │   │   └── arquitectura-del-sistema/
@@ -77,6 +88,7 @@ La-Montana/
 │   ├── documento-alcance-parcial-2.docx
 │   ├── gantt-roadmap-general.xlsx
 │   ├── guia-uso-github-project.md
+│   ├── motor-de-configuracion-del-sistema.md
 │   ├── matriz-trazabilidad.md
 │   ├── objetivos-del-proyecto.md
 │   ├── stakeholders-y-actores.md
@@ -86,9 +98,9 @@ La-Montana/
     └── flyers-publicitarios/
 ```
 
-### Estructura objetivo luego de integrar ramas activas
+### Estructura objetivo luego de integrar ramas activas y M10
 
-Este árbol muestra cómo debería leerse el repositorio cuando `main` incorpore el trabajo de las ramas actuales y las carpetas raíz previstas por el WBS. Dentro de cada carpeta se muestran solo subcarpetas que ya existen en `main` o en ramas activas.
+Este árbol muestra cómo debería leerse el repositorio cuando `main` incorpore el trabajo de las ramas actuales, las carpetas raíz previstas por el WBS y la implementación backend Spring Boot/PostgreSQL prevista para M10.
 
 ```text
 La-Montana/
@@ -105,6 +117,8 @@ La-Montana/
 │   │   └── 08-web-y-android/
 │   ├── especificacion-de-requerimientos/
 │   └── historias-de-usuarios/
+├── deprecados/
+│   └── supabase/
 ├── diseño/
 │   ├── Back/
 │   │   └── arquitectura-del-sistema/
@@ -124,12 +138,11 @@ La-Montana/
 ├── marketing/
 │   └── flyers-publicitarios/
 ├── desarrollo/
-│   ├── backend-supabase/
-│   │   └── supabase/
-│   │       ├── functions/
-│   │       ├── migrations/
-│   │       └── tests/
-│   │           └── database/
+│   ├── backend-spring-boot/
+│   │   ├── src/
+│   │   ├── db/
+│   │   │   └── migrations/
+│   │   └── tests/
 │   ├── prototipo-figma/
 │   │   ├── guidelines/
 │   │   └── src/
@@ -153,7 +166,8 @@ La-Montana/
 
 - `main`: fuente principal para documentación vigente, análisis, diseño, marco del proyecto y marketing.
 - `feat/web-mvp`: desarrollo del portal Web MVP y prototipo técnico asociado.
-- `feat/backend-supabase`: configuración versionable del backend Supabase, migraciones, funciones y pruebas de base de datos.
+- Trabajo Spring Boot/PostgreSQL: dirección backend vigente a desarrollar en M10.
+- Trabajo Supabase/backend-supabase: material histórico deprecado, conservado solo para trazabilidad en `deprecados/supabase/`.
 
 ## Estado del repositorio
 
