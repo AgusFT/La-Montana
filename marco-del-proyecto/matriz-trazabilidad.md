@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.4 |
-| Estado | Actualizada con Project, WBS V3, E03, setup inicial Supabase, refinamiento backend Supabase, diseño de datos y redistribución de HU por milestones |
-| Fecha | 2026-06-23 |
+| Versión | 1.5 |
+| Estado | Actualizada por replanteo arquitectónico M9: Supabase histórico y Spring Boot/PostgreSQL vigente |
+| Fecha | 2026-08-12 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -38,6 +38,8 @@ Esta matriz toma como base los siguientes documentos:
 | `analisis/historias-de-usuarios/historias-de-usuario.md` | Define necesidades concretas desde el punto de vista de los actores |
 | `analisis/casos-de-uso/casos-de-uso.md` | Define flujos funcionales detallados por dominio |
 | `marco-del-proyecto/guia-uso-github-project.md` | Define el uso del Project, épicas, milestones y criterios de seguimiento |
+| `README.md` | Resume la arquitectura vigente Spring Boot/PostgreSQL |
+| `deprecados/supabase/README.md` | Centraliza la documentación Supabase deprecada como trazabilidad histórica |
 
 ---
 
@@ -52,6 +54,16 @@ La trazabilidad se organiza en cinco niveles:
 | Historia de usuario | Necesidad concreta expresada desde un actor del sistema |
 | Regla crítica | Condición de negocio que no debe romperse durante diseño, desarrollo ni operación |
 | Épica de Product Backlog | Iniciativa grande del Project que agrupa trabajo por milestone y permite planificar la entrega |
+
+### 3.1 Criterio de vigencia arquitectónica
+
+La trazabilidad funcional de pedidos, archivos, usuarios, estados, auditoría, Web, Android e impresión sigue vigente.
+
+La trazabilidad técnica específica de Supabase, RLS, RPC, Edge Functions, Auth y Storage queda como histórico. No debe leerse como arquitectura backend vigente.
+
+La arquitectura backend vigente se planifica sobre Spring Boot y PostgreSQL. Las restricciones técnicas equivalentes se profundizan en M10 a M14, especialmente en #155, #164, #171, #179 y #188.
+
+Este criterio responde al replanteo arquitectónico de M9, épica #140 e issue documental #148.
 
 ---
 
@@ -115,7 +127,7 @@ La trazabilidad se organiza en cinco niveles:
 |---|---|---|---|
 | RNF-SEG | Seguridad | HU-CLI-001, HU-CLI-004, HU-ADM-003, HU-SIS-003 | Cubierto |
 | RNF-AUT | Autenticación, autorización y permisos | HU-CLI-001, HU-EMP-001, HU-EMP-004, HU-ADM-002, HU-ADM-003, HU-SIS-003 | Cubierto |
-| RNF-RLS | Row Level Security en Supabase | HU-CLI-001, HU-CLI-004, HU-IMP-002, HU-SIS-003 | Cubierto como restricción técnica |
+| RNF-RLS | Seguridad de acceso a datos: RLS Supabase histórico, autorización backend Spring Boot vigente | HU-CLI-001, HU-CLI-004, HU-IMP-002, HU-SIS-003 | HUs reutilizables; reemplazo técnico a profundizar en M11 (#167) |
 | RNF-ARC | Protección y acceso a archivos | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Cubierto |
 | RNF-AUD | Trazabilidad y auditoría | HU-EMP-003, HU-ADM-006, HU-SIS-004 | Cubierto |
 | RNF-MAN | Mantenibilidad | No aplica como historia operativa directa | Debe tratarse en arquitectura y desarrollo |
@@ -151,15 +163,15 @@ La trazabilidad se organiza en cinco niveles:
 
 | Regla crítica | Descripción | Historias relacionadas | Documentación o etapa donde se profundiza | Estado de cobertura |
 |---|---|---|---|---|
-| RNFC-001 | La seguridad no debe depender únicamente del frontend | HU-SIS-003, HU-ADM-003 | Arquitectura, modelo de datos, RLS, RPC y Edge Functions | Cubierta como restricción |
-| RNFC-002 | Supabase debe mantenerse como fuente única de verdad | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura general y modelo de datos | Cubierta como restricción |
-| RNFC-003 | Las tablas sensibles deben contemplar Row Level Security | HU-SIS-003, HU-CLI-001, HU-IMP-002 | Estrategia RLS en Supabase | Cubierta como restricción |
-| RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Storage privado, cifrado de archivos, RLS, políticas de acceso y agente de impresión | Cubierta |
-| RNFC-005 | El cliente final no debe acceder a información interna del negocio | HU-CLI-001, HU-CLI-004 | RLS, permisos y diseño de vistas | Cubierta |
+| RNFC-001 | La seguridad no debe depender únicamente del frontend | HU-SIS-003, HU-ADM-003 | Arquitectura backend, autorización Spring Boot, servicios y persistencia PostgreSQL | Cubierta como restricción |
+| RNFC-002 | Spring Boot/PostgreSQL debe operar como backend y persistencia vigentes | HU-CLI-007, HU-CLI-008, HU-IMP-001 | Arquitectura v3, M10 y M11 | Actualizada por M9 |
+| RNFC-003 | Las operaciones y datos sensibles deben validar permisos del lado backend | HU-SIS-003, HU-CLI-001, HU-IMP-002 | Seguridad backend Spring Boot, roles, permisos y PostgreSQL | Reemplaza RLS Supabase |
+| RNFC-004 | El acceso a archivos debe estar autorizado y asociado al pedido correspondiente | HU-CLI-003, HU-EMP-002, HU-IMP-002 | Almacenamiento protegido, autorización backend y agente de impresión | Cubierta |
+| RNFC-005 | El cliente final no debe acceder a información interna del negocio | HU-CLI-001, HU-CLI-004 | Permisos backend, consultas autorizadas y diseño de vistas | Cubierta |
 | RNFC-006 | El agente de impresión solo debe ejecutar trabajos autorizados | HU-IMP-001, HU-IMP-002, HU-IMP-004 | Subsistema de impresión y seguridad backend | Cubierta |
 | RNFC-007 | El sistema debe registrar eventos críticos del flujo de pedidos | HU-ADM-006, HU-SIS-004 | Auditoría y modelo de datos | Cubierta |
 | RNFC-008 | El cierre del pedido no debe depender solo de la impresión | HU-EMP-006, HU-ADM-005, HU-SIS-004 | Flujo de cierre y reglas de negocio | Cubierta |
-| RNFC-009 | Web y Android deben respetar las mismas reglas de backend | HU-CLI-007, HU-CLI-008, HU-SIS-003 | Arquitectura y backend Supabase | Cubierta |
+| RNFC-009 | Web y Android deben respetar las mismas reglas de backend | HU-CLI-007, HU-CLI-008, HU-SIS-003 | Arquitectura y backend Spring Boot/PostgreSQL | Cubierta |
 | RNFC-010 | El producto debe evitar quedar rígidamente acoplado al cliente piloto | HU-ADM-007 | Configuración, modularidad y arquitectura | Cubierta como criterio de diseño |
 
 ---
@@ -185,14 +197,20 @@ El GitHub Project se organiza como Product Backlog de alto nivel mediante épica
 | E01 - Gestion del proyecto y documentacion | #14 | M0 - Setup del repo y Project | OBJ-012 | #15, #16, #17, #18 |
 | E02 - Alcance, requerimientos y planificacion base | #19 | M1 - Documentacion base de alcance y planificacion | OBJ-001 a OBJ-012 | #20, #21, #22, #23, #25, #26, #27, #28, #35 |
 | E03 - Diseño UX/UI y prototipo MVP | #43 | M1 - Documentacion base de alcance y planificacion | OBJ-007, OBJ-012 | #32, #33, #36, #38, #39, #40, #41, #82, #83, #84, #85, #87, #88, #89 |
-| E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #92, #119, #120, #121, #122, diagramas de arquitectura |
-| E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | HU-CLI-006 (#57), HU-SIS-001 a HU-SIS-004 (#78 a #81), #93, #95, #96, #97, #98, #99, #100, #101, #102, #110, #111, #112, #113, #114, #115 |
+| E04 - Arquitectura, modelo de datos y seguridad Supabase | #44 | M2 - Arquitectura y modelo de datos | OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | Histórico Supabase: #92, #119, #120, #121, #122, diagramas de arquitectura |
+| E05 - Backend MVP en Supabase | #45 | M3 - MVP backend Supabase | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | Histórico Supabase: HU-CLI-006 (#57), HU-SIS-001 a HU-SIS-004 (#78 a #81), #93, #95, #96, #97, #98, #99, #100, #101, #102, #110, #111, #112, #113, #114, #115 |
 | E06 - Portal Web cliente MVP | #46 | M4 - MVP Web | OBJ-001, OBJ-004, OBJ-007 | HU-CLI-001 a HU-CLI-005 (#52 a #56), HU-CLI-007 (#58), HU-CLI-009 (#91), #36, #38, #39, #40, #41, #94, #103, #104, #105, #106, #107, #108, #109, #116, #117 |
 | E07 - Panel Web administrativo MVP | #47 | M4 - MVP Web | OBJ-002, OBJ-005, OBJ-006, OBJ-007, OBJ-010 | HU-EMP-001 a HU-EMP-006 (#60 a #65), HU-ADM-001 a HU-ADM-008 (#66 a #73), wireflows administrador, CU-REV, CU-CIE |
 | E08 - Aplicación Android MVP | #48 | M5 - MVP Android | OBJ-008 | HU-CLI-008 (#59), CU-AND-001, CU-AND-002 |
 | E09 - Subsistema de impresión | #49 | M6 - Subsistema de impresion | OBJ-009 | HU-IMP-001 a HU-IMP-004 (#74 a #77), CU-IMP-001 a CU-IMP-006 |
 | E10 - Integración end-to-end del flujo de pedidos | #50 | M7 - Integracion end-to-end | OBJ-001 a OBJ-010 | Flujo completo de pedido, cierre y auditoría |
 | E11 - Validación, pruebas y documentación final | #51 | M8 - Documentacion final y validacion | OBJ-012 | #35, #90, README, MVP y evidencias finales |
+| E12 - Replanteo arquitectonico: Supabase deprecado y Spring Boot vigente | #140 | M9 - Replanteo arquitectonico y deprecacion Supabase | OBJ-003, OBJ-004, OBJ-006, OBJ-010, OBJ-012 | #144, #145, #146, #147, #148 |
+| E13 - Fundacion backend Spring Boot y PostgreSQL | #155 | M10 - Fundacion Spring Boot y PostgreSQL | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006, OBJ-010 | #156, #157, #158, #159, #160, #161, #162, #163 |
+| E14 - Seguridad, usuarios y permisos backend Spring Boot | #164 | M11 - Seguridad, usuarios y permisos backend | OBJ-003, OBJ-004, OBJ-006, OBJ-010 | #165, #166, #167, #168, #169, #170 |
+| E15 - Flujo clientes backend Spring Boot | #171 | M12 - Flujo clientes backend | OBJ-001, OBJ-003, OBJ-004, OBJ-005, OBJ-006 | #172, #173, #174, #175, #176, #177, #178 |
+| E16 - Flujo administracion backend Spring Boot | #179 | M13 - Flujo administracion backend | OBJ-002, OBJ-005, OBJ-006, OBJ-009, OBJ-010 | #180, #181, #182, #183, #184, #185, #186, #187 |
+| E17 - Deploy backend Spring Boot | #188 | M14 - Deploy | OBJ-003, OBJ-004, OBJ-010, OBJ-012 | #189, #190, #191, #192, #193, #194, #195 |
 
 ---
 
@@ -204,13 +222,13 @@ Sin embargo, existen puntos que deberán profundizarse en documentos posteriores
 
 | Punto a profundizar | Motivo | Documento o etapa futura |
 |---|---|---|
-| Modelo de estados del pedido | La separación entre estado interno, visible y financiero requiere diseño preciso | #92 - Modelo de datos inicial y estrategia RLS |
-| Estrategia RLS | La seguridad depende de políticas concretas en tablas, Storage y RPC | #92 - Modelo de datos inicial y estrategia RLS; #98 - políticas RLS iniciales |
-| Modelo de datos Supabase | El diseño de tablas requiere guia de estilo, documentacion de relaciones, DER y flujo de construccion/poblado antes de migraciones | #119 - guia de estilo BDD; #120 - tablas y relaciones; #121 - DER; #122 - flujo de construccion y poblado |
-| Modelo de archivos | Los archivos son centrales para revisión, producción e impresión | #92 - Modelo de datos inicial; #97 - Storage para archivos; #113 - cifrado cliente de archivos |
-| Edge Functions del flujo mínimo | El backend debe centralizar creación, carga cifrada, confirmación y errores sin acceso directo del frontend a tablas críticas | #99 - Edge Functions del flujo mínimo; #110 - orders-create; #111 - order-file-upload; #112 - orders-confirm; #114 - contrato estándar de errores |
-| Configuración local Supabase | El MVP debe respetar límites del plan Free, archivos de 10 MB y Realtime postergado salvo necesidad concreta | #101 - seguimiento Realtime postergado; #115 - configuración local Supabase |
-| Integración Web con backend | El Portal Cliente debe pasar de vistas funcionales a Auth real, rutas protegidas y consumo de Edge Functions | #108 - Login Cliente; #116 - Supabase Auth y rutas protegidas; #117 - Crear/Resumen Pedido con Edge Functions |
+| Modelo de estados del pedido | La separación entre estado interno, visible y financiero requiere diseño preciso | Histórico: #92. Vigente: #158 y #183 |
+| Seguridad y autorización backend | La seguridad debe reemplazar RLS Supabase por validaciones backend, roles, permisos y acceso autorizado a datos | #164 a #170 |
+| Modelo de datos PostgreSQL/Spring Boot | El diseño de tablas debe adaptarse a PostgreSQL y migraciones del backend vigente | #157, #158, #159, #162 |
+| Modelo de archivos | Los archivos son centrales para revisión, producción e impresión | Histórico: #97 y #113. Vigente: #169, #174 y #191 |
+| API backend del flujo mínimo | El backend debe centralizar creación, carga de archivos, confirmación, consultas y errores sin acceso directo del frontend a datos críticos | #160, #172 a #178, #180 a #187 |
+| Configuración local backend | El entorno local debe resolver variables, PostgreSQL, migraciones, seeds y ejecución Spring Boot | #156, #161, #162 |
+| Integración Web con backend | El Portal Cliente debe pasar de vistas funcionales a autenticación real, rutas protegidas y consumo de API Spring Boot | #160, #172 a #178 |
 | Flujo de cierre del pedido | El cierre depende de entrega, cobro, comprobante, auditoría y estado final | Casos de uso, modelo de datos y pruebas |
 | Agente de impresión | Debe definirse comunicación, autorización, errores y acceso a archivos | Arquitectura del subsistema de impresión |
 | Android MVP | La cobertura inicial es mínima y deberá bajarse a funcionalidades concretas | Historias refinadas y diseño mobile |
@@ -227,7 +245,7 @@ Esta matriz debe usarse como referencia para:
 - validar que cada historia tenga respaldo;
 - detectar requerimientos sin implementación planificada;
 - diseñar el modelo de datos;
-- diseñar políticas de seguridad;
+- diseñar estrategia de seguridad y autorización backend;
 - definir pruebas funcionales;
 - validar la coherencia entre documentación, GitHub Project y desarrollo.
 
