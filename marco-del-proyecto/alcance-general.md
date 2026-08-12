@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 |
-| Estado | Borrador inicial |
-| Fecha | 2026-05-20 |
+| Versión | 1.1 |
+| Estado | Actualizado por replanteo arquitectónico |
+| Fecha | 2026-08-12 |
 | Responsables | Agustín Tejero y Alejandro Herms |
 
 ## 1. Objetivo del documento
@@ -77,19 +77,20 @@ La app Android también consumirá el mismo backend y deberá respetar la misma 
 
 ## 5. Arquitectura general incluida en el alcance
 
-La arquitectura confirmada del proyecto incluye:
+La arquitectura vigente del proyecto incluye:
 
-- Supabase como fuente única de verdad.
+- Backend principal desarrollado con Spring Boot.
 - PostgreSQL como base de datos principal.
-- Supabase Auth para autenticación.
-- Supabase Storage para archivos del pedido.
-- Supabase Realtime cuando sea útil para seguimiento de estados.
-- RPC para operaciones transaccionales cercanas al modelo de datos.
-- Edge Functions para lógica server-side que no convenga resolver como RPC puro.
+- Autenticación, autorización, roles y permisos resueltos desde el backend vigente.
+- Almacenamiento centralizado de archivos del pedido, gestionado por el backend.
+- API backend para operaciones del flujo de pedidos, archivos, estados, pagos, auditoría y configuración.
 - Web desarrollada con Next.js, React y TypeScript.
 - App Android conectada al mismo backend.
 - Subsistema de impresión con Raspberry Pi, CUPS, gateway/agente y print jobs.
 
+Supabase queda deprecado como backend y fuente de verdad. Su documentación histórica se conserva en `deprecados/supabase/` para trazabilidad, pero no define el alcance tecnológico vigente.
+
+Este cambio responde al replanteo arquitectónico de M9, a la épica #140 y al issue documental #147.
 
 ---
 
@@ -122,7 +123,7 @@ Incluye:
 Incluye:
 
 - carga de archivos por parte del cliente;
-- almacenamiento centralizado en Supabase Storage;
+- almacenamiento centralizado gestionado por el backend;
 - asociación entre archivos y pedidos;
 - acceso autorizado a archivos;
 - disponibilidad de archivos para revisión, producción e impresión.
@@ -228,7 +229,7 @@ Se espera entregar:
 - diagramas en PlantUML;
 - Web funcional;
 - app Android funcional;
-- backend en Supabase;
+- backend Spring Boot con PostgreSQL;
 - flujo principal de pedidos;
 - subsistema de impresión integrado de forma demostrable;
 - documentación de pruebas;
@@ -261,6 +262,7 @@ Queda fuera del alcance actual:
 
 - módulo Desktop;
 - uso de Firebase como backend principal;
+- uso de Supabase como backend o fuente de verdad vigente;
 - impresión basada en rutas locales del cliente;
 - paso automático de pedidos de cliente a producción;
 - decisiones de negocio tomadas por Raspberry Pi, CUPS o agente de impresión;
@@ -295,7 +297,7 @@ El proyecto será considerado exitoso si logra:
 - representar correctamente el flujo principal de una imprenta;
 - permitir trazabilidad del pedido desde creación hasta cierre;
 - evitar avances automáticos indebidos a producción;
-- centralizar archivos y datos en Supabase;
+- centralizar archivos y datos en el backend vigente;
 - ofrecer Web y Android conectados al mismo backend;
 - integrar un subsistema de impresión autorizado;
 - documentar de forma clara las decisiones tomadas;
