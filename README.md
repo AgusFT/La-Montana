@@ -63,12 +63,14 @@ La-Montana/
 ├── deprecados/
 │   └── supabase/
 │       ├── README.md
+│       ├── diagramas/
 │       ├── diseño-de-datos/
 │       └── edge-functions/
 ├── diseño/
 │   ├── Back/
 │   │   └── arquitectura-del-sistema/
 │   │       └── diagramas/
+│   │           └── README.md
 │   └── Front/
 │       └── ux-ui/
 │           ├── documentacion/

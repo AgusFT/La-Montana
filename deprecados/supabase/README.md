@@ -33,7 +33,8 @@ Se conservan documentos backend Supabase relacionados con:
 - modelo de tablas y relaciones;
 - estrategia RLS;
 - flujo de construccion y poblado de BDD;
-- contrato de errores para Edge Functions.
+- contrato de errores para Edge Functions;
+- diagramas v2 de arquitectura, componentes y despliegue.
 
 ## Artefactos movidos
 
@@ -44,11 +45,22 @@ Se conservan documentos backend Supabase relacionados con:
 | `diseño-de-datos/estrategia-rls-supabase.md` | `diseño/diseño-de-datos/estrategia-rls-supabase.md` |
 | `diseño-de-datos/flujo-construccion-poblado-bdd.md` | `diseño/diseño-de-datos/flujo-construccion-poblado-bdd.md` |
 | `edge-functions/functions-errors.md` | `diseño/Back/edge-functions/functions-errors.md` |
+| `diagramas/3 Diagrama de Arquitectura v2.png` | `diseño/Back/arquitectura-del-sistema/diagramas/3 Diagrama de Arquitectura v2.png` |
+| `diagramas/4.1 Diagrama de Componentes v2.png` | `diseño/Back/arquitectura-del-sistema/diagramas/4.1 Diagrama de Componentes v2.png` |
+| `diagramas/4.2 Diagrama de Despliegue v2.png` | `diseño/Back/arquitectura-del-sistema/diagramas/4.2 Diagrama de Despliegue v2.png` |
+
+## Diagramas v2
+
+Los diagramas v2 Supabase fueron deprecados en el issue #151 y se conservan en
+`deprecados/supabase/diagramas/`.
+
+Los reemplazos vigentes se trabajaran como diagramas v3:
+
+- Diagrama de Arquitectura v3: #152.
+- Diagrama de Componentes v3: #153.
+- Diagrama de Despliegue v3 preliminar: #154.
 
 ## Fuera de este movimiento
-
-No se movieron diagramas Supabase en este issue. Los diagramas v2 se trataran
-en issues especificos de deprecacion y reemplazo por diagramas v3.
 
 Tampoco se movio documentacion frontend, historias de usuario, casos de uso,
 requerimientos ni trazabilidad general, porque este movimiento se limita a la
