@@ -92,7 +92,9 @@ La-Montana/
 │   ├── matriz-trazabilidad.md
 │   ├── objetivos-del-proyecto.md
 │   ├── stakeholders-y-actores.md
-│   ├── WBS V3.jpg
+│   ├── wbs-v4-spring-boot-postgresql.md
+│   ├── LINK LUCID - WBS V4
+│   ├── WBS V4.svg
 │   └── LINK MIRO - WBS
 └── marketing/
     └── flyers-publicitarios/
