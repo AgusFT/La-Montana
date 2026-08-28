@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>La Montaña · Motor de configuración administrativo V2</title>
+  <style>
+    :root {
+      --navy:#06233c;
+      --navy-2:#0a3152;
+      --blue:#1769e0;
+      --blue-soft:#eaf2ff;
+      --orange:#f36b21;
+      --orange-soft:#fff2e9;
+      --green:#18a861;
+      --green-soft:#e9f8f0;
+      --yellow:#e9ad15;
+      --yellow-soft:#fff8df;
+      --red:#df3d47;
+      --red-soft:#fff0f1;
+      --purple:#7048d6;
+      --purple-soft:#f0ebff;
+      --ink:#172033;
+      --muted:#687589;
+      --line:#dfe5ec;
+      --canvas:#f5f7fa;
+      --surface:#ffffff;
+      --shadow:0 2px 10px rgba(23,32,51,.06);
+    }
+
+    * { box-sizing:border-box; }
+    html,body { margin:0; min-height:100%; font-family:Inter,Segoe UI,Arial,sans-serif; color:var(--ink); background:var(--canvas); }
+    button,input,select,textarea { font:inherit; }
+    button { cursor:pointer; }
+
+    .app { min-height:100vh; display:grid; grid-template-columns:230px minmax(0,1fr); }
+    .admin-nav { min-height:100vh; padding:24px 16px; background:linear-gradient(180deg,var(--navy),#04192b); color:#eaf4ff; }
+    .brand { display:flex; align-items:center; gap:12px; margin:0 6px 34px; font-size:19px; font-weight:800; }
+    .brand-mark { width:42px; height:42px; display:grid; place-items:center; border-radius:50%; background:var(--orange); color:#fff; font-weight:900; box-shadow:inset 0 -7px 0 rgba(0,0,0,.1); }
+    .brand small { display:block; margin-top:2px; color:#ff9d62; font-size:10px; letter-spacing:.12em; }
+    .nav-label { margin:22px 10px 8px; color:#8ba6bd; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .nav-link { width:100%; min-height:42px; display:flex; align-items:center; gap:11px; padding:10px 12px; margin:3px 0; border:0; border-radius:7px; color:#dceafa; background:transparent; text-align:left; }
+    .nav-link:hover,.nav-link.active { background:var(--blue); color:#fff; }
+    .nav-icon { width:22px; text-align:center; font-size:17px; }
+
+    .workspace { min-width:0; }
+    .topbar { min-height:76px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 28px; background:var(--surface); border-bottom:1px solid var(--line); }
+    .title-wrap { display:flex; align-items:center; gap:15px; }
+    .menu-icon { color:var(--muted); font-size:24px; }
+    .page-title { font-size:23px; font-weight:800; }
+    .page-subtitle { margin-top:4px; color:var(--muted); font-size:13px; }
+    .admin-user { display:flex; align-items:center; gap:11px; }
+    .avatar { width:38px; height:38px; display:grid; place-items:center; border-radius:50%; background:var(--blue); color:#fff; font-weight:800; }
+    .admin-user small { display:block; margin-top:2px; color:var(--muted); }
+
+    .page { padding:22px 26px 28px; }
+    .notice { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:10px 14px; margin-bottom:16px; border:1px solid #bcd2f5; border-radius:8px; color:#225b9a; background:var(--blue-soft); font-size:13px; }
+    .notice strong { color:var(--ink); }
+    .draft-bar { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; margin-bottom:14px; border:1px solid #bfd4f4; border-radius:9px; background:#edf5ff; }
+    .draft-bar strong { display:block; color:#174f8d; }
+    .draft-bar span { display:block; margin-top:3px; color:var(--muted); font-size:12px; }
+    .draft-actions { display:flex; gap:8px; flex-wrap:wrap; }
+    .source-banner { padding:14px; margin-bottom:14px; border:1px solid #efc991; border-radius:9px; background:#fff8e9; }
+    .source-banner h3 { color:#805800; }
+    .scan-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .scan-item { padding:11px; border:1px solid var(--line); border-radius:7px; background:#fff; }
+    .scan-item strong { display:block; margin-bottom:4px; }
+    .layout { display:grid; grid-template-columns:246px minmax(0,1fr); gap:18px; align-items:start; }
+
+    .flow-nav,.panel,.summary-card,.option-card,.metric,.table-card { border:1px solid var(--line); border-radius:10px; background:var(--surface); box-shadow:var(--shadow); }
+    .flow-nav { position:sticky; top:18px; overflow:hidden; }
+    .flow-head { padding:15px 16px; border-bottom:1px solid var(--line); }
+    .flow-head strong { display:block; }
+    .flow-head span { display:block; margin-top:4px; color:var(--muted); font-size:12px; }
+    .flow-list { max-height:690px; overflow:auto; padding:8px; }
+    .flow-step { width:100%; display:grid; grid-template-columns:27px minmax(0,1fr); gap:9px; align-items:start; padding:9px; border:0; border-radius:7px; color:var(--muted); background:transparent; text-align:left; font-size:12px; }
+    .flow-step:hover { background:#f5f8fc; }
+    .flow-step.active { color:var(--blue); background:var(--blue-soft); font-weight:700; }
+    .step-no { width:25px; height:25px; display:grid; place-items:center; border:1px solid var(--line); border-radius:50%; background:#fff; color:inherit; font-size:11px; }
+    .flow-step.active .step-no { color:#fff; border-color:var(--blue); background:var(--blue); }
+
+    .screen { min-width:0; }
+    .screen-toolbar { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom:14px; }
+    .screen-kicker { color:var(--blue); font-size:12px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { margin-bottom:6px; font-size:25px; }
+    h2 { margin-bottom:6px; font-size:18px; }
+    h3 { margin-bottom:5px; font-size:15px; }
+    p { color:var(--muted); line-height:1.5; }
+    .toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+
+    .btn { min-height:38px; display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:8px 13px; border:1px solid var(--line); border-radius:6px; color:var(--ink); background:#fff; font-weight:700; }
+    .btn:hover { border-color:#aeb9c7; }
+    .btn.primary { color:#fff; border-color:var(--blue); background:var(--blue); }
+    .btn.orange { color:#fff; border-color:var(--orange); background:var(--orange); }
+    .btn.danger { color:#fff; border-color:var(--red); background:var(--red); }
+    .btn.ghost { color:var(--blue); border-color:transparent; background:transparent; }
+    .btn:disabled { cursor:not-allowed; opacity:.45; }
+
+    .grid { display:grid; gap:14px; }
+    .grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .grid.three { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .grid.four { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    .panel { padding:18px; }
+    .panel-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding-bottom:14px; margin-bottom:14px; border-bottom:1px solid var(--line); }
+    .panel-head p { margin:3px 0 0; font-size:12px; }
+    .summary-card,.option-card,.metric { padding:16px; }
+    .option-card { position:relative; min-height:145px; }
+    .option-card.selected { border:2px solid var(--blue); background:#fbfdff; }
+    .option-card.disabled { opacity:.58; background:#f7f8fa; }
+    .option-card .choose { position:absolute; top:14px; right:14px; }
+    .option-card ul,.panel ul { margin:10px 0 0; padding-left:18px; color:var(--muted); font-size:13px; line-height:1.55; }
+    .metric-label { color:var(--muted); font-size:12px; }
+    .metric-value { margin-top:6px; font-size:22px; font-weight:800; }
+    .badge { display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:800; }
+    .badge.green { color:#11743f; background:var(--green-soft); }
+    .badge.blue { color:#1b5fa9; background:var(--blue-soft); }
+    .badge.yellow { color:#8d6500; background:var(--yellow-soft); }
+    .badge.red { color:#a6212a; background:var(--red-soft); }
+    .badge.purple { color:#5731b4; background:var(--purple-soft); }
+    .example { color:#85501f; background:var(--orange-soft); }
+
+    .kv { display:grid; grid-template-columns:minmax(150px,.8fr) minmax(0,1.2fr); gap:0; border-top:1px solid var(--line); }
+    .kv div { padding:11px 4px; border-bottom:1px solid var(--line); }
+    .kv div:nth-child(odd) { color:var(--muted); }
+    .kv div:nth-child(even) { text-align:right; font-weight:700; }
+    .callout { padding:13px 14px; margin:14px 0; border-left:4px solid var(--blue); border-radius:5px; color:#285b91; background:var(--blue-soft); font-size:13px; line-height:1.45; }
+    .callout.warning { color:#7a5908; border-left-color:var(--yellow); background:var(--yellow-soft); }
+    .callout.danger { color:#9b252d; border-left-color:var(--red); background:var(--red-soft); }
+    .callout.success { color:#176e42; border-left-color:var(--green); background:var(--green-soft); }
+
+    .table-wrap { overflow:auto; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { padding:11px 10px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); background:#f8fafc; font-size:11px; letter-spacing:.03em; text-transform:uppercase; }
+    tr:last-child td { border-bottom:0; }
+    .field-row { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:13px; }
+    label { display:block; margin-bottom:6px; color:var(--muted); font-size:12px; font-weight:700; }
+    input,select,textarea { width:100%; min-height:40px; padding:9px 10px; border:1px solid #cfd7e1; border-radius:6px; color:var(--ink); background:#fff; }
+    textarea { min-height:80px; resize:vertical; }
+    .check-row { display:flex; align-items:flex-start; gap:9px; padding:11px 0; border-bottom:1px solid var(--line); }
+    .check-row:last-child { border-bottom:0; }
+    .check-row input { width:17px; min-height:auto; margin-top:2px; }
+    .check-row strong { display:block; font-size:13px; }
+    .check-row span { display:block; margin-top:3px; color:var(--muted); font-size:12px; }
+
+    .timeline { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin:16px 0; }
+    .timeline-item { position:relative; padding:12px; border:1px solid var(--line); border-radius:7px; background:#fff; font-size:12px; }
+    .timeline-item strong { display:block; margin-bottom:4px; }
+    .timeline-item::after { content:'→'; position:absolute; right:-9px; top:16px; color:var(--muted); z-index:2; }
+    .timeline-item:last-child::after { display:none; }
+    .conflict { display:grid; grid-template-columns:1.1fr 1.25fr 1.3fr; gap:12px; padding:13px; border-bottom:1px solid var(--line); }
+    .conflict:last-child { border-bottom:0; }
+    .conflict strong { color:var(--red); }
+    .confirm-icon { width:68px; height:68px; display:grid; place-items:center; margin:0 auto 16px; border-radius:50%; color:#fff; background:var(--green); font-size:34px; }
+    .center { text-align:center; }
+    .screen-footer { display:flex; justify-content:space-between; gap:12px; margin-top:16px; padding-top:15px; border-top:1px solid var(--line); }
+    .hidden { display:none !important; }
+    .modal-layer { position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center; padding:20px; background:rgba(3,18,31,.68); }
+    .modal-layer.open { display:flex; }
+    .modal-box { width:min(560px,100%); padding:22px; border-radius:10px; background:#fff; box-shadow:0 24px 60px rgba(0,0,0,.25); }
+    .modal-box p { margin-bottom:14px; }
+    .modal-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:18px; }
+
+    @media (max-width:1080px) {
+      .app { grid-template-columns:76px minmax(0,1fr); }
+      .brand-copy,.nav-link span:last-child,.nav-label { display:none; }
+      .brand { justify-content:center; margin-left:0; margin-right:0; }
+      .nav-link { justify-content:center; }
+      .layout { grid-template-columns:210px minmax(0,1fr); }
+      .grid.four,.scan-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:820px) {
+      .topbar,.screen-toolbar { align-items:flex-start; flex-direction:column; }
+      .layout { grid-template-columns:1fr; }
+      .flow-nav { position:static; }
+      .flow-list { max-height:230px; }
+      .grid.two,.grid.three,.field-row,.timeline { grid-template-columns:1fr; }
+      .timeline-item::after { display:none; }
+    }
+    @media (max-width:580px) {
+      .app { display:block; }
+      .admin-nav { min-height:auto; display:flex; align-items:center; gap:6px; padding:10px; overflow:auto; }
+      .brand { margin:0 8px 0 0; }
+      .nav-link { min-width:44px; margin:0; }
+      .topbar { padding:14px 16px; }
+      .page { padding:14px; }
+      .admin-user { display:none; }
+      .notice { align-items:flex-start; flex-direction:column; }
+      .grid.four,.scan-grid { grid-template-columns:1fr; }
+      .conflict { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="admin-nav" aria-label="Navegación administrativa">
+      <div class="brand"><span class="brand-mark">LM</span><span class="brand-copy">La Montaña<small>IMPRESIONES</small></span></div>
+      <div class="nav-label">Administración</div>
+      <button class="nav-link" type="button"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">▣</span><span>Pedidos</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">▤</span><span>Producción</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">▱</span><span>Entregas</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">$</span><span>Pagos y cobros</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">♙</span><span>Clientes</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">▥</span><span>Reportes</span></button>
+      <button class="nav-link active" type="button"><span class="nav-icon">⚙</span><span>Configuración</span></button>
+      <button class="nav-link" type="button"><span class="nav-icon">◉</span><span>Auditoría</span></button>
+    </aside>
+
+    <section class="workspace">
+      <header class="topbar">
+        <div class="title-wrap">
+          <span class="menu-icon">☰</span>
+          <div><div class="page-title">Motor de configuración</div><div class="page-subtitle">Configuración operativa versionada de la imprenta</div></div>
+        </div>
+        <div class="admin-user"><span class="avatar">AH</span><div><strong>Alejandro</strong><small>ADMIN_ADMIN</small></div></div>
+      </header>
+
+      <main class="page">
+        <div class="notice"><span><strong>Prototipo navegable V2.</strong> Incorpora borradores, compatibilidad dinámica, guardado progresivo y seguridad reforzada. Los valores no definidos continúan marcados como datos de ejemplo.</span><span class="badge blue">M16 · E19 · V2</span></div>
+        <div class="layout">
+          <nav class="flow-nav" aria-label="Pasos del motor de configuración">
+            <div class="flow-head"><strong>Flujo de configuración</strong><span id="flow-progress">Paso 1 de 16</span></div>
+            <div class="flow-list" id="flow-list"></div>
+          </nav>
+          <section class="screen" id="screen" aria-live="polite"></section>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <div class="modal-layer" id="modal-layer" aria-hidden="true">
+    <section class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title">Confirmar acción</h2>
+      <div id="modal-content"></div>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="modal-close">Cancelar</button>
+        <button class="btn primary" type="button" id="modal-confirm">Confirmar</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const steps = [
+      ['MC-ADM-CFG-001','Inicio de configuración'],
+      ['MC-ADM-CFG-002','Modelo operativo'],
+      ['MC-ADM-CFG-003','Aprobación'],
+      ['MC-ADM-CFG-004','Pagos'],
+      ['MC-ADM-CFG-005','Reglas de seña'],
+      ['MC-ADM-CFG-006','Impresoras y capacidades'],
+      ['MC-ADM-CFG-007','Método de asignación'],
+      ['MC-ADM-CFG-008','Módulos'],
+      ['MC-ADM-CFG-009','Entrega'],
+      ['MC-ADM-CFG-010','Resumen y simulación'],
+      ['MC-ADM-CFG-011','Conflictos'],
+      ['MC-ADM-CFG-012','Activar o programar'],
+      ['MC-ADM-CFG-013','Verificación de seguridad'],
+      ['MC-ADM-CFG-014','Confirmación'],
+      ['MC-ADM-CFG-015','Historial'],
+      ['MC-ADM-CFG-016','Detalle de versión']
+    ];
+
+    let current = 0;
+    let hasDraft = false;
+    let draftSource = 'active';
+    let selectedModel = 'manual';
+    let selectedApproval = 'manual';
+    let activationMode = 'now';
+    let activationConfirmed = false;
+
+    const header = (code,title,description,actions='') => `
+      <div class="screen-toolbar">
+        <div><div class="screen-kicker">${code}</div><h1>${title}</h1><p>${description}</p></div>
+        <div class="toolbar-actions">${actions}</div>
+      </div>`;
+
+    const footer = (nextLabel='Guardar y continuar', allowSaveExit=true) => `
+      <div class="screen-footer">
+        <button class="btn" type="button" data-prev ${current===0?'disabled':''}>← Anterior</button>
+        <div class="toolbar-actions">
+          ${allowSaveExit && current>0 && current<14?'<button class="btn" type="button" data-save-exit>Guardar y salir</button>':''}
+          <button class="btn primary" type="button" data-next ${current===steps.length-1?'disabled':''}>${nextLabel} →</button>
+        </div>
+      </div>`;
+
+    const draftBanner = () => `
+      <div class="draft-bar">
+        <div><strong>Borrador en preparación · Cambios sin aplicar</strong><span>Base: ${draftSource==='active'?'Configuración activa':draftSource==='history'?'Versión histórica':'Valores predeterminados certificados'} · Responsable: Alejandro · Guardado hace unos segundos</span></div>
+        <div class="draft-actions"><button class="btn" type="button" data-save-exit>Guardar y salir</button><button class="btn" type="button" data-modal="inactivity">Simular inactividad</button></div>
+      </div>`;
+
+    const compatibilityPanel = () => draftSource==='active' ? '' : `
+      <section class="source-banner">
+        <h3>Verificación de compatibilidad requerida</h3>
+        <p>La base seleccionada puede contener recursos que cambiaron. Revisá los resultados antes de continuar.</p>
+        <div class="scan-grid">
+          <div class="scan-item"><strong>Impresoras</strong><span class="badge yellow">1 requiere reasignación</span></div>
+          <div class="scan-item"><strong>Módulos</strong><span class="badge green">Compatibles con el plan</span></div>
+          <div class="scan-item"><strong>Pagos</strong><span class="badge green">Transferencia disponible</span></div>
+          <div class="scan-item"><strong>Entrega</strong><span class="badge blue">Requiere confirmación</span></div>
+        </div>
+        <div class="callout warning">Producción 01 ya no fue detectada. La asignación deberá resolverse en Impresoras y capacidades.</div>
+      </section>`;
+
+    const startScreen = () => hasDraft ? `
+      ${header('MC-ADM-CFG-001 · WF-CFG-01','Configuración actual','Existe una edición guardada que todavía no afecta la operación.','<button class="btn" data-go="14">Ver historial</button><button class="btn primary" data-go="1">Continuar configuración</button>')}
+      <div class="draft-bar"><div><strong>Borrador en preparación</strong><span>Base: Configuración activa · Iniciado por Alejandro · Último paso: Aprobación · Sin validar</span></div><span class="badge yellow">Cambios pendientes</span></div>
+      <div class="grid four">
+        <div class="metric"><div class="metric-label">Estado operativo</div><div class="metric-value"><span class="badge green">● Sistema activo</span></div></div>
+        <div class="metric"><div class="metric-label">Versión activa</div><div class="metric-value">Inicial</div></div>
+        <div class="metric"><div class="metric-label">Borrador</div><div class="metric-value" style="font-size:17px">En preparación</div></div>
+        <div class="metric"><div class="metric-label">Validación</div><div class="metric-value" style="font-size:17px">Sin validar</div></div>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div class="panel"><h2>Continuar edición</h2><p>El borrador conserva los cambios realizados y puede retomarse desde el último paso.</p><div class="kv"><div>Responsable</div><div>Alejandro</div><div>Creado</div><div>28/08/2026 10:20</div><div>Último guardado</div><div>Hace unos segundos</div><div>Paso alcanzado</div><div>CFG-003 · Aprobación</div></div></div>
+        <div class="panel"><h2>Acciones del borrador</h2><div class="toolbar-actions" style="justify-content:flex-start;margin-top:14px"><button class="btn primary" data-go="1">Continuar configuración</button><button class="btn" data-go="9">Ver cambios</button><button class="btn danger" data-modal="cancel">Cancelar edición</button></div><div class="callout">Cancelar no modifica la configuración activa, pero requiere contraseña y código por correo.</div></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn ghost" data-demo-draft="off">Ver demostración sin borrador</button></div>` : `
+      ${header('MC-ADM-CFG-001 · WF-CFG-01','Configuración actual','Consultá la versión activa sin modificarla y usala como punto de partida.','<button class="btn" data-go="14">Ver historial</button><button class="btn primary" data-start="active">Editar configuración</button>')}
+      <div class="grid four">
+        <div class="metric"><div class="metric-label">Estado operativo</div><div class="metric-value"><span class="badge green">● Sistema activo</span></div></div>
+        <div class="metric"><div class="metric-label">Configuración activa</div><div class="metric-value" style="font-size:17px">Configuración base</div><span class="badge blue">Reglas migradas</span></div>
+        <div class="metric"><div class="metric-label">Versión</div><div class="metric-value">Inicial</div></div>
+        <div class="metric"><div class="metric-label">Próxima activación</div><div class="metric-value" style="font-size:17px">Sin programar</div></div>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div class="panel"><div class="panel-head"><div><h2>Resumen operativo</h2><p>Origen: funcionamiento actual documentado</p></div><span class="badge green">Activa</span></div><div class="kv"><div>Modelo operativo</div><div>Control manual</div><div>Aprobación</div><div>Humana obligatoria</div><div>Impresión directa</div><div>No permitida</div><div>Seña vigente</div><div>30% desde 200 carillas</div></div><div class="callout">Las cotizaciones emitidas conservan su versión y condiciones.</div></div>
+        <div class="panel"><div class="panel-head"><div><h2>Iniciar una edición</h2><p>Toda alternativa crea un borrador nuevo</p></div></div><div class="toolbar-actions" style="justify-content:flex-start"><button class="btn primary" data-start="active">Editar configuración</button><button class="btn" data-go="14">Usar versión histórica</button><button class="btn" data-modal="restore">Restaurar predeterminados</button></div><div class="callout warning">Las bases histórica y predeterminada realizan un barrido de impresoras, módulos e integraciones antes de continuar.</div></div>
+      </div>
+      <div style="margin-top:12px"><button class="btn ghost" data-demo-draft="on">Ver demostración con borrador</button></div>`;
+
+    const approvalScreen = () => selectedModel==='conditional' ? `
+      ${header('MC-ADM-CFG-003 · WF-CFG-03','Configurar aprobación condicional','El modo elegido determina qué pedidos avanzan y cuáles requieren intervención humana.')}
+      <div class="callout"><strong>Dependencia certificada:</strong> Control condicional requiere aprobación condicional. La opción manual no se ofrece como comportamiento general.</div>
+      <div class="grid two">
+        <div class="option-card selected"><span class="badge green choose">Determinada por el modelo</span><h2>Aprobación condicional</h2><p>Los pedidos que cumplen los parámetros certificados pueden avanzar. Las excepciones quedan bloqueadas.</p><ul><li>Validación obligatoria en backend</li><li>Sin rechazo automático silencioso</li><li>Excepción a revisión humana</li></ul></div>
+        <div class="panel"><h2>Parámetros certificados</h2><label class="check-row"><input type="checkbox" checked><div><strong>Archivo validado</strong><span>Formato, peso y acceso correctos.</span></div></label><label class="check-row"><input type="checkbox" checked><div><strong>Trabajo dentro del alcance</strong><span>Tamaño y tipo compatibles con el perfil.</span></div></label><label class="check-row"><input type="checkbox" checked><div><strong>Condición financiera cumplida</strong><span>Resume Pagos y Seña; se edita en CFG-004/005.</span></div></label></div>
+      </div>
+      <div class="panel" style="margin-top:14px"><h2>Ejemplo de recorrido actualizado</h2><div class="timeline"><div class="timeline-item"><strong>1. Evaluación</strong>Reglas certificadas</div><div class="timeline-item"><strong>2. Cumple</strong>Aprobación condicional</div><div class="timeline-item"><strong>3. No cumple</strong>Revisión humana</div><div class="timeline-item"><strong>4. Producción</strong>Siempre autorizada</div></div></div>${footer('Configurar pagos')}` : `
+      ${header('MC-ADM-CFG-003 · WF-CFG-03','Configurar aprobación','Con control manual, toda revisión es humana y la aprobación puede ser manual o condicional posterior.')}
+      <div class="grid two">
+        <div class="option-card ${selectedApproval==='manual'?'selected':''}" data-approval="manual"><span class="badge ${selectedApproval==='manual'?'green':'blue'} choose">${selectedApproval==='manual'?'Seleccionada':'Disponible'}</span><h2>Aprobación manual</h2><p>Una persona revisa y decide aprobar, corregir o rechazar cada pedido.</p><ul><li>Máxima intervención humana</li><li>Flexible en pagos y atención</li><li>Producción permanece bloqueada hasta decidir</li></ul></div>
+        <div class="option-card ${selectedApproval==='conditional'?'selected':''}" data-approval="conditional"><span class="badge ${selectedApproval==='conditional'?'green':'blue'} choose">${selectedApproval==='conditional'?'Seleccionada':'Disponible'}</span><h2>Condicional después de revisar</h2><p>La revisión humana es obligatoria y luego se evalúan condiciones certificadas.</p><ul><li>No elimina la revisión humana</li><li>Las excepciones permanecen bloqueadas</li><li>Pagos y señas se configuran después</li></ul></div>
+      </div>
+      <div class="panel" style="margin-top:14px"><h2>Ejemplo de recorrido actualizado</h2>${selectedApproval==='manual'?'<div class="timeline"><div class="timeline-item"><strong>1. Cotización</strong>Captura condiciones</div><div class="timeline-item"><strong>2. Revisión</strong>Humana obligatoria</div><div class="timeline-item"><strong>3. Decisión</strong>Aprobación o rechazo humano</div><div class="timeline-item"><strong>4. Producción</strong>Impresión autorizada</div></div>':'<div class="timeline"><div class="timeline-item"><strong>1. Revisión</strong>Humana obligatoria</div><div class="timeline-item"><strong>2. Condiciones</strong>Evaluación certificada</div><div class="timeline-item"><strong>3. Excepción</strong>Bloqueo y decisión humana</div><div class="timeline-item"><strong>4. Producción</strong>Impresión autorizada</div></div>'}</div>${footer('Configurar pagos')}`;
+
+    const screens = [
+      () => startScreen(),
+
+      () => `${header('MC-ADM-CFG-002 · WF-CFG-02','Elegir modo de operación','Seleccioná una estructura certificada. Cada opción explica revisión, aprobación, excepciones y alcance.')}
+        ${compatibilityPanel()}
+        <div class="grid three">
+          <div class="option-card ${selectedModel==='manual'?'selected':''}" data-model="manual"><span class="badge ${selectedModel==='manual'?'green':'blue'} choose">${selectedModel==='manual'?'Seleccionado':'Disponible'}</span><h2>Control manual</h2><p>Una persona revisa todos los pedidos antes de habilitar su avance.</p><ul><li>Revisión humana obligatoria</li><li>Aprobación manual o condicional posterior</li><li>Máxima flexibilidad operativa</li></ul></div>
+          <div class="option-card ${selectedModel==='conditional'?'selected':''}" data-model="conditional"><span class="badge ${selectedModel==='conditional'?'green':'blue'} choose">${selectedModel==='conditional'?'Seleccionado':'Disponible'}</span><h2>Control condicional</h2><p>Las reglas certificadas determinan qué pedidos requieren intervención.</p><ul><li>Aprobación condicional obligatoria</li><li>Excepciones pasan a revisión humana</li><li>Parámetros limitados y predecibles</li></ul></div>
+          <div class="option-card disabled" data-model="automatic"><span class="badge yellow choose">Plan avanzado</span><h2>Automatización certificada</h2><p>Disponible en una evolución futura del producto.</p><ul><li>No incluida en esta versión</li><li>Sin configuración detallada todavía</li><li>Impresión igualmente autorizada</li></ul></div>
+        </div>
+        <div class="callout">Las opciones incompatibles permanecen visibles, deshabilitadas y con una explicación. Nunca se ocultan reglas relevantes.</div>${footer('Configurar aprobación')}`,
+
+      () => approvalScreen(),
+
+      () => `${header('MC-ADM-CFG-004 · WF-CFG-04','Configurar pagos','Primero definí el momento de cobro y después los medios compatibles.')}
+        <div class="grid two">
+          <div class="panel"><div class="panel-head"><div><h2>Momento de cobro</h2><p>Decisión principal de negocio</p></div></div><label class="check-row"><input type="radio" name="cobro" checked><div><strong>Pago previo</strong><span>Debe acreditarse antes de habilitar el avance correspondiente.</span></div></label><label class="check-row"><input type="radio" name="cobro"><div><strong>Pago al entregar</strong><span>Disponible únicamente para modelos certificados compatibles.</span></div></label></div>
+          <div class="panel"><div class="panel-head"><div><h2>Medios habilitados</h2><p>Dependientes del modelo y módulos contratados</p></div></div><label class="check-row"><input type="checkbox" checked><div><strong>Transferencia</strong><span>Compatible con pago previo.</span></div></label><label class="check-row"><input type="checkbox" checked><div><strong>Efectivo</strong><span>Compatible con pago al entregar.</span></div></label><label class="check-row"><input type="checkbox"><div><strong>Pago digital</strong><span><span class="badge yellow">Módulo no incluido</span></span></div></label></div>
+        </div>
+        <div class="callout">Las opciones incompatibles se deshabilitan y siempre deben explicar el motivo.</div>${footer('Configurar seña')}`,
+
+      () => `${header('MC-ADM-CFG-005 · WF-CFG-05','Configurar reglas de seña','Determiná cuándo se exige una seña y qué condición debe cumplirse para continuar.')}
+        <div class="grid two">
+          <div class="panel"><div class="panel-head"><div><h2>Regla vigente</h2><p>Confirmada en la documentación actual</p></div><span class="badge green">Habilitada</span></div><div class="field-row"><div><label>Condición de aplicación</label><select><option>Cantidad de carillas</option></select></div><div><label>Desde</label><input type="number" value="200"></div><div><label>Tipo de seña</label><select><option>Porcentaje</option></select></div><div><label>Porcentaje</label><input type="number" value="30"></div></div><div class="callout warning">La seña bloquea el avance financiero hasta que se registre el pago correspondiente.</div></div>
+          <div class="panel"><div class="panel-head"><div><h2>Ejemplo calculado</h2><p>Vista previa operativa</p></div><span class="badge example">Datos de ejemplo</span></div><div class="kv"><div>Pedido</div><div>250 carillas</div><div>Total cotizado</div><div>$62.500</div><div>Seña requerida</div><div>$18.750 (30%)</div><div>Saldo restante</div><div>$43.750</div></div><div class="callout success">La regla se aplicaría correctamente en este caso.</div></div>
+        </div>${footer('Configurar impresoras')}`,
+
+      () => `${header('MC-ADM-CFG-006 · WF-CFG-06','Impresoras y capacidades','Registrá qué trabajos puede realizar cada equipo y su disponibilidad operativa.','<button class="btn primary">+ Registrar impresora</button>')}
+        <div class="panel table-wrap"><div class="panel-head"><div><h2>Equipos registrados</h2><p>Los nombres y cantidades son ilustrativos</p></div><span class="badge example">Datos de ejemplo</span></div><table><thead><tr><th>Impresora</th><th>Estado</th><th>Tecnología</th><th>Formatos</th><th>Color</th><th>Dúplex</th><th>Capacidad</th><th>Acción</th></tr></thead><tbody><tr><td><strong>Producción 01</strong></td><td><span class="badge green">Operativa</span></td><td>Láser</td><td>A4 · Oficio</td><td>Monocromo</td><td>Sí</td><td>Alta</td><td><button class="btn">Editar</button></td></tr><tr><td><strong>Color 01</strong></td><td><span class="badge green">Operativa</span></td><td>Láser</td><td>A4</td><td>Color</td><td>Sí</td><td>Media</td><td><button class="btn">Editar</button></td></tr><tr><td><strong>Producción 02</strong></td><td><span class="badge red">No operativa</span></td><td>Inkjet</td><td>A3 · A4</td><td>Color</td><td>No</td><td>Media</td><td><button class="btn">Editar</button></td></tr></tbody></table></div>
+        <div class="callout danger">Una impresora no operativa no puede ofrecerse para asignación.</div>${footer('Definir asignación')}`,
+
+      () => `${header('MC-ADM-CFG-007 · WF-CFG-07','Método de asignación','Elegí cómo se selecciona una impresora entre los equipos compatibles.')}
+        <div class="grid two"><div class="option-card selected"><span class="badge green choose">Seleccionado</span><h2>Selección manual</h2><p>El operador elige entre los equipos compatibles habilitados.</p><ul><li>Disponible en el modo inicial</li><li>Muestra capacidades y estado</li><li>Evita seleccionar equipos no operativos</li></ul></div><div class="option-card disabled"><span class="badge yellow choose">Pendiente de certificación</span><h2>Asignación automática</h2><p>El sistema evalúa trabajo, capacidad, carga y estado operativo.</p><ul><li>Requiere modelo certificado</li><li>Necesita capacidades completas</li><li>No se habilita en esta versión base</li></ul></div></div>
+        <div class="panel" style="margin-top:14px"><h2>Criterios visibles al operador</h2><div class="grid four"><div class="summary-card"><strong>Trabajo</strong><p>Formato, color y cantidad.</p></div><div class="summary-card"><strong>Capacidad</strong><p>Funciones compatibles.</p></div><div class="summary-card"><strong>Carga</strong><p>Cola y compromisos.</p></div><div class="summary-card"><strong>Estado</strong><p>Disponibilidad operativa.</p></div></div></div>${footer('Administrar módulos')}`,
+
+      () => `${header('MC-ADM-CFG-008 · WF-CFG-08','Módulos del producto','Administrá funciones contratadas sin habilitar prestaciones fuera del plan.')}
+        <div class="grid three"><div class="panel"><div class="panel-head"><div><h2>Activos</h2><p>Disponibles en operación</p></div><span class="badge green">Habilitados</span></div><div class="check-row"><input type="checkbox" checked><div><strong>Pedidos</strong><span>Núcleo requerido.</span></div></div><div class="check-row"><input type="checkbox" checked><div><strong>Producción</strong><span>Gestión de trabajos.</span></div></div><div class="check-row"><input type="checkbox" checked><div><strong>Entregas</strong><span>Puntos y seguimiento.</span></div></div></div><div class="panel"><div class="panel-head"><div><h2>Incluidos desactivados</h2><p>Pueden habilitarse</p></div><span class="badge blue">En el plan</span></div><div class="check-row"><input type="checkbox"><div><strong>Notificaciones</strong><span>Requiere configurar canal.</span></div></div><div class="check-row"><input type="checkbox"><div><strong>Reportes</strong><span>Conserva historial al desactivar.</span></div></div></div><div class="panel"><div class="panel-head"><div><h2>No incluidos</h2><p>Solo información comercial</p></div><span class="badge yellow">No activables</span></div><div class="check-row"><input type="checkbox" disabled><div><strong>Pago digital</strong><span>Requiere ampliar plan.</span></div></div><div class="check-row"><input type="checkbox" disabled><div><strong>Asignación automática</strong><span>Requiere perfil certificado.</span></div></div></div></div>${footer('Configurar entrega')}`,
+
+      () => `${header('MC-ADM-CFG-009 · WF-CFG-09','Entrega y puntos habilitados','Definí las alternativas que podrá elegir el cliente y sus restricciones.','<button class="btn primary">+ Agregar punto</button>')}
+        <div class="grid two"><div class="panel"><div class="panel-head"><div><h2>Modalidades</h2><p>Opciones visibles al cliente</p></div></div><label class="check-row"><input type="checkbox" checked><div><strong>Retiro en local</strong><span>Disponible dentro del horario operativo.</span></div></label><label class="check-row"><input type="checkbox" checked><div><strong>Puntos de entrega</strong><span>Según capacidad y franja horaria.</span></div></label><label class="check-row"><input type="checkbox"><div><strong>Envío</strong><span>No configurado en la versión base.</span></div></label></div><div class="panel"><div class="panel-head"><div><h2>Puntos activos</h2><p>Nombres y direcciones ilustrativos</p></div><span class="badge example">Datos de ejemplo</span></div><div class="check-row"><input type="checkbox" checked><div><strong>Local central</strong><span>Lunes a viernes · 9:00 a 18:00</span></div></div><div class="check-row"><input type="checkbox" checked><div><strong>Punto Cabildo</strong><span>Martes y jueves · capacidad limitada</span></div></div></div></div>${footer('Revisar resumen')}`,
+
+      () => `${header('MC-ADM-CFG-010 · WF-CFG-10','Resumen y simulación','Comprendé el recorrido resultante antes de intentar activar la configuración.')}
+        <div class="panel"><div class="panel-head"><div><h2>Recorrido resultante</h2><p>Narrativa operativa de la configuración preparada</p></div><span class="badge blue">Borrador</span></div><p><strong>Un pedido compatible ingresa y se revisa manualmente.</strong> Si alcanza 200 carillas, queda bloqueado hasta registrar una seña del 30%. Luego de la aprobación administrativa y financiera, puede enviarse a una impresora operativa seleccionada manualmente.</p><div class="timeline"><div class="timeline-item"><strong>1. Cotizar</strong>Captura versión y condiciones</div><div class="timeline-item"><strong>2. Revisar</strong>Validación administrativa</div><div class="timeline-item"><strong>3. Cobrar</strong>Seña cuando corresponde</div><div class="timeline-item"><strong>4. Producir</strong>Impresión autorizada</div></div></div>
+        <div class="grid three" style="margin-top:14px"><div class="summary-card"><h3>Cambios</h3><p>Modelo base conservado. Se agregan módulos y puntos configurables.</p></div><div class="summary-card"><h3>Ejemplo con seña</h3><p>250 carillas → exige 30% antes de continuar.</p></div><div class="summary-card"><h3>Impacto</h3><p>No modifica pedidos ni cotizaciones existentes.</p></div></div>${footer('Validar conflictos')}`,
+
+      () => `${header('MC-ADM-CFG-011 · WF-CFG-11','Conflictos de configuración','Resolvé cada incompatibilidad antes de activar. Los mensajes explican qué ocurre y cómo corregirlo.')}
+        <div class="panel" style="padding:0"><div class="conflict"><strong>Pago previo sin medio digital</strong><span>No existe una forma habilitada de completar el pago.</span><span>Activar transferencia o elegir pago al entregar.</span></div><div class="conflict"><strong>Asignación automática sin capacidades</strong><span>El sistema no puede comparar impresoras.</span><span>Completar capacidades o usar selección manual.</span></div><div class="conflict"><strong>Módulo requerido no incluido</strong><span>El perfil depende de una función no contratada.</span><span>Elegir otro perfil o consultar el plan.</span></div></div>
+        <div class="callout warning"><strong>3 conflictos demostrativos.</strong> En el flujo real solo se mostrarán los conflictos detectados por el backend.</div>
+        <div class="grid two"><div class="summary-card"><h3>Bloqueantes</h3><div class="metric-value" style="color:var(--red)">0</div><p>La configuración puede continuar.</p></div><div class="summary-card"><h3>Advertencias</h3><div class="metric-value" style="color:var(--yellow)">3</div><p>Requieren revisión consciente.</p></div></div>${footer('Elegir vigencia')}`,
+
+      () => `${header('MC-ADM-CFG-012 · WF-CFG-12','Aplicar los cambios','Definí cuándo comenzará a utilizarse la versión validada en las próximas cotizaciones.')}
+        <div class="panel" style="margin-bottom:14px"><div class="panel-head"><div><h2>Barrido final de compatibilidad</h2><p>Se repite inmediatamente antes de aplicar</p></div><span class="badge green">Validación correcta</span></div><div class="scan-grid"><div class="scan-item"><strong>Impresoras</strong>2 equipos compatibles</div><div class="scan-item"><strong>Economía</strong>Existe medio para pago previo</div><div class="scan-item"><strong>Módulos</strong>Todos disponibles</div><div class="scan-item"><strong>Conflictos</strong>0 bloqueantes</div></div></div>
+        <div class="grid two"><div class="option-card ${activationMode==='now'?'selected':''}" data-activation="now"><span class="badge ${activationMode==='now'?'green':'blue'} choose">${activationMode==='now'?'Seleccionado':'Seleccionar'}</span><h2>Activar cambios ahora</h2><p>Se aplicará a la primera cotización generada después del protocolo de seguridad.</p><ul><li>La versión actual pasa a histórica</li><li>No altera cotizaciones anteriores</li><li>Requiere contraseña y código por correo</li></ul></div><div class="option-card ${activationMode==='scheduled'?'selected':''}" data-activation="scheduled"><span class="badge ${activationMode==='scheduled'?'green':'blue'} choose">${activationMode==='scheduled'?'Seleccionado':'Seleccionar'}</span><h2>Programar activación</h2><div class="field-row"><div><label>Fecha</label><input type="date" value="2026-09-01" ${activationMode==='scheduled'?'':'disabled'}></div><div><label>Hora · Argentina</label><input type="time" value="08:00" ${activationMode==='scheduled'?'':'disabled'}></div></div><ul><li>La versión actual continúa vigente</li><li>Solo puede existir una programación</li></ul></div></div>
+        <div class="callout warning"><strong>Impacto económico visible:</strong> pago previo mediante transferencia; seña del 30% desde 200 carillas; pedidos existentes sin cambios.</div>${footer('Verificar seguridad')}`,
+
+      () => `${header('MC-ADM-CFG-013 · WF-CFG-13','Verificación de seguridad','Confirmá tu identidad antes de aplicar cambios operativos y financieros.')}
+        <div class="grid two"><div class="panel"><div class="panel-head"><div><h2>Resumen final</h2><p>La edición queda bloqueada durante esta verificación</p></div><span class="badge red">Acción crítica</span></div><div class="kv"><div>Tipo</div><div>${activationMode==='now'?'Activación inmediata':'Activación programada'}</div><div>Base</div><div>${draftSource==='active'?'Configuración activa':draftSource==='history'?'Versión histórica':'Predeterminados certificados'}</div><div>Modelo</div><div>${selectedModel==='manual'?'Control manual':'Control condicional'}</div><div>Economía</div><div>Transferencia · seña 30% desde 200</div><div>Aplicación</div><div>${activationMode==='now'?'Solo nuevas cotizaciones':'Desde 01/09/2026 08:00'}</div></div><div class="callout warning">El código es de un solo uso y queda asociado únicamente a esta ${activationMode==='now'?'activación':'programación'}.</div></div><div class="panel"><h2>Confirmar identidad</h2><div style="margin-top:14px"><label>Contraseña de ADMIN_ADMIN</label><input type="password" value="demostracion"></div><div style="margin-top:13px"><label>Código enviado por correo</label><input type="text" placeholder="000000"><p style="font-size:12px;margin-top:6px">El código vence en pocos minutos. Los intentos quedan auditados.</p></div><label class="check-row"><input type="checkbox"><div><strong>Comprendo el impacto</strong><span>La nueva versión no modificará pedidos ni cotizaciones existentes.</span></div></label></div></div>${footer('Continuar a confirmación', false)}`,
+
+      () => activationConfirmed ? `${header('MC-ADM-CFG-014 · WF-CFG-14','Configuración confirmada',activationMode==='now'?'La nueva versión fue activada y quedó disponible para las próximas cotizaciones.':'La nueva versión fue programada y todavía no reemplaza a la configuración activa.')}
+        <div class="panel center"><div class="confirm-icon">✓</div><h1>${activationMode==='now'?'Versión activada correctamente':'Activación programada correctamente'}</h1><p>La operación quedó registrada con auditoría completa.</p><div class="grid four" style="margin-top:20px;text-align:left"><div class="summary-card"><div class="metric-label">Versión</div><div class="metric-value" style="font-size:18px">v2 · Ejemplo</div></div><div class="summary-card"><div class="metric-label">Estado</div><div class="metric-value" style="font-size:18px"><span class="badge ${activationMode==='now'?'green':'blue'}">${activationMode==='now'?'Activa':'Programada'}</span></div></div><div class="summary-card"><div class="metric-label">Usuario</div><div class="metric-value" style="font-size:18px">ADMIN_ADMIN</div></div><div class="summary-card"><div class="metric-label">Vigencia</div><div class="metric-value" style="font-size:18px">${activationMode==='now'?'Inmediata':'01/09/2026 08:00'}</div></div></div><div class="callout success" style="text-align:left">Los pedidos y cotizaciones anteriores continúan asociados a sus condiciones originales.</div></div>
+        <div class="screen-footer"><span></span><div class="toolbar-actions"><button class="btn" type="button" data-go="0">Ir al inicio</button><button class="btn primary" type="button" data-go="14">Consultar historial →</button></div></div>` : `${header('MC-ADM-CFG-014 · WF-CFG-14','Confirmación','Revisá por última vez la operación antes de aplicarla. Después de confirmar, la acción quedará auditada.')}
+        <div class="grid two"><div class="panel"><div class="panel-head"><div><h2>${activationMode==='now'?'Activar cambios ahora':'Programar activación'}</h2><p>Selección realizada en el paso anterior</p></div><span class="badge ${activationMode==='now'?'green':'blue'}">${activationMode==='now'?'Inmediata':'Programada'}</span></div><div class="kv"><div>Versión</div><div>v2 · Ejemplo</div><div>Vigencia</div><div>${activationMode==='now'?'Al confirmar':'01/09/2026 08:00'}</div><div>Alcance</div><div>Solo nuevas cotizaciones</div><div>Configuración anterior</div><div>${activationMode==='now'?'Pasa a histórica':'Continúa activa hasta la fecha'}</div></div></div><div class="panel"><h2>Impacto confirmado</h2><ul><li>Pago previo mediante transferencia.</li><li>Seña del 30% desde 200 carillas.</li><li>Sin cambios retroactivos sobre pedidos o cotizaciones.</li><li>Acción autorizada mediante contraseña y código de un solo uso.</li></ul><div class="callout warning">Esta es la última instancia antes de registrar la ${activationMode==='now'?'activación':'programación'}.</div></div></div>
+        <div class="screen-footer"><button class="btn" type="button" data-prev>← Anterior</button><button class="btn primary" type="button" data-confirm-activation>CONFIRMAR</button></div>`,
+
+      () => `${header('MC-ADM-CFG-015 · WF-CFG-15','Historial de versiones','Consultá qué configuración estuvo vigente y utilizala como base sin alterar el historial.','<button class="btn primary" data-start="active">Editar configuración actual</button>')}
+        <div class="panel table-wrap"><table><thead><tr><th>Versión</th><th>Estado</th><th>Vigencia</th><th>Autor</th><th>Modelo</th><th>Resumen</th><th>Acción</th></tr></thead><tbody><tr><td><strong>v2</strong><br><span class="badge example">Ejemplo</span></td><td><span class="badge green">Activa</span></td><td>Desde 28/08/2026</td><td>ADMIN_ADMIN</td><td>Control manual</td><td>Pagos, seña y módulos</td><td><button class="btn" data-go="15">Ver detalle</button></td></tr><tr><td><strong>Inicial</strong></td><td><span class="badge purple">Histórica</span></td><td>Hasta 28/08/2026</td><td>Migración</td><td>Operación actual</td><td>Reglas documentadas de base</td><td><button class="btn" data-go="15">Ver detalle</button> <button class="btn" data-history-base>Volver a esta configuración</button></td></tr><tr><td><strong>v3</strong><br><span class="badge example">Ejemplo</span></td><td><span class="badge blue">Programada</span></td><td>01/09/2026 08:00</td><td>ADMIN_ADMIN</td><td>Condicional</td><td>Cambio de aprobación</td><td><button class="btn">Cancelar programación</button></td></tr></tbody></table></div>
+        <div class="callout">Las versiones históricas no se editan ni se reactivan silenciosamente. Pueden utilizarse como base de una nueva versión.</div>${footer('Ver detalle')}`,
+
+      () => `${header('MC-ADM-CFG-016 · WF-CFG-16','Detalle de versión','Revisá parámetros, diferencias y auditoría de una versión inmutable.','<button class="btn primary" data-history-base>Usar como base</button>')}
+        <div class="grid two"><div class="panel"><div class="panel-head"><div><h2>Versión inicial</h2><p>Configuración histórica seleccionada</p></div><span class="badge purple">Histórica</span></div><div class="kv"><div>Origen</div><div>Reglas operativas migradas</div><div>Autor</div><div>Sistema / ADMIN_ADMIN</div><div>Modelo</div><div>Revisión manual</div><div>Vigencia</div><div>Hasta 28/08/2026</div><div>Editable</div><div>No</div></div></div><div class="panel"><div class="panel-head"><div><h2>Auditoría</h2><p>Trazabilidad obligatoria</p></div></div><div class="kv"><div>Versión anterior</div><div>No aplica</div><div>Versión siguiente</div><div>v2</div><div>Tipo de activación</div><div>Migración inicial</div><div>Seguridad</div><div>Validación registrada</div><div>Observación</div><div>Configuración base</div></div></div></div>
+        <div class="panel" style="margin-top:14px"><div class="panel-head"><div><h2>Comparación con la versión activa</h2><p>Resumen de diferencias relevantes</p></div></div><table><thead><tr><th>Área</th><th>Versión inicial</th><th>Versión activa</th><th>Impacto</th></tr></thead><tbody><tr><td>Aprobación</td><td>Revisión manual</td><td>Revisión manual</td><td>Sin cambios</td></tr><tr><td>Seña</td><td>30% desde 200 carillas</td><td>30% desde 200 carillas</td><td>Sin cambios</td></tr><tr><td>Módulos</td><td>Base operativa</td><td>Configurables</td><td>Nuevas opciones controladas</td></tr><tr><td>Entrega</td><td>Regla general</td><td>Puntos versionados</td><td>Mayor trazabilidad</td></tr></tbody></table></div>${footer()}`
+    ];
+
+    function renderNav(){
+      const list=document.getElementById('flow-list');
+      list.innerHTML=steps.map((step,index)=>`<button type="button" class="flow-step ${index===current?'active':''}" data-step="${index}"><span class="step-no">${String(index+1).padStart(2,'0')}</span><span><strong>${step[0]}</strong><br>${step[1]}</span></button>`).join('');
+      document.getElementById('flow-progress').textContent=`Paso ${current+1} de ${steps.length}`;
+      list.querySelectorAll('[data-step]').forEach(btn=>btn.addEventListener('click',()=>go(Number(btn.dataset.step))));
+    }
+
+    let modalAction = null;
+
+    function closeModal(){
+      const layer=document.getElementById('modal-layer');
+      layer.classList.remove('open');
+      layer.setAttribute('aria-hidden','true');
+      modalAction=null;
+    }
+
+    function openModal(kind){
+      const layer=document.getElementById('modal-layer');
+      const title=document.getElementById('modal-title');
+      const content=document.getElementById('modal-content');
+      const confirm=document.getElementById('modal-confirm');
+      if(kind==='restore'){
+        title.textContent='Restaurar valores predeterminados';
+        content.innerHTML='<p>Se creará un borrador con valores certificados para el producto y plan actuales. La configuración activa no cambiará todavía.</p><div class="callout warning">Después se realizará un barrido de impresoras, módulos e integraciones.</div><label>Contraseña</label><input type="password" value="demostracion"><label style="margin-top:12px">Código enviado por correo</label><input type="text" placeholder="000000">';
+        confirm.textContent='Verificar y crear borrador';
+        modalAction=()=>{hasDraft=true;draftSource='default';closeModal();go(1);};
+      } else if(kind==='cancel'){
+        title.textContent='Cancelar edición';
+        content.innerHTML='<p>El borrador dejará de estar disponible para continuar. La configuración activa no será modificada y la cancelación quedará auditada.</p><label>Contraseña</label><input type="password" value="demostracion"><label style="margin-top:12px">Código enviado por correo</label><input type="text" placeholder="000000">';
+        confirm.textContent='Cancelar borrador';
+        modalAction=()=>{hasDraft=false;draftSource='active';closeModal();go(0);};
+      } else {
+        title.textContent='Sesión administrativa inactiva';
+        content.innerHTML='<p>El borrador continúa guardado. Ingresá nuevamente tu contraseña para recuperar la edición.</p><label>Contraseña</label><input type="password" value="demostracion">';
+        confirm.textContent='Continuar edición';
+        modalAction=()=>closeModal();
+      }
+      layer.classList.add('open');
+      layer.setAttribute('aria-hidden','false');
+    }
+
+    function bindActions(){
+      document.querySelectorAll('[data-prev]').forEach(btn=>btn.addEventListener('click',()=>go(current-1)));
+      document.querySelectorAll('[data-next]').forEach(btn=>btn.addEventListener('click',()=>go(current+1)));
+      document.querySelectorAll('[data-go]').forEach(btn=>btn.addEventListener('click',()=>go(Number(btn.dataset.go))));
+      document.querySelectorAll('[data-start]').forEach(btn=>btn.addEventListener('click',()=>{hasDraft=true;draftSource='active';go(1);}));
+      document.querySelectorAll('[data-history-base]').forEach(btn=>btn.addEventListener('click',()=>{hasDraft=true;draftSource='history';go(1);}));
+      document.querySelectorAll('[data-demo-draft]').forEach(btn=>btn.addEventListener('click',()=>{hasDraft=btn.dataset.demoDraft==='on';go(0);}));
+      document.querySelectorAll('[data-save-exit]').forEach(btn=>btn.addEventListener('click',()=>{hasDraft=true;go(0);}));
+      document.querySelectorAll('[data-modal]').forEach(btn=>btn.addEventListener('click',()=>openModal(btn.dataset.modal)));
+      document.querySelectorAll('[data-model]').forEach(card=>card.addEventListener('click',()=>{if(card.classList.contains('disabled'))return;selectedModel=card.dataset.model;if(selectedModel==='conditional')selectedApproval='conditional';go(1);}));
+      document.querySelectorAll('[data-approval]').forEach(card=>card.addEventListener('click',()=>{selectedApproval=card.dataset.approval;go(2);}));
+      document.querySelectorAll('[data-activation]').forEach(card=>card.addEventListener('click',()=>{activationMode=card.dataset.activation;activationConfirmed=false;go(11);}));
+      document.querySelectorAll('[data-confirm-activation]').forEach(btn=>btn.addEventListener('click',()=>{activationConfirmed=true;go(13);}));
+    }
+
+    function go(index){
+      current=Math.max(0,Math.min(steps.length-1,index));
+      renderNav();
+      const screen=document.getElementById('screen');
+      screen.innerHTML=screens[current]();
+      if(current>0 && current<13) screen.insertAdjacentHTML('afterbegin',draftBanner());
+      bindActions();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    document.getElementById('modal-close').addEventListener('click',closeModal);
+    document.getElementById('modal-confirm').addEventListener('click',()=>{if(modalAction)modalAction();});
+
+    go(0);
+  </script>
+</body>
+</html>
