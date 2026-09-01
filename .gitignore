@@ -1,2 +1,24 @@
 .cursor/rules/generales.mdc
 _logs/git_push_2026-01-29_174150.log
+\
+
+node_modules
+
+# Dependencias
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Caches y compilados
+.turbo/
+*.tsbuildinfo
+
+# Variables locales
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
