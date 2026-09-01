@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-01 |
 | Documento relacionado | motor-de-configuracion-del-sistema.md |
 | Propósito | Proponer la evolución del motor sin modificar la definición vigente |
 
@@ -70,6 +70,28 @@ Una versión activa o histórica no se edita.
 
 Para cambiarla se crea una versión nueva.
 
+### 3.1 Cardinalidad y exclusión del cambio pendiente
+
+Por cada imprenta deben cumplirse simultáneamente estas reglas:
+
+- existe exactamente una configuración activa;
+- puede existir como máximo una configuración en preparación;
+- puede existir como máximo una configuración programada;
+- una configuración en preparación y una programada no pueden coexistir;
+- por lo tanto, existe como máximo un cambio pendiente respecto de la configuración activa.
+
+La configuración en preparación es el único estado editable. No tiene fecha de vigencia y puede guardarse, continuarse o cancelarse.
+
+Cuando el ADMIN_ADMIN completa el protocolo de seguridad y confirma una fecha futura, la configuración deja de estar en preparación y pasa a Programada. La versión programada ya no es un borrador: queda cerrada, auditada e inmutable mientras espera su activación.
+
+| Situación | Estado activo | Cambio pendiente permitido | Edición disponible |
+|---|---|---|---|
+| Sin cambios pendientes | Una versión activa | Ninguno | Puede iniciarse un borrador |
+| Edición en curso | Una versión activa | Un borrador en preparación | Solo puede continuarse o cancelarse ese borrador |
+| Activación futura confirmada | Una versión activa | Una versión programada | No; debe activarse o cancelarse la programación |
+
+No puede iniciarse otro borrador desde la versión activa, una histórica o los valores predeterminados mientras exista un borrador o una programación pendiente.
+
 ## 4. Activación
 
 ### 4.1 Activación inmediata
@@ -83,6 +105,8 @@ La primera cotización posterior debe utilizarla.
 El ADMIN_ADMIN define fecha y hora.
 
 Hasta ese momento continúa vigente la configuración actual. La configuración programada puede cancelarse antes de entrar en vigencia.
+
+La programación consume el único cambio pendiente permitido. Mientras exista, no puede crearse ni continuarse un borrador. Si se requiere modificar sus decisiones, primero debe cancelarse la programación; la cancelación libera la edición sin eliminar el registro auditado.
 
 ### 4.3 Reutilización de una versión anterior
 
@@ -245,6 +269,8 @@ No deben mezclarse con el alcance base de activación inmediata o programada.
 | Sustituir política por versión de configuración | Terminología amplia de políticas | Reduce ambigüedad para negocio, UX e implementación | Confirmado para revisión |
 | Modelos certificados | Combinación abierta no definida | Evita zonas grises e incompatibilidades | Confirmado |
 | Estados del ciclo de vida | Activación sin modelo completo | Permite preparar, programar, cancelar y auditar | Confirmado |
+| Un único cambio pendiente | Convivencia de borradores y programaciones no explicitada | Evita carreras, bases ambiguas y configuraciones futuras contradictorias | Confirmado |
+| Programación inmutable | Programación tratada solo como fecha futura | Separa la edición de una versión ya confirmada y auditada | Confirmado |
 | Captura al cotizar | Reglas aplicadas principalmente al crear pedido | Congela condiciones visibles y evita carreras de configuración | Confirmado |
 | Pausa fuera de la versión | Pausa considerada evolución futura | Debe actuar inmediatamente sin reversionar toda la configuración | Confirmado |
 | Temporizadores de cotización | Sin vigencia detallada | Protege información económica y libera recursos temporales | Confirmado |

@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-01 |
 | Alcance | Producto definido |
 | Identificadores | Provisionales, no oficiales |
 
@@ -30,6 +30,9 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-I-008 | Los cambios no son retroactivos |
 | PROP-RN-I-009 | La versión aplicable se captura al cotizar |
 | PROP-RN-I-010 | Los eventos críticos quedan auditados |
+| PROP-RN-I-011 | Cada imprenta mantiene exactamente una configuración activa |
+| PROP-RN-I-012 | Cada imprenta mantiene como máximo un cambio pendiente: un borrador en preparación o una versión programada, nunca ambos |
+| PROP-RN-I-013 | Una versión programada es inmutable hasta activarse o cancelarse |
 
 ### 2.2 Reglas configurables
 
@@ -97,6 +100,11 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-011: El sistema debe asociar cada cotización con la versión utilizada.
 - PROP-RF-CFG-012: El sistema debe limitar módulos activables a los incluidos en el plan.
 - PROP-RF-CFG-013: El sistema debe exigir protocolo de seguridad para cambios sensibles.
+- PROP-RF-CFG-014: El sistema debe garantizar que exista exactamente una configuración activa por imprenta.
+- PROP-RF-CFG-015: El sistema debe limitar a una la configuración en preparación por imprenta.
+- PROP-RF-CFG-016: El sistema debe impedir crear o continuar un borrador mientras exista una versión programada.
+- PROP-RF-CFG-017: Al confirmar una activación futura, el sistema debe cerrar el borrador y registrar una versión programada inmutable.
+- PROP-RF-CFG-018: Al cancelar una programación, el sistema debe liberar la creación de un nuevo borrador sin eliminar la trazabilidad de la versión cancelada.
 
 ### 3.2 Pausa operativa
 
@@ -181,6 +189,9 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - Los temporizadores críticos no dependen exclusivamente del frontend.
 - Los módulos activos pertenecen al plan contratado.
 - Toda acción sensible queda auditada.
+- Existe exactamente una configuración activa por imprenta.
+- Existe como máximo un cambio pendiente: un borrador o una versión programada.
+- Una versión programada no puede editarse ni convivir con un borrador.
 - Las decisiones de cuenta corriente no autorizan producción automáticamente.
 
 ## 6. Reglas anteriores que requieren reinterpretación
@@ -200,6 +211,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 |---|---|---|---|
 | Reglas invariables y configurables separadas | Evitar que seguridad y operación se mezclen | Define límites del motor | Confirmado |
 | RF de versionado y programación | Aplicación temporal consistente | Permite vigencia inmediata o futura | Confirmado |
+| Cardinalidad del cambio pendiente | Evitar edición y programación simultáneas | Garantiza una única base futura y elimina ambigüedades | Confirmado |
+| Inmutabilidad de la programación | Separar preparación de una decisión confirmada | Bloquea cambios posteriores al protocolo de seguridad | Confirmado |
 | RF de cotización temporal | Proteger condiciones y recursos | Vincula la cotización con una versión | Confirmado |
 | RF de pausa | Resolver emergencias operativas | Actúa por encima de la configuración | Confirmado |
 | RNF de UX guiada | Facilitar instalación remota | El motor debe ser comprensible sin asistencia presencial | Confirmado |

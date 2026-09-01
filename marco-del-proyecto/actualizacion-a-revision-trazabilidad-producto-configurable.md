@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-01 |
 | Propósito | Relacionar decisiones, requerimientos, historias, casos candidatos y vistas |
 
 > Esta matriz es complementaria y provisional. No sustituye matriz-trazabilidad.md. Los identificadores PROP y CAND deben consolidarse después de la revisión de Agustín.
@@ -29,6 +29,10 @@
 | Activación inmediata | PROP-RN-C-008 | PROP-RF-CFG-006 | PROP-HU-ADM-007 | CAND-CU-CFG-006 | WF-CFG-12 a 14 | Confirmado |
 | Activación programada | PROP-RN-C-008 | PROP-RF-CFG-007 | PROP-HU-ADM-008 | CAND-CU-CFG-007 | WF-CFG-12 a 14 | Confirmado |
 | Cancelación programada | PROP-RN-I-010 | PROP-RF-CFG-008 | PROP-HU-ADM-008 | CAND-CU-CFG-008 | WF-CFG-01, WF-CFG-13 | Confirmado |
+| Configuración activa única | PROP-RN-I-011 | PROP-RF-CFG-014 | PROP-HU-ADM-001 | CAND-CU-CFG-001 | WF-CFG-01 | Confirmado |
+| Un único cambio pendiente | PROP-RN-I-012 | PROP-RF-CFG-015 y 016 | PROP-HU-ADM-001 | CAND-CU-CFG-001 | WF-CFG-01 | Confirmado |
+| Exclusión borrador-programada | PROP-RN-I-012 | PROP-RF-CFG-016 y 017 | PROP-HU-ADM-008 | CAND-CU-CFG-007 | WF-CFG-01, WF-CFG-12 a 14 | Confirmado |
+| Programación inmutable | PROP-RN-I-013 | PROP-RF-CFG-017 y 018 | PROP-HU-ADM-008 | CAND-CU-CFG-007 y 008 | WF-CFG-01, WF-CFG-15 | Confirmado |
 | Versiones inmutables | PROP-RN-I-007 | PROP-RF-CFG-009 | PROP-HU-ADM-009 | CAND-CU-CFG-009 | WF-CFG-15, WF-CFG-16 | Confirmado |
 | No retroactividad | PROP-RN-I-008 | PROP-RF-CFG-011 | PROP-HU-CLI-001 | Caso de cotización por definir | WF-CFG-10 | Confirmado |
 | Configuración al cotizar | PROP-RN-Q-001 | PROP-RF-COT-001 | PROP-HU-CLI-001 | Caso de pedido por definir | WF-COT-01 | Confirmado |
@@ -143,6 +147,7 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 | Estado explícito por decisión | No todas las propuestas tienen igual madurez | Separa base de mockups de temas pendientes | Confirmado |
 | Cuenta corriente aislada | Mayor riesgo financiero | Evita que una hipótesis se mezcle con reglas aceptadas | Requiere revisión |
 | Mapeo hacia wireflows | El frontend necesita iniciar diseño | Permite avanzar sin esperar toda la consolidación | Confirmado |
+| Variantes CFG-001 V3 | El estado inicial no diferenciaba preparación y programación | Vincula ciclo de vida, bloqueo de edición y evidencia visual | Confirmado |
 | Referencias a documentos afectados | La integración será realizada después | Facilita revisión de Agustín y su IA | Confirmado |
 
 ## 10. Justificación general

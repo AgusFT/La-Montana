@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-01 |
 | Dominio candidato | Configuración del sistema |
 | Código de área candidato | CU-CFG |
 | Integración | Pendiente de validación |
@@ -58,13 +58,15 @@ Permitir que el ADMIN_ADMIN conozca qué configuración está vigente y desde cu
 
 1. El actor ingresa a Configuración.
 2. El backend valida rol e imprenta.
-3. El sistema muestra versión, vigencia y resumen.
-4. Se muestran cambios programados, si existen.
-5. El actor puede iniciar una nueva configuración.
+3. El sistema muestra la única versión activa, su vigencia y resumen.
+4. El sistema muestra el único cambio pendiente, si existe: borrador en preparación o versión programada.
+5. Si existe un borrador, muestra base, responsable, fechas y permite continuarlo o cancelarlo.
+6. Si existe una versión programada, muestra su vigencia futura y bloquea toda edición.
+7. Solo cuando no existe cambio pendiente, el actor puede iniciar una nueva configuración desde la activa, una histórica o los valores predeterminados.
 
 ### Resultado
 
-No cambia ninguna regla ni estado. Se presenta información autorizada.
+No cambia ninguna regla ni estado. Se presenta información autorizada y las acciones se habilitan según la exclusión entre borrador y programación.
 
 ## 5. CAND-CU-CFG-002 - Seleccionar modelo certificado
 
@@ -153,6 +155,8 @@ No activa cambios. Habilita continuar o volver a editar.
 ### Precondiciones
 
 - configuración coherente;
+- existe un único borrador en preparación;
+- no existe otra versión programada;
 - ADMIN_ADMIN autenticado;
 - resumen revisado;
 - protocolo de seguridad disponible.
@@ -182,9 +186,11 @@ La siguiente cotización utiliza la nueva versión.
 2. Define fecha y hora.
 3. Revisa resumen.
 4. Completa protocolo de seguridad.
-5. El sistema registra versión programada.
-6. La versión actual continúa activa.
-7. Se muestra la programación en el inicio.
+5. El sistema cierra el borrador editable.
+6. Registra una versión programada inmutable con fecha y hora futura.
+7. La versión actual continúa activa.
+8. El sistema bloquea la creación o continuación de otro borrador.
+9. Se muestra la programación en el inicio.
 
 ### Excepciones
 
@@ -206,6 +212,8 @@ Evitar que una configuración futura entre en vigencia.
 - la configuración actual continúa;
 - la cancelación queda auditada;
 - no se elimina el registro programado.
+- la versión cancelada no vuelve al estado editable;
+- la cancelación libera la posibilidad de crear un nuevo borrador.
 
 ## 12. CAND-CU-CFG-009 - Consultar historial
 
@@ -277,6 +285,8 @@ Cada caso aprobado deberá:
 | Nuevo dominio Configuración | No existe entre las áreas actuales | El motor introduce intenciones propias que no corresponden a pedidos o finanzas | Propuesto |
 | Separación por intención | Configuración descrita de forma general | Respeta el criterio vigente de no agrupar demasiada lógica | Confirmado para revisión |
 | Activación inmediata y programada | Vigencia no desarrollada como CU | El motor debe controlar cuándo entra en efecto una versión | Confirmado |
+| Exclusión borrador-programada | No se limitaba el cambio pendiente | Evita ediciones concurrentes y bases futuras contradictorias | Confirmado |
+| Programación inmutable | No se distinguía de una edición con fecha | La confirmación de seguridad debe cerrar la edición | Confirmado |
 | Validación y previsualización | No documentadas como interacción | Evitan errores y sostienen UX remota | Confirmado |
 | Códigos CAND | Catálogo oficial sin CU-CFG | Evita presentar identificadores no validados como definitivos | Provisional |
 

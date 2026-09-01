@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-01 |
 | Plataforma principal | Web administrativa |
 | Actor principal | ADMIN_ADMIN |
 | Actores complementarios | Empleado, Cliente, Sistema |
@@ -48,7 +48,7 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 
 | Código visual | Vista | Estado de definición |
 |---|---|---|
-| WF-CFG-01 | Inicio de configuración | Lista para mockup |
+| WF-CFG-01 | Inicio de configuración | Mockup V3 en revisión |
 | WF-CFG-02 | Seleccionar modelo operativo | Lista para mockup |
 | WF-CFG-03 | Configurar aprobación | Lista para mockup |
 | WF-CFG-04 | Configurar pagos | Lista para mockup |
@@ -84,24 +84,48 @@ Mostrar el estado actual sin obligar al administrador a editar.
 
 ### Contenido
 
-- nombre de configuración activa;
-- número de versión;
-- fecha de vigencia;
-- autor;
-- modelo operativo;
-- módulos activos;
-- próxima activación programada;
-- alertas;
-- botón Crear nueva configuración;
-- acceso a historial.
+- configuración vigente: nombre, versión, estado, fecha de vigencia y modelo operativo;
+- próxima configuración: ausencia de programación o versión programada con fecha, hora y zona horaria;
+- estado de edición: sin borrador o borrador en preparación con base, fecha de creación y último guardado;
+- resumen operativo, económico y de recursos dinámicos de la versión activa;
+- acceso a historial y detalle;
+- acciones habilitadas según el cambio pendiente existente.
+
+### Variantes obligatorias
+
+#### CFG-001 - Sin cambio pendiente
+
+- existe una única versión activa;
+- no existe borrador;
+- no existe versión programada;
+- se habilita Editar configuración, usar una versión histórica o restaurar valores predeterminados.
+
+#### CFG-001B - Borrador en curso
+
+- la versión activa continúa vigente;
+- no existe versión programada;
+- se muestran base, responsable, fecha de creación, último guardado y paso alcanzado;
+- se habilita Ver cambios, Editar borrador y Cancelar borrador;
+- se bloquea la creación de otro borrador desde cualquier base.
+
+#### CFG-001C - Versión programada
+
+- la versión activa continúa vigente hasta la fecha futura;
+- se muestra la versión programada, fecha, hora, zona horaria y modelo;
+- no existe borrador;
+- se habilita Ver detalle y Cancelar programación;
+- se bloquea toda edición hasta la activación o cancelación.
 
 ### Acciones
 
-- crear a partir de la activa;
-- elegir otra base;
+- editar a partir de la activa cuando no existe cambio pendiente;
+- continuar o cancelar el único borrador existente;
+- elegir otra base únicamente cuando no existe cambio pendiente;
 - consultar detalle;
 - cancelar programación;
 - ir al historial.
+
+La interfaz no debe denominar borrador a una versión programada. El borrador es editable y no tiene vigencia; la versión programada ya fue confirmada, es inmutable y ocupa el único cambio pendiente permitido.
 
 ## 5. WF-CFG-02 - Seleccionar modelo operativo
 
@@ -456,6 +480,7 @@ La autorización real debe validarse en backend.
 | Vista incorporada | Wireflow anterior | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
 | Inicio de configuración | No existía como área central | El motor necesita mostrar versión y vigencia | Lista para mockup |
+| Variantes de CFG-001 | No se distinguía borrador de programación | Hace visible la exclusión entre edición y activación futura | Mockup V3 en revisión |
 | Selección por modelos | Configuración limitada | Evita construir reglas libres | Lista para mockup |
 | Resumen y simulación | Sin previsualización integral | Permite comprender consecuencias | Lista para mockup |
 | Activar o programar | Sin flujo temporal | Define cuándo aplican los cambios | Lista para mockup |
