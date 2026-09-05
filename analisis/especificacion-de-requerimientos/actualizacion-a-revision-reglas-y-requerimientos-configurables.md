@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-01 |
+| Fecha | 2026-09-05 |
 | Alcance | Producto definido |
 | Identificadores | Provisionales, no oficiales |
 
@@ -33,6 +33,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-I-011 | Cada imprenta mantiene exactamente una configuración activa |
 | PROP-RN-I-012 | Cada imprenta mantiene como máximo un cambio pendiente: un borrador en preparación o una versión programada, nunca ambos |
 | PROP-RN-I-013 | Una versión programada es inmutable hasta activarse o cancelarse |
+| PROP-RN-I-014 | Si el modelo exige pago total o seña previa, el archivo no se almacena ni procesa en el servidor hasta acreditar la condición |
 
 ### 2.2 Reglas configurables
 
@@ -46,6 +47,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-C-006 | La imprenta activa módulos incluidos en su plan |
 | PROP-RN-C-007 | La imprenta configura puntos y modalidades de entrega |
 | PROP-RN-C-008 | La imprenta activa cambios inmediatamente o los programa |
+| PROP-RN-C-009 | La imprenta selecciona Control manual o Control condicional entre los modelos habilitados |
+| PROP-RN-C-010 | El Control condicional utiliza únicamente pago previo, pago de seña o monto total del pedido como condiciones certificadas iniciales |
 
 ### 2.3 Reglas operativas
 
@@ -105,6 +108,12 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-016: El sistema debe impedir crear o continuar un borrador mientras exista una versión programada.
 - PROP-RF-CFG-017: Al confirmar una activación futura, el sistema debe cerrar el borrador y registrar una versión programada inmutable.
 - PROP-RF-CFG-018: Al cancelar una programación, el sistema debe liberar la creación de un nuevo borrador sin eliminar la trazabilidad de la versión cancelada.
+- PROP-RF-CFG-019: El sistema debe presentar Control manual y Control condicional dentro de una única vista de selección del modelo operativo.
+- PROP-RF-CFG-020: En Control manual, el sistema debe exigir revisión y aprobación o rechazo humano para todos los pedidos.
+- PROP-RF-CFG-021: En Control condicional, el sistema debe permitir seleccionar únicamente una condición certificada compatible.
+- PROP-RF-CFG-022: En aprobación por pago previo, el sistema debe impedir la carga, almacenamiento y procesamiento del archivo hasta acreditar el pago total.
+- PROP-RF-CFG-023: En aprobación por seña, el sistema debe impedir la carga, almacenamiento y procesamiento del archivo hasta acreditar la seña configurada.
+- PROP-RF-CFG-024: En aprobación por monto, el sistema debe permitir aprobación automática hasta el umbral configurado y derivar a revisión humana cuando se supere.
 
 ### 3.2 Pausa operativa
 
@@ -192,13 +201,17 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - Existe exactamente una configuración activa por imprenta.
 - Existe como máximo un cambio pendiente: un borrador o una versión programada.
 - Una versión programada no puede editarse ni convivir con un borrador.
+- Control manual siempre exige una decisión humana.
+- Control condicional utiliza únicamente condiciones certificadas por el producto.
+- El archivo no llega al servidor antes de acreditar un pago previo o una seña exigida.
+- Superar el umbral de monto deriva a revisión humana y no produce un rechazo automático.
 - Las decisiones de cuenta corriente no autorizan producción automáticamente.
 
 ## 6. Reglas anteriores que requieren reinterpretación
 
 | Regla anterior | Reinterpretación propuesta |
 |---|---|
-| Revisión administrativa siempre obligatoria | Política inicial o perfil certificado, no única posibilidad |
+| Revisión administrativa siempre obligatoria | Se conserva en Control manual; Control condicional solo puede exceptuarla mediante una condición certificada |
 | Nunca existe aprobación automática | Puede existir dentro de condiciones certificadas |
 | Seña fija de 30 % desde 200 carillas | Regla histórica o predeterminada configurable |
 | Flujo único de avance | Estados fijos con condiciones de avance configurables |
@@ -213,6 +226,9 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | RF de versionado y programación | Aplicación temporal consistente | Permite vigencia inmediata o futura | Confirmado |
 | Cardinalidad del cambio pendiente | Evitar edición y programación simultáneas | Garantiza una única base futura y elimina ambigüedades | Confirmado |
 | Inmutabilidad de la programación | Separar preparación de una decisión confirmada | Bloquea cambios posteriores al protocolo de seguridad | Confirmado |
+| Modelos manual y condicional | Evitar opciones abiertas o ambiguas | Define recorridos operativos certificados para la Fase 2 | Confirmado |
+| Condiciones económicas previas | Evitar almacenar trabajos que todavía no pueden avanzar | Protege almacenamiento y procesamiento hasta acreditar pago o seña | Confirmado |
+| Umbral por monto total | Evitar rechazo automático de trabajos mayores | Deriva a revisión humana cuando se supera el límite | Confirmado |
 | RF de cotización temporal | Proteger condiciones y recursos | Vincula la cotización con una versión | Confirmado |
 | RF de pausa | Resolver emergencias operativas | Actúa por encima de la configuración | Confirmado |
 | RNF de UX guiada | Facilitar instalación remota | El motor debe ser comprensible sin asistencia presencial | Confirmado |

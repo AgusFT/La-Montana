@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-01 |
+| Fecha | 2026-09-05 |
 | Dominio candidato | Configuración del sistema |
 | Código de área candidato | CU-CFG |
 | Integración | Pendiente de validación |
@@ -76,11 +76,13 @@ Elegir una estructura operativa coherente como base.
 
 ### Flujo resumido
 
-1. El sistema lista modelos disponibles para el plan.
-2. Explica aprobación, pago y avance de cada modelo.
-3. El actor selecciona uno.
-4. El sistema muestra parámetros habilitados.
-5. La selección queda en preparación.
+1. El sistema presenta Control manual y Control condicional en una única vista comparable.
+2. Explica intervención humana, aprobación, restricciones y recorrido de cada modelo.
+3. Muestra Automatización certificada como evolución futura deshabilitada.
+4. El actor selecciona un modelo habilitado.
+5. Si selecciona Control manual, el sistema informa que todos los pedidos requieren aprobación o rechazo humano y habilita la continuidad hacia pagos y señas.
+6. Si selecciona Control condicional, el sistema habilita la elección de una condición certificada.
+7. La selección queda guardada en la configuración en preparación y no modifica la versión activa.
 
 ### Excepciones
 
@@ -88,6 +90,7 @@ Elegir una estructura operativa coherente como base.
 - módulo requerido no contratado;
 - modelo discontinuado;
 - falta de permisos.
+- intento de seleccionar Automatización certificada en esta versión.
 
 ## 6. CAND-CU-CFG-003 - Configurar parámetros
 
@@ -95,20 +98,27 @@ Elegir una estructura operativa coherente como base.
 
 Ajustar valores permitidos sin modificar invariantes.
 
-### Parámetros posibles
+### Flujo resumido para la aprobación condicional
 
-- aprobación;
-- pago;
-- seña;
-- impresoras;
-- asignación;
-- puntos de entrega;
-- módulos;
-- notificaciones.
+1. El sistema muestra las condiciones certificadas pago previo, pago de seña y monto total del pedido.
+2. El actor selecciona una única condición compatible.
+3. Para pago previo, el sistema exige acreditar el total antes de habilitar la carga del archivo.
+4. Para pago de seña, el sistema exige acreditar la seña configurada antes de habilitar la carga del archivo.
+5. Para monto total, el sistema solicita un umbral: hasta ese monto puede aprobar automáticamente y, si se supera, deriva a revisión humana.
+6. La interfaz simula el recorrido completo y muestra las consecuencias antes de continuar.
+7. El backend valida la condición y su compatibilidad con la configuración financiera de la Fase 3.
+
+### Excepciones
+
+- condición no incluida en el catálogo certificado;
+- pago o seña no acreditados: no se habilita la carga ni se almacena el archivo;
+- umbral superado: se deriva a revisión humana sin rechazo automático;
+- combinación incompatible con los medios de pago seleccionados;
+- falta de permisos.
 
 ### Resultado
 
-La configuración permanece en preparación y todavía no afecta cotizaciones.
+La configuración permanece en preparación y todavía no afecta cotizaciones. La Fase 2 define el criterio de aprobación; montos, porcentajes y medios concretos se completan en la Fase 3.
 
 ## 7. CAND-CU-CFG-004 - Validar coherencia
 
@@ -287,6 +297,9 @@ Cada caso aprobado deberá:
 | Activación inmediata y programada | Vigencia no desarrollada como CU | El motor debe controlar cuándo entra en efecto una versión | Confirmado |
 | Exclusión borrador-programada | No se limitaba el cambio pendiente | Evita ediciones concurrentes y bases futuras contradictorias | Confirmado |
 | Programación inmutable | No se distinguía de una edición con fecha | La confirmación de seguridad debe cerrar la edición | Confirmado |
+| Control manual y condicional | Modelos de aprobación sin recorrido cerrado | Define cuándo la decisión es humana y cuándo puede intervenir una condición certificada | Confirmado |
+| Pago previo y seña antes de carga | Uso de almacenamiento no explicitado | Evita recibir archivos que todavía no pueden avanzar | Confirmado |
+| Umbral de monto con derivación | Resultado al superar condición no explicitado | Elimina el rechazo automático y conserva revisión humana | Confirmado |
 | Validación y previsualización | No documentadas como interacción | Evitan errores y sostienen UX remota | Confirmado |
 | Códigos CAND | Catálogo oficial sin CU-CFG | Evita presentar identificadores no validados como definitivos | Provisional |
 

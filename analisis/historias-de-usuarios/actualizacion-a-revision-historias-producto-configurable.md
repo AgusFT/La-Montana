@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-05 |
 | Identificadores | Provisionales |
 | Propósito | Facilitar validación e integración posterior |
 
@@ -20,17 +20,22 @@ Criterios propuestos:
 
 - se muestran modelos disponibles;
 - cada modelo explica sus consecuencias;
+- Control manual y Control condicional se presentan en una única vista comparable;
+- la automatización certificada permanece visible como evolución futura deshabilitada;
 - solo se habilitan parámetros compatibles;
 - seleccionar un modelo no lo activa automáticamente.
 
 ### PROP-HU-ADM-002 - Configurar aprobación
 
-Como ADMIN_ADMIN quiero configurar si la aprobación es manual, automática o condicional para adaptar el avance de los trabajos al modelo operativo elegido.
+Como ADMIN_ADMIN quiero configurar una condición certificada cuando selecciono Control condicional para adaptar el avance sin crear reglas ambiguas.
 
 Criterios propuestos:
 
-- las opciones dependen del perfil certificado;
-- se muestran las condiciones de avance;
+- en Control manual todos los pedidos requieren decisión humana;
+- en Control condicional se muestran pago previo, pago de seña y monto total del pedido;
+- pago previo y seña bloquean la carga del archivo hasta su acreditación;
+- superar el umbral de monto deriva a revisión humana y no rechaza automáticamente;
+- se muestran las condiciones de avance mediante una simulación de punta a punta;
 - los estados internos no pueden modificarse;
 - el backend valida la configuración.
 
@@ -252,6 +257,9 @@ Las historias de cuenta corriente pueden representarse como exploración visual,
 | Historia incorporada | Necesidad detectada | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
 | Seleccionar modelo certificado | Evitar combinaciones libres | El motor debe ofrecer estructuras coherentes | Confirmado |
+| Control manual y condicional | Cerrar el alcance operativo de la Fase 2 | Separa decisión humana de condiciones certificadas | Confirmado |
+| Tres condiciones certificadas | Evitar reglas libres de aprobación | Mantiene recorridos predecibles y validables | Confirmado |
+| Archivo retenido en cliente | No se explicitaba el uso de recursos antes del pago | Evita almacenamiento y procesamiento antes de acreditar pago o seña | Confirmado |
 | Previsualizar consecuencias | Hacer configuración comprensible | Facilita instalación remota y reduce errores | Confirmado |
 | Activar o programar | Definir vigencia | Permite aplicar cambios sin retroactividad | Confirmado |
 | Historial de versiones | Auditar cambios | Cada activación debe ser trazable | Confirmado |

@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-01 |
+| Fecha | 2026-09-05 |
 | Propósito | Relacionar decisiones, requerimientos, historias, casos candidatos y vistas |
 
 > Esta matriz es complementaria y provisional. No sustituye matriz-trazabilidad.md. Los identificadores PROP y CAND deben consolidarse después de la revisión de Agustín.
@@ -26,6 +26,11 @@
 | Estados internos fijos | PROP-RN-I-001 | PROP-RF-CFG-003 | PROP-HU-ADM-002 | CAND-CU-CFG-004 | WF-CFG-03, WF-CFG-10 | Confirmado |
 | Avance configurable | PROP-RN-C-001 | PROP-RF-CFG-001 | PROP-HU-ADM-001 | CAND-CU-CFG-002 | WF-CFG-02 | Confirmado |
 | Modelos certificados | PROP-RN-C-001 | PROP-RF-CFG-002 | PROP-HU-ADM-001 | CAND-CU-CFG-002 | WF-CFG-02 | Confirmado |
+| Control manual obligatorio | PROP-RN-C-009 | PROP-RF-CFG-020 | PROP-HU-ADM-001 | CAND-CU-CFG-002 | WF-CFG-02 | Confirmado |
+| Control condicional certificado | PROP-RN-C-009 y 010 | PROP-RF-CFG-021 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-02 y 03 | Confirmado |
+| Pago previo antes de carga | PROP-RN-I-014 | PROP-RF-CFG-022 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-03 | Confirmado |
+| Seña antes de carga | PROP-RN-I-014 | PROP-RF-CFG-023 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-03 | Confirmado |
+| Umbral con revisión humana | PROP-RN-C-010 | PROP-RF-CFG-024 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-03 | Confirmado |
 | Activación inmediata | PROP-RN-C-008 | PROP-RF-CFG-006 | PROP-HU-ADM-007 | CAND-CU-CFG-006 | WF-CFG-12 a 14 | Confirmado |
 | Activación programada | PROP-RN-C-008 | PROP-RF-CFG-007 | PROP-HU-ADM-008 | CAND-CU-CFG-007 | WF-CFG-12 a 14 | Confirmado |
 | Cancelación programada | PROP-RN-I-010 | PROP-RF-CFG-008 | PROP-HU-ADM-008 | CAND-CU-CFG-008 | WF-CFG-01, WF-CFG-13 | Confirmado |

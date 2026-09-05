@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-01 |
+| Fecha | 2026-09-05 |
 | Documento relacionado | motor-de-configuracion-del-sistema.md |
 | Propósito | Proponer la evolución del motor sin modificar la definición vigente |
 
@@ -47,6 +47,23 @@ Ejemplos conceptuales:
 - aprobación automática bajo condiciones certificadas.
 
 Los ejemplos no constituyen todavía el catálogo definitivo.
+
+#### Modelos habilitados en la Fase 2
+
+Para la primera versión del producto se distinguen dos modelos operativos seleccionables:
+
+- **Control manual:** todos los pedidos requieren revisión y decisión humana. Las validaciones técnicas obligatorias continúan vigentes y ninguna regla financiera reemplaza la aprobación o el rechazo del operador.
+- **Control condicional:** el sistema evalúa una condición certificada. Si la condición habilita el avance, puede aprobar el pedido automáticamente; cuando no se cumple, el comportamiento definido deriva a revisión humana o impide iniciar la carga del archivo.
+
+La **automatización certificada** puede mostrarse como evolución futura, pero permanece deshabilitada y no forma parte de esta versión.
+
+El control condicional admite inicialmente tres criterios certificados:
+
+1. **Pago previo:** exige acreditar el total antes de habilitar la carga del archivo.
+2. **Pago de seña:** exige acreditar la seña configurada antes de habilitar la carga del archivo.
+3. **Monto total del pedido:** permite aprobación automática hasta un umbral configurable y deriva a revisión humana cuando se supera.
+
+Pago previo y pago de seña son condiciones estrictas: mientras no estén acreditados, el archivo permanece del lado del cliente y no se almacena ni procesa en el servidor.
 
 ### 2.3 Parámetro controlado
 

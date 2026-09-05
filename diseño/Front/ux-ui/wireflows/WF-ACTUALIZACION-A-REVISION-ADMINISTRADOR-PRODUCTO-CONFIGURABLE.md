@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-01 |
+| Fecha | 2026-09-05 |
 | Plataforma principal | Web administrativa |
 | Actor principal | ADMIN_ADMIN |
 | Actores complementarios | Empleado, Cliente, Sistema |
@@ -49,8 +49,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | Código visual | Vista | Estado de definición |
 |---|---|---|
 | WF-CFG-01 | Inicio de configuración | Mockup V3 en revisión |
-| WF-CFG-02 | Seleccionar modelo operativo | Lista para mockup |
-| WF-CFG-03 | Configurar aprobación | Lista para mockup |
+| WF-CFG-02 | Seleccionar modelo operativo | Mockup V3 en revisión |
+| WF-CFG-03 | Configurar aprobación | Tres mockups V3 en revisión |
 | WF-CFG-04 | Configurar pagos | Lista para mockup |
 | WF-CFG-05 | Configurar seña | Lista para mockup |
 | WF-CFG-06 | Impresoras y capacidades | Lista para mockup |
@@ -129,7 +129,7 @@ La interfaz no debe denominar borrador a una versión programada. El borrador es
 
 ## 5. WF-CFG-02 - Seleccionar modelo operativo
 
-La vista utiliza tarjetas comparables.
+La vista utiliza tarjetas comparables y se representa mediante un único mockup `MC-ADM-CFG-002`.
 
 Cada tarjeta muestra:
 
@@ -144,23 +144,33 @@ Cada tarjeta muestra:
 
 No debe mostrar combinaciones técnicas crudas.
 
+Modelos de esta versión:
+
+- Control manual;
+- Control condicional;
+- Automatización certificada, visible como evolución futura y deshabilitada.
+
+Control manual exige revisión, aprobación o rechazo humano para todos los pedidos. Control condicional habilita la configuración de una condición certificada en `WF-CFG-03`.
+
 ## 6. WF-CFG-03 - Configurar aprobación
 
-Opciones visuales:
+Esta vista se habilita únicamente al seleccionar Control condicional. Se representa mediante tres mockups:
 
-- Manual;
-- Automática;
-- Condicional.
+- `MC-ADM-CFG-003A`: aprobación por pago previo;
+- `MC-ADM-CFG-003B`: aprobación por pago de seña;
+- `MC-ADM-CFG-003C`: aprobación por monto total del pedido.
 
-Cada opción explica:
+Cada alternativa muestra la condición, el recorrido completo, la intervención humana y los bloqueos aplicables.
 
-- quién interviene;
-- cuándo avanza;
-- qué bloqueos permanecen;
-- ejemplo de pedido;
-- impacto en producción.
+Reglas visibles:
 
-Los estados internos no se editan.
+- pago previo exige acreditación total antes de habilitar la carga del archivo;
+- pago de seña exige acreditar la seña configurada antes de habilitar la carga del archivo;
+- mientras falte pago o seña, el archivo permanece del lado del cliente y no utiliza almacenamiento ni procesamiento del servidor;
+- el criterio por monto permite aprobación automática hasta el umbral y deriva a revisión humana cuando se supera;
+- superar el umbral no implica rechazo automático;
+- los montos, porcentajes y medios se completan en la Fase 3;
+- los estados internos no se editan y el backend conserva la decisión final.
 
 ## 7. WF-CFG-04 - Configurar pagos
 
