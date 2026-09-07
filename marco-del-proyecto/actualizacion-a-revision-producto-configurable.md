@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-07 |
 | Responsables de revisión | Agustín Tejero y Alejandro Herms |
 | Propósito | Servir como insumo para la integración posterior en la documentación oficial |
 
@@ -128,6 +128,17 @@ La versión de configuración podrá contemplar:
 - horarios operativos;
 - módulos activos;
 - parámetros de servicios disponibles.
+
+### 5.1 Matriz financiera consolidada para Fase 3
+
+La configuración de pagos y seña depende del modelo elegido previamente:
+
+- **Control manual:** admite medios flexibles, incluido efectivo, transferencia y pago digital. La seña puede configurarse como regla opcional y nunca reemplaza la aprobación humana.
+- **Pago previo:** exige el pago total mediante un medio acreditable antes de habilitar la carga. Efectivo no satisface la condición previa y la seña no aplica.
+- **Pago de seña:** la condición viene fijada desde Fase 2. En Fase 3 se configuran tipo y valor; la seña debe acreditarse por un medio compatible antes de habilitar la carga.
+- **Monto del pedido:** funciona como modalidad flexible. Hasta un umbral monetario configurable puede existir autoaprobación y efectivo. Si el pedido supera el umbral, se exige una seña previa configurable y acreditable. El saldo restante puede conservar medios flexibles, incluido efectivo cuando corresponda.
+
+La regla histórica de **30 % desde 200 carillas** no constituye una condición fija del producto configurable. Puede conservarse como antecedente o valor predeterminado, pero el modelo y los valores deben quedar parametrizados.
 
 ## 6. Pausa operativa
 
@@ -260,6 +271,8 @@ Las vistas de cuenta corriente pueden explorarse, pero deben quedar marcadas com
 | Estados fijos y transiciones configurables | Flujo único con avance predeterminado | Se preserva la trazabilidad y se permite adaptar el momento de avance | Confirmado |
 | Configuraciones certificadas | Parámetros aislados o mejoras futuras | Evita combinaciones incoherentes y facilita instalación remota | Confirmado |
 | Configuración versionada | No se definía vigencia completa | Garantiza no retroactividad y auditoría | Confirmado |
+| Matriz financiera de Fase 3 | Pagos y seña definidos de forma general | Alinea medios, acreditación y seña con el modelo heredado de Fase 2 | Confirmado para revisión |
+| Modalidad por monto escalonada | El umbral no definía con precisión el cobro de trabajos superiores | Mantiene flexibilidad para trabajos chicos y exige seña acreditable en montos mayores | Confirmado para revisión |
 | Pausa operativa central | Considerada posibilidad futura | Es necesaria ante emergencias reales de la imprenta | Confirmado |
 | Captura al cotizar | Creación directa con reglas generales | La cotización debe congelar precio y condiciones vigentes | Confirmado |
 | Cuenta corriente | Excepción comercial no formalizada | El motor debe contemplar clientes autorizados sin debilitar el control financiero | Requiere revisión de Agustín |
