@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-05 |
+| Fecha | 2026-09-07 |
 | Propósito | Relacionar decisiones, requerimientos, historias, casos candidatos y vistas |
 
 > Esta matriz es complementaria y provisional. No sustituye matriz-trazabilidad.md. Los identificadores PROP y CAND deben consolidarse después de la revisión de Agustín.
@@ -28,9 +28,12 @@
 | Modelos certificados | PROP-RN-C-001 | PROP-RF-CFG-002 | PROP-HU-ADM-001 | CAND-CU-CFG-002 | WF-CFG-02 | Confirmado |
 | Control manual obligatorio | PROP-RN-C-009 | PROP-RF-CFG-020 | PROP-HU-ADM-001 | CAND-CU-CFG-002 | WF-CFG-02 | Confirmado |
 | Control condicional certificado | PROP-RN-C-009 y 010 | PROP-RF-CFG-021 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-02 y 03 | Confirmado |
-| Pago previo antes de carga | PROP-RN-I-014 | PROP-RF-CFG-022 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-03 | Confirmado |
-| Seña antes de carga | PROP-RN-I-014 | PROP-RF-CFG-023 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-03 | Confirmado |
-| Umbral con revisión humana | PROP-RN-C-010 | PROP-RF-CFG-024 | PROP-HU-ADM-002 | CAND-CU-CFG-003 | WF-CFG-03 | Confirmado |
+| Pago previo antes de carga | PROP-RN-I-014 y PROP-RN-C-012 | PROP-RF-CFG-022 y 026 | PROP-HU-ADM-002 y 003 | CAND-CU-CFG-003 | WF-CFG-03 a 05 | Confirmado |
+| Seña antes de carga | PROP-RN-I-014 y PROP-RN-C-013 | PROP-RF-CFG-023 y 027 | PROP-HU-ADM-002 y 003 | CAND-CU-CFG-003 | WF-CFG-03 a 05 | Confirmado |
+| Medio acreditable para condición previa | PROP-RN-I-015 | PROP-RF-CFG-025, 026, 029 | PROP-HU-ADM-003 | CAND-CU-CFG-003 y 004 | WF-CFG-04, WF-CFG-05, WF-CFG-11 | Confirmado para revisión |
+| Umbral monetario autoaprobable | PROP-RN-C-014 | PROP-RF-CFG-024 y 028 | PROP-HU-ADM-002 y 003 | CAND-CU-CFG-003 | WF-CFG-03 a 05 | Confirmado para revisión |
+| Umbral con seña escalonada | PROP-RN-C-015 y 016 | PROP-RF-CFG-024, 028, 029 y 030 | PROP-HU-ADM-003 | CAND-CU-CFG-003 | WF-CFG-04 y 05 | Confirmado para revisión |
+| Matriz financiera heredada de Fase 2 | PROP-RN-C-011 a 016 | PROP-RF-CFG-025 a 031 | PROP-HU-ADM-003 | CAND-CU-CFG-003 y 004 | WF-CFG-04, WF-CFG-05, WF-CFG-11 | Confirmado para revisión |
 | Activación inmediata | PROP-RN-C-008 | PROP-RF-CFG-006 | PROP-HU-ADM-007 | CAND-CU-CFG-006 | WF-CFG-12 a 14 | Confirmado |
 | Activación programada | PROP-RN-C-008 | PROP-RF-CFG-007 | PROP-HU-ADM-008 | CAND-CU-CFG-007 | WF-CFG-12 a 14 | Confirmado |
 | Cancelación programada | PROP-RN-I-010 | PROP-RF-CFG-008 | PROP-HU-ADM-008 | CAND-CU-CFG-008 | WF-CFG-01, WF-CFG-13 | Confirmado |
@@ -75,6 +78,7 @@
 | Lenguaje operativo | PROP-RNF-USA-003 | Todas | Menor dependencia de soporte |
 | Errores accionables | PROP-RNF-USA-004 | WF-CFG-11 | Resolución clara |
 | Vigencia visible | PROP-RNF-USA-005 | WF-CFG-01, 14, 15 | Comprensión del estado actual |
+| Herencia visible de Fase 2 | PROP-RNF-USA-006 | WF-CFG-04 y 05 | Diferenciar parámetros bloqueados de valores editables |
 
 ## 5. Impacto sobre documentación vigente
 
@@ -141,6 +145,8 @@ Puede diseñarse inmediatamente:
 - caducidad de cotización;
 - cambio de fecha por pausa.
 
+Para Fase 3, los mockups deben representar explícitamente la herencia de Fase 2, los medios acreditables y la regla escalonada por monto.
+
 Cuenta corriente debe diseñarse como exploración identificada y revisarse antes de consolidarse.
 
 ## 9. Registro de cambios y justificación
@@ -153,6 +159,8 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 | Cuenta corriente aislada | Mayor riesgo financiero | Evita que una hipótesis se mezcle con reglas aceptadas | Requiere revisión |
 | Mapeo hacia wireflows | El frontend necesita iniciar diseño | Permite avanzar sin esperar toda la consolidación | Confirmado |
 | Variantes CFG-001 V3 | El estado inicial no diferenciaba preparación y programación | Vincula ciclo de vida, bloqueo de edición y evidencia visual | Confirmado |
+| Matriz financiera Fase 3 | Faltaba vincular Fase 2 con medios y seña | Evita combinaciones incompatibles y mantiene trazabilidad de la decisión | Confirmado para revisión |
+| Umbral con seña escalonada | La definición previa derivaba a revisión humana | Alinea reglas, RF, HU, CU y wireflow con la modalidad flexible acordada | Confirmado para revisión |
 | Referencias a documentos afectados | La integración será realizada después | Facilita revisión de Agustín y su IA | Confirmado |
 
 ## 10. Justificación general
