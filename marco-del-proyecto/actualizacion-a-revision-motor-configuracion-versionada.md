@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-05 |
+| Fecha | 2026-09-07 |
 | Documento relacionado | motor-de-configuracion-del-sistema.md |
 | Propósito | Proponer la evolución del motor sin modificar la definición vigente |
 
@@ -53,7 +53,7 @@ Los ejemplos no constituyen todavía el catálogo definitivo.
 Para la primera versión del producto se distinguen dos modelos operativos seleccionables:
 
 - **Control manual:** todos los pedidos requieren revisión y decisión humana. Las validaciones técnicas obligatorias continúan vigentes y ninguna regla financiera reemplaza la aprobación o el rechazo del operador.
-- **Control condicional:** el sistema evalúa una condición certificada. Si la condición habilita el avance, puede aprobar el pedido automáticamente; cuando no se cumple, el comportamiento definido deriva a revisión humana o impide iniciar la carga del archivo.
+- **Control condicional:** el sistema evalúa una condición certificada. Si la condición habilita el avance, puede aprobar el pedido automáticamente; cuando la condición económica previa no se cumple, se impide iniciar la carga del archivo.
 
 La **automatización certificada** puede mostrarse como evolución futura, pero permanece deshabilitada y no forma parte de esta versión.
 
@@ -61,9 +61,20 @@ El control condicional admite inicialmente tres criterios certificados:
 
 1. **Pago previo:** exige acreditar el total antes de habilitar la carga del archivo.
 2. **Pago de seña:** exige acreditar la seña configurada antes de habilitar la carga del archivo.
-3. **Monto total del pedido:** permite aprobación automática hasta un umbral configurable y deriva a revisión humana cuando se supera.
+3. **Monto total del pedido:** permite aprobación automática hasta un umbral configurable. Cuando el pedido supera ese umbral, se activa una seña previa configurable que debe acreditarse antes de continuar.
 
-Pago previo y pago de seña son condiciones estrictas: mientras no estén acreditados, el archivo permanece del lado del cliente y no se almacena ni procesa en el servidor.
+Pago previo, pago de seña y la seña exigida por exceso del umbral son condiciones económicas estrictas: mientras no estén acreditadas, el archivo permanece del lado del cliente y no se almacena ni procesa en el servidor.
+
+#### Parametrización consolidada en la Fase 3
+
+La Fase 3 hereda el modelo seleccionado y solamente muestra parámetros compatibles:
+
+- **Control manual:** permite medios de pago flexibles, incluido efectivo, transferencia y pago digital. La seña puede configurarse como regla financiera opcional y no reemplaza la aprobación humana.
+- **Control condicional + pago previo:** efectivo queda deshabilitado para cumplir la condición inicial. Debe existir al menos un medio acreditable, como transferencia o pago digital. La seña no aplica porque la condición exige el pago total.
+- **Control condicional + pago de seña:** la condición de seña ya viene impuesta por Fase 2 y no puede desactivarse ni cambiarse por otra condición. En Fase 3 se configura el tipo y el valor de la seña. La acreditación debe realizarse por transferencia, pago digital u otro medio certificable; efectivo no es válido para acreditar la seña previa.
+- **Control condicional + monto del pedido:** la condición `monto total del pedido` permanece bloqueada como criterio heredado; el ADMIN_ADMIN configura el valor del umbral. Los pedidos que no superan el umbral pueden aprobarse automáticamente y utilizar medios flexibles, incluido efectivo. Los pedidos que superan el umbral requieren una seña previa configurable; esa seña debe acreditarse mediante transferencia, pago digital u otro medio acreditable antes de habilitar el avance. El saldo restante puede abonarse luego mediante cualquiera de los medios generales habilitados, incluido efectivo cuando corresponda.
+
+La regla histórica de **30 % desde 200 carillas** deja de constituir una condición fija del modelo. Se conserva únicamente como antecedente o valor predeterminado configurable; la condición y los valores efectivos dependen del modelo seleccionado y de la parametrización de la Fase 3.
 
 ### 2.3 Parámetro controlado
 
@@ -291,6 +302,8 @@ No deben mezclarse con el alcance base de activación inmediata o programada.
 | Captura al cotizar | Reglas aplicadas principalmente al crear pedido | Congela condiciones visibles y evita carreras de configuración | Confirmado |
 | Pausa fuera de la versión | Pausa considerada evolución futura | Debe actuar inmediatamente sin reversionar toda la configuración | Confirmado |
 | Temporizadores de cotización | Sin vigencia detallada | Protege información económica y libera recursos temporales | Confirmado |
+| Matriz de pagos de Fase 3 | Medios de pago tratados en forma general | Impide combinaciones incompatibles y hereda restricciones de Fase 2 | Confirmado para revisión |
+| Umbral por monto con seña escalonada | Superación del umbral derivaba a revisión humana | Mantiene agilidad para trabajos chicos y protege financieramente pedidos mayores mediante seña previa | Confirmado para revisión |
 | Cuenta corriente manual | Excepción genérica por lista | Requiere control financiero y operativo por pedido | Requiere revisión de Agustín |
 | Precedencia de reglas | No explicitada | El motor necesita resolver conflictos de manera determinista | Propuesta técnica |
 
