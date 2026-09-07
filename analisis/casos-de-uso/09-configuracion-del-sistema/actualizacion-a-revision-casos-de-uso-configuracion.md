@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-05 |
+| Fecha | 2026-09-07 |
 | Dominio candidato | Configuración del sistema |
 | Código de área candidato | CU-CFG |
 | Integración | Pendiente de validación |
@@ -89,7 +89,7 @@ Elegir una estructura operativa coherente como base.
 - modelo no incluido;
 - módulo requerido no contratado;
 - modelo discontinuado;
-- falta de permisos.
+- falta de permisos;
 - intento de seleccionar Automatización certificada en esta versión.
 
 ## 6. CAND-CU-CFG-003 - Configurar parámetros
@@ -98,27 +98,34 @@ Elegir una estructura operativa coherente como base.
 
 Ajustar valores permitidos sin modificar invariantes.
 
-### Flujo resumido para la aprobación condicional
+### Flujo resumido para la aprobación condicional y la configuración financiera
 
 1. El sistema muestra las condiciones certificadas pago previo, pago de seña y monto total del pedido.
-2. El actor selecciona una única condición compatible.
+2. El actor selecciona una única condición compatible en Fase 2.
 3. Para pago previo, el sistema exige acreditar el total antes de habilitar la carga del archivo.
-4. Para pago de seña, el sistema exige acreditar la seña configurada antes de habilitar la carga del archivo.
-5. Para monto total, el sistema solicita un umbral: hasta ese monto puede aprobar automáticamente y, si se supera, deriva a revisión humana.
-6. La interfaz simula el recorrido completo y muestra las consecuencias antes de continuar.
-7. El backend valida la condición y su compatibilidad con la configuración financiera de la Fase 3.
+4. Para pago de seña, el sistema exige acreditar la seña antes de habilitar la carga del archivo; la condición queda fijada y Fase 3 permite configurar tipo y valor.
+5. Para monto total, la condición queda fijada por Fase 2 y Fase 3 solicita el valor del umbral monetario.
+6. Si el pedido no supera el umbral, puede aprobarse automáticamente y utilizar los medios generales habilitados, incluido efectivo cuando corresponda.
+7. Si el pedido supera el umbral, el sistema exige una seña previa configurable antes de continuar. La seña debe acreditarse por transferencia, pago digital u otro medio acreditable; efectivo no satisface la seña previa.
+8. Una vez acreditada la seña de un pedido superior al umbral, el saldo restante puede abonarse mediante los medios generales habilitados.
+9. En pago previo, la seña no aplica y efectivo queda deshabilitado para satisfacer la condición.
+10. En Control manual, los medios son flexibles y la seña puede configurarse como regla financiera opcional sin reemplazar la aprobación humana.
+11. La interfaz simula el recorrido completo desde Fase 1, Fase 2 y Fase 3 y muestra las consecuencias antes de continuar.
+12. El backend valida la condición y su compatibilidad con la configuración financiera.
 
 ### Excepciones
 
 - condición no incluida en el catálogo certificado;
-- pago o seña no acreditados: no se habilita la carga ni se almacena el archivo;
-- umbral superado: se deriva a revisión humana sin rechazo automático;
+- pago o seña no acreditados: no se habilita la carga ni se almacena el archivo cuando la condición económica es previa;
+- intento de utilizar efectivo para acreditar pago previo o una seña previa obligatoria;
+- intento de configurar seña adicional en el modelo de pago previo;
+- intento de desactivar o reemplazar la condición de seña heredada de Fase 2;
 - combinación incompatible con los medios de pago seleccionados;
 - falta de permisos.
 
 ### Resultado
 
-La configuración permanece en preparación y todavía no afecta cotizaciones. La Fase 2 define el criterio de aprobación; montos, porcentajes y medios concretos se completan en la Fase 3.
+La configuración permanece en preparación y todavía no afecta cotizaciones. Fase 2 define el criterio certificado; Fase 3 completa los medios, montos, porcentajes y reglas financieras compatibles.
 
 ## 7. CAND-CU-CFG-004 - Validar coherencia
 
@@ -130,8 +137,11 @@ Detectar incompatibilidades antes de activar.
 
 - módulos disponibles;
 - combinación pago-aprobación;
+- existencia de al menos un medio acreditable cuando el modelo exige pago o seña previa;
+- efectivo deshabilitado como medio de acreditación previa cuando corresponda;
+- reglas de seña completas y coherentes con el modelo;
+- umbral monetario válido en aprobación por monto;
 - impresoras compatibles;
-- reglas de seña completas;
 - puntos de entrega activos;
 - parámetros obligatorios;
 - invariantes de seguridad.
@@ -150,9 +160,12 @@ Mostrar las consecuencias operativas en lenguaje comprensible.
 
 - comparación con versión activa;
 - recorrido de pedido;
-- puntos de intervención humana;
+- modelo heredado de Fase 2;
+- medios de pago habilitados y bloqueados;
 - momento de pago;
+- ejemplo con pago previo;
 - ejemplo con seña;
+- ejemplo por monto dentro y fuera del umbral;
 - ejemplo de impresora;
 - módulos afectados.
 
@@ -221,7 +234,7 @@ Evitar que una configuración futura entre en vigencia.
 - requiere ADMIN_ADMIN;
 - la configuración actual continúa;
 - la cancelación queda auditada;
-- no se elimina el registro programado.
+- no se elimina el registro programado;
 - la versión cancelada no vuelve al estado editable;
 - la cancelación libera la posibilidad de crear un nuevo borrador.
 
@@ -299,7 +312,8 @@ Cada caso aprobado deberá:
 | Programación inmutable | No se distinguía de una edición con fecha | La confirmación de seguridad debe cerrar la edición | Confirmado |
 | Control manual y condicional | Modelos de aprobación sin recorrido cerrado | Define cuándo la decisión es humana y cuándo puede intervenir una condición certificada | Confirmado |
 | Pago previo y seña antes de carga | Uso de almacenamiento no explicitado | Evita recibir archivos que todavía no pueden avanzar | Confirmado |
-| Umbral de monto con derivación | Resultado al superar condición no explicitado | Elimina el rechazo automático y conserva revisión humana | Confirmado |
+| Matriz de Fase 3 | Pagos y seña no heredaban explícitamente restricciones de Fase 2 | Evita combinaciones inválidas y explica qué parámetros siguen editables | Confirmado para revisión |
+| Umbral de monto con seña | Superar el umbral derivaba a revisión humana | Se reemplaza por una regla escalonada: autoaprobación bajo umbral y seña previa configurable sobre umbral | Confirmado para revisión |
 | Validación y previsualización | No documentadas como interacción | Evitan errores y sostienen UX remota | Confirmado |
 | Códigos CAND | Catálogo oficial sin CU-CFG | Evita presentar identificadores no validados como definitivos | Provisional |
 
