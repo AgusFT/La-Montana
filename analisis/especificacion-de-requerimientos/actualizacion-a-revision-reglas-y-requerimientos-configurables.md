@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-05 |
+| Fecha | 2026-09-07 |
 | Alcance | Producto definido |
 | Identificadores | Provisionales, no oficiales |
 
@@ -34,6 +34,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-I-012 | Cada imprenta mantiene como máximo un cambio pendiente: un borrador en preparación o una versión programada, nunca ambos |
 | PROP-RN-I-013 | Una versión programada es inmutable hasta activarse o cancelarse |
 | PROP-RN-I-014 | Si el modelo exige pago total o seña previa, el archivo no se almacena ni procesa en el servidor hasta acreditar la condición |
+| PROP-RN-I-015 | Una condición económica previa solo puede considerarse satisfecha mediante un medio de pago acreditable por el sistema o por un operador autorizado |
 
 ### 2.2 Reglas configurables
 
@@ -49,6 +50,12 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-C-008 | La imprenta activa cambios inmediatamente o los programa |
 | PROP-RN-C-009 | La imprenta selecciona Control manual o Control condicional entre los modelos habilitados |
 | PROP-RN-C-010 | El Control condicional utiliza únicamente pago previo, pago de seña o monto total del pedido como condiciones certificadas iniciales |
+| PROP-RN-C-011 | En Control manual, la seña es una regla financiera opcional y no sustituye la decisión humana de aprobación |
+| PROP-RN-C-012 | En aprobación por pago previo, el efectivo no puede utilizarse para satisfacer la condición previa y la seña no aplica |
+| PROP-RN-C-013 | En aprobación por pago de seña, la condición viene fijada por Fase 2; Fase 3 configura tipo y valor de la seña, pero no puede desactivar esa condición |
+| PROP-RN-C-014 | En aprobación por monto, el ADMIN_ADMIN configura un umbral monetario; hasta ese umbral el pedido puede aprobarse automáticamente y utilizar medios flexibles, incluido efectivo |
+| PROP-RN-C-015 | En aprobación por monto, superar el umbral exige una seña previa configurable antes de continuar; la seña debe acreditarse mediante transferencia, pago digital u otro medio acreditable |
+| PROP-RN-C-016 | En aprobación por monto, el saldo restante luego de acreditar la seña puede abonarse mediante cualquiera de los medios generales habilitados, incluido efectivo cuando corresponda |
 
 ### 2.3 Reglas operativas
 
@@ -113,7 +120,14 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-021: En Control condicional, el sistema debe permitir seleccionar únicamente una condición certificada compatible.
 - PROP-RF-CFG-022: En aprobación por pago previo, el sistema debe impedir la carga, almacenamiento y procesamiento del archivo hasta acreditar el pago total.
 - PROP-RF-CFG-023: En aprobación por seña, el sistema debe impedir la carga, almacenamiento y procesamiento del archivo hasta acreditar la seña configurada.
-- PROP-RF-CFG-024: En aprobación por monto, el sistema debe permitir aprobación automática hasta el umbral configurado y derivar a revisión humana cuando se supere.
+- PROP-RF-CFG-024: En aprobación por monto, el sistema debe permitir aprobación automática hasta el umbral monetario configurado y exigir una seña previa configurable cuando el pedido supere ese umbral.
+- PROP-RF-CFG-025: En Fase 3, el sistema debe mostrar los medios de pago compatibles con el modelo heredado de Fase 2 y mantener visibles pero deshabilitadas las combinaciones incompatibles.
+- PROP-RF-CFG-026: En aprobación por pago previo, el sistema debe deshabilitar efectivo como medio para satisfacer la condición y debe impedir configurar una seña adicional.
+- PROP-RF-CFG-027: En aprobación por seña, el sistema debe bloquear la condición heredada y permitir configurar solamente el tipo y el valor de la seña dentro de parámetros permitidos.
+- PROP-RF-CFG-028: En aprobación por monto, el sistema debe permitir configurar el valor del umbral y el tipo/valor de la seña exigida para pedidos superiores.
+- PROP-RF-CFG-029: En aprobación por monto, la acreditación de la seña para pedidos superiores debe limitarse a transferencia, pago digital u otros medios acreditables; efectivo no debe utilizarse para acreditar la seña previa.
+- PROP-RF-CFG-030: En aprobación por monto, el sistema debe permitir que el saldo restante después de la seña utilice los medios generales habilitados, incluido efectivo cuando corresponda.
+- PROP-RF-CFG-031: La interfaz de Fase 3 debe mostrar una simulación del flujo resultante que conecte la configuración heredada de Fase 1 y Fase 2 con las decisiones financieras de Fase 3.
 
 ### 3.2 Pausa operativa
 
@@ -180,6 +194,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-USA-003: El resumen debe utilizar lenguaje operativo, no técnico.
 - PROP-RNF-USA-004: Los errores deben indicar cómo resolver el conflicto.
 - PROP-RNF-USA-005: El estado activo y la fecha de vigencia deben ser visibles.
+- PROP-RNF-USA-006: La Fase 3 debe explicar qué decisiones provienen de Fase 2 y cuáles permanecen editables.
 
 ### 4.4 Integridad y rendimiento
 
@@ -204,7 +219,11 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - Control manual siempre exige una decisión humana.
 - Control condicional utiliza únicamente condiciones certificadas por el producto.
 - El archivo no llega al servidor antes de acreditar un pago previo o una seña exigida.
-- Superar el umbral de monto deriva a revisión humana y no produce un rechazo automático.
+- En pago previo, efectivo no satisface la condición y la seña no aplica.
+- En pago de seña, la condición no puede desactivarse en Fase 3; solo se parametrizan tipo y valor.
+- En aprobación por monto, los pedidos hasta el umbral pueden aprobarse automáticamente y utilizar efectivo si está habilitado.
+- En aprobación por monto, superar el umbral activa una seña previa configurable; no implica revisión humana automática.
+- La seña de un pedido superior al umbral debe acreditarse por un medio acreditable y el saldo puede conservar medios flexibles.
 - Las decisiones de cuenta corriente no autorizan producción automáticamente.
 
 ## 6. Reglas anteriores que requieren reinterpretación
@@ -213,7 +232,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 |---|---|
 | Revisión administrativa siempre obligatoria | Se conserva en Control manual; Control condicional solo puede exceptuarla mediante una condición certificada |
 | Nunca existe aprobación automática | Puede existir dentro de condiciones certificadas |
-| Seña fija de 30 % desde 200 carillas | Regla histórica o predeterminada configurable |
+| Seña fija de 30 % desde 200 carillas | Regla histórica o predeterminada configurable; ya no define por sí sola el modelo de seña |
+| Umbral de monto con derivación humana | El umbral separa trabajos pequeños autoaprobables de trabajos superiores que requieren seña previa configurable |
 | Flujo único de avance | Estados fijos con condiciones de avance configurables |
 | Configuración como mejora posterior | Motor central del producto definido |
 | Asignación manual de impresora | Modo inicial, con automatización controlada posterior |
@@ -228,7 +248,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | Inmutabilidad de la programación | Separar preparación de una decisión confirmada | Bloquea cambios posteriores al protocolo de seguridad | Confirmado |
 | Modelos manual y condicional | Evitar opciones abiertas o ambiguas | Define recorridos operativos certificados para la Fase 2 | Confirmado |
 | Condiciones económicas previas | Evitar almacenar trabajos que todavía no pueden avanzar | Protege almacenamiento y procesamiento hasta acreditar pago o seña | Confirmado |
-| Umbral por monto total | Evitar rechazo automático de trabajos mayores | Deriva a revisión humana cuando se supera el límite | Confirmado |
+| Matriz de pagos de Fase 3 | Evitar contradicciones entre aprobación y cobro | Habilita o bloquea medios según el modelo heredado | Confirmado para revisión |
+| Umbral por monto con seña escalonada | Dar flexibilidad a trabajos chicos sin perder resguardo en montos mayores | Permite efectivo bajo umbral y exige seña acreditable por encima | Confirmado para revisión |
 | RF de cotización temporal | Proteger condiciones y recursos | Vincula la cotización con una versión | Confirmado |
 | RF de pausa | Resolver emergencias operativas | Actúa por encima de la configuración | Confirmado |
 | RNF de UX guiada | Facilitar instalación remota | El motor debe ser comprensible sin asistencia presencial | Confirmado |
