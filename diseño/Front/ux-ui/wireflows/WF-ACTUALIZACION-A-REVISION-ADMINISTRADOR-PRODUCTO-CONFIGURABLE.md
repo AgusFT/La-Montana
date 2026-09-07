@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-05 |
+| Fecha | 2026-09-07 |
 | Plataforma principal | Web administrativa |
 | Actor principal | ADMIN_ADMIN |
 | Actores complementarios | Empleado, Cliente, Sistema |
@@ -51,8 +51,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-CFG-01 | Inicio de configuración | Mockup V3 en revisión |
 | WF-CFG-02 | Seleccionar modelo operativo | Mockup V3 en revisión |
 | WF-CFG-03 | Configurar aprobación | Tres mockups V3 en revisión |
-| WF-CFG-04 | Configurar pagos | Lista para mockup |
-| WF-CFG-05 | Configurar seña | Lista para mockup |
+| WF-CFG-04 | Configurar pagos | Mockups V3 en definición |
+| WF-CFG-05 | Configurar seña | Mockups V3 en definición |
 | WF-CFG-06 | Impresoras y capacidades | Lista para mockup |
 | WF-CFG-07 | Método de asignación | Lista para mockup |
 | WF-CFG-08 | Módulos contratados y activos | Lista para mockup |
@@ -160,47 +160,109 @@ Esta vista se habilita únicamente al seleccionar Control condicional. Se repres
 - `MC-ADM-CFG-003B`: aprobación por pago de seña;
 - `MC-ADM-CFG-003C`: aprobación por monto total del pedido.
 
-Cada alternativa muestra la condición, el recorrido completo, la intervención humana y los bloqueos aplicables.
+Cada alternativa muestra la condición, el recorrido completo y los bloqueos aplicables.
 
 Reglas visibles:
 
 - pago previo exige acreditación total antes de habilitar la carga del archivo;
 - pago de seña exige acreditar la seña configurada antes de habilitar la carga del archivo;
-- mientras falte pago o seña, el archivo permanece del lado del cliente y no utiliza almacenamiento ni procesamiento del servidor;
-- el criterio por monto permite aprobación automática hasta el umbral y deriva a revisión humana cuando se supera;
-- superar el umbral no implica rechazo automático;
+- mientras falte pago o seña previa, el archivo permanece del lado del cliente y no utiliza almacenamiento ni procesamiento del servidor;
+- el criterio por monto permite aprobación automática hasta un umbral monetario que se parametriza en Fase 3;
+- cuando el pedido supera el umbral, la Fase 3 exige una seña previa configurable antes de continuar;
+- superar el umbral no deriva automáticamente a revisión humana ni implica rechazo automático;
 - los montos, porcentajes y medios se completan en la Fase 3;
 - los estados internos no se editan y el backend conserva la decisión final.
 
 ## 7. WF-CFG-04 - Configurar pagos
 
-Debe mostrar primero decisiones de negocio:
+La vista debe comenzar mostrando el **modelo heredado de Fase 2** y explicar que las opciones incompatibles permanecen visibles pero deshabilitadas.
 
-- pago previo;
-- pago al entregar;
-- modelo compatible definido por perfil.
+### Matriz de medios por modelo
 
-Después muestra medios:
+#### Control manual
 
-- efectivo;
-- transferencia;
-- pago digital;
-- otros módulos disponibles.
+- transferencia: disponible;
+- efectivo: disponible;
+- pago digital: disponible;
+- la aprobación continúa siendo humana;
+- la seña, si se configura, funciona como regla financiera opcional.
 
-Las combinaciones incompatibles quedan deshabilitadas con explicación.
+#### Control condicional - Pago previo
+
+- transferencia: disponible si puede acreditarse;
+- efectivo: deshabilitado para cumplir la condición;
+- pago digital: disponible;
+- debe existir al menos un medio acreditable;
+- el archivo permanece del lado del cliente hasta acreditar el total;
+- la seña no aplica.
+
+#### Control condicional - Pago de seña
+
+- transferencia: disponible para acreditar la seña;
+- efectivo: deshabilitado para acreditar la seña previa;
+- pago digital: disponible para acreditar la seña;
+- el archivo permanece del lado del cliente hasta acreditar la seña;
+- la condición de seña viene fijada por Fase 2.
+
+#### Control condicional - Monto del pedido
+
+- transferencia: disponible;
+- efectivo: disponible como medio general para pedidos dentro del umbral y para el saldo posterior cuando corresponda;
+- pago digital: disponible;
+- la aprobación hasta el umbral es automática;
+- para pedidos superiores al umbral, la seña previa debe acreditarse mediante transferencia, pago digital u otro medio acreditable;
+- efectivo no puede utilizarse para acreditar esa seña previa.
+
+La interfaz debe diferenciar **medios generales habilitados** de **medios válidos para acreditar una condición previa**.
 
 ## 8. WF-CFG-05 - Configurar seña
 
-Controles propuestos:
+Los controles dependen del modelo heredado.
 
-- requiere seña o no;
-- monto fijo;
-- porcentaje;
-- condición de aplicación;
-- ejemplo calculado;
-- momento necesario para avanzar.
+### Control manual
 
-Los criterios disponibles dependen del modelo certificado.
+- habilitar seña: opcional;
+- tipo: porcentaje o monto fijo;
+- valor: editable;
+- condición de aplicación: configurable dentro de parámetros permitidos;
+- la seña no aprueba el pedido y no reemplaza la revisión humana.
+
+### Pago previo
+
+- seña: no aplica;
+- controles visibles pero deshabilitados;
+- explicación: el modelo exige pago total previo.
+
+### Pago de seña
+
+- la condición `pago de seña` está definida en Fase 2 y no puede apagarse ni sustituirse;
+- no debe existir un toggle para deshabilitar la seña;
+- la condición se muestra bloqueada;
+- tipo de seña: editable, por ejemplo porcentaje o monto fijo;
+- valor de la seña: editable;
+- hasta acreditarse la seña, el archivo permanece del lado del cliente.
+
+La referencia histórica de 30 % desde 200 carillas no constituye una condición fija de este modelo. Puede utilizarse como ejemplo o valor predeterminado, pero no debe imponerse en la interfaz.
+
+### Monto del pedido
+
+- condición: `por monto del pedido`, heredada de Fase 2 y bloqueada;
+- umbral de autoaprobación: input monetario editable;
+- pedidos hasta el umbral: pueden aprobarse automáticamente y no requieren seña previa;
+- pedidos superiores al umbral: se exige una seña previa configurable;
+- tipo de seña: porcentaje o monto fijo;
+- valor de seña: editable;
+- medios para acreditar la seña: transferencia, pago digital u otros acreditables;
+- efectivo puede mantenerse como medio general, pero no acredita la seña previa;
+- una vez acreditada la seña, el saldo restante conserva los medios generales habilitados.
+
+### Presentación común
+
+Cada variante debe incluir:
+
+- ejemplo operativo calculado;
+- explicación de qué campos provienen de Fase 2 y cuáles son editables;
+- simulación visual del recorrido desde Fase 1 → Fase 2 → Fase 3 → resultado.
 
 ## 9. WF-CFG-06 - Impresoras y capacidades
 
@@ -262,14 +324,16 @@ Debe ser una vista narrativa.
 
 Ejemplo:
 
-Un pedido compatible ingresa. Se revisa manualmente. Si requiere seña, queda bloqueado hasta registrar el pago. Después puede avanzar hacia la impresora seleccionada.
+Un pedido compatible ingresa. Se aplican el modelo operativo y la configuración financiera capturados. Si existe una condición económica previa, el archivo no se habilita hasta que esa condición quede acreditada. Después puede continuar hacia las reglas de producción.
 
 Secciones:
 
 - cambios respecto de la versión activa;
 - recorrido resultante;
 - ejemplo estándar;
+- ejemplo con pago previo;
 - ejemplo con seña;
+- ejemplo por monto dentro y fuera del umbral;
 - ejemplo con error;
 - módulos afectados;
 - advertencias.
@@ -280,7 +344,10 @@ Formato recomendado:
 
 | Conflicto | Por qué ocurre | Cómo resolver |
 |---|---|---|
-| Pago previo sin medio digital | No existe forma habilitada de completar el pago | Activar transferencia o elegir pago al entregar |
+| Pago previo sin medio acreditable | No existe forma habilitada de completar la condición | Activar transferencia o pago digital |
+| Pago previo con seña adicional | El modelo ya exige el 100 % previo | Deshabilitar la seña o elegir otro modelo |
+| Pago de seña con efectivo como única opción | El efectivo no puede acreditar una seña previa | Activar transferencia o pago digital |
+| Monto superior con seña sin medio acreditable | No existe forma de registrar la seña previa | Activar transferencia o pago digital |
 | Asignación automática sin capacidades | El sistema no puede comparar impresoras | Completar capacidades |
 | Módulo requerido no incluido | El perfil depende de una función no contratada | Elegir otro perfil o consultar plan |
 
@@ -491,7 +558,9 @@ La autorización real debe validarse en backend.
 |---|---|---|---|
 | Inicio de configuración | No existía como área central | El motor necesita mostrar versión y vigencia | Lista para mockup |
 | Variantes de CFG-001 | No se distinguía borrador de programación | Hace visible la exclusión entre edición y activación futura | Mockup V3 en revisión |
-| Selección por modelos | Configuración limitada | Evita construir reglas libres | Lista para mockup |
+| Selección por modelos | Configuración limitada | Evita construir reglas libres | Mockup V3 en revisión |
+| Pagos y seña heredados de Fase 2 | Las restricciones financieras se trataban de forma general | La Fase 3 debe mostrar únicamente combinaciones compatibles con el modelo elegido | Mockups V3 en definición |
+| Umbral monetario con seña escalonada | Superar el umbral implicaba revisión humana | Se redefine como flujo flexible: autoaprobación bajo umbral y seña acreditable por encima | Mockup V3 en definición |
 | Resumen y simulación | Sin previsualización integral | Permite comprender consecuencias | Lista para mockup |
 | Activar o programar | Sin flujo temporal | Define cuándo aplican los cambios | Lista para mockup |
 | Verificación reforzada | Acciones administrativas generales | Protege cambios operativos y financieros | Lista para mockup |
