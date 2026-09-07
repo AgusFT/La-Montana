@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-05 |
+| Fecha | 2026-09-07 |
 | Identificadores | Provisionales |
 | Propósito | Facilitar validación e integración posterior |
 
@@ -34,21 +34,29 @@ Criterios propuestos:
 - en Control manual todos los pedidos requieren decisión humana;
 - en Control condicional se muestran pago previo, pago de seña y monto total del pedido;
 - pago previo y seña bloquean la carga del archivo hasta su acreditación;
-- superar el umbral de monto deriva a revisión humana y no rechaza automáticamente;
+- en la condición por monto, hasta el umbral configurado el pedido puede aprobarse automáticamente;
+- cuando el pedido supera el umbral, el flujo financiero se completa en Fase 3 mediante una seña previa configurable y no mediante una revisión humana automática;
 - se muestran las condiciones de avance mediante una simulación de punta a punta;
 - los estados internos no pueden modificarse;
 - el backend valida la configuración.
 
 ### PROP-HU-ADM-003 - Configurar pagos y seña
 
-Como ADMIN_ADMIN quiero configurar medios de pago, momento de cobro y reglas de seña para reflejar la operación comercial de la imprenta.
+Como ADMIN_ADMIN quiero configurar medios de pago, momento de cobro y reglas de seña para reflejar la operación comercial de la imprenta sin romper las decisiones tomadas en Fase 2.
 
 Criterios propuestos:
 
-- se muestran solamente combinaciones compatibles;
-- efectivo puede vincularse con pago al entregar;
-- pago previo puede vincularse con medios digitales;
-- las reglas se muestran mediante ejemplos;
+- la interfaz muestra el modelo heredado de Fase 2 y solamente combinaciones compatibles;
+- en Control manual pueden habilitarse efectivo, transferencia y pago digital, y la seña es opcional;
+- en aprobación por pago previo, efectivo queda deshabilitado para satisfacer la condición, deben existir medios acreditables y la seña no aplica;
+- en aprobación por pago de seña, la condición viene fijada por Fase 2, no puede apagarse ni cambiarse, y Fase 3 permite configurar tipo y valor;
+- en aprobación por monto, el ADMIN_ADMIN configura el valor del umbral monetario;
+- los pedidos dentro del umbral pueden aprobarse automáticamente y utilizar efectivo si está habilitado;
+- para pedidos que superan el umbral se exige una seña previa configurable;
+- la seña de pedidos superiores debe acreditarse por transferencia, pago digital u otro medio acreditable; efectivo no satisface la seña previa;
+- el saldo restante puede abonarse mediante los medios generales habilitados, incluido efectivo cuando corresponda;
+- la regla histórica del 30 % desde 200 carillas se conserva solo como antecedente o valor predeterminado configurable y no como condición fija;
+- las reglas se muestran mediante ejemplos y una simulación del recorrido desde Fase 1, Fase 2 y Fase 3;
 - ninguna modificación se activa sin confirmación.
 
 ### PROP-HU-ADM-004 - Configurar impresoras
@@ -260,6 +268,8 @@ Las historias de cuenta corriente pueden representarse como exploración visual,
 | Control manual y condicional | Cerrar el alcance operativo de la Fase 2 | Separa decisión humana de condiciones certificadas | Confirmado |
 | Tres condiciones certificadas | Evitar reglas libres de aprobación | Mantiene recorridos predecibles y validables | Confirmado |
 | Archivo retenido en cliente | No se explicitaba el uso de recursos antes del pago | Evita almacenamiento y procesamiento antes de acreditar pago o seña | Confirmado |
+| Matriz financiera heredada | Fase 3 no explicitaba dependencias de Fase 2 | Evita medios y reglas incompatibles con el modelo seleccionado | Confirmado para revisión |
+| Umbral con seña escalonada | El modelo por monto no definía el cobro para trabajos superiores | Permite trabajos chicos sin seña y protege pedidos mayores con acreditación previa | Confirmado para revisión |
 | Previsualizar consecuencias | Hacer configuración comprensible | Facilita instalación remota y reduce errores | Confirmado |
 | Activar o programar | Definir vigencia | Permite aplicar cambios sin retroactividad | Confirmado |
 | Historial de versiones | Auditar cambios | Cada activación debe ser trazable | Confirmado |
