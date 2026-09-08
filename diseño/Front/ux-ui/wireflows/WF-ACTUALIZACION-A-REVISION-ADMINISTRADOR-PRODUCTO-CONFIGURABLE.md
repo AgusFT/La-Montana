@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.4 - Propuesta |
+| Versión | 2.5 - Propuesta |
 | Estado | Actualización a revisión |
 | Fecha | 2026-09-08 |
 | Plataforma principal | Web administrativa |
@@ -53,8 +53,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-CFG-03 | Configurar aprobación | Tres mockups V3 en revisión |
 | WF-CFG-04 | Configurar pagos | Mockups V3 en definición |
 | WF-CFG-05 | Configurar seña | Mockups V3 en definición |
-| WF-CFG-06 | Impresoras y capacidades | Definición funcional cerrada; lista para mockup |
-| WF-CFG-07 | Método de asignación | Definición funcional cerrada; lista para mockup |
+| WF-CFG-06 | Impresoras y capacidades | Mockups V3 aprobados para revisión |
+| WF-CFG-07 | Método de asignación | Mockups V3 aprobados para revisión |
 | WF-CFG-08 | Módulos contratados y activos | Lista para mockup |
 | WF-CFG-09 | Entrega y puntos habilitados | Lista para mockup |
 | WF-CFG-10 | Resumen y simulación | Lista para mockup |
@@ -67,8 +67,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-OPE-01 | Confirmar pausa | Lista para mockup |
 | WF-OPE-02 | Sistema pausado | Lista para mockup |
 | WF-OPE-03 | Confirmar reanudación | Lista para mockup |
-| WF-OPE-04 | Registrar recarga de papel | Lista para mockup operativo |
-| WF-OPE-05 | Seleccionar impresora compatible | Lista para mockup operativo |
+| WF-OPE-04 | Registrar recarga de papel | Mockup operativo V3 aprobado para revisión |
+| WF-OPE-05 | Seleccionar impresora compatible | Mockup operativo V3 aprobado para revisión |
 | WF-COT-01 | Aviso de inactividad | Lista para mockup cliente |
 | WF-COT-02 | Cuenta regresiva | Lista para mockup cliente |
 | WF-COT-03 | Bloqueo por pausa | Lista para mockup cliente |
@@ -715,11 +715,11 @@ La autorización real debe validarse en backend.
 | Selección por modelos | Configuración limitada | Evita construir reglas libres | Mockup V3 en revisión |
 | Pagos y seña heredados de Fase 2 | Las restricciones financieras se trataban de forma general | La Fase 3 debe mostrar únicamente combinaciones compatibles con el modelo elegido | Mockups V3 en definición |
 | Umbral monetario con seña escalonada | Superar el umbral implicaba revisión humana | Se redefine como flujo flexible: autoaprobación bajo umbral y seña acreditable por encima | Mockup V3 en definición |
-| Impresoras con ciclo Operativa/Deshabilitada | La vista solo enumeraba datos generales | Evita editar equipos habilitados y concentra eliminación en edición segura | Lista para mockup Fase 4 |
-| Compatibilidad y recomendación | No se explicaba cómo se elegía una impresora | El sistema filtra por formato/color y asiste la selección manual | Lista para mockup Fase 4 |
-| Disponibilidad estimada de papel | Capacidad y disponibilidad no tenían modelo operativo | Permite estimar continuidad de trabajo desde fuera de la oficina | Lista para mockup Fase 4 |
-| Recarga manual de papel | No existía evento de sincronización | Permite restablecer el estimado al 100 % después de completar físicamente el faltante | Lista para mockup operativo |
-| Asignación automática futura | Se mencionaba como opción cuando estuviera certificada | En V1 queda explícitamente visible pero deshabilitada | Lista para mockup Fase 4 |
+| Impresoras con ciclo Operativa/Deshabilitada | La vista solo enumeraba datos generales | Evita editar equipos habilitados y concentra eliminación en edición segura | Mockups V3 aprobados para revisión |
+| Compatibilidad y recomendación | No se explicaba cómo se elegía una impresora | El sistema filtra por formato/color y asiste la selección manual | Mockup operativo V3 aprobado para revisión |
+| Disponibilidad estimada de papel | Capacidad y disponibilidad no tenían modelo operativo | Permite estimar continuidad de trabajo desde fuera de la oficina | Mockups V3 aprobados para revisión |
+| Recarga manual de papel | No existía evento de sincronización | Permite restablecer el estimado al 100 % después de completar físicamente el faltante | Mockup operativo V3 aprobado para revisión |
+| Asignación automática futura | Se mencionaba como opción cuando estuviera certificada | En V1 queda explícitamente visible pero deshabilitada | Representada como opción futura |
 | Resumen y simulación | Sin previsualización integral | Permite comprender consecuencias | Lista para mockup |
 | Activar o programar | Sin flujo temporal | Define cuándo aplican los cambios | Lista para mockup |
 | Verificación reforzada | Acciones administrativas generales | Protege cambios operativos y financieros | Lista para mockup |
@@ -738,3 +738,11 @@ Este wireflow se justifica por los cambios del motor de configuración y debe co
 - analisis/historias-de-usuarios/actualizacion-a-revision-historias-producto-configurable.md
 - analisis/casos-de-uso/09-configuracion-del-sistema/actualizacion-a-revision-casos-de-uso-configuracion.md
 - analisis/casos-de-uso/10-disponibilidad-operativa/actualizacion-a-revision-casos-de-uso-disponibilidad.md
+- diseño/Front/ux-ui/wireflows/WF-FASE-4-IMPRESORAS-ACCESOS-OPERATIVOS.md
+
+### Evidencia V3 de Fase 4
+
+- [MC-ADM-CFG-006 - Impresoras y capacidades](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-006-impresoras-capacidades.png)
+- [MC-ADM-CFG-007 - Editar impresora](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-007-editar-impresora.png)
+- [MC-ADM-OPE-004 - Registrar recarga de papel](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-OPE-004-registrar-recarga-papel.png)
+- [MC-ADM-OPE-005 - Asignar impresora](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-OPE-005-asignar-impresora.png)

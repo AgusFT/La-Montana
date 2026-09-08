@@ -2,8 +2,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 - Propuesta |
-| Estado | Actualización a revisión |
+| Versión | 1.1 - Propuesta |
+| Estado | Actualización a revisión - evidencia visual aprobada |
 | Fecha | 2026-09-08 |
 | Fase relacionada | Fase 4 - Impresoras, capacidades y asignación |
 | Wireflows relacionados | WF-CFG-06, WF-CFG-07 |
@@ -244,16 +244,30 @@ Una recarga o una asignación no crea una nueva versión de configuración.
 - El método de asignación se configura en Fase 4, pero la asignación concreta ocurre en operación.
 - Recarga y asignación se registran como eventos operativos y no generan una versión de configuración.
 
-## 12. Evidencia visual asociada
+## 12. Evidencia visual aprobada
 
-Los mockups de Fase 4 representan cuatro conceptos complementarios:
+La revisión del 08/09/2026 cerró cuatro mockups complementarios. Aunque se analizaron dentro de la Fase 4, las imágenes distinguen explícitamente el contexto de configuración de los contextos operativos.
 
-1. listado de impresoras y capacidades;
-2. edición de una impresora Deshabilitada;
-3. selección manual con compatibilidad y recomendación;
-4. registro y confirmación de recarga de papel.
+| Evidencia | Contexto | Decisión representada |
+|---|---|---|
+| [MC-ADM-CFG-006 - Impresoras y capacidades](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-006-impresoras-capacidades.png) | Motor de configuración | Lista equipos, estados, capacidades, disponibilidad estimada y contador histórico |
+| [MC-ADM-CFG-007 - Editar impresora](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-007-editar-impresora.png) | Motor de configuración | Solo una impresora Deshabilitada puede editarse, habilitarse o eliminarse |
+| [MC-ADM-OPE-004 - Registrar recarga](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-OPE-004-registrar-recarga-papel.png) | Operación diaria | Completar físicamente hasta la capacidad máxima y sincronizar el estimado sin reiniciar el histórico |
+| [MC-ADM-OPE-005 - Asignar impresora](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-OPE-005-asignar-impresora.png) | Producción de un trabajo | Compatibilidad y recomendación automáticas con confirmación manual del operador en V1 |
 
-Para la integración visual definitiva, el mockup de recarga debe entenderse como **panel operativo accesible desde el dashboard**, aunque forme parte del análisis funcional realizado durante la Fase 4.
+### 12.1 Configuración estable
+
+`MC-ADM-CFG-006` y `MC-ADM-CFG-007` pertenecen al asistente versionado. Allí se administran impresoras, capacidades y estados. No constituyen accesos para tareas rutinarias.
+
+### 12.2 Operación cotidiana
+
+`MC-ADM-OPE-004` y `MC-ADM-OPE-005` están deliberadamente fuera del marco visual del asistente:
+
+- la recarga se inicia desde `Dashboard → Estado de impresoras`;
+- la asignación se inicia desde un pedido o trabajo listo para producción;
+- ninguna de las dos acciones crea una nueva versión de configuración.
+
+Estas cuatro imágenes son la evidencia visual vigente de la Fase 4. Las pruebas o composiciones anteriores no deben utilizarse para presentación.
 
 ## 13. Referencias
 
@@ -262,3 +276,9 @@ Para la integración visual definitiva, el mockup de recarga debe entenderse com
 - `analisis/especificacion-de-requerimientos/actualizacion-a-revision-reglas-y-requerimientos-configurables.md`
 - `marco-del-proyecto/actualizacion-a-revision-trazabilidad-producto-configurable.md`
 - Issue #214 - Fase 4 - Impresoras, capacidades y asignación
+
+## 14. Registro de la revisión visual
+
+| Fecha | Cambio | Justificación | Estado |
+|---|---|---|---|
+| 2026-09-08 | Se vinculan los cuatro mockups confirmados | Cierra la evidencia de configuración, recarga y asignación sin mezclar sus puntos de acceso | Aprobado para revisión del equipo |

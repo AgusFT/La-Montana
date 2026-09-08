@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.4 - Propuesta |
+| Versión | 2.5 - Propuesta |
 | Estado | Actualización a revisión |
 | Fecha | 2026-09-08 |
 | Propósito | Relacionar decisiones, requerimientos, historias, casos candidatos y vistas |
@@ -162,7 +162,7 @@ Puede diseñarse inmediatamente:
 
 Para Fase 3, los mockups deben representar explícitamente la herencia de Fase 2, los medios acreditables y la regla escalonada por monto.
 
-Para Fase 4, los mockups deben representar como mínimo:
+Para Fase 4, los cuatro mockups aprobados representan:
 
 - identificación y capacidades de impresora;
 - estados Operativa y Deshabilitada;
@@ -176,6 +176,17 @@ Para Fase 4, los mockups deben representar como mínimo:
 - recomendación sin asignación automática;
 - Asignación manual como opción predeterminada de V1;
 - Asignación automática visible pero deshabilitada.
+
+### Evidencia visual trazable de Fase 4
+
+| Mockup | Reglas y requisitos principales | Historia / caso | Wireflow | Contexto |
+|---|---|---|---|---|
+| `MC-ADM-CFG-006-impresoras-capacidades.png` | PROP-RN-I-016 a 018; PROP-RF-CFG-034 a 039 | PROP-HU-ADM-004; CAND-CU-CFG-012 | WF-CFG-06 | Configuración versionada |
+| `MC-ADM-CFG-007-editar-impresora.png` | PROP-RN-I-017 y 018; PROP-RF-CFG-035 y 036 | PROP-HU-ADM-004; CAND-CU-CFG-012 | WF-CFG-06 | Configuración versionada |
+| `MC-ADM-OPE-004-registrar-recarga-papel.png` | PROP-RN-O-006 a 008; PROP-RF-OPE-010 a 012; PROP-RNF-AUD-005 | PROP-HU-OPE-004; CAND-CU-OPE-005 | WF-OPE-04 | Operación diaria |
+| `MC-ADM-OPE-005-asignar-impresora.png` | PROP-RF-CFG-037 y 038; reglas de compatibilidad y papel insuficiente | PROP-HU-OPE-003; CAND-CU-OPE-006 | WF-CFG-07 / WF-OPE-05 | Producción de un trabajo |
+
+La recarga y la asignación concreta se documentan junto con la Fase 4 por su dependencia de las capacidades configuradas, pero no modifican la versión activa del motor.
 
 Cuenta corriente debe diseñarse como exploración identificada y revisarse antes de consolidarse.
 
@@ -195,6 +206,7 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 | Compatibilidad y asignación manual Fase 4 | No se definía el criterio operativo | Permite recomendar equipos compatibles sin automatizar la decisión en V1 | Confirmado |
 | Papel estimado y recarga | No existía trazabilidad del insumo para impresión remota | Separa capacidad configurada, consumo, recarga y contador histórico | Confirmado |
 | Automática fuera de V1 | La opción futura podía interpretarse como disponible | Queda visible pero bloqueada hasta contar con un modelo certificado | Futuro |
+| Evidencia visual Fase 4 | Las reglas estaban cerradas pero los mockups seguían pendientes | Vincula cada decisión con una pantalla aprobada y diferencia configuración de operación | Confirmado para revisión |
 | Referencias a documentos afectados | La integración será realizada después | Facilita revisión de Agustín y su IA | Confirmado |
 
 ## 10. Justificación general
