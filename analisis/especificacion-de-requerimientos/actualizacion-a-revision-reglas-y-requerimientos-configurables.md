@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.3 - Propuesta |
+| Versión | 2.4 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Alcance | Producto definido |
 | Identificadores | Provisionales, no oficiales |
 
@@ -35,6 +35,10 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-I-013 | Una versión programada es inmutable hasta activarse o cancelarse |
 | PROP-RN-I-014 | Si el modelo exige pago total o seña previa, el archivo no se almacena ni procesa en el servidor hasta acreditar la condición |
 | PROP-RN-I-015 | Una condición económica previa solo puede considerarse satisfecha mediante un medio de pago acreditable por el sistema o por un operador autorizado |
+| PROP-RN-I-016 | Una impresora configurada posee únicamente los estados Operativa y Deshabilitada |
+| PROP-RN-I-017 | Una impresora Operativa puede recibir trabajos y no puede editarse ni eliminarse; una impresora Deshabilitada no recibe trabajos y puede editarse |
+| PROP-RN-I-018 | La eliminación solo está disponible dentro de la edición de una impresora Deshabilitada |
+| PROP-RN-I-019 | La identidad técnica de una impresora permanece estable aunque cambie su nombre visible, y su eliminación no debe romper referencias históricas de trabajos procesados |
 
 ### 2.2 Reglas configurables
 
@@ -43,8 +47,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-C-001 | La imprenta selecciona un modelo de aprobación certificado |
 | PROP-RN-C-002 | La imprenta configura medios y momentos de pago compatibles |
 | PROP-RN-C-003 | La imprenta configura reglas de seña dentro de parámetros permitidos |
-| PROP-RN-C-004 | La imprenta registra impresoras y capacidades |
-| PROP-RN-C-005 | La imprenta selecciona asignación manual o automática cuando esté disponible |
+| PROP-RN-C-004 | La imprenta registra cada impresora con identificación visible, capacidades de formato, capacidad B/N o color, dúplex cuando corresponda y capacidad máxima de hojas |
+| PROP-RN-C-005 | En V1 la asignación de impresora es manual y predeterminada; la asignación automática permanece visible como evolución futura deshabilitada hasta disponer de un modelo certificado |
 | PROP-RN-C-006 | La imprenta activa módulos incluidos en su plan |
 | PROP-RN-C-007 | La imprenta configura puntos y modalidades de entrega |
 | PROP-RN-C-008 | La imprenta activa cambios inmediatamente o los programa |
@@ -56,6 +60,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-C-014 | En aprobación por monto, el ADMIN_ADMIN configura un umbral monetario; hasta ese umbral el pedido puede aprobarse automáticamente y utilizar medios flexibles, incluido efectivo |
 | PROP-RN-C-015 | En aprobación por monto, superar el umbral exige una seña previa configurable antes de continuar; la seña debe acreditarse mediante transferencia, pago digital u otro medio acreditable |
 | PROP-RN-C-016 | En aprobación por monto, el saldo restante luego de acreditar la seña puede abonarse mediante cualquiera de los medios generales habilitados, incluido efectivo cuando corresponda |
+| PROP-RN-C-017 | La capacidad máxima de hojas de cada impresora se carga manualmente al crearla o editarla mientras está Deshabilitada |
+| PROP-RN-C-018 | El sistema puede recomendar una impresora entre las compatibles utilizando las características del trabajo y la disponibilidad estimada de papel, sin realizar asignación automática en V1 |
 
 ### 2.3 Reglas operativas
 
@@ -66,6 +72,9 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-O-003 | La pausa bloquea cotizaciones y confirmaciones nuevas |
 | PROP-RN-O-004 | La pausa no elimina ni reconfigura pedidos existentes |
 | PROP-RN-O-005 | Toda pausa y reanudación queda auditada |
+| PROP-RN-O-006 | La disponibilidad de papel es una estimación calculada desde la capacidad configurada, el consumo de trabajos y los eventos manuales de recarga |
+| PROP-RN-O-007 | Registrar una recarga presupone que el operador completó físicamente la impresora hasta su capacidad máxima configurada; el evento restablece la disponibilidad estimada al 100 % |
+| PROP-RN-O-008 | Una recarga no reinicia el contador histórico de hojas impresas |
 
 ### 2.4 Reglas de cotización
 
@@ -128,8 +137,20 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-029: En aprobación por monto, la acreditación de la seña para pedidos superiores debe limitarse a transferencia, pago digital u otros medios acreditables; efectivo no debe utilizarse para acreditar la seña previa.
 - PROP-RF-CFG-030: En aprobación por monto, el sistema debe permitir que el saldo restante después de la seña utilice los medios generales habilitados, incluido efectivo cuando corresponda.
 - PROP-RF-CFG-031: La interfaz de Fase 3 debe mostrar una simulación del flujo resultante que conecte la configuración heredada de Fase 1 y Fase 2 con las decisiones financieras de Fase 3.
+- PROP-RF-CFG-032: El sistema debe registrar una identidad técnica estable y un nombre visible editable para cada impresora.
+- PROP-RF-CFG-033: El sistema debe permitir configurar formatos admitidos, capacidad B/N o color, dúplex cuando corresponda y capacidad máxima de hojas.
+- PROP-RF-CFG-034: El sistema debe manejar solamente los estados Operativa y Deshabilitada para las impresoras de esta versión.
+- PROP-RF-CFG-035: El sistema debe impedir la edición de una impresora Operativa y habilitarla únicamente cuando la impresora se encuentre Deshabilitada.
+- PROP-RF-CFG-036: La opción Eliminar impresora debe aparecer únicamente dentro de la edición de una impresora Deshabilitada y no debe romper la trazabilidad histórica.
+- PROP-RF-CFG-037: El sistema debe determinar automáticamente la compatibilidad de un trabajo con las impresoras a partir del formato de hoja y de sus necesidades de B/N o color, además de otras capacidades configuradas aplicables.
+- PROP-RF-CFG-038: En V1, el sistema debe utilizar asignación manual como modalidad predeterminada y puede recomendar una impresora entre las compatibles; la asignación automática debe permanecer deshabilitada.
+- PROP-RF-CFG-039: El sistema debe mantener por impresora un contador histórico acumulado de hojas impresas independiente de la disponibilidad actual de papel.
+- PROP-RF-CFG-040: El sistema debe calcular y mostrar la cantidad estimada de hojas disponibles y su porcentaje respecto de la capacidad máxima configurada.
+- PROP-RF-CFG-041: Al registrar la ejecución de un trabajo, el sistema debe descontar de la disponibilidad estimada la cantidad de hojas calculada para ese trabajo.
+- PROP-RF-CFG-042: El sistema debe ofrecer una acción manual Registrar recarga de papel que, tras confirmación del operador de que completó físicamente la impresora, restablezca la disponibilidad estimada a la capacidad máxima configurada y al 100 %.
+- PROP-RF-CFG-043: La recomendación de impresora puede considerar compatibilidad y disponibilidad estimada de papel, pero la decisión final de asignación permanece manual en V1.
 
-### 3.2 Pausa operativa
+### 3.2 Pausa y operación diaria
 
 - PROP-RF-OPE-001: El sistema debe permitir pausar la recepción a ADMIN_ADMIN y empleados autenticados.
 - PROP-RF-OPE-002: El sistema debe solicitar reconfirmación de contraseña.
@@ -140,6 +161,9 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-OPE-007: El sistema debe comunicar la pausa al cliente.
 - PROP-RF-OPE-008: El sistema debe permitir reanudar mediante reconfirmación.
 - PROP-RF-OPE-009: El sistema debe registrar pausa y reanudación.
+- PROP-RF-OPE-010: El sistema debe permitir a un usuario interno autorizado registrar una recarga de papel de una impresora.
+- PROP-RF-OPE-011: Antes de confirmar la recarga, la interfaz debe informar la cantidad estimada actual, la capacidad máxima y que la acción supone haber completado físicamente la bandeja hasta el máximo configurado.
+- PROP-RF-OPE-012: La recarga debe restablecer únicamente el contador de disponibilidad actual y no el contador histórico de hojas impresas.
 
 ### 3.3 Cotización y sesión
 
@@ -186,6 +210,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-AUD-002: Pausas, reanudaciones y cancelaciones programadas deben auditarse.
 - PROP-RNF-AUD-003: Las decisiones sobre cuentas corrientes deben conservar trazabilidad.
 - PROP-RNF-AUD-004: Los registros históricos no deben eliminarse por cambios posteriores.
+- PROP-RNF-AUD-005: Los eventos de recarga de papel deben registrar al menos impresora, usuario y momento para poder evaluar la vigencia de la estimación.
 
 ### 4.3 Usabilidad
 
@@ -195,6 +220,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-USA-004: Los errores deben indicar cómo resolver el conflicto.
 - PROP-RNF-USA-005: El estado activo y la fecha de vigencia deben ser visibles.
 - PROP-RNF-USA-006: La Fase 3 debe explicar qué decisiones provienen de Fase 2 y cuáles permanecen editables.
+- PROP-RNF-USA-007: La disponibilidad de papel debe identificarse como estimada y diferenciarse del contador histórico de hojas impresas.
+- PROP-RNF-USA-008: Una impresora incompatible debe explicar la causa, por ejemplo formato no admitido o ausencia de impresión color.
 
 ### 4.4 Integridad y rendimiento
 
@@ -203,6 +230,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-INT-003: La activación y captura de versión deben ser consistentes.
 - PROP-RNF-INT-004: La eliminación de temporales debe ejecutarse aun ante cierre inesperado.
 - PROP-RNF-INT-005: La pausa debe propagarse a los puntos de entrada en tiempo adecuado.
+- PROP-RNF-INT-006: La disponibilidad de papel debe actualizarse de forma consistente al registrar trabajos y recargas, sin confundirse con una lectura física de sensores.
 
 ## 5. Criterios de aceptación transversales
 
@@ -224,6 +252,13 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - En aprobación por monto, los pedidos hasta el umbral pueden aprobarse automáticamente y utilizar efectivo si está habilitado.
 - En aprobación por monto, superar el umbral activa una seña previa configurable; no implica revisión humana automática.
 - La seña de un pedido superior al umbral debe acreditarse por un medio acreditable y el saldo puede conservar medios flexibles.
+- Las impresoras solo tienen estados Operativa o Deshabilitada.
+- Una impresora Operativa no puede editarse ni eliminarse.
+- Una impresora Deshabilitada puede editarse; Eliminar solo aparece dentro de esa edición.
+- El sistema identifica compatibilidad según características conocidas del trabajo y capacidades registradas.
+- En V1 la asignación es manual y la automática permanece deshabilitada.
+- La disponibilidad de papel se expresa como cantidad y porcentaje estimados.
+- Registrar una recarga presupone completar físicamente la capacidad máxima y restablece la estimación a 100 % sin afectar el contador histórico.
 - Las decisiones de cuenta corriente no autorizan producción automáticamente.
 
 ## 6. Reglas anteriores que requieren reinterpretación
@@ -236,7 +271,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | Umbral de monto con derivación humana | El umbral separa trabajos pequeños autoaprobables de trabajos superiores que requieren seña previa configurable |
 | Flujo único de avance | Estados fijos con condiciones de avance configurables |
 | Configuración como mejora posterior | Motor central del producto definido |
-| Asignación manual de impresora | Modo inicial, con automatización controlada posterior |
+| Asignación manual de impresora | Se confirma como modalidad predeterminada de V1; la automatización se mantiene visible pero deshabilitada hasta contar con un modelo certificado |
+| Disponibilidad de papel no modelada | Se incorpora una estimación basada en capacidad configurada, consumo de trabajos y recarga manual a capacidad máxima |
 
 ## 7. Registro de cambios y justificación
 
@@ -250,6 +286,10 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | Condiciones económicas previas | Evitar almacenar trabajos que todavía no pueden avanzar | Protege almacenamiento y procesamiento hasta acreditar pago o seña | Confirmado |
 | Matriz de pagos de Fase 3 | Evitar contradicciones entre aprobación y cobro | Habilita o bloquea medios según el modelo heredado | Confirmado para revisión |
 | Umbral por monto con seña escalonada | Dar flexibilidad a trabajos chicos sin perder resguardo en montos mayores | Permite efectivo bajo umbral y exige seña acreditable por encima | Confirmado para revisión |
+| Estados y edición de impresoras | Evitar modificaciones durante operación y controlar bajas | Separa operación, mantenimiento y eliminación de equipos | Confirmado |
+| Compatibilidad y recomendación de impresora | Evitar asignaciones técnicamente inválidas y mejorar operación remota | Usa formato, color y disponibilidad para asistir la selección manual | Confirmado |
+| Disponibilidad estimada de papel | Permitir decidir remotamente si una impresora puede seguir trabajando | Vincula capacidad configurada, consumo y recarga física | Confirmado |
+| Recarga manual a capacidad máxima | Mantener sincronizado el estimado sin depender de sensores | El operador completa físicamente el faltante y confirma el reinicio a 100 % | Confirmado |
 | RF de cotización temporal | Proteger condiciones y recursos | Vincula la cotización con una versión | Confirmado |
 | RF de pausa | Resolver emergencias operativas | Actúa por encima de la configuración | Confirmado |
 | RNF de UX guiada | Facilitar instalación remota | El motor debe ser comprensible sin asistencia presencial | Confirmado |
