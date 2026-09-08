@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.3 - Propuesta |
+| Versión | 2.4 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Plataforma principal | Web administrativa |
 | Actor principal | ADMIN_ADMIN |
 | Actores complementarios | Empleado, Cliente, Sistema |
@@ -53,8 +53,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-CFG-03 | Configurar aprobación | Tres mockups V3 en revisión |
 | WF-CFG-04 | Configurar pagos | Mockups V3 en definición |
 | WF-CFG-05 | Configurar seña | Mockups V3 en definición |
-| WF-CFG-06 | Impresoras y capacidades | Lista para mockup |
-| WF-CFG-07 | Método de asignación | Lista para mockup |
+| WF-CFG-06 | Impresoras y capacidades | Definición funcional cerrada; lista para mockup |
+| WF-CFG-07 | Método de asignación | Definición funcional cerrada; lista para mockup |
 | WF-CFG-08 | Módulos contratados y activos | Lista para mockup |
 | WF-CFG-09 | Entrega y puntos habilitados | Lista para mockup |
 | WF-CFG-10 | Resumen y simulación | Lista para mockup |
@@ -67,6 +67,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-OPE-01 | Confirmar pausa | Lista para mockup |
 | WF-OPE-02 | Sistema pausado | Lista para mockup |
 | WF-OPE-03 | Confirmar reanudación | Lista para mockup |
+| WF-OPE-04 | Registrar recarga de papel | Lista para mockup operativo |
+| WF-OPE-05 | Seleccionar impresora compatible | Lista para mockup operativo |
 | WF-COT-01 | Aviso de inactividad | Lista para mockup cliente |
 | WF-COT-02 | Cuenta regresiva | Lista para mockup cliente |
 | WF-COT-03 | Bloqueo por pausa | Lista para mockup cliente |
@@ -266,34 +268,134 @@ Cada variante debe incluir:
 
 ## 9. WF-CFG-06 - Impresoras y capacidades
 
-Listado con:
+### Objetivo
 
-- nombre;
-- estado;
-- tecnología;
-- formatos;
-- color;
-- dúplex;
-- capacidad;
-- disponibilidad;
-- editar;
-- deshabilitar.
+Permitir que el ADMIN_ADMIN identifique cada impresora, declare qué trabajos puede realizar y configure la capacidad necesaria para que el sistema calcule compatibilidad y disponibilidad estimada de papel.
 
-Una impresora no operativa debe identificarse claramente.
+### Listado
+
+Cada impresora debe mostrar como mínimo:
+
+- nombre visible;
+- estado: Operativa o Deshabilitada;
+- formatos admitidos;
+- B/N o color;
+- dúplex cuando corresponda;
+- capacidad máxima de hojas;
+- hojas disponibles estimadas;
+- porcentaje estimado disponible;
+- contador histórico de hojas impresas;
+- acción Deshabilitar cuando está Operativa;
+- acción Editar únicamente cuando está Deshabilitada.
+
+La identidad técnica es estable y no depende del nombre visible.
+
+### Estados y acciones
+
+#### Operativa
+
+- puede recibir trabajos;
+- no puede editarse;
+- no puede eliminarse;
+- puede Deshabilitarse.
+
+#### Deshabilitada
+
+- no recibe nuevos trabajos;
+- puede editarse;
+- puede volver a habilitarse posteriormente;
+- dentro de Editar aparece al final la acción Eliminar impresora.
+
+La opción Eliminar no debe aparecer en el listado general ni para una impresora Operativa.
+
+### Alta y edición
+
+La edición debe contemplar:
+
+- nombre visible;
+- formatos compatibles;
+- capacidad B/N o color;
+- dúplex cuando aplique;
+- capacidad máxima de hojas;
+- explicación de que la disponibilidad de papel es estimada;
+- contador histórico visible pero no editable.
+
+La capacidad máxima de hojas se carga manualmente y actúa como base constante para el cálculo de disponibilidad.
+
+### Disponibilidad estimada de papel
+
+La interfaz debe separar:
+
+- **contador histórico de hojas impresas**, acumulado y no reiniciable por recarga;
+- **disponibilidad actual estimada**, expresada como `hojas disponibles / capacidad máxima` y porcentaje.
+
+Ejemplo:
+
+`420 / 500 hojas · 84 % estimado`
+
+Cada trabajo efectivamente procesado descuenta la cantidad de hojas calculada para ese trabajo.
+
+Debe evitarse presentar esta métrica como lectura física de sensor.
 
 ## 10. WF-CFG-07 - Método de asignación
 
-Opciones:
+### V1
 
-- selección manual entre equipos compatibles;
-- asignación automática, cuando esté certificada.
+La opción predeterminada y disponible es:
 
-La opción automática explica que considera:
+- **Asignación manual**.
+
+El sistema determina compatibilidad automáticamente y puede recomendar una impresora, pero el usuario interno decide la asignación final.
+
+La opción:
+
+- **Asignación automática**
+
+debe permanecer visible, explicada y deshabilitada como evolución futura fuera de V1.
+
+### Compatibilidad
+
+El sistema conoce las características del trabajo y compara al menos:
+
+- formato de hoja requerido;
+- necesidad de B/N o color;
+- dúplex u otras capacidades configuradas cuando correspondan;
+- estado Operativa de la impresora.
+
+Una impresora incompatible permanece visible cuando sea útil para explicar la decisión, pero no puede seleccionarse y debe mostrar la causa.
+
+Ejemplos:
+
+- `No compatible · el trabajo requiere color y esta impresora solo imprime B/N`;
+- `No compatible · el formato A3 no está admitido`;
+- `No disponible · impresora deshabilitada`.
+
+### Recomendación en V1
+
+Entre las impresoras compatibles, el sistema puede marcar una como `Recomendada` considerando:
+
+- compatibilidad técnica;
+- disponibilidad estimada de papel;
+- capacidad suficiente para el trabajo;
+- estado operativo.
+
+Si una impresora es técnicamente compatible pero no posee suficiente papel estimado para completar el trabajo, debe mostrar una advertencia y no debería ser la recomendada.
+
+La recomendación no constituye asignación automática.
+
+### Evolución futura
+
+Una futura asignación automática certificada podrá considerar además:
 
 - características del trabajo;
 - capacidad;
-- carga;
-- estado operativo.
+- carga de trabajos;
+- páginas u hojas pendientes;
+- disponibilidad de papel;
+- estado operativo;
+- otros criterios certificados.
+
+No se define todavía el algoritmo ni la ponderación. Esta opción permanece fuera de V1.
 
 ## 11. WF-CFG-08 - Módulos
 
@@ -324,7 +426,7 @@ Debe ser una vista narrativa.
 
 Ejemplo:
 
-Un pedido compatible ingresa. Se aplican el modelo operativo y la configuración financiera capturados. Si existe una condición económica previa, el archivo no se habilita hasta que esa condición quede acreditada. Después puede continuar hacia las reglas de producción.
+Un pedido compatible ingresa. Se aplican el modelo operativo y la configuración financiera capturados. Si existe una condición económica previa, el archivo no se habilita hasta que esa condición quede acreditada. Después puede continuar hacia las reglas de producción y la selección de una impresora compatible.
 
 Secciones:
 
@@ -334,6 +436,8 @@ Secciones:
 - ejemplo con pago previo;
 - ejemplo con seña;
 - ejemplo por monto dentro y fuera del umbral;
+- ejemplo de trabajo con impresoras compatibles, incompatibles y una recomendada;
+- disponibilidad estimada de papel de las impresoras compatibles;
 - ejemplo con error;
 - módulos afectados;
 - advertencias.
@@ -348,7 +452,10 @@ Formato recomendado:
 | Pago previo con seña adicional | El modelo ya exige el 100 % previo | Deshabilitar la seña o elegir otro modelo |
 | Pago de seña con efectivo como única opción | El efectivo no puede acreditar una seña previa | Activar transferencia o pago digital |
 | Monto superior con seña sin medio acreditable | No existe forma de registrar la seña previa | Activar transferencia o pago digital |
-| Asignación automática sin capacidades | El sistema no puede comparar impresoras | Completar capacidades |
+| Impresora incompatible | El trabajo requiere un formato o capacidad que el equipo no posee | Seleccionar otra impresora compatible |
+| Papel estimado insuficiente | La impresora no tendría hojas suficientes para completar el trabajo | Recargar papel o seleccionar otra impresora |
+| Intento de editar impresora Operativa | Las capacidades no pueden cambiar mientras el equipo está habilitado para recibir trabajos | Deshabilitar la impresora antes de editar |
+| Asignación automática en V1 | La automatización todavía no dispone de un modelo certificado | Mantener Asignación manual |
 | Módulo requerido no incluido | El perfil depende de una función no contratada | Elegir otro perfil o consultar plan |
 
 No debe utilizar mensajes genéricos.
@@ -454,7 +561,50 @@ Modal:
 - advertencia sobre cotizaciones todavía vigentes;
 - botón Reanudar recepción.
 
-## 22. Impacto en cliente
+## 22. WF-OPE-04 - Registrar recarga de papel
+
+Debe estar disponible desde la gestión operativa de la impresora sin obligar a editar su configuración.
+
+Contenido:
+
+- impresora;
+- disponibilidad actual estimada;
+- capacidad máxima configurada;
+- cantidad faltante calculada;
+- texto que indique que la recarga debe completar físicamente el faltante hasta el máximo;
+- cancelar;
+- Confirmar recarga.
+
+Ejemplo:
+
+`Disponibilidad estimada: 468 / 500 hojas`
+
+`Para sincronizar el sistema, completá físicamente las 32 hojas faltantes antes de confirmar.`
+
+Al confirmar:
+
+- disponibilidad estimada → `500 / 500`;
+- porcentaje → `100 %`;
+- contador histórico de hojas impresas → sin cambios;
+- registrar usuario y momento.
+
+La acción no admite una recarga parcial en V1.
+
+## 23. WF-OPE-05 - Seleccionar impresora compatible
+
+Para un trabajo concreto debe mostrar:
+
+- resumen del trabajo: formato, B/N o color, dúplex cuando corresponda y hojas calculadas;
+- impresoras compatibles seleccionables;
+- impresoras incompatibles con causa visible;
+- disponibilidad estimada en hojas y porcentaje;
+- advertencia de papel insuficiente cuando corresponda;
+- etiqueta Recomendada en una impresora compatible cuando el sistema pueda sugerirla;
+- confirmación de la elección manual.
+
+En V1 no existe botón ni acción de asignación automática.
+
+## 24. Impacto en cliente
 
 ### WF-COT-01 - Aviso de actividad
 
@@ -487,7 +637,7 @@ Modal:
 - Aceptar y continuar;
 - Cancelar.
 
-## 23. Cuenta corriente - Vistas exploratorias
+## 25. Cuenta corriente - Vistas exploratorias
 
 ### WF-CC-01 - Listado
 
@@ -525,11 +675,12 @@ Modal:
 
 Estas vistas deben incluir una marca visible de Propuesta a revisión.
 
-## 24. Flujo principal del administrador
+## 26. Flujo principal del administrador
 
 Inicio de configuración
 → seleccionar modelo
 → completar parámetros
+→ configurar impresoras y asignación
 → validar
 → resolver conflictos
 → previsualizar
@@ -538,21 +689,24 @@ Inicio de configuración
 → activar o programar
 → consultar confirmación e historial.
 
-## 25. Permisos visuales
+## 27. Permisos visuales
 
 | Función | ADMIN_ADMIN | Empleado |
 |---|---:|---:|
 | Acceder a Configuración | Sí | No |
 | Crear versión | Sí | No |
+| Configurar impresoras y capacidades | Sí | No |
 | Activar o programar | Sí | No |
 | Consultar historial completo | Sí | No |
 | Pausar | Sí | Sí |
 | Reanudar | Sí | Sí |
+| Registrar recarga de papel | Sí | Sí, si está autorizado |
+| Seleccionar impresora para un trabajo | Sí | Sí, si está autorizado |
 | Administrar cuenta corriente | Sí | No |
 
 La autorización real debe validarse en backend.
 
-## 26. Registro de cambios y justificación
+## 28. Registro de cambios y justificación
 
 | Vista incorporada | Wireflow anterior | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
@@ -561,6 +715,11 @@ La autorización real debe validarse en backend.
 | Selección por modelos | Configuración limitada | Evita construir reglas libres | Mockup V3 en revisión |
 | Pagos y seña heredados de Fase 2 | Las restricciones financieras se trataban de forma general | La Fase 3 debe mostrar únicamente combinaciones compatibles con el modelo elegido | Mockups V3 en definición |
 | Umbral monetario con seña escalonada | Superar el umbral implicaba revisión humana | Se redefine como flujo flexible: autoaprobación bajo umbral y seña acreditable por encima | Mockup V3 en definición |
+| Impresoras con ciclo Operativa/Deshabilitada | La vista solo enumeraba datos generales | Evita editar equipos habilitados y concentra eliminación en edición segura | Lista para mockup Fase 4 |
+| Compatibilidad y recomendación | No se explicaba cómo se elegía una impresora | El sistema filtra por formato/color y asiste la selección manual | Lista para mockup Fase 4 |
+| Disponibilidad estimada de papel | Capacidad y disponibilidad no tenían modelo operativo | Permite estimar continuidad de trabajo desde fuera de la oficina | Lista para mockup Fase 4 |
+| Recarga manual de papel | No existía evento de sincronización | Permite restablecer el estimado al 100 % después de completar físicamente el faltante | Lista para mockup operativo |
+| Asignación automática futura | Se mencionaba como opción cuando estuviera certificada | En V1 queda explícitamente visible pero deshabilitada | Lista para mockup Fase 4 |
 | Resumen y simulación | Sin previsualización integral | Permite comprender consecuencias | Lista para mockup |
 | Activar o programar | Sin flujo temporal | Define cuándo aplican los cambios | Lista para mockup |
 | Verificación reforzada | Acciones administrativas generales | Protege cambios operativos y financieros | Lista para mockup |
@@ -569,7 +728,7 @@ La autorización real debe validarse en backend.
 | Temporizadores cliente | Cotización sin caducidad detallada | Protege sesión económica y temporales | Lista para mockup |
 | Cuenta corriente | No formalizada | Explora excepción financiera controlada | Requiere revisión |
 
-## 27. Referencias para integración
+## 29. Referencias para integración
 
 Este wireflow se justifica por los cambios del motor de configuración y debe contrastarse con:
 
