@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.3 - Propuesta |
+| Versión | 2.4 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Dominio candidato | Configuración del sistema |
 | Código de área candidato | CU-CFG |
 | Integración | Pendiente de validación |
@@ -40,6 +40,9 @@ El nombre formal ADMIN_ADMIN debe validarse durante la integración.
 | CAND-CU-CFG-008 | Cancelar activación programada | P1 | Confirmado para revisión |
 | CAND-CU-CFG-009 | Consultar historial de versiones | P1 | Confirmado para revisión |
 | CAND-CU-CFG-010 | Utilizar versión histórica como base | P2 | Propuesto |
+| CAND-CU-CFG-011 | Configurar impresora y capacidades | P0 | Confirmado para diseño |
+| CAND-CU-CFG-012 | Administrar estado, edición y eliminación de impresora | P0 | Confirmado para diseño |
+| CAND-CU-CFG-013 | Configurar método de asignación de impresora | P0 | Confirmado para diseño |
 
 ## 4. CAND-CU-CFG-001 - Consultar configuración activa
 
@@ -141,7 +144,10 @@ Detectar incompatibilidades antes de activar.
 - efectivo deshabilitado como medio de acreditación previa cuando corresponda;
 - reglas de seña completas y coherentes con el modelo;
 - umbral monetario válido en aprobación por monto;
-- impresoras compatibles;
+- impresoras con capacidades completas y coherentes;
+- capacidad máxima de hojas mayor que cero;
+- método de asignación permitido para la versión;
+- al menos una impresora Operativa compatible cuando una simulación requiera producción;
 - puntos de entrega activos;
 - parámetros obligatorios;
 - invariantes de seguridad.
@@ -166,7 +172,9 @@ Mostrar las consecuencias operativas en lenguaje comprensible.
 - ejemplo con pago previo;
 - ejemplo con seña;
 - ejemplo por monto dentro y fuera del umbral;
-- ejemplo de impresora;
+- ejemplo de trabajo con impresoras compatibles e incompatibles;
+- impresora recomendada cuando existan varias compatibles;
+- disponibilidad estimada de papel expresada en hojas y porcentaje;
 - módulos afectados.
 
 ### Resultado
@@ -253,7 +261,105 @@ Evitar que una configuración futura entre en vigencia.
 
 Las versiones históricas no se editan.
 
-## 13. Seguridad transversal
+## 13. CAND-CU-CFG-011 - Configurar impresora y capacidades
+
+### Intención
+
+Registrar una impresora con la información necesaria para identificarla y decidir qué trabajos puede realizar.
+
+### Precondiciones
+
+- ADMIN_ADMIN autenticado;
+- configuración en preparación disponible;
+- permisos válidos.
+
+### Datos principales
+
+- identidad técnica generada por el sistema;
+- nombre visible;
+- formatos de hoja admitidos;
+- capacidad B/N o color;
+- dúplex cuando corresponda;
+- capacidad máxima de hojas;
+- estado operativo.
+
+### Flujo resumido
+
+1. El actor inicia el alta o edición permitida de una impresora.
+2. El sistema conserva o genera la identidad técnica estable.
+3. El actor completa nombre y capacidades.
+4. Define la capacidad máxima de hojas.
+5. El backend valida valores y compatibilidad de los parámetros.
+6. El sistema guarda los cambios en la configuración en preparación.
+7. La vista presenta por separado capacidad configurada, contador histórico y disponibilidad estimada.
+
+### Excepciones
+
+- capacidad máxima inválida;
+- formatos vacíos;
+- combinación de capacidades incoherente;
+- intento de editar una impresora Operativa;
+- falta de permisos.
+
+### Resultado
+
+La impresora queda definida para la configuración, sin alterar todavía la versión activa.
+
+## 14. CAND-CU-CFG-012 - Administrar estado, edición y eliminación de impresora
+
+### Intención
+
+Controlar el ciclo de mantenimiento de una impresora sin permitir cambios mientras recibe trabajos.
+
+### Flujo resumido
+
+1. Una impresora Operativa se muestra disponible para producción.
+2. Para modificarla, el actor primero la Deshabilita.
+3. La impresora Deshabilitada deja de ofrecerse para nuevos trabajos.
+4. El sistema habilita la acción Editar.
+5. Dentro de Editar, el actor puede cambiar nombre o capacidades.
+6. Dentro de la misma edición aparece la acción Eliminar impresora.
+7. El actor puede guardar los cambios y volver a habilitarla posteriormente, o confirmar la eliminación.
+8. La eliminación retira la impresora de la administración operativa sin romper referencias históricas.
+
+### Excepciones
+
+- intento de editar una impresora Operativa;
+- intento de eliminar una impresora Operativa;
+- intento de eliminar fuera de la pantalla de edición;
+- conflicto con una operación en curso que impida completar la transición;
+- falta de permisos.
+
+### Resultado
+
+La impresora queda Operativa, Deshabilitada, modificada o retirada según la acción válida, conservando trazabilidad.
+
+## 15. CAND-CU-CFG-013 - Configurar método de asignación
+
+### Intención
+
+Definir cómo se seleccionará una impresora compatible para un trabajo.
+
+### Flujo resumido
+
+1. El sistema presenta Asignación manual como opción predeterminada de V1.
+2. Explica que el sistema determinará compatibilidad automáticamente y podrá recomendar una impresora.
+3. La decisión final de asignación permanece en manos del usuario interno autorizado.
+4. El sistema muestra Asignación automática como evolución futura deshabilitada.
+5. La opción automática explica que una implementación futura deberá considerar compatibilidad, disponibilidad de papel, carga y estado operativo mediante un modelo certificado.
+6. El actor conserva la modalidad manual y continúa.
+
+### Excepciones
+
+- intento de seleccionar Asignación automática en V1;
+- capacidades insuficientes para determinar compatibilidad;
+- falta de permisos.
+
+### Resultado
+
+La configuración registra la modalidad manual. No se realiza ninguna asignación concreta de trabajos durante este caso de configuración.
+
+## 16. Seguridad transversal
 
 - autorización backend obligatoria;
 - aislamiento por imprenta;
@@ -263,7 +369,7 @@ Las versiones históricas no se editan.
 - factor adicional para activaciones sensibles;
 - frontend no autoritativo.
 
-## 14. Auditoría transversal
+## 17. Auditoría transversal
 
 Registrar:
 
@@ -275,9 +381,10 @@ Registrar:
 - cancelación;
 - intento no autorizado;
 - error técnico;
-- versión anterior y nueva.
+- versión anterior y nueva;
+- cambios de capacidades o estado de impresoras cuando corresponda.
 
-## 15. Casos que no pertenecen a este dominio
+## 18. Casos que no pertenecen a este dominio
 
 No deben incorporarse como configuración permanente:
 
@@ -285,11 +392,13 @@ No deben incorporarse como configuración permanente:
 - reanudar recepción;
 - confirmar una cotización;
 - cerrar sesión por inactividad;
-- aprobar un pedido de cuenta corriente.
+- aprobar un pedido de cuenta corriente;
+- seleccionar una impresora concreta para un trabajo en ejecución;
+- registrar una recarga física de papel.
 
-Esas intenciones pertenecen a disponibilidad, pedidos, seguridad o finanzas.
+Esas intenciones pertenecen a disponibilidad, pedidos, seguridad, producción o finanzas. La Fase 4 configura capacidades y método; la recarga y la selección concreta son eventos operativos.
 
-## 16. Requisitos para documentación definitiva
+## 19. Requisitos para documentación definitiva
 
 Cada caso aprobado deberá:
 
@@ -301,7 +410,7 @@ Cada caso aprobado deberá:
 - definir auditoría y criterios de aceptación;
 - actualizar el catálogo oficial o su versión consolidada.
 
-## 17. Registro de cambios y justificación
+## 20. Registro de cambios y justificación
 
 | Cambio | Documentación previa | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
@@ -314,10 +423,14 @@ Cada caso aprobado deberá:
 | Pago previo y seña antes de carga | Uso de almacenamiento no explicitado | Evita recibir archivos que todavía no pueden avanzar | Confirmado |
 | Matriz de Fase 3 | Pagos y seña no heredaban explícitamente restricciones de Fase 2 | Evita combinaciones inválidas y explica qué parámetros siguen editables | Confirmado para revisión |
 | Umbral de monto con seña | Superar el umbral derivaba a revisión humana | Se reemplaza por una regla escalonada: autoaprobación bajo umbral y seña previa configurable sobre umbral | Confirmado para revisión |
+| Ciclo de impresora | Solo existía una referencia genérica a capacidades | Define alta, estados, edición y eliminación segura | Confirmado para diseño |
+| Asignación manual V1 | La automática figuraba como opción disponible cuando estuviera certificada | Se fija manual como predeterminada y automática visible pero deshabilitada | Confirmado para diseño |
+| Disponibilidad de papel | No estaba modelada | Permite recomendación y operación remota con una estimación explícita | Confirmado para diseño |
+| Separación recarga-configuración | La recarga no existía como intención | La capacidad máxima es configuración; completar papel y reiniciar el contador es operación diaria | Confirmado |
 | Validación y previsualización | No documentadas como interacción | Evitan errores y sostienen UX remota | Confirmado |
 | Códigos CAND | Catálogo oficial sin CU-CFG | Evita presentar identificadores no validados como definitivos | Provisional |
 
-## 18. Referencias para integración
+## 21. Referencias para integración
 
 La propuesta se fundamenta en el motor de configuración y debe contrastarse con:
 
