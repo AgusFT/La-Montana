@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Identificadores | Provisionales |
 | Propósito | Facilitar validación e integración posterior |
 
@@ -59,16 +59,23 @@ Criterios propuestos:
 - las reglas se muestran mediante ejemplos y una simulación del recorrido desde Fase 1, Fase 2 y Fase 3;
 - ninguna modificación se activa sin confirmación.
 
-### PROP-HU-ADM-004 - Configurar impresoras
+### PROP-HU-ADM-004 - Configurar impresoras y capacidades
 
-Como ADMIN_ADMIN quiero registrar impresoras y capacidades para determinar qué equipos pueden realizar cada tipo de trabajo.
+Como ADMIN_ADMIN quiero registrar y mantener impresoras con sus capacidades para que el sistema pueda determinar qué equipos son compatibles con cada tipo de trabajo y asistir la operación remota.
 
 Criterios propuestos:
 
-- cada impresora tiene disponibilidad y capacidades;
-- el modo inicial permite asignación manual;
-- la asignación automática se habilita solamente si existe un modelo certificado;
-- una impresora no operativa no debe ofrecerse.
+- cada impresora mantiene una identidad técnica estable y un nombre visible editable;
+- se configuran formatos admitidos, capacidad B/N o color, dúplex cuando corresponda y capacidad máxima de hojas;
+- los únicos estados de esta versión son Operativa y Deshabilitada;
+- una impresora Operativa puede recibir trabajos y no puede editarse ni eliminarse;
+- una impresora Deshabilitada no recibe nuevos trabajos y puede editarse;
+- la opción Eliminar aparece únicamente dentro de la edición de una impresora Deshabilitada;
+- eliminar una impresora no debe romper la trazabilidad histórica de trabajos anteriores;
+- la capacidad máxima de papel se carga manualmente al crear o editar la impresora;
+- se muestran por separado el contador histórico de hojas impresas y la disponibilidad actual estimada de papel;
+- la disponibilidad estimada se expresa como cantidad de hojas y porcentaje respecto de la capacidad configurada;
+- una impresora no operativa no debe ofrecerse para nuevos trabajos.
 
 ### PROP-HU-ADM-005 - Administrar módulos
 
@@ -125,6 +132,18 @@ Criterios propuestos:
 - puede utilizarse una versión como base de otra nueva;
 - no se altera el historial.
 
+### PROP-HU-ADM-010 - Configurar método de asignación
+
+Como ADMIN_ADMIN quiero definir el método disponible para asignar trabajos a impresoras para mantener una operación controlada y predecible.
+
+Criterios propuestos:
+
+- en V1 la asignación manual es la modalidad predeterminada;
+- la asignación automática permanece visible como evolución futura, pero deshabilitada;
+- el sistema puede recomendar una impresora compatible sin asignarla automáticamente;
+- una futura asignación automática deberá basarse en un modelo certificado y considerar compatibilidad, disponibilidad, carga y estado operativo;
+- configurar el método no asigna ningún trabajo por sí mismo.
+
 ## 2. Disponibilidad operativa
 
 ### PROP-HU-OPE-001 - Pausar recepción
@@ -155,6 +174,34 @@ Criterios propuestos:
 - registra usuario y momento;
 - actualiza la comunicación al cliente;
 - permite nuevos intentos de cotización y confirmación.
+
+### PROP-HU-OPE-003 - Seleccionar impresora compatible
+
+Como usuario interno autorizado quiero ver qué impresoras pueden realizar un trabajo y recibir una recomendación para asignarlo manualmente sin enviar trabajos a equipos incompatibles o con baja disponibilidad estimada de papel.
+
+Criterios propuestos:
+
+- el sistema conoce las características del trabajo, incluido formato de hoja y necesidad de B/N o color;
+- compara esas características con las capacidades registradas de las impresoras Operativas;
+- las impresoras compatibles pueden seleccionarse manualmente;
+- las incompatibles se identifican con la causa, por ejemplo formato no admitido o ausencia de impresión color;
+- el sistema puede recomendar una impresora compatible utilizando también la disponibilidad estimada de papel;
+- la recomendación no reemplaza la decisión humana en V1;
+- la asignación automática no está disponible en V1.
+
+### PROP-HU-OPE-004 - Registrar recarga de papel
+
+Como usuario interno autorizado quiero informar al sistema cuando una impresora fue completada físicamente hasta su capacidad máxima para mantener sincronizada la disponibilidad estimada y poder operar de forma remota con información útil.
+
+Criterios propuestos:
+
+- la capacidad máxima proviene de la configuración de la impresora;
+- antes de confirmar, el sistema muestra las hojas estimadas actuales y la capacidad máxima;
+- una recarga significa completar físicamente el faltante hasta alcanzar el máximo configurado, aunque el nivel previo sea alto;
+- al confirmar la recarga, la disponibilidad estimada vuelve al 100 % y a la cantidad máxima configurada;
+- el contador histórico de hojas impresas no se reinicia;
+- el evento registra la impresora, el usuario y el momento;
+- la interfaz identifica el dato de disponibilidad como estimado y no como lectura física de un sensor.
 
 ## 3. Cliente y cotización
 
@@ -254,8 +301,8 @@ Criterios propuestos:
 
 Pueden utilizarse como base de mockups:
 
-- PROP-HU-ADM-001 a PROP-HU-ADM-009;
-- PROP-HU-OPE-001 y PROP-HU-OPE-002;
+- PROP-HU-ADM-001 a PROP-HU-ADM-010;
+- PROP-HU-OPE-001 a PROP-HU-OPE-004;
 - PROP-HU-CLI-001 a PROP-HU-CLI-004.
 
 Las historias de cuenta corriente pueden representarse como exploración visual, pero deben mantenerse en estado de revisión.
@@ -270,6 +317,10 @@ Las historias de cuenta corriente pueden representarse como exploración visual,
 | Archivo retenido en cliente | No se explicitaba el uso de recursos antes del pago | Evita almacenamiento y procesamiento antes de acreditar pago o seña | Confirmado |
 | Matriz financiera heredada | Fase 3 no explicitaba dependencias de Fase 2 | Evita medios y reglas incompatibles con el modelo seleccionado | Confirmado para revisión |
 | Umbral con seña escalonada | El modelo por monto no definía el cobro para trabajos superiores | Permite trabajos chicos sin seña y protege pedidos mayores con acreditación previa | Confirmado para revisión |
+| Administración segura de impresoras | La historia de impresoras era genérica | Define estados, edición, eliminación y capacidades sin modificar equipos en operación | Confirmado |
+| Compatibilidad y recomendación | No estaba definido cómo elegir un equipo | Evita asignaciones inválidas y asiste la operación manual de V1 | Confirmado |
+| Disponibilidad estimada de papel | No existía una métrica para operación remota | Permite conocer cantidad y porcentaje estimados por impresora | Confirmado |
+| Recarga manual a capacidad máxima | La estimación podía quedar desincronizada | Sincroniza el contador cuando el operador completa físicamente el faltante | Confirmado |
 | Previsualizar consecuencias | Hacer configuración comprensible | Facilita instalación remota y reduce errores | Confirmado |
 | Activar o programar | Definir vigencia | Permite aplicar cambios sin retroactividad | Confirmado |
 | Historial de versiones | Auditar cambios | Cada activación debe ser trazable | Confirmado |
