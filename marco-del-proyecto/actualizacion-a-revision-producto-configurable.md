@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Responsables de revisión | Agustín Tejero y Alejandro Herms |
 | Propósito | Servir como insumo para la integración posterior en la documentación oficial |
 
@@ -101,9 +101,15 @@ El nombre formal del rol deberá validarse durante la integración definitiva pa
 
 ### 4.2 Empleado de imprenta
 
-En esta etapa no se definen todavía permisos operativos finos para empleados.
+En esta etapa no se definen todavía todos los permisos operativos finos para empleados.
 
-Como excepción confirmada, un empleado autenticado puede pausar o reanudar la recepción de pedidos mediante reconfirmación de contraseña.
+Como capacidades confirmadas o autorizables para usuarios internos se contemplan:
+
+- pausar o reanudar la recepción mediante reconfirmación de contraseña;
+- registrar una recarga física de papel cuando el rol operativo lo permita;
+- seleccionar manualmente una impresora compatible para un trabajo cuando el rol operativo lo permita.
+
+La autorización real de estas acciones debe validarse en backend.
 
 ### 4.3 Cliente
 
@@ -122,7 +128,8 @@ La versión de configuración podrá contemplar:
 - reglas de seña;
 - impresoras habilitadas;
 - capacidades de las impresoras;
-- asignación manual o automática;
+- asignación manual en V1;
+- asignación automática certificada como evolución futura;
 - puntos y modalidades de entrega;
 - notificaciones;
 - horarios operativos;
@@ -139,6 +146,45 @@ La configuración de pagos y seña depende del modelo elegido previamente:
 - **Monto del pedido:** funciona como modalidad flexible. Hasta un umbral monetario configurable puede existir autoaprobación y efectivo. Si el pedido supera el umbral, se exige una seña previa configurable y acreditable. El saldo restante puede conservar medios flexibles, incluido efectivo cuando corresponda.
 
 La regla histórica de **30 % desde 200 carillas** no constituye una condición fija del producto configurable. Puede conservarse como antecedente o valor predeterminado, pero el modelo y los valores deben quedar parametrizados.
+
+### 5.2 Impresoras, capacidades y asignación consolidada para Fase 4
+
+La Fase 4 separa configuración de capacidades de operación cotidiana.
+
+Cada impresora debe mantener una identidad técnica estable y un nombre visible editable. En la configuración se declaran como mínimo:
+
+- formatos de hoja admitidos;
+- capacidad de impresión B/N o color;
+- dúplex cuando corresponda;
+- capacidad máxima de hojas;
+- estado operativo.
+
+Los únicos estados de la impresora para V1 son:
+
+- **Operativa:** puede recibir trabajos y no puede editarse ni eliminarse;
+- **Deshabilitada:** no recibe nuevos trabajos y puede editarse.
+
+Para modificar una impresora debe deshabilitarse primero. La acción **Eliminar impresora** aparece únicamente dentro de la edición de una impresora Deshabilitada. La eliminación debe retirar el equipo de la administración operativa sin romper la referencia histórica de trabajos ya procesados.
+
+El sistema conoce las características del trabajo, incluido formato de hoja y necesidad de B/N o color, y las compara con las capacidades configuradas. Puede identificar equipos compatibles, explicar por qué otros no lo son y recomendar uno entre los compatibles.
+
+En V1:
+
+- la asignación es **manual y predeterminada**;
+- la recomendación no asigna automáticamente;
+- la opción de asignación automática queda visible como evolución futura deshabilitada;
+- no se define todavía un algoritmo certificado de asignación automática.
+
+Para sostener la operación remota, cada impresora mantiene dos métricas separadas:
+
+1. **contador histórico de hojas impresas**, acumulado y no reiniciable por recarga;
+2. **disponibilidad actual estimada de papel**, expresada como cantidad y porcentaje respecto de la capacidad máxima configurada.
+
+La disponibilidad se calcula a partir de la capacidad configurada, el consumo de trabajos y eventos manuales de recarga. No constituye una lectura física de sensor.
+
+Una recarga significa completar físicamente el faltante hasta alcanzar la capacidad máxima. Por ejemplo, si una impresora registra `468 / 500`, el operador agrega las 32 hojas faltantes y luego utiliza **Registrar recarga de papel**. El sistema restablece la disponibilidad estimada a `500 / 500 · 100 %` y conserva sin cambios el contador histórico.
+
+Se recomienda operativamente verificar y completar las impresoras al comienzo de la jornada para mantener sincronizada la estimación. Si se realiza una recarga durante el día, también debe completarse siempre hasta el máximo configurado antes de registrar el evento.
 
 ## 6. Pausa operativa
 
@@ -239,7 +285,7 @@ Quedan fuera de la definición inmediata, pero se preservan como línea de evolu
 - programación para días posteriores;
 - disponibilidad por stock;
 - saturación de producción;
-- reasignación dinámica de impresoras.
+- asignación automática o reasignación dinámica de impresoras mediante un modelo certificado.
 
 ## 12. Base disponible para mockups
 
@@ -251,6 +297,12 @@ Puede avanzarse desde ahora con:
 - configuración de pagos;
 - configuración de seña;
 - impresoras y capacidades;
+- estados Operativa/Deshabilitada y edición segura;
+- método de asignación manual V1;
+- compatibilidad y recomendación de impresora;
+- disponibilidad estimada de papel;
+- confirmación de recarga de papel;
+- selección manual de impresora para un trabajo;
 - módulos disponibles y activos;
 - resumen y previsualización;
 - activación inmediata;
@@ -273,6 +325,9 @@ Las vistas de cuenta corriente pueden explorarse, pero deben quedar marcadas com
 | Configuración versionada | No se definía vigencia completa | Garantiza no retroactividad y auditoría | Confirmado |
 | Matriz financiera de Fase 3 | Pagos y seña definidos de forma general | Alinea medios, acreditación y seña con el modelo heredado de Fase 2 | Confirmado para revisión |
 | Modalidad por monto escalonada | El umbral no definía con precisión el cobro de trabajos superiores | Mantiene flexibilidad para trabajos chicos y exige seña acreditable en montos mayores | Confirmado para revisión |
+| Impresoras y capacidades Fase 4 | La administración de equipos estaba definida de forma general | Cierra estados, capacidades, edición, eliminación y trazabilidad | Confirmado |
+| Asignación manual V1 | Manual y automática figuraban sin alcance temporal preciso | Mantiene control humano mientras la automática no posee modelo certificado | Confirmado |
+| Disponibilidad estimada de papel | No existía sincronización explícita del papel | Habilita operación remota mediante capacidad, consumo y recarga manual a 100 % | Confirmado |
 | Pausa operativa central | Considerada posibilidad futura | Es necesaria ante emergencias reales de la imprenta | Confirmado |
 | Captura al cotizar | Creación directa con reglas generales | La cotización debe congelar precio y condiciones vigentes | Confirmado |
 | Cuenta corriente | Excepción comercial no formalizada | El motor debe contemplar clientes autorizados sin debilitar el control financiero | Requiere revisión de Agustín |
