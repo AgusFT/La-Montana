@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.3 - Propuesta |
+| Versión | 2.4 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Documento relacionado | motor-de-configuracion-del-sistema.md |
 | Propósito | Proponer la evolución del motor sin modificar la definición vigente |
 
@@ -75,6 +75,46 @@ La Fase 3 hereda el modelo seleccionado y solamente muestra parámetros compatib
 - **Control condicional + monto del pedido:** la condición `monto total del pedido` permanece bloqueada como criterio heredado; el ADMIN_ADMIN configura el valor del umbral. Los pedidos que no superan el umbral pueden aprobarse automáticamente y utilizar medios flexibles, incluido efectivo. Los pedidos que superan el umbral requieren una seña previa configurable; esa seña debe acreditarse mediante transferencia, pago digital u otro medio acreditable antes de habilitar el avance. El saldo restante puede abonarse luego mediante cualquiera de los medios generales habilitados, incluido efectivo cuando corresponda.
 
 La regla histórica de **30 % desde 200 carillas** deja de constituir una condición fija del modelo. Se conserva únicamente como antecedente o valor predeterminado configurable; la condición y los valores efectivos dependen del modelo seleccionado y de la parametrización de la Fase 3.
+
+#### Parametrización consolidada en la Fase 4
+
+La Fase 4 administra impresoras, sus capacidades y el método de asignación disponible.
+
+Cada impresora se registra con una identidad técnica estable y un nombre visible. Como mínimo se configuran:
+
+- formatos de hoja admitidos;
+- capacidad B/N o color;
+- dúplex cuando corresponda;
+- capacidad máxima de hojas;
+- estado de la impresora.
+
+Los únicos estados de impresora de V1 son:
+
+- **Operativa:** puede recibir trabajos y no puede editarse ni eliminarse;
+- **Deshabilitada:** no recibe nuevos trabajos y puede editarse.
+
+Para editar una impresora debe deshabilitarse primero. La acción **Eliminar impresora** aparece únicamente dentro de la edición de una impresora Deshabilitada. La eliminación debe retirar el equipo de la administración operativa sin romper la trazabilidad histórica de trabajos anteriores.
+
+El sistema determina la compatibilidad de un trabajo con las impresoras a partir de las características ya conocidas del trabajo, especialmente formato de hoja, B/N o color y otras capacidades aplicables. Las impresoras incompatibles deben mostrar el motivo de la incompatibilidad.
+
+En V1:
+
+- la asignación es **manual y predeterminada**;
+- el sistema puede recomendar una impresora compatible;
+- la recomendación no realiza una asignación automática;
+- la opción **Asignación automática** permanece visible como evolución futura deshabilitada.
+
+La futura asignación automática requerirá un modelo certificado. Su algoritmo no se define todavía; podrá considerar compatibilidad, carga, disponibilidad de papel, trabajos pendientes y estado operativo.
+
+La Fase 4 también establece la base para conocer la disponibilidad estimada de papel:
+
+- la capacidad máxima se configura manualmente;
+- el sistema mantiene un contador histórico acumulado de hojas impresas;
+- mantiene por separado una disponibilidad actual estimada expresada en hojas y porcentaje;
+- cada trabajo procesado descuenta las hojas calculadas para ese trabajo;
+- la disponibilidad no se presenta como lectura física de sensor.
+
+La recarga de papel no es una nueva versión de configuración. Es un evento operativo: el operador completa físicamente el faltante hasta la capacidad máxima y luego confirma **Registrar recarga de papel**. El sistema restablece la disponibilidad estimada al 100 % sin reiniciar el contador histórico.
 
 ### 2.3 Parámetro controlado
 
@@ -175,6 +215,8 @@ Cada acción debe registrar:
 - motivo u observación;
 - contexto técnico permitido.
 
+Los eventos operativos que no crean una versión, como una recarga de papel, deben conservar su propia auditoría cuando corresponda.
+
 ## 7. No retroactividad
 
 Las configuraciones nuevas no alteran:
@@ -219,7 +261,7 @@ El frontend no debe ser la fuente de verdad de las reglas aplicadas.
 
 La extensión no se reinicia por actividad posterior.
 
-## 10. Pausa operativa
+## 10. Pausa operativa y operación diaria
 
 La pausa no forma parte de una versión de configuración. Es un estado operacional prioritario.
 
@@ -232,6 +274,32 @@ Debe bloquear:
 - reintentos de confirmación mientras continúe activa.
 
 No debe bloquear la consulta o administración de pedidos existentes, salvo que otra contingencia técnica lo impida.
+
+### 10.1 Recarga de papel
+
+La capacidad máxima de papel pertenece a la configuración de la impresora; la recarga física pertenece a la operación cotidiana.
+
+Flujo conceptual:
+
+1. el sistema muestra disponibilidad estimada actual y capacidad máxima;
+2. el operador completa físicamente el faltante hasta el máximo configurado;
+3. confirma Registrar recarga de papel;
+4. el sistema restablece la disponibilidad estimada al 100 %;
+5. conserva el contador histórico de hojas impresas;
+6. registra impresora, usuario y momento.
+
+En V1 no se modela una recarga parcial. El evento de recarga siempre significa volver físicamente a la capacidad máxima configurada.
+
+### 10.2 Selección de impresora para un trabajo
+
+La configuración define capacidades y la modalidad manual. Durante la operación:
+
+1. el sistema toma las características del trabajo;
+2. identifica impresoras Operativas compatibles;
+3. explica las incompatibilidades;
+4. muestra disponibilidad estimada de papel;
+5. puede recomendar un equipo;
+6. un usuario interno autorizado realiza la selección final manualmente.
 
 ## 11. Reanudación y fecha de entrega
 
@@ -285,7 +353,7 @@ Se preservan como evolución:
 - pausas automáticas;
 - limitación por stock;
 - reprogramación para otro día;
-- asignación dinámica según carga;
+- asignación automática o reasignación dinámica según carga mediante un modelo certificado;
 - respuestas automáticas ante saturación.
 
 No deben mezclarse con el alcance base de activación inmediata o programada.
@@ -304,6 +372,9 @@ No deben mezclarse con el alcance base de activación inmediata o programada.
 | Temporizadores de cotización | Sin vigencia detallada | Protege información económica y libera recursos temporales | Confirmado |
 | Matriz de pagos de Fase 3 | Medios de pago tratados en forma general | Impide combinaciones incompatibles y hereda restricciones de Fase 2 | Confirmado para revisión |
 | Umbral por monto con seña escalonada | Superación del umbral derivaba a revisión humana | Mantiene agilidad para trabajos chicos y protege financieramente pedidos mayores mediante seña previa | Confirmado para revisión |
+| Ciclo de impresoras Fase 4 | Impresoras y capacidades descritas de forma general | Define estados, edición, eliminación y trazabilidad antes de diseñar las vistas | Confirmado |
+| Compatibilidad y asignación manual V1 | Método de asignación sin alcance temporal preciso | Permite recomendaciones automáticas sin delegar la decisión final | Confirmado |
+| Disponibilidad estimada y recarga | Papel no modelado como recurso operativo | Permite operar remotamente sin depender de sensores físicos | Confirmado |
 | Cuenta corriente manual | Excepción genérica por lista | Requiere control financiero y operativo por pedido | Requiere revisión de Agustín |
 | Precedencia de reglas | No explicitada | El motor necesita resolver conflictos de manera determinista | Propuesta técnica |
 
