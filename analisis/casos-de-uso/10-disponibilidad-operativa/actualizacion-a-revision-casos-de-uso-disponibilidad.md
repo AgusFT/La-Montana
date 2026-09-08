@@ -2,28 +2,28 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.0 - Propuesta |
+| Versión | 2.1 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-08-21 |
+| Fecha | 2026-09-08 |
 | Dominio candidato | Disponibilidad operativa |
 | Código de área candidato | CU-OPE |
 
-> Este dominio se propone para separar la pausa inmediata de las configuraciones versionadas. Los códigos son candidatos y deberán validarse antes de la integración definitiva.
+> Este dominio se propone para separar la pausa inmediata y otras acciones operativas de las configuraciones versionadas. Los códigos son candidatos y deberán validarse antes de la integración definitiva.
 
 ## 1. Objetivo
 
-Documentar las acciones que permiten detener y reanudar la recepción de nuevos trabajos ante emergencias o contingencias.
+Documentar las acciones que permiten detener y reanudar la recepción de nuevos trabajos ante emergencias o contingencias, y mantener información operativa necesaria para seleccionar impresoras y sostener la impresión remota.
 
 ## 2. Diferencia con configuración
 
 | Configuración versionada | Disponibilidad operativa |
 |---|---|
-| Modifica reglas para nuevas cotizaciones | Habilita o bloquea temporalmente la recepción |
-| Solo ADMIN_ADMIN | ADMIN_ADMIN o empleado |
+| Modifica reglas para nuevas cotizaciones | Habilita o bloquea temporalmente la recepción y registra eventos diarios |
+| Solo ADMIN_ADMIN | ADMIN_ADMIN o empleado autorizado según la acción |
 | Puede programarse | Acción inmediata |
 | Genera una versión | Genera un evento operativo |
-| Requiere revisión amplia | Requiere reconfirmación de contraseña |
-| Permanece hasta nueva versión | Permanece hasta reanudación |
+| Define capacidad máxima y capacidades de impresora | Registra consumo, recarga y disponibilidad estimada |
+| Permanece hasta nueva versión | Cambia con la operación cotidiana |
 
 ## 3. Catálogo candidato
 
@@ -33,6 +33,8 @@ Documentar las acciones que permiten detener y reanudar la recepción de nuevos 
 | CAND-CU-OPE-002 | Pausar recepción de pedidos | P0 |
 | CAND-CU-OPE-003 | Reanudar recepción de pedidos | P0 |
 | CAND-CU-OPE-004 | Revalidar cotización después de una pausa | P0 |
+| CAND-CU-OPE-005 | Registrar recarga de papel | P0 |
+| CAND-CU-OPE-006 | Seleccionar impresora compatible para un trabajo | P0 |
 
 ## 4. CAND-CU-OPE-001 - Consultar disponibilidad
 
@@ -157,7 +159,84 @@ Cliente con cotización temporal vigente.
 - error al recalcular;
 - cliente no acepta el nuevo plazo.
 
-## 8. Mensajes propuestos
+## 8. CAND-CU-OPE-005 - Registrar recarga de papel
+
+### Actor principal
+
+Usuario interno autorizado.
+
+### Intención
+
+Mantener sincronizada la disponibilidad estimada de papel con la situación física de la impresora sin requerir sensores ni ingreso manual de la cantidad agregada.
+
+### Precondiciones
+
+- impresora registrada;
+- capacidad máxima de hojas configurada;
+- usuario interno autenticado;
+- impresora físicamente accesible para realizar la recarga.
+
+### Flujo principal
+
+1. El sistema muestra la disponibilidad estimada actual, por ejemplo 468 de 500 hojas.
+2. El operador verifica físicamente la impresora.
+3. Completa el faltante hasta alcanzar la capacidad máxima configurada; en el ejemplo agrega 32 hojas.
+4. El operador selecciona Registrar recarga de papel.
+5. El sistema muestra una confirmación indicando que la acción supone haber completado físicamente la impresora hasta el máximo configurado.
+6. El operador confirma.
+7. El sistema restablece la disponibilidad estimada a 500 de 500 hojas y 100 %.
+8. El contador histórico de hojas impresas permanece sin cambios.
+9. El sistema registra impresora, usuario, fecha y hora del evento.
+
+### Excepciones
+
+- capacidad máxima no configurada;
+- usuario no autorizado;
+- confirmación cancelada;
+- impresora retirada o no disponible administrativamente;
+- error al persistir el evento.
+
+### Poscondición
+
+La disponibilidad estimada queda sincronizada al 100 % de la capacidad configurada. La acción no afirma una lectura de sensor: depende de que el operador haya completado físicamente el faltante.
+
+## 9. CAND-CU-OPE-006 - Seleccionar impresora compatible para un trabajo
+
+### Actor principal
+
+Usuario interno autorizado.
+
+### Precondiciones
+
+- trabajo listo para asignación;
+- características del trabajo conocidas por el sistema;
+- impresoras configuradas con capacidades y estado;
+- modalidad manual vigente en V1.
+
+### Flujo principal
+
+1. El sistema obtiene formato de hoja, requisito B/N o color y demás características aplicables del trabajo.
+2. Compara el trabajo con las capacidades de las impresoras Operativas.
+3. Clasifica las impresoras como compatibles o incompatibles.
+4. Para las incompatibles muestra la causa, por ejemplo formato no admitido o equipo solo B/N ante un trabajo color.
+5. Para las compatibles muestra disponibilidad estimada de papel en cantidad y porcentaje.
+6. Puede destacar una impresora como recomendada considerando compatibilidad y disponibilidad estimada.
+7. El usuario elige manualmente una impresora compatible.
+8. El backend valida nuevamente compatibilidad y registra la asignación.
+
+### Excepciones
+
+- ninguna impresora compatible;
+- impresora seleccionada deja de estar Operativa;
+- disponibilidad estimada insuficiente para el trabajo;
+- cambio concurrente de capacidades o estado;
+- falta de permisos.
+
+### Poscondición
+
+El trabajo queda asignado manualmente a una impresora compatible. La recomendación no equivale a asignación automática.
+
+## 10. Mensajes propuestos
 
 ### Pausa al cotizar
 
@@ -171,16 +250,21 @@ La imprenta pausó temporalmente la recepción por una situación operativa. Tu 
 
 La recepción fue reanudada. Debido a la interrupción, la fecha estimada cambió. El precio y las demás condiciones se mantienen.
 
-## 9. Seguridad
+### Confirmación de recarga
+
+La impresora registra actualmente una disponibilidad estimada menor al máximo. Confirmá que completaste físicamente el papel hasta la capacidad configurada antes de registrar la recarga.
+
+## 11. Seguridad
 
 - reconfirmación de contraseña para pausar y reanudar;
 - validación backend;
 - control de rol;
 - protección contra solicitudes repetidas;
 - el frontend no puede simular disponibilidad;
-- la respuesta pública no expone el motivo interno si no fue autorizado.
+- la respuesta pública no expone el motivo interno si no fue autorizado;
+- la recarga y asignación de impresora requieren un usuario interno autorizado.
 
-## 10. Auditoría
+## 12. Auditoría
 
 Registrar:
 
@@ -193,33 +277,44 @@ Registrar:
 - reanudación;
 - intentos fallidos;
 - cotizaciones bloqueadas cuando corresponda;
-- errores de propagación.
+- errores de propagación;
+- eventos de recarga de papel;
+- impresora afectada por la recarga;
+- asignaciones manuales de trabajos cuando corresponda.
 
-## 11. Impacto en estados
+## 13. Impacto en estados
 
 | Estado | Impacto |
 |---|---|
-| Estados internos de pedidos existentes | Sin cambios |
-| Estado visible de pedidos existentes | Sin cambios |
+| Estados internos de pedidos existentes | Sin cambios por pausa o recarga |
+| Estado visible de pedidos existentes | Sin cambios por pausa o recarga |
 | Estado financiero | Sin cambios |
-| Estado técnico de impresión | Sin cambios directo |
+| Estado técnico de impresión | Puede incorporar asignación manual a una impresora compatible |
 | Disponibilidad de la imprenta | Operativa o pausada |
+| Estado de impresora | Operativa o Deshabilitada, definido por configuración |
+| Disponibilidad estimada de papel | Disminuye con consumo y vuelve al 100 % al registrar recarga completa |
 | Cotización temporal | Puede quedar bloqueada hasta reanudación o expiración |
 
-## 12. Criterios de aceptación propuestos
+## 14. Criterios de aceptación propuestos
 
 - ADMIN_ADMIN y empleado pueden pausar y reanudar.
 - El sistema solicita contraseña.
 - El backend rechaza credenciales inválidas.
 - No se crean cotizaciones durante la pausa.
 - No se confirman pedidos durante la pausa.
-- Los pedidos existentes no se modifican.
+- Los pedidos existentes no se modifican por la pausa.
 - La reanudación queda auditada.
 - La fecha estimada se revalida.
 - Un cambio de fecha requiere aceptación.
 - La pausa no extiende el temporizador de cotización.
+- La recarga solo restablece la disponibilidad estimada cuando el operador confirma haber completado físicamente la capacidad máxima.
+- El contador histórico de hojas impresas no se reinicia con la recarga.
+- El sistema muestra cantidad y porcentaje estimados de papel.
+- El sistema determina compatibilidad por características del trabajo y capacidades de impresora.
+- En V1 la asignación final es manual aunque exista una recomendación.
+- Las impresoras incompatibles muestran una causa comprensible.
 
-## 13. Registro de cambios y justificación
+## 15. Registro de cambios y justificación
 
 | Cambio | Situación previa | Justificación vinculada al motor | Estado |
 |---|---|---|---|
@@ -229,10 +324,13 @@ Registrar:
 | Revalidación de fecha | Cotización asumida estable | La pausa puede alterar capacidad sin modificar precio | Confirmado |
 | Temporizador continúa | No definido | Seguridad económica prevalece sobre la contingencia | Confirmado para revisión |
 | Separación de CU-CFG | Pausa podía confundirse con configuración | Evita versionar un estado temporal | Confirmado |
+| Recarga como evento operativo | El papel solo se trataba como capacidad | La capacidad máxima se configura, pero la reposición física ocurre durante la jornada | Confirmado |
+| Recarga siempre al máximo | Podía interpretarse como carga parcial | El sistema solo reinicia el estimado cuando el operador completa el faltante hasta 100 % | Confirmado |
+| Selección asistida de impresora | No existía flujo operativo detallado | Permite trabajo remoto sin automatizar la decisión en V1 | Confirmado |
 
-## 14. Referencias para integración
+## 16. Referencias para integración
 
-Esta propuesta se origina por el motor de configuración, pero separa expresamente la disponibilidad temporal de las reglas versionadas.
+Esta propuesta se origina por el motor de configuración, pero separa expresamente la disponibilidad temporal y los eventos diarios de las reglas versionadas.
 
 Debe revisarse contra:
 
