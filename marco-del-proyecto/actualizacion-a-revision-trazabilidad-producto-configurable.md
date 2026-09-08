@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.3 - Propuesta |
+| Versión | 2.4 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-07 |
+| Fecha | 2026-09-08 |
 | Propósito | Relacionar decisiones, requerimientos, historias, casos candidatos y vistas |
 
 > Esta matriz es complementaria y provisional. No sustituye matriz-trazabilidad.md. Los identificadores PROP y CAND deben consolidarse después de la revisión de Agustín.
@@ -34,6 +34,16 @@
 | Umbral monetario autoaprobable | PROP-RN-C-014 | PROP-RF-CFG-024 y 028 | PROP-HU-ADM-002 y 003 | CAND-CU-CFG-003 | WF-CFG-03 a 05 | Confirmado para revisión |
 | Umbral con seña escalonada | PROP-RN-C-015 y 016 | PROP-RF-CFG-024, 028, 029 y 030 | PROP-HU-ADM-003 | CAND-CU-CFG-003 | WF-CFG-04 y 05 | Confirmado para revisión |
 | Matriz financiera heredada de Fase 2 | PROP-RN-C-011 a 016 | PROP-RF-CFG-025 a 031 | PROP-HU-ADM-003 | CAND-CU-CFG-003 y 004 | WF-CFG-04, WF-CFG-05, WF-CFG-11 | Confirmado para revisión |
+| Estados Operativa/Deshabilitada de impresora | PROP-RN-I-016 a 018 | PROP-RF-CFG-034 a 036 | PROP-HU-ADM-004 | CAND-CU-CFG-012 | WF-CFG-06 | Confirmado |
+| Identidad y capacidades de impresora | PROP-RN-I-019 y PROP-RN-C-004 | PROP-RF-CFG-032 y 033 | PROP-HU-ADM-004 | CAND-CU-CFG-011 | WF-CFG-06 | Confirmado |
+| Edición solo deshabilitada y eliminación desde edición | PROP-RN-I-017 a 019 | PROP-RF-CFG-035 y 036 | PROP-HU-ADM-004 | CAND-CU-CFG-012 | WF-CFG-06 | Confirmado |
+| Compatibilidad automática por trabajo | PROP-RN-C-004 y 018 | PROP-RF-CFG-037 y 043 | PROP-HU-OPE-003 | CAND-CU-OPE-006 | WF-CFG-07, WF-OPE-05 | Confirmado |
+| Asignación manual predeterminada V1 | PROP-RN-C-005 y 018 | PROP-RF-CFG-038 y 043 | PROP-HU-ADM-010 y PROP-HU-OPE-003 | CAND-CU-CFG-013 y CAND-CU-OPE-006 | WF-CFG-07, WF-OPE-05 | Confirmado |
+| Asignación automática certificada | PROP-RN-C-005 | PROP-RF-CFG-038 | PROP-HU-ADM-010 | CAND-CU-CFG-013 | WF-CFG-07 | Futuro |
+| Capacidad máxima de papel configurada | PROP-RN-C-017 | PROP-RF-CFG-033, 039 y 040 | PROP-HU-ADM-004 | CAND-CU-CFG-011 | WF-CFG-06 | Confirmado |
+| Disponibilidad estimada de papel | PROP-RN-O-006 | PROP-RF-CFG-039 a 041 | PROP-HU-ADM-004 y PROP-HU-OPE-003 | CAND-CU-CFG-011 y CAND-CU-OPE-006 | WF-CFG-06, WF-OPE-05 | Confirmado |
+| Recarga manual al 100 % | PROP-RN-O-007 y 008 | PROP-RF-CFG-042 y PROP-RF-OPE-010 a 012 | PROP-HU-OPE-004 | CAND-CU-OPE-005 | WF-OPE-04 | Confirmado |
+| Contador histórico independiente de recarga | PROP-RN-O-008 | PROP-RF-CFG-039 y PROP-RF-OPE-012 | PROP-HU-ADM-004 y PROP-HU-OPE-004 | CAND-CU-OPE-005 | WF-CFG-06, WF-OPE-04 | Confirmado |
 | Activación inmediata | PROP-RN-C-008 | PROP-RF-CFG-006 | PROP-HU-ADM-007 | CAND-CU-CFG-006 | WF-CFG-12 a 14 | Confirmado |
 | Activación programada | PROP-RN-C-008 | PROP-RF-CFG-007 | PROP-HU-ADM-008 | CAND-CU-CFG-007 | WF-CFG-12 a 14 | Confirmado |
 | Cancelación programada | PROP-RN-I-010 | PROP-RF-CFG-008 | PROP-HU-ADM-008 | CAND-CU-CFG-008 | WF-CFG-01, WF-CFG-13 | Confirmado |
@@ -68,6 +78,7 @@
 | Temporizador no reiniciable | PROP-RNF-SEG-005 | Extensión | WF-COT-02 | Confirmado |
 | Servidor como fuente de tiempo | PROP-RNF-SEG-006 | Cotización | Sin dependencia visual exclusiva | Confirmado para revisión |
 | Historial inmutable | PROP-RNF-AUD-004 | Configuración | WF-CFG-15, WF-CFG-16 | Confirmado |
+| Auditoría de recarga | PROP-RNF-AUD-005 | Recarga de papel | WF-OPE-04 | Confirmado |
 
 ## 4. Trazabilidad de usabilidad
 
@@ -79,6 +90,8 @@
 | Errores accionables | PROP-RNF-USA-004 | WF-CFG-11 | Resolución clara |
 | Vigencia visible | PROP-RNF-USA-005 | WF-CFG-01, 14, 15 | Comprensión del estado actual |
 | Herencia visible de Fase 2 | PROP-RNF-USA-006 | WF-CFG-04 y 05 | Diferenciar parámetros bloqueados de valores editables |
+| Papel identificado como estimado | PROP-RNF-USA-007 | WF-CFG-06, WF-OPE-04, WF-OPE-05 | Evitar confundir cálculo del sistema con lectura de sensor |
+| Causa de incompatibilidad visible | PROP-RNF-USA-008 | WF-CFG-07, WF-OPE-05 | Explicar por qué una impresora no puede seleccionarse |
 
 ## 5. Impacto sobre documentación vigente
 
@@ -142,10 +155,27 @@ Puede diseñarse inmediatamente:
 - historial;
 - pausa;
 - reanudación;
+- recarga de papel;
+- selección manual de impresora compatible;
 - caducidad de cotización;
 - cambio de fecha por pausa.
 
 Para Fase 3, los mockups deben representar explícitamente la herencia de Fase 2, los medios acreditables y la regla escalonada por monto.
+
+Para Fase 4, los mockups deben representar como mínimo:
+
+- identificación y capacidades de impresora;
+- estados Operativa y Deshabilitada;
+- edición disponible solamente en Deshabilitada;
+- eliminación únicamente dentro de Editar;
+- formatos y capacidad B/N/color;
+- contador histórico de hojas impresas;
+- disponibilidad estimada en hojas y porcentaje;
+- recarga manual que completa físicamente el faltante y restablece el estimado a 100 %;
+- compatibilidad automática del trabajo con equipos;
+- recomendación sin asignación automática;
+- Asignación manual como opción predeterminada de V1;
+- Asignación automática visible pero deshabilitada.
 
 Cuenta corriente debe diseñarse como exploración identificada y revisarse antes de consolidarse.
 
@@ -161,6 +191,10 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 | Variantes CFG-001 V3 | El estado inicial no diferenciaba preparación y programación | Vincula ciclo de vida, bloqueo de edición y evidencia visual | Confirmado |
 | Matriz financiera Fase 3 | Faltaba vincular Fase 2 con medios y seña | Evita combinaciones incompatibles y mantiene trazabilidad de la decisión | Confirmado para revisión |
 | Umbral con seña escalonada | La definición previa derivaba a revisión humana | Alinea reglas, RF, HU, CU y wireflow con la modalidad flexible acordada | Confirmado para revisión |
+| Ciclo de impresoras Fase 4 | Los estados y acciones estaban implícitos | Alinea RN, RF, HU, CU y WF con Operativa/Deshabilitada, edición y eliminación | Confirmado |
+| Compatibilidad y asignación manual Fase 4 | No se definía el criterio operativo | Permite recomendar equipos compatibles sin automatizar la decisión en V1 | Confirmado |
+| Papel estimado y recarga | No existía trazabilidad del insumo para impresión remota | Separa capacidad configurada, consumo, recarga y contador histórico | Confirmado |
+| Automática fuera de V1 | La opción futura podía interpretarse como disponible | Queda visible pero bloqueada hasta contar con un modelo certificado | Futuro |
 | Referencias a documentos afectados | La integración será realizada después | Facilita revisión de Agustín y su IA | Confirmado |
 
 ## 10. Justificación general
