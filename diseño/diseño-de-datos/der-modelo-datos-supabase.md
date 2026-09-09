@@ -2,17 +2,24 @@
 
 | Campo | Valor |
 |---|---|
-| Version | 1.1 |
-| Estado | Actualizado |
-| Fecha | 2026-06-25 |
+| Version | 1.2 |
+| Estado | Historico / deprecado |
+| Fecha | 2026-09-09 |
 | Responsable | Agustin Tejero |
 | Issue relacionado | [#121 - BDD - Confeccionar DER del modelo de datos Supabase](https://github.com/AgusFT/La-Montana/issues/121) |
+| Modelo sucesor | [DER PostgreSQL v3](./der-modelo-datos-postgresql.md) |
+
+> **Referencia historica:** este documento describe el MVP basado en Supabase y
+> ya no es la autoridad para el nuevo backend. El modelo objetivo vigente se
+> documenta en el [DER PostgreSQL v3](./der-modelo-datos-postgresql.md), su
+> [fuente editable Excalidraw](./der-modelo-datos-postgresql.excalidraw) y la
+> [vista SVG](./DER-V3.svg).
 
 ## 1. Objetivo
 
-Este documento centraliza la referencia actual del Diagrama Entidad-Relacion
-del MVP Supabase de La Montana y explica la estructura vigente de la base de
-datos implementada para el flujo principal de pedidos.
+Este documento conserva la referencia historica del Diagrama Entidad-Relacion
+del MVP anterior basado en Supabase y explica la estructura que se implemento
+para su flujo principal de pedidos.
 
 El DER documenta las entidades, claves primarias, claves foraneas y relaciones
 principales usadas por el backend Supabase/PostgreSQL. Sirve como complemento
@@ -29,23 +36,24 @@ Artefactos versionados relacionados:
 
 | Artefacto | Ubicacion |
 |---|---|
-| DER SVG exportado desde Lucidchart | `diseño/diseño-de-datos/der-modelo-datos-supabase.svg` |
-| Modelo de tablas | `diseño/diseño-de-datos/modelo-tablas-relaciones-supabase.md` |
-| Flujo BDD | `diseño/diseño-de-datos/flujo-construccion-poblado-bdd.md` |
+| DER SVG exportado desde Lucidchart | [`der-modelo-datos-supabase.svg`](./der-modelo-datos-supabase.svg) |
+| Modelo de tablas | [`modelo-tablas-relaciones-supabase.md`](../../deprecados/supabase/diseño-de-datos/modelo-tablas-relaciones-supabase.md) |
+| Flujo BDD | [`flujo-construccion-poblado-bdd.md`](../../deprecados/supabase/diseño-de-datos/flujo-construccion-poblado-bdd.md) |
 
-## 3. Alcance del modelo actual
+## 3. Alcance del modelo historico
 
-El modelo actual cubre la base de datos necesaria para el MVP del sistema La
+El modelo historico cubria la base de datos necesaria para aquel MVP de La
 Montana, con foco en el portal cliente, gestion de pedidos, archivos, estados,
 cotizacion, pagos basicos y auditoria.
 
-La implementacion tecnica se encuentra en las migraciones de Supabase:
+La implementacion tecnica historica se conserva en Git. Antes de retirarse del
+arbol vigente, sus migraciones se encontraban en:
 
 ```text
 desarrollo/backend-supabase/supabase/migrations/
 ```
 
-Los datos iniciales de desarrollo se encuentran en:
+Los datos iniciales de desarrollo se encontraban en:
 
 ```text
 desarrollo/backend-supabase/supabase/seed.sql
