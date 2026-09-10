@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.1 - Propuesta |
+| Versión | 2.2 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Dominio candidato | Disponibilidad operativa |
 | Código de área candidato | CU-OPE |
 
@@ -12,17 +12,17 @@
 
 ## 1. Objetivo
 
-Documentar las acciones que permiten detener y reanudar la recepción de nuevos trabajos ante emergencias o contingencias, y mantener información operativa necesaria para seleccionar impresoras y sostener la impresión remota.
+Documentar las acciones que permiten detener y reanudar la recepción de nuevos trabajos ante emergencias o contingencias, y mantener información operativa necesaria para seleccionar impresoras, administrar disponibilidad temporal de puntos de entrega y sostener la operación remota.
 
 ## 2. Diferencia con configuración
 
 | Configuración versionada | Disponibilidad operativa |
 |---|---|
-| Modifica reglas para nuevas cotizaciones | Habilita o bloquea temporalmente la recepción y registra eventos diarios |
+| Modifica reglas para nuevas cotizaciones | Habilita o bloquea temporalmente recursos y registra eventos diarios |
 | Solo ADMIN_ADMIN | ADMIN_ADMIN o empleado autorizado según la acción |
 | Puede programarse | Acción inmediata |
 | Genera una versión | Genera un evento operativo |
-| Define capacidad máxima y capacidades de impresora | Registra consumo, recarga y disponibilidad estimada |
+| Define capacidades, horarios y estructura habitual | Registra estados temporales, consumo, recarga y disponibilidad |
 | Permanece hasta nueva versión | Cambia con la operación cotidiana |
 
 ## 3. Catálogo candidato
@@ -35,6 +35,7 @@ Documentar las acciones que permiten detener y reanudar la recepción de nuevos 
 | CAND-CU-OPE-004 | Revalidar cotización después de una pausa | P0 |
 | CAND-CU-OPE-005 | Registrar recarga de papel | P0 |
 | CAND-CU-OPE-006 | Seleccionar impresora compatible para un trabajo | P0 |
+| CAND-CU-OPE-007 | Habilitar o deshabilitar punto de entrega | P0 |
 
 ## 4. CAND-CU-OPE-001 - Consultar disponibilidad
 
@@ -47,7 +48,7 @@ Documentar las acciones que permiten detener y reanudar la recepción de nuevos 
 
 ### Resultado esperado
 
-El sistema informa de manera coherente si la imprenta está recibiendo nuevos pedidos.
+El sistema informa de manera coherente si la imprenta está recibiendo nuevos pedidos y qué recursos operativos se encuentran temporalmente disponibles.
 
 La información pública no debe exponer detalles internos innecesarios.
 
@@ -236,7 +237,60 @@ Usuario interno autorizado.
 
 El trabajo queda asignado manualmente a una impresora compatible. La recomendación no equivale a asignación automática.
 
-## 10. Mensajes propuestos
+## 10. CAND-CU-OPE-007 - Habilitar o deshabilitar punto de entrega
+
+### Actor principal
+
+Usuario interno autorizado.
+
+### Intención
+
+Reflejar rápidamente la disponibilidad real de un punto de entrega ante una contingencia cotidiana sin crear una nueva versión del motor de configuración.
+
+### Precondiciones
+
+- punto de entrega previamente definido;
+- usuario autenticado con permiso operativo;
+- estado actual conocido por el backend.
+
+### Flujo para deshabilitar
+
+1. El usuario accede al dashboard o al panel de administración de puntos.
+2. Selecciona Deshabilitar sobre el punto correspondiente.
+3. El sistema no solicita motivo.
+4. El backend valida permisos y cambia el estado operativo del punto a Deshabilitado.
+5. El punto deja de ofrecerse para nuevos pedidos.
+6. Los pedidos que ya tenían ese punto pactado mantienen su modalidad y punto de entrega.
+7. El dashboard muestra o actualiza un aviso persistente indicando que existe uno o más puntos deshabilitados.
+8. El sistema registra punto, usuario, estado anterior, estado nuevo y momento.
+
+### Flujo para habilitar
+
+1. Cuando el punto vuelve a estar operativo, el usuario selecciona Habilitar.
+2. El backend valida permisos y cambia el estado a Habilitado.
+3. El punto vuelve a estar disponible para nuevos pedidos, sujeto a sus días y franjas horarias habituales.
+4. El recordatorio del dashboard se actualiza y desaparece cuando ya no existen puntos deshabilitados.
+
+### Reglas
+
+- no se solicita motivo para habilitar ni deshabilitar;
+- no se crea una versión de configuración;
+- no se reasignan automáticamente pedidos ya pactados;
+- si una entrega comprometida se demora por la contingencia, continúa con el mismo esquema y el timeline refleja su avance real;
+- el aviso del dashboard debe permanecer visible mientras exista al menos un punto deshabilitado.
+
+### Excepciones
+
+- falta de permisos;
+- punto inexistente;
+- intento duplicado sobre el mismo estado;
+- error de persistencia o propagación.
+
+### Poscondición
+
+La disponibilidad operativa del punto queda actualizada sin modificar su definición estructural ni la versión activa de configuración.
+
+## 11. Mensajes propuestos
 
 ### Pausa al cotizar
 
@@ -254,7 +308,11 @@ La recepción fue reanudada. Debido a la interrupción, la fecha estimada cambi�
 
 La impresora registra actualmente una disponibilidad estimada menor al máximo. Confirmá que completaste físicamente el papel hasta la capacidad configurada antes de registrar la recarga.
 
-## 11. Seguridad
+### Recordatorio de puntos deshabilitados
+
+Hay uno o más puntos de entrega deshabilitados. Revisá su estado operativo desde el panel de puntos.
+
+## 12. Seguridad
 
 - reconfirmación de contraseña para pausar y reanudar;
 - validación backend;
@@ -262,16 +320,16 @@ La impresora registra actualmente una disponibilidad estimada menor al máximo. 
 - protección contra solicitudes repetidas;
 - el frontend no puede simular disponibilidad;
 - la respuesta pública no expone el motivo interno si no fue autorizado;
-- la recarga y asignación de impresora requieren un usuario interno autorizado.
+- la recarga, asignación de impresora y disponibilidad de puntos requieren un usuario interno autorizado.
 
-## 12. Auditoría
+## 13. Auditoría
 
 Registrar:
 
 - usuario;
 - rol;
 - fecha y hora;
-- motivo;
+- motivo cuando la acción lo requiera;
 - estado anterior y nuevo;
 - resultado de reconfirmación;
 - reanudación;
@@ -280,25 +338,27 @@ Registrar:
 - errores de propagación;
 - eventos de recarga de papel;
 - impresora afectada por la recarga;
-- asignaciones manuales de trabajos cuando corresponda.
+- asignaciones manuales de trabajos cuando corresponda;
+- habilitaciones y deshabilitaciones de puntos sin requerir un motivo asociado.
 
-## 13. Impacto en estados
+## 14. Impacto en estados
 
 | Estado | Impacto |
 |---|---|
-| Estados internos de pedidos existentes | Sin cambios por pausa o recarga |
-| Estado visible de pedidos existentes | Sin cambios por pausa o recarga |
+| Estados internos de pedidos existentes | Sin cambios automáticos por pausa, recarga o baja temporal de un punto |
+| Estado visible de pedidos existentes | Puede avanzar según el trabajo real y reflejar demoras o finalización anticipada |
 | Estado financiero | Sin cambios |
 | Estado técnico de impresión | Puede incorporar asignación manual a una impresora compatible |
 | Disponibilidad de la imprenta | Operativa o pausada |
 | Estado de impresora | Operativa o Deshabilitada, definido por configuración |
 | Disponibilidad estimada de papel | Disminuye con consumo y vuelve al 100 % al registrar recarga completa |
+| Estado de punto de entrega | Habilitado o Deshabilitado de forma operativa |
 | Cotización temporal | Puede quedar bloqueada hasta reanudación o expiración |
 
-## 14. Criterios de aceptación propuestos
+## 15. Criterios de aceptación propuestos
 
-- ADMIN_ADMIN y empleado pueden pausar y reanudar.
-- El sistema solicita contraseña.
+- ADMIN_ADMIN y empleado pueden pausar y reanudar según permisos.
+- El sistema solicita contraseña para pausa y reanudación.
 - El backend rechaza credenciales inválidas.
 - No se crean cotizaciones durante la pausa.
 - No se confirman pedidos durante la pausa.
@@ -313,8 +373,12 @@ Registrar:
 - El sistema determina compatibilidad por características del trabajo y capacidades de impresora.
 - En V1 la asignación final es manual aunque exista una recomendación.
 - Las impresoras incompatibles muestran una causa comprensible.
+- Un punto puede habilitarse o deshabilitarse sin motivo y sin crear una nueva versión.
+- Un punto deshabilitado no se ofrece para nuevos pedidos.
+- Los pedidos ya pactados conservan su punto y no se reasignan automáticamente.
+- El dashboard mantiene un recordatorio mientras exista al menos un punto deshabilitado.
 
-## 15. Registro de cambios y justificación
+## 16. Registro de cambios y justificación
 
 | Cambio | Situación previa | Justificación vinculada al motor | Estado |
 |---|---|---|---|
@@ -327,8 +391,11 @@ Registrar:
 | Recarga como evento operativo | El papel solo se trataba como capacidad | La capacidad máxima se configura, pero la reposición física ocurre durante la jornada | Confirmado |
 | Recarga siempre al máximo | Podía interpretarse como carga parcial | El sistema solo reinicia el estimado cuando el operador completa el faltante hasta 100 % | Confirmado |
 | Selección asistida de impresora | No existía flujo operativo detallado | Permite trabajo remoto sin automatizar la decisión en V1 | Confirmado |
+| Disponibilidad temporal de punto | Activar/desactivar podía confundirse con una nueva configuración | Permite responder a cierres temporales sin versionar el motor | Confirmado |
+| Recordatorio en dashboard | Un punto podía permanecer deshabilitado por olvido | Mantiene visible la contingencia hasta su reactivación | Confirmado |
+| Continuidad de entregas pactadas | Una baja podía sugerir reasignación automática | Conserva el compromiso existente y permite absorber una demora operativa | Confirmado |
 
-## 16. Referencias para integración
+## 17. Referencias para integración
 
 Esta propuesta se origina por el motor de configuración, pero separa expresamente la disponibilidad temporal y los eventos diarios de las reglas versionadas.
 
