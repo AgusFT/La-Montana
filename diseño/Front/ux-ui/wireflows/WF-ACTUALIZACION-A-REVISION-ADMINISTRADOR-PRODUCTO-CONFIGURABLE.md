@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.5 - Propuesta |
+| Versión | 2.6 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Plataforma principal | Web administrativa |
 | Actor principal | ADMIN_ADMIN |
 | Actores complementarios | Empleado, Cliente, Sistema |
@@ -37,12 +37,13 @@ Subsecciones:
 - Aprobación;
 - Pagos y seña;
 - Impresoras;
-- Entrega;
-- Módulos;
+- Horarios y entrega;
 - Versiones;
 - Cuenta corriente, sujeta a revisión.
 
-La pausa operativa debe estar disponible desde el encabezado o dashboard, sin obligar a ingresar al asistente de configuración.
+La gestión comercial de módulos queda fuera de la Fase 5 hasta definir el catálogo y la composición de los planes Gratis, Inicial y Avanzado.
+
+La pausa operativa, la recarga de papel y la disponibilidad temporal de puntos deben estar accesibles desde el dashboard o áreas operativas, sin obligar a ingresar al asistente de configuración.
 
 ## 3. Inventario de vistas
 
@@ -55,8 +56,8 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-CFG-05 | Configurar seña | Mockups V3 en definición |
 | WF-CFG-06 | Impresoras y capacidades | Mockups V3 aprobados para revisión |
 | WF-CFG-07 | Método de asignación | Mockups V3 aprobados para revisión |
-| WF-CFG-08 | Módulos contratados y activos | Lista para mockup |
-| WF-CFG-09 | Entrega y puntos habilitados | Lista para mockup |
+| WF-CFG-08 | Horarios operativos y tiempos estimados | Mockup V3 aprobado para revisión |
+| WF-CFG-09 | Entrega, puntos y envíos | Mockup V3 aprobado para revisión |
 | WF-CFG-10 | Resumen y simulación | Lista para mockup |
 | WF-CFG-11 | Conflictos de configuración | Lista para mockup |
 | WF-CFG-12 | Activar o programar | Lista para mockup |
@@ -69,6 +70,7 @@ La pausa operativa debe estar disponible desde el encabezado o dashboard, sin ob
 | WF-OPE-03 | Confirmar reanudación | Lista para mockup |
 | WF-OPE-04 | Registrar recarga de papel | Mockup operativo V3 aprobado para revisión |
 | WF-OPE-05 | Seleccionar impresora compatible | Mockup operativo V3 aprobado para revisión |
+| WF-OPE-06 | Disponibilidad temporal de puntos | Definición lista para mockup operativo |
 | WF-COT-01 | Aviso de inactividad | Lista para mockup cliente |
 | WF-COT-02 | Cuenta regresiva | Lista para mockup cliente |
 | WF-COT-03 | Bloqueo por pausa | Lista para mockup cliente |
@@ -140,9 +142,9 @@ Cada tarjeta muestra:
 - aprobación;
 - momento de pago;
 - intervención humana;
-- módulos requeridos;
+- dependencias aplicables;
 - recomendación de uso;
-- etiqueta Disponible o No incluido.
+- etiqueta Disponible o No disponible cuando corresponda.
 
 No debe mostrar combinaciones técnicas crudas.
 
@@ -397,28 +399,96 @@ Una futura asignación automática certificada podrá considerar además:
 
 No se define todavía el algoritmo ni la ponderación. Esta opción permanece fuera de V1.
 
-## 11. WF-CFG-08 - Módulos
+## 11. WF-CFG-08 - Horarios operativos y tiempos estimados
 
-Tres grupos:
+### Objetivo
 
-- Activos;
-- Incluidos pero desactivados;
-- No incluidos en el plan.
+Definir cuándo corre el reloj productivo y cuánto tiempo estimado se compromete la imprenta para preparar un pedido para retiro o envío.
 
-Cada módulo muestra descripción, dependencias e impacto.
+### Días y horarios
 
-Un módulo no contratado puede ofrecer información comercial, pero no permitir activación.
+Cada día de la semana debe aparecer por separado con:
 
-## 12. WF-CFG-09 - Entrega
+- estado habilitado/cerrado;
+- input de hora de apertura;
+- input de hora de cierre.
 
-Permite administrar:
+No deben agruparse lunes a viernes en un único control, porque cada día puede requerir una ventana distinta.
 
-- puntos activos;
-- retiro;
-- envío;
-- horarios;
-- capacidades o restricciones;
-- opciones visibles al cliente.
+Ejemplo:
+
+- lunes a viernes: configurables individualmente, `09:00 a 18:00`;
+- sábado: `10:00 a 12:00`;
+- domingo: cerrado.
+
+### Tiempos estimados
+
+Inputs configurables expresados en horas:
+
+- `Preparación en Casa Central`;
+- `Preparación para envío`.
+
+El primero representa el compromiso estimado para dejar el pedido listo para retiro en Casa Central.
+
+El segundo representa el compromiso estimado para preparar o liberar el pedido para la etapa de envío; no garantiza por sí solo el tiempo de transporte de un tercero.
+
+### Regla de cómputo
+
+- los tiempos se consumen únicamente dentro de los horarios operativos configurados;
+- si el pedido llega fuera de horario, puede aceptarse y queda En cola;
+- el cómputo comienza en la próxima apertura comercial;
+- si el tiempo cruza el cierre, el remanente continúa en la siguiente apertura;
+- el estimado no obliga a esperar: si el pedido queda listo antes, el flujo avanza inmediatamente.
+
+Ejemplo:
+
+`Pedido recibido 02:00 → Próxima apertura 08:00 → Preparación 4 hs → Listo estimado 12:00`.
+
+## 12. WF-CFG-09 - Entrega, puntos y envíos
+
+### Modalidades
+
+La vista presenta las modalidades utilizables:
+
+- **Retiro en local**, según horario operativo;
+- **Puntos de entrega**, según disponibilidad y franjas horarias;
+- **Envío**, según el compromiso estimado configurado.
+
+Solo se muestran al cliente opciones realmente disponibles.
+
+### Administrar puntos
+
+Debe existir la acción **Administrar puntos**.
+
+Conduce a un panel dedicado para:
+
+- consultar puntos existentes;
+- agregar un punto;
+- editar nombre, ubicación y datos habituales;
+- configurar días y franjas horarias cuando corresponda;
+- consultar su estado operativo.
+
+La disponibilidad temporal del punto se mantiene separada del versionado.
+
+### Franjas de los puntos
+
+Cada punto puede definir ventanas de atención o entrega, por ejemplo:
+
+`Facultad de Medicina · Lunes a viernes · 17:00 a 21:00`.
+
+Las franjas son ventanas estimadas, no una cita exacta. La coordinación fina puede resolverse por WhatsApp u otro canal, mientras la aplicación mantiene estados como En camino o Listo para retirar.
+
+La estimación ofrecida al cliente debe respetar la siguiente franja válida del punto y nunca prometer un retiro fuera de ella.
+
+### Simulación de Fase 5
+
+La vista debe conservar el patrón narrativo utilizado en las fases anteriores:
+
+`Pedido recibido → Fuera de horario / En cola → Próxima apertura → En preparación → Listo en Casa Central → Disponible en punto según franja`.
+
+Si el pedido queda listo antes del estimado, el timeline avanza inmediatamente y el cliente puede ser notificado.
+
+La especificación detallada se encuentra en `WF-FASE-5-HORARIOS-PUNTOS-ENVIOS.md`.
 
 ## 13. WF-CFG-10 - Resumen y simulación
 
@@ -426,7 +496,7 @@ Debe ser una vista narrativa.
 
 Ejemplo:
 
-Un pedido compatible ingresa. Se aplican el modelo operativo y la configuración financiera capturados. Si existe una condición económica previa, el archivo no se habilita hasta que esa condición quede acreditada. Después puede continuar hacia las reglas de producción y la selección de una impresora compatible.
+Un pedido compatible ingresa. Se aplican el modelo operativo y la configuración financiera capturados. Si existe una condición económica previa, el archivo no se habilita hasta que esa condición quede acreditada. Después puede continuar hacia las reglas de producción, la selección de una impresora compatible y el cálculo de disponibilidad según horarios y modalidad de entrega.
 
 Secciones:
 
@@ -438,9 +508,15 @@ Secciones:
 - ejemplo por monto dentro y fuera del umbral;
 - ejemplo de trabajo con impresoras compatibles, incompatibles y una recomendada;
 - disponibilidad estimada de papel de las impresoras compatibles;
+- ejemplo de pedido recibido fuera de horario y en cola;
+- siguiente apertura operativa;
+- tiempo estimado para retiro o envío;
+- disponibilidad en punto según franja horaria;
+- ejemplo de finalización anticipada;
 - ejemplo con error;
-- módulos afectados;
 - advertencias.
+
+La definición comercial de módulos no forma parte del resumen de Fase 5 hasta que exista un catálogo aprobado.
 
 ## 14. WF-CFG-11 - Conflictos
 
@@ -456,9 +532,14 @@ Formato recomendado:
 | Papel estimado insuficiente | La impresora no tendría hojas suficientes para completar el trabajo | Recargar papel o seleccionar otra impresora |
 | Intento de editar impresora Operativa | Las capacidades no pueden cambiar mientras el equipo está habilitado para recibir trabajos | Deshabilitar la impresora antes de editar |
 | Asignación automática en V1 | La automatización todavía no dispone de un modelo certificado | Mantener Asignación manual |
-| Módulo requerido no incluido | El perfil depende de una función no contratada | Elegir otro perfil o consultar plan |
+| Horario operativo inválido | La apertura no es anterior al cierre o falta una hora requerida | Corregir la ventana del día |
+| Tiempo estimado inválido | El compromiso de preparación no posee un valor válido mayor que cero | Completar el tiempo en horas |
+| Punto sin franja válida | La ventana configurada no permite ofrecer el retiro correctamente | Corregir días y franja del punto |
+| Modalidad sin disponibilidad real | La opción no puede cumplirse con la configuración o estado operativo actual | Revisar horario, punto o modalidad |
 
 No debe utilizar mensajes genéricos.
+
+Los conflictos asociados a módulos se definirán cuando se cierre la estrategia comercial de planes.
 
 ## 15. WF-CFG-12 - Activar o programar
 
@@ -518,7 +599,9 @@ Detalle:
 
 - comparación;
 - auditoría;
-- módulos;
+- impresoras y asignación;
+- horarios y tiempos estimados;
+- definición de puntos y modalidades;
 - parámetros;
 - opción Usar como base.
 
@@ -604,7 +687,31 @@ Para un trabajo concreto debe mostrar:
 
 En V1 no existe botón ni acción de asignación automática.
 
-## 24. Impacto en cliente
+## 24. WF-OPE-06 - Disponibilidad temporal de puntos
+
+Debe estar accesible desde el dashboard o el panel de administración de puntos sin obligar a crear una nueva versión de configuración.
+
+Cada punto muestra como mínimo:
+
+- nombre;
+- estado Habilitado o Deshabilitado;
+- días y franja habitual;
+- acción Habilitar o Deshabilitar según estado.
+
+Reglas:
+
+- no se solicita motivo;
+- no se exige fecha de fin;
+- un punto deshabilitado deja de ofrecerse a nuevos pedidos;
+- los pedidos ya pactados conservan el punto y no se reasignan automáticamente;
+- el punto se habilita nuevamente de forma manual;
+- mientras exista al menos un punto deshabilitado, el dashboard muestra un recordatorio persistente con acceso a la gestión.
+
+Ejemplo de aviso:
+
+`⚠ Hay 2 puntos de entrega deshabilitados · Ver puntos`.
+
+## 25. Impacto en cliente
 
 ### WF-COT-01 - Aviso de actividad
 
@@ -637,7 +744,21 @@ En V1 no existe botón ni acción de asignación automática.
 - Aceptar y continuar;
 - Cancelar.
 
-## 25. Cuenta corriente - Vistas exploratorias
+### Timeline de horarios y entrega
+
+Para Fase 5, el timeline del cliente debe poder mostrar:
+
+- Pedido recibido;
+- En cola cuando está fuera del horario operativo;
+- próxima apertura o inicio estimado cuando aporte claridad;
+- En preparación;
+- En camino cuando corresponda;
+- Listo para retirar;
+- Entregado.
+
+Si el pedido queda listo antes del estimado, el nuevo estado se refleja inmediatamente y puede generar una notificación al cliente.
+
+## 26. Cuenta corriente - Vistas exploratorias
 
 ### WF-CC-01 - Listado
 
@@ -675,12 +796,13 @@ En V1 no existe botón ni acción de asignación automática.
 
 Estas vistas deben incluir una marca visible de Propuesta a revisión.
 
-## 26. Flujo principal del administrador
+## 27. Flujo principal del administrador
 
 Inicio de configuración
 → seleccionar modelo
-→ completar parámetros
+→ completar aprobación y pagos
 → configurar impresoras y asignación
+→ configurar horarios, tiempos, puntos y envíos
 → validar
 → resolver conflictos
 → previsualizar
@@ -689,24 +811,27 @@ Inicio de configuración
 → activar o programar
 → consultar confirmación e historial.
 
-## 27. Permisos visuales
+## 28. Permisos visuales
 
 | Función | ADMIN_ADMIN | Empleado |
 |---|---:|---:|
 | Acceder a Configuración | Sí | No |
 | Crear versión | Sí | No |
 | Configurar impresoras y capacidades | Sí | No |
+| Configurar horarios y tiempos | Sí | No |
+| Agregar o editar definición de puntos | Sí | No, salvo permiso futuro específico |
 | Activar o programar | Sí | No |
 | Consultar historial completo | Sí | No |
 | Pausar | Sí | Sí |
 | Reanudar | Sí | Sí |
 | Registrar recarga de papel | Sí | Sí, si está autorizado |
 | Seleccionar impresora para un trabajo | Sí | Sí, si está autorizado |
+| Habilitar o deshabilitar punto | Sí | Sí, si está autorizado |
 | Administrar cuenta corriente | Sí | No |
 
 La autorización real debe validarse en backend.
 
-## 28. Registro de cambios y justificación
+## 29. Registro de cambios y justificación
 
 | Vista incorporada | Wireflow anterior | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
@@ -720,6 +845,14 @@ La autorización real debe validarse en backend.
 | Disponibilidad estimada de papel | Capacidad y disponibilidad no tenían modelo operativo | Permite estimar continuidad de trabajo desde fuera de la oficina | Mockups V3 aprobados para revisión |
 | Recarga manual de papel | No existía evento de sincronización | Permite restablecer el estimado al 100 % después de completar físicamente el faltante | Mockup operativo V3 aprobado para revisión |
 | Asignación automática futura | Se mencionaba como opción cuando estuviera certificada | En V1 queda explícitamente visible pero deshabilitada | Representada como opción futura |
+| Fase 5 - horarios por día | Se agrupaban horarios y módulos sin un criterio temporal completo | Define cuándo corre el reloj productivo y permite días diferentes | Mockup V3 aprobado para revisión |
+| Fase 5 - tiempos en horas | Entrega no tenía compromiso temporal configurable | Permite calcular retiro y preparación para envío | Mockup V3 aprobado para revisión |
+| Fase 5 - Administrar puntos | Los puntos estaban resumidos sin gestión dedicada | Separa la definición estructural de la vista principal | Mockup V3 aprobado para revisión |
+| Puntos con franjas horarias | No existían ventanas propias por ubicación | Evita prometer retiro fuera de la disponibilidad habitual | Definición confirmada |
+| Disponibilidad temporal de puntos | Una contingencia podía confundirse con una nueva configuración | Habilitar/deshabilitar es operativo, inmediato y sin motivo | Lista para mockup operativo |
+| Recordatorio de puntos deshabilitados | No existía prevención contra bajas olvidadas | El dashboard mantiene visible la contingencia | Lista para mockup operativo |
+| Timeline de Fase 5 | La estimación no mostraba el efecto del horario | Visualiza cola, próxima apertura, preparación y disponibilidad | Mockup V3 aprobado para revisión |
+| Módulos fuera de Fase 5 | El wireflow los trataba como contenido inmediato | Los planes y catálogo todavía no están definidos | Futuro |
 | Resumen y simulación | Sin previsualización integral | Permite comprender consecuencias | Lista para mockup |
 | Activar o programar | Sin flujo temporal | Define cuándo aplican los cambios | Lista para mockup |
 | Verificación reforzada | Acciones administrativas generales | Protege cambios operativos y financieros | Lista para mockup |
@@ -728,7 +861,7 @@ La autorización real debe validarse en backend.
 | Temporizadores cliente | Cotización sin caducidad detallada | Protege sesión económica y temporales | Lista para mockup |
 | Cuenta corriente | No formalizada | Explora excepción financiera controlada | Requiere revisión |
 
-## 29. Referencias para integración
+## 30. Referencias para integración
 
 Este wireflow se justifica por los cambios del motor de configuración y debe contrastarse con:
 
@@ -739,6 +872,7 @@ Este wireflow se justifica por los cambios del motor de configuración y debe co
 - analisis/casos-de-uso/09-configuracion-del-sistema/actualizacion-a-revision-casos-de-uso-configuracion.md
 - analisis/casos-de-uso/10-disponibilidad-operativa/actualizacion-a-revision-casos-de-uso-disponibilidad.md
 - diseño/Front/ux-ui/wireflows/WF-FASE-4-IMPRESORAS-ACCESOS-OPERATIVOS.md
+- diseño/Front/ux-ui/wireflows/WF-FASE-5-HORARIOS-PUNTOS-ENVIOS.md
 
 ### Evidencia V3 de Fase 4
 
@@ -746,3 +880,7 @@ Este wireflow se justifica por los cambios del motor de configuración y debe co
 - [MC-ADM-CFG-007 - Editar impresora](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-007-editar-impresora.png)
 - [MC-ADM-OPE-004 - Registrar recarga de papel](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-OPE-004-registrar-recarga-papel.png)
 - [MC-ADM-OPE-005 - Asignar impresora](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-OPE-005-asignar-impresora.png)
+
+### Evidencia de Fase 5
+
+La lógica y el criterio visual están aprobados para revisión, pero la imagen definitiva no se versiona automáticamente. Debe utilizarse el mockup exacto confirmado por el equipo cuando se incorpore como evidencia final.
