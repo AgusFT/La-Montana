@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.4 - Propuesta |
+| Versión | 2.5 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Dominio candidato | Configuración del sistema |
 | Código de área candidato | CU-CFG |
 | Integración | Pendiente de validación |
@@ -22,7 +22,7 @@ Identificar las intenciones operativas necesarias para configurar el producto si
 | ADMIN_ADMIN | Prepara, valida, activa, programa y consulta configuraciones |
 | Sistema | Controla permisos, coherencia, vigencia, versionado y auditoría |
 | Servicio de autenticación | Verifica identidad y factor adicional cuando corresponda |
-| Superadministración de plataforma | Define módulos contratados y modelos disponibles, fuera del alcance operativo de la imprenta |
+| Superadministración de plataforma | Definirá módulos contratados y modelos comerciales cuando se cierre la estrategia de planes; fuera del alcance actual de Fase 5 |
 
 El nombre formal ADMIN_ADMIN debe validarse durante la integración.
 
@@ -43,6 +43,8 @@ El nombre formal ADMIN_ADMIN debe validarse durante la integración.
 | CAND-CU-CFG-011 | Configurar impresora y capacidades | P0 | Confirmado para diseño |
 | CAND-CU-CFG-012 | Administrar estado, edición y eliminación de impresora | P0 | Confirmado para diseño |
 | CAND-CU-CFG-013 | Configurar método de asignación de impresora | P0 | Confirmado para diseño |
+| CAND-CU-CFG-014 | Configurar horarios operativos y tiempos estimados | P0 | Confirmado para diseño |
+| CAND-CU-CFG-015 | Administrar definición de puntos de entrega | P0 | Confirmado para diseño |
 
 ## 4. CAND-CU-CFG-001 - Consultar configuración activa
 
@@ -90,7 +92,7 @@ Elegir una estructura operativa coherente como base.
 ### Excepciones
 
 - modelo no incluido;
-- módulo requerido no contratado;
+- dependencia futura no disponible;
 - modelo discontinuado;
 - falta de permisos;
 - intento de seleccionar Automatización certificada en esta versión.
@@ -138,7 +140,6 @@ Detectar incompatibilidades antes de activar.
 
 ### Validaciones propuestas
 
-- módulos disponibles;
 - combinación pago-aprobación;
 - existencia de al menos un medio acreditable cuando el modelo exige pago o seña previa;
 - efectivo deshabilitado como medio de acreditación previa cuando corresponda;
@@ -148,9 +149,14 @@ Detectar incompatibilidades antes de activar.
 - capacidad máxima de hojas mayor que cero;
 - método de asignación permitido para la versión;
 - al menos una impresora Operativa compatible cuando una simulación requiera producción;
-- puntos de entrega activos;
+- al menos una modalidad de entrega utilizable para el flujo configurado;
+- cada día operativo debe poseer apertura anterior al cierre;
+- los tiempos estimados configurados deben ser mayores que cero;
+- las franjas horarias de cada punto deben ser válidas y no prometer disponibilidad fuera de su ventana;
 - parámetros obligatorios;
 - invariantes de seguridad.
+
+La definición comercial de módulos y planes queda fuera de Fase 5 y no debe bloquear la validación de esta fase.
 
 ### Resultado
 
@@ -175,7 +181,10 @@ Mostrar las consecuencias operativas en lenguaje comprensible.
 - ejemplo de trabajo con impresoras compatibles e incompatibles;
 - impresora recomendada cuando existan varias compatibles;
 - disponibilidad estimada de papel expresada en hojas y porcentaje;
-- módulos afectados.
+- horarios operativos y tiempos estimados de Fase 5;
+- ejemplo de pedido recibido fuera de horario, en cola y con inicio en la próxima apertura;
+- disponibilidad en Casa Central y en un punto de entrega según franja horaria;
+- finalización anticipada cuando el pedido queda listo antes del estimado.
 
 ### Resultado
 
@@ -359,17 +368,83 @@ Definir cómo se seleccionará una impresora compatible para un trabajo.
 
 La configuración registra la modalidad manual. No se realiza ninguna asignación concreta de trabajos durante este caso de configuración.
 
-## 16. Seguridad transversal
+## 16. CAND-CU-CFG-014 - Configurar horarios operativos y tiempos estimados
+
+### Intención
+
+Definir el calendario operativo que gobierna el cálculo de tiempos y el compromiso estimado de preparación para retiro o envío.
+
+### Datos principales
+
+- día de la semana;
+- estado operativo del día;
+- hora de apertura;
+- hora de cierre;
+- horas estimadas de preparación en Casa Central;
+- horas estimadas de preparación o liberación para envío.
+
+### Flujo resumido
+
+1. El actor ingresa a Fase 5 - Horarios, puntos de entrega y envíos.
+2. Configura cada día de la semana por separado.
+3. Para cada día habilitado define apertura y cierre.
+4. Define en horas el tiempo estimado de preparación en Casa Central.
+5. Define en horas el tiempo estimado para preparar o liberar un pedido para envío.
+6. El sistema valida las ventanas y los valores.
+7. El sistema muestra la regla de pedidos fuera de horario: pueden quedar en cola y el tiempo comienza en la próxima apertura comercial.
+8. La vista previsualiza el cálculo mediante un timeline de ejemplo.
+9. Los valores quedan guardados en la configuración en preparación.
+
+### Reglas de cálculo
+
+- el reloj consume únicamente horas operativas;
+- si un cálculo cruza el cierre, las horas restantes continúan en la siguiente apertura;
+- un pedido recibido fuera de horario no consume tiempo productivo hasta la próxima apertura;
+- el tiempo es estimado y no obliga a esperar: si el pedido finaliza antes, puede avanzar inmediatamente.
+
+### Resultado
+
+La configuración queda preparada para calcular compromisos horarios coherentes con la jornada real.
+
+## 17. CAND-CU-CFG-015 - Administrar definición de puntos de entrega
+
+### Intención
+
+Mantener la información estructural de los puntos y sus ventanas habituales sin mezclarla con contingencias operativas temporales.
+
+### Flujo resumido
+
+1. Desde Fase 5 el actor selecciona Administrar puntos.
+2. El sistema abre el panel dedicado de puntos de entrega.
+3. El actor consulta los puntos existentes o agrega uno nuevo.
+4. Define nombre y ubicación.
+5. Cuando corresponde, define días y franjas horarias de atención o entrega.
+6. Edita la información estructural del punto cuando resulte necesario.
+7. El sistema valida las franjas.
+8. La Fase 5 utiliza esos datos para presentar y simular las modalidades de entrega disponibles.
+
+### Reglas
+
+- una franja horaria es una ventana estimada, no una cita exacta;
+- la coordinación fina puede resolverse por un canal externo, por ejemplo WhatsApp;
+- habilitar o deshabilitar temporalmente un punto pertenece a operación diaria y no crea una nueva versión;
+- los pedidos ya pactados no se reasignan automáticamente si el punto se deshabilita después.
+
+### Resultado
+
+Los puntos quedan definidos para su uso por el flujo de entrega y por el cálculo de disponibilidad.
+
+## 18. Seguridad transversal
 
 - autorización backend obligatoria;
 - aislamiento por imprenta;
 - historial inmutable;
-- validación de plan;
+- validación de capacidades disponibles;
 - protección contra escalada de privilegios;
 - factor adicional para activaciones sensibles;
 - frontend no autoritativo.
 
-## 17. Auditoría transversal
+## 19. Auditoría transversal
 
 Registrar:
 
@@ -382,9 +457,10 @@ Registrar:
 - intento no autorizado;
 - error técnico;
 - versión anterior y nueva;
-- cambios de capacidades o estado de impresoras cuando corresponda.
+- cambios de capacidades o estado de impresoras cuando corresponda;
+- cambios estructurales de horarios y puntos cuando formen parte de una configuración.
 
-## 18. Casos que no pertenecen a este dominio
+## 20. Casos que no pertenecen a este dominio
 
 No deben incorporarse como configuración permanente:
 
@@ -394,11 +470,12 @@ No deben incorporarse como configuración permanente:
 - cerrar sesión por inactividad;
 - aprobar un pedido de cuenta corriente;
 - seleccionar una impresora concreta para un trabajo en ejecución;
-- registrar una recarga física de papel.
+- registrar una recarga física de papel;
+- habilitar o deshabilitar temporalmente un punto de entrega.
 
-Esas intenciones pertenecen a disponibilidad, pedidos, seguridad, producción o finanzas. La Fase 4 configura capacidades y método; la recarga y la selección concreta son eventos operativos.
+Esas intenciones pertenecen a disponibilidad, pedidos, seguridad, producción o finanzas. La Fase 4 configura capacidades y método; la recarga y la selección concreta son eventos operativos. La Fase 5 configura horarios, tiempos y definición de puntos; la disponibilidad temporal de un punto también es un evento operativo.
 
-## 19. Requisitos para documentación definitiva
+## 21. Requisitos para documentación definitiva
 
 Cada caso aprobado deberá:
 
@@ -410,7 +487,7 @@ Cada caso aprobado deberá:
 - definir auditoría y criterios de aceptación;
 - actualizar el catálogo oficial o su versión consolidada.
 
-## 20. Registro de cambios y justificación
+## 22. Registro de cambios y justificación
 
 | Cambio | Documentación previa | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
@@ -427,10 +504,15 @@ Cada caso aprobado deberá:
 | Asignación manual V1 | La automática figuraba como opción disponible cuando estuviera certificada | Se fija manual como predeterminada y automática visible pero deshabilitada | Confirmado para diseño |
 | Disponibilidad de papel | No estaba modelada | Permite recomendación y operación remota con una estimación explícita | Confirmado para diseño |
 | Separación recarga-configuración | La recarga no existía como intención | La capacidad máxima es configuración; completar papel y reiniciar el contador es operación diaria | Confirmado |
+| Horarios por día y tiempos en horas | La entrega se describía sin calendario de cómputo | Permite estimar compromisos dentro de horas operativas reales | Confirmado para diseño |
+| Pedido fuera de horario en cola | No se definía el inicio del reloj | Evita prometer entregas imposibles durante cierres | Confirmado |
+| Puntos con franjas horarias | Los puntos solo figuraban como activos | Permite ofrecer ventanas de entrega coherentes con cada ubicación | Confirmado para diseño |
+| Separación de disponibilidad de punto | Activar/desactivar podía confundirse con configuración | Evita crear versiones por contingencias temporales | Confirmado |
+| Módulos fuera de Fase 5 | No existe definición de Gratis/Inicial/Avanzado | Evita inventar una política comercial no resuelta | Futuro |
 | Validación y previsualización | No documentadas como interacción | Evitan errores y sostienen UX remota | Confirmado |
 | Códigos CAND | Catálogo oficial sin CU-CFG | Evita presentar identificadores no validados como definitivos | Provisional |
 
-## 21. Referencias para integración
+## 23. Referencias para integración
 
 La propuesta se fundamenta en el motor de configuración y debe contrastarse con:
 
