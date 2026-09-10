@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.6 - Propuesta |
+| Versión | 2.7 - Propuesta |
 | Estado | Actualización a revisión |
 | Fecha | 2026-09-10 |
 | Plataforma principal | Web administrativa |
@@ -883,4 +883,7 @@ Este wireflow se justifica por los cambios del motor de configuración y debe co
 
 ### Evidencia de Fase 5
 
-La lógica y el criterio visual están aprobados para revisión, pero la imagen definitiva no se versiona automáticamente. Debe utilizarse el mockup exacto confirmado por el equipo cuando se incorpore como evidencia final.
+- [MC-ADM-CFG-008-009 - Horarios, puntos y envíos](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-008-009-horarios-puntos-envios.png)
+- [MC-ADM-CFG-009 - Administrar puntos de entrega](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-009-administrar-puntos-entrega.png)
+
+Ambas imágenes corresponden a la evidencia final confirmada el 10/09/2026. La primera representa la configuración temporal y la simulación de punta a punta; la segunda centraliza la definición y consulta de los puntos de entrega. No deben sustituirse por pruebas visuales anteriores.

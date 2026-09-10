@@ -2,8 +2,8 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 1.0 - Propuesta |
-| Estado | Actualización a revisión |
+| Versión | 1.1 - Propuesta |
+| Estado | Actualización a revisión - evidencia visual aprobada |
 | Fecha | 2026-09-10 |
 | Fase | Fase 5 - Horarios, puntos de entrega y envíos |
 | Vistas relacionadas | WF-CFG-08, WF-CFG-09 |
@@ -302,19 +302,40 @@ Principio preservado: una mejora opcional futura no debe impedir el flujo básic
 - la pantalla incluye simulación del recorrido;
 - módulos no forman parte del diseño actual de Fase 5.
 
-## 15. Evidencia visual
+## 15. Evidencia visual aprobada
 
-El mockup vigente de trabajo para Fase 5 debe representar:
+La revisión del 10/09/2026 confirmó exactamente dos mockups para presentar la Fase 5.
 
-- días separados de lunes a domingo;
-- inputs de apertura y cierre;
-- inputs de preparación en Casa Central y preparación para envío;
-- modalidades de retiro, puntos y envío;
-- botón Administrar puntos;
-- timeline con pedido fuera de horario y próxima apertura;
-- regla operativa de cómputo en horas operativas.
+| Evidencia | Alcance | Decisión representada |
+|---|---|---|
+| [MC-ADM-CFG-008-009 - Horarios, puntos y envíos](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-008-009-horarios-puntos-envios.png) | Pantalla principal de Fase 5 | Días independientes, aperturas y cierres, tiempos estimados, modalidades y simulación completa |
+| [MC-ADM-CFG-009 - Administrar puntos de entrega](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-009-administrar-puntos-entrega.png) | Panel dedicado de puntos | Alta, edición, estado, días de operación, franjas horarias y resumen de disponibilidad |
 
-La evidencia gráfica final deberá versionarse únicamente cuando el equipo confirme el mockup definitivo.
+### 15.1 Horarios, modalidades y simulación
+
+`MC-ADM-CFG-008-009` muestra:
+
+- los siete días configurados por separado, sin agrupar lunes a viernes;
+- apertura y cierre propios para cada día habilitado;
+- preparación en Casa Central y preparación para envío expresadas en horas;
+- retiro en local, puntos de entrega y envío como modalidades configurables;
+- el acceso `Administrar puntos`;
+- un recorrido desde pedido recibido fuera de horario hasta la siguiente franja válida del punto;
+- la regla de que el reloj productivo solo consume horas operativas y puede avanzar antes del estimado.
+
+### 15.2 Administración de puntos
+
+`MC-ADM-CFG-009` muestra:
+
+- búsqueda y filtro de puntos;
+- alta y edición de su definición estructural;
+- nombre, dirección, días de operación y franja horaria por punto;
+- estados Operativo y Deshabilitado;
+- acciones Habilitar y Deshabilitar;
+- resumen de puntos registrados, operativos y deshabilitados;
+- separación entre la estructura habitual del punto y las contingencias operativas cotidianas.
+
+Estas dos imágenes son la evidencia visual vigente. Las pruebas y generaciones anteriores no deben utilizarse para presentación.
 
 ## 16. Referencias
 
@@ -324,3 +345,9 @@ La evidencia gráfica final deberá versionarse únicamente cuando el equipo con
 - `analisis/casos-de-uso/10-disponibilidad-operativa/actualizacion-a-revision-casos-de-uso-disponibilidad.md`
 - `marco-del-proyecto/actualizacion-a-revision-producto-configurable.md`
 - `marco-del-proyecto/actualizacion-a-revision-motor-configuracion-versionada.md`
+
+## 17. Registro de la revisión visual
+
+| Fecha | Cambio | Justificación | Estado |
+|---|---|---|---|
+| 2026-09-10 | Se vinculan los dos mockups finales confirmados | Cierra la evidencia de horarios, tiempos, modalidades y administración de puntos sin incorporar versiones intermedias | Aprobado para revisión del equipo |

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.6 - Propuesta |
+| Versión | 2.7 - Propuesta |
 | Estado | Actualización a revisión |
 | Fecha | 2026-09-10 |
 | Propósito | Relacionar decisiones, requerimientos, historias, casos candidatos y vistas |
@@ -212,7 +212,7 @@ Para Fase 4, los cuatro mockups aprobados representan:
 
 La recarga y la asignación concreta se documentan junto con la Fase 4 por su dependencia de las capacidades configuradas, pero no modifican la versión activa del motor.
 
-### Criterio visual de Fase 5
+### Evidencia visual trazable de Fase 5
 
 El mockup de Fase 5 debe representar:
 
@@ -225,7 +225,12 @@ El mockup de Fase 5 debe representar:
 - regla de finalización anticipada;
 - franjas horarias de puntos como ventanas estimadas.
 
-La evidencia gráfica final de Fase 5 se versionará únicamente cuando el equipo confirme el mockup definitivo.
+| Mockup | Reglas y requisitos principales | Historia / caso | Wireflow | Contexto |
+|---|---|---|---|---|
+| `MC-ADM-CFG-008-009-horarios-puntos-envios.png` | PROP-RN-C-019 a 025; PROP-RF-CFG-044 a 048, 052 a 054; PROP-RNF-USA-009 y 010 | PROP-HU-ADM-011, PROP-HU-CLI-005; CAND-CU-CFG-014 | WF-CFG-08/09 / WF-FASE-5 | Configuración versionada y simulación |
+| `MC-ADM-CFG-009-administrar-puntos-entrega.png` | PROP-RN-C-022 y 025; PROP-RN-O-009 a 012; PROP-RF-CFG-049 y 050; PROP-RF-OPE-013 a 017 | PROP-HU-ADM-012, PROP-HU-OPE-005; CAND-CU-CFG-015, CAND-CU-OPE-007 | WF-CFG-09 / WF-OPE-06 | Estructura y disponibilidad de puntos |
+
+Los dos mockups confirmados el 10/09/2026 constituyen la evidencia visual vigente de la Fase 5. Las versiones intermedias no deben utilizarse para presentación.
 
 Cuenta corriente debe diseñarse como exploración identificada y revisarse antes de consolidarse.
 
@@ -251,6 +256,7 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 | Franjas de puntos | Los puntos no tenían ventanas propias | Hace compatible la estimación con la disponibilidad real de cada ubicación | Confirmado |
 | Disponibilidad operativa de puntos | Una baja temporal podía versionarse innecesariamente | Separa estructura habitual de contingencia diaria | Confirmado |
 | Timeline de Fase 5 | La consecuencia temporal no se veía de punta a punta | Explica próxima apertura, preparación y disponibilidad al cliente | Confirmado |
+| Evidencia visual Fase 5 | Las reglas estaban cerradas pero las imágenes finales no estaban versionadas | Vincula horarios, simulación y administración de puntos con sus RN, RF, HU, CU y wireflows | Confirmado para revisión |
 | Módulos postergados | No se definieron planes Gratis/Inicial/Avanzado | Evita consolidar hipótesis comerciales | Futuro |
 | Referencias a documentos afectados | La integración será realizada después | Facilita revisión de Agustín y su IA | Confirmado |
 
