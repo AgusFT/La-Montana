@@ -2,19 +2,20 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 3.1 |
+| Versión | 3.2 |
 | Estado | Aprobado |
 | Fecha | 2026-09-09 |
-| Rama de elaboración | `main` — revisión 3.1 sobre el DER v3 publicado |
+| Rama de elaboración | `main` — revisión 3.2 sobre el DER v3 publicado |
 | Publicación | `main` |
-| Base documental | `main@650b50ac52578040e847972896c19d9fb6e992b0` |
+| Base documental | `main@93ac4eef7e7a97372faf4aac1232080716f3db26` — revisión 3.1 |
 | Issue relacionada | [#157 - Crear DER v3 PostgreSQL/Spring Boot](https://github.com/AgusFT/La-Montana/issues/157) |
 | Épica padre | [#155 - Fundación backend Spring Boot y PostgreSQL](https://github.com/AgusFT/La-Montana/issues/155) |
 | Milestone | [M10 - Fundación Spring Boot y PostgreSQL](https://github.com/AgusFT/La-Montana/milestone/11) |
 | Fuente editable | [`der-modelo-datos-postgresql.excalidraw`](./der-modelo-datos-postgresql.excalidraw) |
 | Vista SVG | [`DER-V3.svg`](./DER-V3.svg) |
-| Revisión visual | DER 3.0 aprobado por el usuario el 2026-09-09; revisión 3.1 verificada conforme al plan aprobado |
+| Revisión visual | DER 3.0 aprobado por el usuario el 2026-09-09; revisiones 3.1 y 3.2 verificadas sobre fuente editable y SVG |
 | Revisión 3.1 | Activación programada, reintentos cada diez minutos, rollback manual y vigencia de cotizaciones; autorizada mediante `implementa el plan` el 2026-09-09 |
+| Revisión 3.2 | Reclamo especial sin pedido y con pago acreditado, autorizado expresamente por el usuario el 2026-09-09 |
 
 ## 1. Estado y autoridad
 
@@ -24,11 +25,11 @@ El diseño representa **una instalación y una base de datos por imprenta**. Las
 
 La fuente gráfica editable es el archivo Excalidraw. Puede importarse directamente en [Excalidraw](https://excalidraw.com/) sin instalar una extensión de VSCodium. La [vista SVG](./DER-V3.svg) permite consultar el diagrama completo directamente desde el repositorio.
 
-La versión 3.1 conserva el escenario de normalización aplicado en la 3.0 y amplía únicamente programación, intentos de activación, rollback y vigencia de cotizaciones. El lienzo separa una vista general con entidades completas y relaciones agregadas entre dominios de una vista formada por un grafo de relaciones para cada entidad. Esta duplicación visual no duplica datos del modelo: ambos sectores se generan desde este mismo diccionario.
+La versión 3.2 conserva el escenario de normalización aplicado en la 3.0 y la programación, los intentos de activación, el rollback y la vigencia de cotizaciones de la revisión 3.1. Agrega un origen financiero alternativo para reclamar un pago acreditado sin pedido. El lienzo separa una vista general con entidades completas y relaciones agregadas entre dominios de una vista formada por un grafo de relaciones para cada entidad. Esta duplicación visual no duplica datos del modelo: ambos sectores se generan desde este mismo diccionario.
 
 ## 2. Fuentes y precedencia
 
-1. Decisiones funcionales aprobadas durante el relevamiento específico de este DER y el grill de la revisión 3.1.
+1. Decisiones funcionales aprobadas durante el relevamiento específico de este DER, el grill de la revisión 3.1 y la autorización expresa de la revisión 3.2.
 2. [Motor de configuración](../../marco-del-proyecto/motor-de-configuracion-del-sistema.md).
 3. [WBS de Spring Boot y PostgreSQL](../../marco-del-proyecto/wbs-v4-spring-boot-postgresql.md).
 4. [Stakeholders y actores](../../marco-del-proyecto/stakeholders-y-actores.md).
@@ -39,6 +40,8 @@ Ante contradicciones, este DER incorpora las decisiones posteriores aprobadas: m
 La revisión 3.1 toma como referencia acotada el [PR #196](https://github.com/AgusFT/La-Montana/pull/196), rama `docs/actualizacion-producto-configurable-revision@23fcd1680cd06fccbf576f3fba98e61078a137c5`, especialmente las propuestas [#203](https://github.com/AgusFT/La-Montana/issues/203), [#197](https://github.com/AgusFT/La-Montana/issues/197) y [#224](https://github.com/AgusFT/La-Montana/issues/224). Ese PR conserva su estado de propuesta; esta revisión no incorpora íntegramente su alcance.
 
 **Decisión posterior del usuario:** una activación efectiva, incluido un rollback, invalida las cotizaciones anteriores todavía sin confirmar y exige recotizar y aceptar. Esto sustituye expresamente la propuesta del PR #196 que conservaba la cotización de una versión anterior hasta su vencimiento. Los pedidos ya confirmados mantienen su versión, condiciones y hechos financieros. Las diferencias sobre pagos antes de cargar archivos y otros recortes UX quedan fuera de esta revisión.
+
+**Extensión 3.2 autorizada:** un reclamo especial puede carecer de pedido si referencia un pago ya acreditado. Se reutilizan las entidades de reclamos, evidencias, resoluciones e historial. Esta extensión no define recuperación automática de cotizaciones, plazos de pago, carga de archivos ni canales de atención externos.
 
 ## 3. Convenciones PostgreSQL
 
@@ -64,10 +67,10 @@ La revisión 3.1 toma como referencia acotada el [PR #196](https://github.com/Ag
 | Agentes, impresoras y producción | `#6741d9` | 9 | Operar agentes, impresoras, trabajos y control humano de calidad. |
 | Pagos, cuenta corriente y documentos | `#c92a2a` | 14 | Registrar dinero, aplicaciones, cuenta corriente y documentos internos. |
 | Programación y entregas | `#087f5b` | 6 | Definir capacidad, reservar cupos y registrar entregas completas. |
-| Reclamos y compensaciones | `#a61e4d` | 5 | Resolver reclamos sin modificar pedidos cerrados. |
+| Reclamos y compensaciones | `#a61e4d` | 5 | Resolver reclamos de pedidos o pagos acreditados sin pedido, conservando sus hechos de origen. |
 | Notificaciones, alertas y auditoría | `#495057` | 6 | Mantener inbox personal, push, alertas operativas y auditoría. |
 
-**Total:** 107 entidades, 968 atributos y 235 relaciones FK explícitas.
+**Total:** 107 entidades, 969 atributos y 236 relaciones FK explícitas.
 
 
 ## 5. Diccionario de entidades
@@ -1617,7 +1620,7 @@ Evidencia privada informada o recibo generado para un intento o un pago.
 
 #### `reembolso`
 
-Devolución que reduce aplicaciones originales sin reescribir pagos ni pedidos.
+Devolución de saldo no aplicado o de una aplicación original, sin reescribir pagos ni pedidos.
 
 | Campo | Tipo PostgreSQL | Nulo | Clave | Referencia | Descripción |
 |---|---|:---:|---|---|---|
@@ -1946,20 +1949,29 @@ Constancia inmutable de una entrega completa o su anulación correctiva.
 
 #### `reclamo`
 
-Caso posterior que no reabre ni modifica el pedido cerrado.
+Caso sobre un pedido, o excepcionalmente sobre un pago acreditado sin pedido. Conserva su origen y no reabre ni modifica los hechos reclamados.
 
 | Campo | Tipo PostgreSQL | Nulo | Clave | Referencia | Descripción |
 |---|---|:---:|---|---|---|
 | `id_reclamo` | `bigint` | No | `PK` | — | Identificador interno. |
 | `codigo_publico` | `uuid` | No | `UK` | — | Identificador opaco. |
-| `id_pedido` | `bigint` | No | `FK` | `pedido` | Pedido reclamado. |
+| `id_pedido` | `bigint` | Sí | `FK` | `pedido` | Origen obligatorio para reclamos de pedido; excluye id_pago. |
+| `id_pago` | `bigint` | Sí | `FK` | `pago` | Pago acreditado reclamado sin pedido; excluye id_pedido. |
 | `id_usuario_solicitante` | `bigint` | No | `FK` | `usuario` | Cliente empresarial, personal o interno. |
-| `tipo` | `varchar(32)` | No | — | — | Calidad, faltante, daño, entrega u otra categoría controlada. |
+| `tipo` | `varchar(32)` | No | — | — | PAGO_SIN_PEDIDO, o calidad, faltante, daño, entrega y otras categorías controladas de pedido. |
 | `descripcion` | `text` | No | — | — | Detalle del caso. |
 | `estado` | `varchar(20)` | No | — | — | ABIERTO, EN_REVISION, RESUELTO, RECHAZADO o CANCELADO. |
-| `fecha_limite` | `timestamptz` | No | — | — | Plazo congelado desde el pedido. |
+| `fecha_limite` | `timestamptz` | Sí | — | — | Obligatoria y congelada desde el pedido; nula en PAGO_SIN_PEDIDO porque no aplica el plazo del pedido. |
 | `fecha_apertura` | `timestamptz` | No | — | — | Alta. |
 | `fecha_cierre` | `timestamptz` | Sí | — | — | Resolución. |
+
+**Restricciones de entidad**
+
+- Exactamente uno entre `id_pedido` e `id_pago` debe ser no nulo. PAGO_SIN_PEDIDO exige `id_pago` y `fecha_limite` nula; los demás tipos exigen `id_pedido`, `id_pago` nulo y `fecha_limite` informada.
+- `id_pago` referencia un hecho financiero confirmado de destino PAGO_PEDIDOS, nunca `intento_pago` ni una imagen de comprobante. Al abrir el caso especial no existen aplicaciones de ese pago a pedidos; apertura y aplicación concurrentes deben comprobarse bajo el mismo bloqueo del pago.
+- Tipo y origen se conservan durante toda la vida del reclamo. Una aplicación posterior del pago a un pedido no invalida el historial ni transforma el caso especial en un reclamo de pedido.
+- El cliente personal debe ser el pagador; un usuario de empresa debe estar autorizado para la empresa pagadora. Un interno requiere permisos de atención financiera y alcance sobre el origen. El usuario solicitante no sustituye la identidad del pagador.
+- PAGO_SIN_PEDIDO admite descripción, evidencias privadas, historial y notificaciones existentes. No admite items, reimpresiones ni tratamiento de material. No se introduce un plazo comercial de apertura basado en un pedido inexistente.
 
 #### `reclamo_item`
 
@@ -1973,7 +1985,7 @@ Items específicos incluidos en un reclamo.
 
 **Restricciones de entidad**
 
-- La pareja reclamo-item es única y ambos pertenecen al mismo pedido.
+- La pareja reclamo-item es única y ambos pertenecen al mismo pedido. Solo se admite cuando el reclamo tiene `id_pedido`; PAGO_SIN_PEDIDO no tiene items.
 
 #### `evidencia_reclamo`
 
@@ -1990,7 +2002,7 @@ Archivo privado aportado como evidencia y retenido hasta resolver el caso.
 
 **Restricciones de entidad**
 
-- Nunca se purga antes de la resolución y luego respeta la retención del pedido.
+- Nunca se purga antes de la resolución. En reclamos de pedido luego respeta su retención; en PAGO_SIN_PEDIDO no tiene purga automática, siguiendo la conservación de comprobantes financieros.
 
 #### `resolucion_reclamo`
 
@@ -2015,6 +2027,10 @@ Acción compensatoria inmutable; varias filas permiten combinaciones compatibles
 - El tipo exige exactamente el trabajo, reembolso o ausencia de salida que corresponda.
 - Un reclamo puede tener varias resoluciones del mismo tipo, incluso sobre el mismo item.
 - Cada resolución es un hecho inmutable independiente; trabajo y reembolso no pueden reutilizarse en otra resolución.
+- En PAGO_SIN_PEDIDO solo se admiten REEMBOLSO_TOTAL, REEMBOLSO_PARCIAL o SIN_COMPENSACION; `id_pedido_item`, `id_trabajo_impresion` y `destino_material` deben ser nulos. El reembolso debe pertenecer al mismo `id_pago` reclamado y respetar el saldo y las aplicaciones actuales.
+- Un reembolso directo sin aplicación solo devuelve saldo no aplicado y disponible del pago. Si después de abrir el reclamo el dinero se aplicó a un pedido, devolver esa parte exige referenciar su aplicación según las reglas financieras existentes. Aplicación y devolución compiten por el mismo saldo bajo bloqueo del pago; un mismo importe no puede aplicarse y devolverse dos veces.
+- El saldo disponible excluye los importes de reembolsos PENDIENTES y CONFIRMADOS: una devolución pendiente compromete ese dinero hasta resolverse y no permite aplicarlo ni solicitar otra devolución sobre la misma parte. La reserva se deriva de los reembolsos existentes, sin un segundo saldo persistido.
+- Una resolución que ordena un reembolso no acredita por sí misma la devolución: su ejecución se verifica en `reembolso` y `historial_reembolso`.
 
 #### `historial_reclamo`
 
@@ -2394,7 +2410,8 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 | Reclamos y compensaciones | `usuario` (0..1) → `historial_reclamo` (0..N) | `historial_reclamo.id_usuario_actor` → `usuario.id_usuario` | usuario_actor |
 | Reclamos y compensaciones | `pedido_item` (1) → `reclamo_item` (0..N) | `reclamo_item.id_pedido_item` → `pedido_item.id_pedido_item` | pedido_item |
 | Reclamos y compensaciones | `reclamo` (1) → `reclamo_item` (0..N) | `reclamo_item.id_reclamo` → `reclamo.id_reclamo` | reclamo |
-| Reclamos y compensaciones | `pedido` (1) → `reclamo` (0..N) | `reclamo.id_pedido` → `pedido.id_pedido` | pedido |
+| Reclamos y compensaciones | `pedido` (0..1) → `reclamo` (0..N) | `reclamo.id_pedido` → `pedido.id_pedido` | origen pedido |
+| Reclamos y compensaciones | `pago` (0..1) → `reclamo` (0..N) | `reclamo.id_pago` → `pago.id_pago` | origen pago acreditado sin pedido |
 | Reclamos y compensaciones | `usuario` (1) → `reclamo` (0..N) | `reclamo.id_usuario_solicitante` → `usuario.id_usuario` | usuario_solicitante |
 | Reclamos y compensaciones | `pedido_item` (0..1) → `resolucion_reclamo` (0..N) | `resolucion_reclamo.id_pedido_item` → `pedido_item.id_pedido_item` | pedido_item |
 | Reclamos y compensaciones | `reclamo` (1) → `resolucion_reclamo` (0..N) | `resolucion_reclamo.id_reclamo` → `reclamo.id_reclamo` | reclamo |
@@ -2487,7 +2504,7 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 - Superar el límite deshabilita cuenta corriente para nuevos pedidos. Un vencimiento solo genera alerta; bloquear la cuenta es decisión de un administrador o empleado financiero.
 - `documento_cobro` documenta deuda existente y reserva importes; no genera deuda. Se emite sin borrador, es inmutable y se anula completo si cambia un cargo.
 - Un pago aplicado al cargo reduce todos los documentos cuyas líneas lo referencian. El PDF pagado se conserva sin regenerarlo.
-- Un reembolso confirmado reduce la aplicación original y nunca modifica el total histórico del pedido, pago o cargo.
+- Un reembolso confirmado reduce la aplicación original cuando existe; una devolución directa consume saldo no aplicado del pago. Nunca modifica el total histórico del pedido, pago o cargo, y las aplicaciones y devoluciones no pueden consumir dos veces el mismo dinero.
 
 ### 7.6 Entrega y reclamos
 
@@ -2498,7 +2515,9 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 - La entrega es completa. Retiro usa un código hasheado validado presencialmente; en un punto externo el empleado entrega directamente al cliente.
 - Una constancia incorrecta se anula y se crea otra. No se reescribe.
 - Antes de producción el cliente puede cancelar directamente. Después crea `solicitud_cancelacion` y un usuario interno decide; pagos, cargos y trabajos se revierten o cancelan con hechos nuevos.
-- Un reclamo no reabre el pedido. Puede abarcar varios items y combinar o repetir acciones del mismo tipo; cada resolución es un hecho inmutable independiente y una reimpresión no crea pedido ni precio nuevo.
+- Un reclamo de pedido no lo reabre. Puede abarcar varios items y combinar o repetir acciones del mismo tipo; cada resolución es un hecho inmutable independiente y una reimpresión no crea pedido ni precio nuevo.
+- Un reclamo PAGO_SIN_PEDIDO referencia exclusivamente un pago acreditado sin aplicaciones a pedidos al abrirse. Conserva origen e historial si el pago se aplica después. No crea ni confirma pedidos, no reactiva cotizaciones y no acredita ni duplica dinero.
+- Los dos tipos de origen reutilizan evidencias privadas, descripción, historial y notificaciones. Las resoluciones financieras del caso especial verifican el mismo pago y sus saldos actuales; no habilitan impresión sin pedido.
 - Una compensación sobre cuenta corriente crea un crédito inmutable. No se modela inventario de material devuelto.
 
 ### 7.7 Notificaciones, alertas y auditoría
@@ -2589,7 +2608,7 @@ Los campos terminados en `_derivado` son cachés para consulta y deben poder rec
 | Cotización expirada | Conserva metadatos y snapshots; sus binarios temporales se purgan y no se reutilizan. |
 | Cotización invalidada por configuración | Conserva oferta, metadatos, snapshots, momento y motivo. La invalidación no introduce otra política de archivos ni elimina hechos financieros. |
 | Documentos de cobro y comprobantes | Sin purga automática. |
-| Evidencias de reclamo | Nunca antes de resolver; después respetan el plazo aplicable del pedido. |
+| Evidencias de reclamo | Nunca antes de resolver; las de pedido respetan luego su plazo aplicable. Las de PAGO_SIN_PEDIDO no tienen purga automática, como los comprobantes financieros. |
 | Notificación de inbox | El usuario puede borrar físicamente solo su relación; el acto se audita. |
 | Alerta | Solo un administrador elimina una resuelta, con confirmación y auditoría. |
 | Auditoría | Sin actualización, hard delete ni vencimiento automático desde la aplicación. |
@@ -2607,6 +2626,8 @@ Los campos terminados en `_derivado` son cachés para consulta y deben poder rec
 | SOPORTE | Facultades administrativas solo durante una autorización vigente y auditada. |
 | Agente de impresión | Claim y transiciones técnicas autorizadas de su sucursal; nunca funciones comerciales. |
 
+El acceso a un reclamo de pedido se deriva de ese pedido; el de PAGO_SIN_PEDIDO se deriva del pagador personal o empresarial y de los permisos financieros internos. Conocer el código público del pago no concede acceso. Las evidencias y notificaciones respetan el mismo contexto autorizado.
+
 ## 12. Límites externos y fuera de alcance
 
 - La base central de YG para emitir licencias, verificar identidad y restablecer la llave maestra pertenece a otro sistema.
@@ -2615,11 +2636,14 @@ Los campos terminados en `_derivado` son cachés para consulta y deben poder rec
 - No hay multi-tenant dentro de una base, sucursales del cliente empresarial, entregas parciales ni cliente instalado por sucursal.
 - El rollback aquí modelado recupera contenido de configuración como nueva versión. No revierte transacciones, pedidos, pagos, archivos ni la base de datos, y no introduce monitoreo automático de fallos de una versión ya publicada.
 - Este artefacto diseña datos. Migraciones SQL, entidades JPA, repositorios, servicios y el diagrama de arquitectura corresponden a tareas posteriores.
+- La revisión 3.2 solo agrega el reclamo de pago acreditado sin pedido. No define la vinculación previa de cotización e intento de pago, recuperación automática de pagos tardíos, nuevos temporizadores, pantallas ni recepción por correo o WhatsApp.
 
 
 ## 13. Controles para una implementación futura
 
 Al traducir el diseño a migraciones deben materializarse las unicidades compuestas, índices parciales de “una activa”, checks XOR, importes no negativos, límites de suma y transacciones que abarcan confirmación de cotización, transferencia de archivos, crédito y cupo. Las operaciones sensibles deben bloquear las filas relevantes para evitar confirmaciones concurrentes.
+
+Para PAGO_SIN_PEDIDO deben comprobarse XOR y tipo de origen, ausencia de aplicaciones al abrir, propiedad del pago, nulabilidad condicional del plazo, ausencia de items o reimpresión y vínculo del reembolso al mismo pago. La apertura, aplicación y devolución concurrentes se ordenan sobre el pago y sus saldos. La prueba futura debe incluir pagos pendientes rechazados, pagos ajenos, evidencia sin acreditación, aplicación posterior y reclamos ordinarios sin regresiones.
 
 Para configuración deben materializarse la exclusión entre borrador y programación, un único intento en curso y la coherencia entre estados, actores, origen y fechas. El inicio y el resultado de los intentos necesitan persistencia recuperable: una caída no debe borrar el fallo ni duplicar una publicación exitosa. Publicar la nueva activa, conservar la anterior como histórica, invalidar ofertas abiertas y finalizar el intento exitoso constituye una misma transición; el rollback agrega la cancelación de la programación pendiente. La confirmación de pedidos y las cancelaciones se serializan respecto de esa transición.
 

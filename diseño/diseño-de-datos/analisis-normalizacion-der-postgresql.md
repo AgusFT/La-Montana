@@ -2,12 +2,13 @@
 
 | Campo | Valor |
 |---|---|
-| Version | 1.3 |
-| Estado | Revision focalizada del DER 3.1 verificada: diccionario, graficos y huellas finales |
+| Version | 1.4 |
+| Estado | Revision focalizada del DER 3.2 verificada: diccionario, graficos y huellas finales |
 | Fecha | 2026-09-09 |
 | Rama de la auditoria original | `docs/der-modelo-datos-postgresql` |
 | Commit base de la auditoria original | `09db5ad799362088dafb4bc8f881f432e67dc390` |
 | Base de la revision focalizada 3.1 | `main@650b50ac52578040e847972896c19d9fb6e992b0` |
+| Base de la revision focalizada 3.2 | `main@93ac4eef7e7a97372faf4aac1232080716f3db26` |
 | DER relacional | [`der-modelo-datos-postgresql.md`](./der-modelo-datos-postgresql.md) |
 | Fuente grafica | [`der-modelo-datos-postgresql.excalidraw`](./der-modelo-datos-postgresql.excalidraw) |
 | Vista SVG | [`DER-V3.svg`](./DER-V3.svg) |
@@ -19,7 +20,7 @@
 | Huella Excalidraw DER 3.0 | `535bbb966ff316ddbc811ef554328fd6451e4f45bb14070f3a0eb0496af41b1f` |
 | Huella SVG DER 3.0 | `8ed7358ab7e5b64dd65577cac9a24adb8ef16a9e9f1d17de910c1f02ab5b8960` |
 
-Las secciones 1 a 12 conservan la auditoria original y el escenario conservador publicado como DER 3.0. Sus conteos, veredictos y huellas son evidencia historica, no una nueva auditoria automatica del DER 3.1. La seccion 13 registra la revision focalizada de programacion, intentos, rollback e invalidacion de cotizaciones. Los enlaces de los artefactos mantienen sus nombres y apuntan a la revision actual; las huellas historicas se conservan para identificar el antecedente.
+Las secciones 1 a 12 conservan la auditoria original y el escenario conservador publicado como DER 3.0. La seccion 13 conserva la revision 3.1 de programacion, intentos, rollback e invalidacion de cotizaciones. Sus conteos, veredictos y huellas son evidencia historica, no una nueva auditoria automatica del DER 3.2. La seccion 14 registra la extension focalizada de reclamos de pago acreditado sin pedido. Los enlaces de los artefactos mantienen sus nombres y apuntan a la revision actual; las huellas historicas se conservan para identificar el antecedente.
 
 ## 1. Resumen ejecutivo
 
@@ -1685,3 +1686,135 @@ sha256sum main/diseño/diseño-de-datos/der-modelo-datos-postgresql.md main/dise
 ```
 
 La exportacion conserva 829 elementos nativos sin cambios, traslada 1.926, actualiza 161 y agrega 25; no elimina elementos. El SVG mide 12.110 por 96.632 unidades y mantiene los 107 recortes de marco. La prueba de identidad del exportador sobre la base sin modificaciones produjo el mismo SHA-256 que el SVG original. Los recorridos de flechas usan los puntos de la fuente editable, con sus extremos comprobados contra las cajas referenciadas.
+
+## 14. Revision focalizada del DER 3.2
+
+### 14.1 Alcance y autorizacion
+
+El usuario autorizo expresamente modificar el DER para admitir un reclamo
+especial sin pedido vinculado pero con un pago acreditado. El plan de
+coordinacion `PLAN-reclamo-pago-acreditado.md` version 1 registra esa solicitud
+y su alcance. La base es DER 3.1 en `main@93ac4eef7e7a97372faf4aac1232080716f3db26`.
+
+Se reutilizan reclamo, evidencias, resoluciones e historial. La unica ampliacion
+de columnas es `reclamo.id_pago`; `id_pedido` y `fecha_limite` pasan a permitir
+nulo bajo restricciones condicionales. No se agregan entidades ni se duplican
+identidad del pagador, importe o estado financiero.
+
+Esta revision es de diseño documental. No implementa migraciones, backend,
+pantallas, pagos, reclamos, recuperacion automatica de cotizaciones ni recepcion
+por correo o WhatsApp. No modifica las decisiones sobre programacion, rollback
+o invalidacion de cotizaciones y no integra el PR #196 ni produce #152.
+
+### 14.2 Reconciliacion de conteos
+
+| Metrica | DER 3.1 | DER 3.2 | Diferencia |
+|---|---:|---:|---:|
+| Entidades | 107 | 107 | 0 |
+| Atributos | 968 | 969 | +1 |
+| FK explicitas | 235 | 236 | +1 |
+| Pares dirigidos hija-padre | 219 | 220 | +1 |
+| Dominios | 11 | 11 | 0 |
+| Elementos Excalidraw | 2941 | 2949 | +8 |
+| Grafos por entidad | 107 | 107 | 0 |
+
+`reclamo` pasa de 10 a 11 atributos y de dos a tres FK. La nueva FK apunta a
+`pago`; la relacion con `pedido` cambia su cardinalidad del padre de 1 a 0..1.
+El XOR impide que la opcionalidad individual permita origen vacio o doble.
+Las tablas y columnas de las otras 106 entidades permanecen identicas a la
+base; se precisan las restricciones que dependen del origen del reclamo.
+
+### 14.3 Dependencias e invariantes
+
+- El origen es pedido o pago, exactamente uno. PAGO_SIN_PEDIDO identifica el
+  segundo; las categorias ordinarias conservan el primero.
+- `pago` ya representa exclusivamente dinero confirmado. La FK no admite un
+  intento pendiente ni un comprobante como sustitutos de la acreditacion.
+- La ausencia de aplicaciones y el destino PAGO_PEDIDOS se comprueban al abrir,
+  con bloqueo del pago. Una aplicacion posterior no cambia el origen historico
+  ni transforma el reclamo; no se guarda un segundo indicador mutable de
+  existencia de pedido.
+- El solicitante conserva su propia identidad. Propiedad personal, empresa
+  pagadora y permiso interno se verifican contra el origen financiero, sin
+  duplicar pagador ni permitir acceso por conocer un identificador publico.
+- `fecha_limite` sigue obligatoria para un pedido. Su ausencia en el caso
+  especial significa que no aplica el plazo del pedido; no se inventa un
+  vencimiento comercial nuevo. Las evidencias siguen la retencion financiera
+  sin purga automatica, en lugar de depender de un pedido inexistente.
+- Items, reimpresiones y material solo tienen sentido para reclamos de pedido.
+  Las resoluciones del caso especial admiten reembolso total/parcial o ausencia
+  de compensacion, referenciando siempre el mismo pago.
+- El saldo reembolsable considera aplicaciones y devoluciones actuales. Los
+  reembolsos PENDIENTES comprometen su importe; no puede aplicarse o devolverse
+  nuevamente mientras se resuelven. La reserva se deriva de las filas existentes.
+
+La referencia alternativa tipada mantiene claves explicitas y valores atomicos.
+No se usa un campo polimorfico sin FK ni JSON para representar el origen.
+Esta comprobacion no constituye una auditoria global nueva de BCNF.
+
+### 14.4 Escenarios revisados documentalmente
+
+| Escenario | Resultado exigido en el diseño |
+|---|---|
+| Reclamo ordinario de pedido | Pedido y fecha limite obligatorios; pago nulo; conserva items y resoluciones previas. |
+| Reclamo especial de pago acreditado sin aplicaciones | Pago obligatorio de destino PAGO_PEDIDOS; pedido y fecha limite nulos. |
+| Ambos origenes o ninguno | Rechazado por XOR. |
+| Tipo especial con pedido, o tipo ordinario con pago | Rechazado por coherencia de tipo y origen. |
+| Intento pendiente o comprobante sin dinero confirmado | No habilita el caso especial; se exige una fila valida de pago. |
+| Pago ajeno o de empresa no autorizada | Acceso rechazado; conocer el codigo no concede permisos. |
+| Pago ya aplicado al abrir, o aplicacion que gana la carrera | No se abre como PAGO_SIN_PEDIDO. |
+| Pago aplicado despues de abrir | Reclamo, origen y evidencias siguen validos como historial. |
+| Evidencias, texto e historial del caso especial | Reutiliza entidades privadas y notificacion por id_reclamo, sin purga automatica de evidencias. |
+| Item, reimpresion o destino de material en caso especial | Rechazado; no existe pedido que los sustente. |
+| Reembolso de otro pago | Rechazado aunque el solicitante sea el mismo. |
+| Devolucion pendiente y posterior intento de aplicar o devolver lo mismo | El saldo comprometido se excluye, evitando doble consumo. |
+| Devolucion tras aplicacion posterior a un pedido | La parte aplicada referencia su aplicacion y respeta los saldos actuales. |
+
+Estos escenarios expresan obligaciones del futuro DDL y servicios. No se
+presentan como pruebas ejecutadas contra PostgreSQL o un proveedor de pagos.
+
+### 14.5 Verificacion de artefactos
+
+Se ejecutaron los comparadores de diccionario, fuente editable y SVG usados
+en la revision anterior, adaptando la dimension esperada del SVG. Comprobaron
+columnas unicas, una PK por tabla, todas las FK y destinos, nulabilidad,
+cardinalidades, vecinos por grafo, agregados de dominio, IDs y bindings
+reciprocos, extremos de conectores y ausencia de solapamientos entre tablas,
+textos y cajas ajenas en los grafos.
+
+Una comprobacion independiente confirmo 107 entidades, 969 atributos, 236 FK
+y 220 pares, y comparo todos los campos contra la base: solo cambia el
+diccionario de `reclamo`. El SVG tiene 3443 lineas de texto identicas a la
+fuente, 107 recortes de marco correctos, referencias XML validas y las fuentes
+incrustadas conservadas. Su viewBox es `0 0 12110 96736`.
+
+La fuente agrega ocho elementos para las dos vistas del nuevo par pago/reclamo.
+El orden de los 107 marcos se conserva: 86 permanecen en su posicion y tamaño;
+`pago` crece 104 unidades y los 20 posteriores se desplazan 104 unidades. La
+tabla de reclamo gana una fila y conserva el espacio entre tarjetas. La leyenda
+de su grafo explicita el origen exclusivo. Se inspeccionaron visualmente los
+recortes del dominio de reclamos y los grafos de reclamo, pago y pedido,
+renderizados localmente con Chrome.
+
+La exportacion incremental reutiliza como origen nativo los SVG/Excalidraw
+3.0 conservados en `/tmp` durante la revision anterior y aplica la fuente 3.2
+completa. La comparacion final usa 3.1 como base de esta revision; no confunde
+los conteos del exportador desde 3.0 con el incremento de ocho elementos actual.
+
+```bash
+python3 /tmp/lamontana-der32-8hfinbdc/update_graph.py
+python3 /tmp/der31-independent-check.py
+python3 /tmp/der31-export-svg.py /tmp/lamontana-der31-bthjf06_/der-modelo-datos-postgresql.excalidraw /tmp/lamontana-der31-bthjf06_/DER-V3.svg main/diseño/diseño-de-datos/der-modelo-datos-postgresql.excalidraw main/diseño/diseño-de-datos/DER-V3.svg
+python3 /tmp/lamontana-der32-8hfinbdc/check_svg.py
+git -C main diff --check
+```
+
+Los auxiliares son temporales y no forman parte del producto. No se agregaron
+dependencias ni se implementaron pruebas de backend. Las secciones 1 a 13 de
+esta auditoria conservan exactamente su contenido anterior.
+
+| Artefacto DER 3.2 | SHA-256 final |
+|---|---|
+| `der-modelo-datos-postgresql.md` | `84f5bc893585e5648651578ba899b930c433ee6386caa91fdd6da07dcc710e21` |
+| `der-modelo-datos-postgresql.excalidraw` | `6f514ea559374a27d4744746a219f72f0ec97bcd2e8950226610872e71879faf` |
+| `DER-V3.svg` | `365be920b2757ce3aeaaa1d1a29fb0b75efbf0c15cb34c1407e02362f558eee5` |
