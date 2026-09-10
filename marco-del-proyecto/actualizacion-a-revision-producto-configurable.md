@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.2 - Propuesta |
+| Versión | 2.3 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Responsables de revisión | Agustín Tejero y Alejandro Herms |
 | Propósito | Servir como insumo para la integración posterior en la documentación oficial |
 
@@ -20,15 +20,17 @@ El producto debe adaptarse a distintas formas de trabajo sin imponer como univer
 
 La Montaña será una plataforma modular para imprentas que permitirá:
 
-- contratar y activar módulos según el plan adquirido;
 - seleccionar un modelo operativo certificado;
 - ajustar parámetros permitidos dentro de ese modelo;
-- configurar aprobación, cobro, seña, impresoras y notificaciones;
+- configurar aprobación, cobro, seña, impresoras, horarios y entrega;
 - activar los cambios inmediatamente o programarlos;
 - mantener trazabilidad de cada modificación;
 - aplicar cada nueva configuración solamente a trabajos nuevos;
 - preservar los estados internos fijos del pedido;
-- adaptar la experiencia sin comprometer seguridad, integridad ni auditoría.
+- adaptar la experiencia sin comprometer seguridad, integridad ni auditoría;
+- incorporar mejoras opcionales de forma progresiva sin impedir el flujo básico del negocio.
+
+La definición comercial de módulos y su distribución entre planes queda pendiente y fuera del alcance actual de Fase 5.
 
 ## 3. Principios confirmados
 
@@ -56,16 +58,16 @@ Cada activación genera una versión inmutable.
 
 Los trabajos anteriores conservan las condiciones con las que fueron cotizados. Una configuración nueva no modifica pedidos ni cotizaciones anteriores.
 
-### 3.5 Modularidad comercial
+### 3.5 Modularidad comercial - Pendiente
 
-La imprenta podrá activar o desactivar módulos incluidos en su plan.
+La estrategia de módulos permanece como evolución futura.
 
-Se distingue entre:
+Principios aceptados:
 
-- módulo disponible por contratación;
-- módulo activado por la imprenta.
-
-Una imprenta no puede activar un módulo que no forma parte de su plan.
+- cada módulo podrá representarse mediante un estado activo/inactivo;
+- la composición de los planes Gratis, Inicial y Avanzado todavía no está definida;
+- una mejora opcional no debe impedir completar el flujo básico del negocio;
+- Fase 5 no diseña ni decide el catálogo de módulos.
 
 ### 3.6 Experiencia visual
 
@@ -93,7 +95,8 @@ Es la autoridad habilitada para:
 - cancelar cambios programados;
 - configurar pagos y señas;
 - configurar impresoras;
-- activar módulos contratados;
+- configurar horarios operativos y tiempos estimados;
+- administrar la definición de puntos de entrega;
 - administrar clientes con cuenta corriente;
 - consultar el historial completo de configuración.
 
@@ -107,7 +110,8 @@ Como capacidades confirmadas o autorizables para usuarios internos se contemplan
 
 - pausar o reanudar la recepción mediante reconfirmación de contraseña;
 - registrar una recarga física de papel cuando el rol operativo lo permita;
-- seleccionar manualmente una impresora compatible para un trabajo cuando el rol operativo lo permita.
+- seleccionar manualmente una impresora compatible para un trabajo cuando el rol operativo lo permita;
+- habilitar o deshabilitar temporalmente un punto de entrega cuando el rol operativo lo permita.
 
 La autorización real de estas acciones debe validarse en backend.
 
@@ -130,10 +134,12 @@ La versión de configuración podrá contemplar:
 - capacidades de las impresoras;
 - asignación manual en V1;
 - asignación automática certificada como evolución futura;
-- puntos y modalidades de entrega;
+- horarios operativos por día;
+- tiempos estimados expresados en horas;
+- retiro en Casa Central;
+- puntos y franjas habituales de entrega;
+- preparación o liberación para envío;
 - notificaciones;
-- horarios operativos;
-- módulos activos;
 - parámetros de servicios disponibles.
 
 ### 5.1 Matriz financiera consolidada para Fase 3
@@ -186,6 +192,66 @@ Una recarga significa completar físicamente el faltante hasta alcanzar la capac
 
 Se recomienda operativamente verificar y completar las impresoras al comienzo de la jornada para mantener sincronizada la estimación. Si se realiza una recarga durante el día, también debe completarse siempre hasta el máximo configurado antes de registrar el evento.
 
+### 5.3 Horarios, puntos de entrega y envíos consolidados para Fase 5
+
+La Fase 5 deja de ocuparse de módulos y pasa a concentrarse en **Horarios, puntos de entrega y envíos**.
+
+#### Horarios operativos
+
+La imprenta configura cada día de la semana por separado:
+
+- día habilitado o cerrado;
+- hora de apertura;
+- hora de cierre.
+
+Los tiempos comprometidos se expresan en **horas operativas**. El reloj de preparación solo consume tiempo dentro de las ventanas configuradas.
+
+Ejemplo: si la imprenta abre a las 08:00, un pedido recibido a las 02:00 puede aceptarse y quedar en cola. Si la preparación configurada es de 4 horas, el cálculo comienza a las 08:00 y la disponibilidad estimada en Casa Central será a las 12:00.
+
+Si el pedido entra cerca del cierre y el tiempo restante excede la jornada, el cómputo continúa en la siguiente apertura comercial.
+
+#### Tiempos estimados
+
+La Fase 5 permite configurar al menos:
+
+- tiempo estimado de preparación para retiro en Casa Central, en horas;
+- tiempo estimado para preparar o liberar un pedido para envío, en horas.
+
+Estos valores son compromisos estimados y no una espera obligatoria. Si un trabajo queda listo antes, el sistema puede avanzar inmediatamente al estado correspondiente y actualizar el timeline del cliente.
+
+Para envíos, el tiempo configurado corresponde al compromiso de la imprenta para preparar o liberar el pedido. No constituye por sí solo una garantía del tiempo de transporte de un tercero.
+
+#### Puntos de entrega
+
+La Fase 5 incluye una acción **Administrar puntos** que conduce a un panel dedicado.
+
+Cada punto puede definir:
+
+- nombre;
+- ubicación;
+- días habituales;
+- franjas horarias de atención o entrega cuando se requieran.
+
+Las franjas se tratan como ventanas estimadas, no como una cita exacta. La coordinación fina puede resolverse posteriormente por WhatsApp u otro canal, mientras la aplicación mantiene estados como En camino o Listo para retirar.
+
+La disponibilidad temporal de un punto es operativa y no genera una nueva versión de configuración:
+
+- puede habilitarse o deshabilitarse sin solicitar motivo;
+- un punto deshabilitado deja de ofrecerse para nuevos pedidos;
+- el dashboard mantiene un recordatorio visible mientras exista uno o más puntos deshabilitados;
+- el punto vuelve a habilitarse manualmente cuando esté operativo;
+- los pedidos que ya tenían ese punto pactado conservan su esquema de entrega y no se reasignan automáticamente, aunque puedan sufrir una demora.
+
+La estimación presentada al cliente debe respetar tanto el horario operativo de la imprenta como la siguiente franja válida del punto seleccionado.
+
+#### Simulación y timeline
+
+La Fase 5 debe mostrar una simulación coherente con las fases anteriores. El ejemplo debe poder representar:
+
+`Pedido recibido → Fuera de horario / En cola → Próxima apertura → En preparación → Listo en Casa Central → Disponible en punto según franja`
+
+Si el pedido finaliza antes del estimado, el timeline avanza inmediatamente y el cliente puede ser notificado de que ya está disponible antes de lo previsto.
+
 ## 6. Pausa operativa
 
 La pausa de recepción es una capacidad central del producto, no una mejora futura.
@@ -215,7 +281,7 @@ La cotización conserva:
 - seña;
 - condiciones aplicables;
 - versión de configuración;
-- fecha estimada de entrega;
+- fecha y hora estimadas de disponibilidad cuando correspondan;
 - fecha y hora de generación.
 
 Una modificación posterior de la configuración no altera esa cotización.
@@ -279,13 +345,15 @@ Esta sección debe ser validada expresamente por Agustín antes de integrarse co
 
 Quedan fuera de la definición inmediata, pero se preservan como línea de evolución:
 
+- catálogo de módulos y definición de prestaciones de los planes Gratis, Inicial y Avanzado;
+- activación/desactivación de módulos opcionales por plan;
 - cambios automáticos por demanda;
-- reglas por franja horaria;
+- reglas automáticas adicionales por franja horaria;
 - pausa automática;
-- programación para días posteriores;
 - disponibilidad por stock;
 - saturación de producción;
-- asignación automática o reasignación dinámica de impresoras mediante un modelo certificado.
+- asignación automática o reasignación dinámica de impresoras mediante un modelo certificado;
+- generación o expansión de una red más amplia de puntos de entrega y logística asociada.
 
 ## 12. Base disponible para mockups
 
@@ -303,7 +371,14 @@ Puede avanzarse desde ahora con:
 - disponibilidad estimada de papel;
 - confirmación de recarga de papel;
 - selección manual de impresora para un trabajo;
-- módulos disponibles y activos;
+- horarios operativos por día;
+- tiempos estimados en horas;
+- retiro en Casa Central;
+- puntos de entrega con franjas horarias;
+- preparación para envío;
+- simulación de pedido fuera de horario y próxima apertura;
+- timeline con finalización anticipada;
+- disponibilidad operativa de puntos y recordatorio en dashboard;
 - resumen y previsualización;
 - activación inmediata;
 - activación programada;
@@ -312,6 +387,8 @@ Puede avanzarse desde ahora con:
 - pausa y reanudación;
 - mensajes de cotización expirada;
 - tratamiento de una pausa durante la confirmación.
+
+Los módulos no forman parte de los mockups de Fase 5 hasta definir la estrategia comercial de planes.
 
 Las vistas de cuenta corriente pueden explorarse, pero deben quedar marcadas como sujetas a revisión.
 
@@ -328,10 +405,17 @@ Las vistas de cuenta corriente pueden explorarse, pero deben quedar marcadas com
 | Impresoras y capacidades Fase 4 | La administración de equipos estaba definida de forma general | Cierra estados, capacidades, edición, eliminación y trazabilidad | Confirmado |
 | Asignación manual V1 | Manual y automática figuraban sin alcance temporal preciso | Mantiene control humano mientras la automática no posee modelo certificado | Confirmado |
 | Disponibilidad estimada de papel | No existía sincronización explícita del papel | Habilita operación remota mediante capacidad, consumo y recarga manual a 100 % | Confirmado |
+| Fase 5 enfocada en horarios y entrega | Incluía módulos sin definición comercial cerrada | Evita inventar planes y concentra la fase en compromisos operativos reales | Confirmado |
+| Horarios operativos por día | La entrega no definía cuándo corría el tiempo | Permite estimaciones coherentes con apertura y cierre | Confirmado |
+| Pedido fuera de horario en cola | Un tiempo fijo podía prometer horarios imposibles | El reloj comienza en la próxima apertura comercial | Confirmado |
+| Puntos con franjas horarias | Los puntos no distinguían ventanas de atención | Evita ofrecer retiros fuera del horario real de cada ubicación | Confirmado |
+| Disponibilidad temporal de puntos fuera del versionado | Una contingencia breve podía exigir una nueva versión | Permite habilitar/deshabilitar sin motivo y sin reconfigurar el motor | Confirmado |
+| Recordatorio de puntos deshabilitados | Una baja temporal podía olvidarse | Mantiene la situación visible en dashboard hasta su reactivación | Confirmado |
+| Finalización anticipada | El estimado podía interpretarse como espera obligatoria | El pedido avanza y notifica al cliente apenas está listo | Confirmado |
 | Pausa operativa central | Considerada posibilidad futura | Es necesaria ante emergencias reales de la imprenta | Confirmado |
 | Captura al cotizar | Creación directa con reglas generales | La cotización debe congelar precio y condiciones vigentes | Confirmado |
 | Cuenta corriente | Excepción comercial no formalizada | El motor debe contemplar clientes autorizados sin debilitar el control financiero | Requiere revisión de Agustín |
-| Módulos según plan | Modularidad principalmente técnica | Permite ofrecer paquetes comerciales escalables | Confirmado para revisión |
+| Módulos según plan | Antes aparecían como parte inmediata del diseño | Catálogo y prestaciones de planes todavía no están definidos | Futuro |
 
 ## 14. Referencias para integración
 
