@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.4 - Propuesta |
+| Versión | 2.5 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Alcance | Producto definido |
 | Identificadores | Provisionales, no oficiales |
 
@@ -49,8 +49,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-C-003 | La imprenta configura reglas de seña dentro de parámetros permitidos |
 | PROP-RN-C-004 | La imprenta registra cada impresora con identificación visible, capacidades de formato, capacidad B/N o color, dúplex cuando corresponda y capacidad máxima de hojas |
 | PROP-RN-C-005 | En V1 la asignación de impresora es manual y predeterminada; la asignación automática permanece visible como evolución futura deshabilitada hasta disponer de un modelo certificado |
-| PROP-RN-C-006 | La imprenta activa módulos incluidos en su plan |
-| PROP-RN-C-007 | La imprenta configura puntos y modalidades de entrega |
+| PROP-RN-C-006 | La futura gestión de módulos permitirá activar o desactivar capacidades opcionales mediante un estado activo/inactivo, sin impedir el flujo básico del negocio; el catálogo de módulos y su distribución entre planes quedan pendientes |
+| PROP-RN-C-007 | La imprenta configura modalidades de entrega, puntos de entrega, horarios operativos y tiempos estimados aplicables |
 | PROP-RN-C-008 | La imprenta activa cambios inmediatamente o los programa |
 | PROP-RN-C-009 | La imprenta selecciona Control manual o Control condicional entre los modelos habilitados |
 | PROP-RN-C-010 | El Control condicional utiliza únicamente pago previo, pago de seña o monto total del pedido como condiciones certificadas iniciales |
@@ -62,6 +62,13 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-C-016 | En aprobación por monto, el saldo restante luego de acreditar la seña puede abonarse mediante cualquiera de los medios generales habilitados, incluido efectivo cuando corresponda |
 | PROP-RN-C-017 | La capacidad máxima de hojas de cada impresora se carga manualmente al crearla o editarla mientras está Deshabilitada |
 | PROP-RN-C-018 | El sistema puede recomendar una impresora entre las compatibles utilizando las características del trabajo y la disponibilidad estimada de papel, sin realizar asignación automática en V1 |
+| PROP-RN-C-019 | La imprenta configura por separado cada día de la semana con estado habilitado, hora de apertura y hora de cierre |
+| PROP-RN-C-020 | El tiempo estimado de preparación en Casa Central se configura en horas y representa el compromiso operativo para dejar un pedido listo |
+| PROP-RN-C-021 | El tiempo estimado para preparar o liberar un pedido para envío se configura en horas y representa un compromiso estimado de la imprenta, no el tiempo garantizado de transporte externo |
+| PROP-RN-C-022 | Cada punto de entrega puede registrar nombre, ubicación, días y franjas horarias de atención, además de los datos operativos necesarios para ofrecerlo al cliente |
+| PROP-RN-C-023 | Los tiempos estimados se calculan únicamente dentro de los horarios operativos configurados |
+| PROP-RN-C-024 | Un pedido recibido fuera del horario operativo puede aceptarse y permanecer en cola; el cómputo del tiempo estimado comienza en la próxima apertura comercial |
+| PROP-RN-C-025 | Las franjas horarias de los puntos expresan ventanas estimadas de disponibilidad y no obligan a fijar una hora exacta de encuentro |
 
 ### 2.3 Reglas operativas
 
@@ -75,6 +82,11 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | PROP-RN-O-006 | La disponibilidad de papel es una estimación calculada desde la capacidad configurada, el consumo de trabajos y los eventos manuales de recarga |
 | PROP-RN-O-007 | Registrar una recarga presupone que el operador completó físicamente la impresora hasta su capacidad máxima configurada; el evento restablece la disponibilidad estimada al 100 % |
 | PROP-RN-O-008 | Una recarga no reinicia el contador histórico de hojas impresas |
+| PROP-RN-O-009 | Un punto de entrega puede habilitarse o deshabilitarse de forma operativa e inmediata sin crear una nueva versión de configuración y sin solicitar motivo |
+| PROP-RN-O-010 | Un punto deshabilitado deja de ofrecerse para nuevos pedidos hasta que vuelva a habilitarse |
+| PROP-RN-O-011 | Deshabilitar un punto no modifica automáticamente las entregas ya pactadas; esos pedidos conservan el punto acordado y pueden continuar con demora si la contingencia lo exige |
+| PROP-RN-O-012 | Mientras exista uno o más puntos deshabilitados, el dashboard debe mantener un aviso visible para evitar que la situación operativa quede olvidada |
+| PROP-RN-O-013 | Si un pedido queda listo antes del tiempo estimado, el flujo debe avanzar inmediatamente y el cliente debe visualizar el nuevo estado sin esperar al horario estimado original |
 
 ### 2.4 Reglas de cotización
 
@@ -117,7 +129,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-009: El sistema debe crear una versión inmutable por cada activación.
 - PROP-RF-CFG-010: El sistema debe conservar historial de versiones.
 - PROP-RF-CFG-011: El sistema debe asociar cada cotización con la versión utilizada.
-- PROP-RF-CFG-012: El sistema debe limitar módulos activables a los incluidos en el plan.
+- PROP-RF-CFG-012: [Futuro] La gestión de módulos deberá respetar el plan contratado y no podrá convertir una mejora opcional en requisito para completar el flujo básico del negocio.
 - PROP-RF-CFG-013: El sistema debe exigir protocolo de seguridad para cambios sensibles.
 - PROP-RF-CFG-014: El sistema debe garantizar que exista exactamente una configuración activa por imprenta.
 - PROP-RF-CFG-015: El sistema debe limitar a una la configuración en preparación por imprenta.
@@ -149,6 +161,17 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-041: Al registrar la ejecución de un trabajo, el sistema debe descontar de la disponibilidad estimada la cantidad de hojas calculada para ese trabajo.
 - PROP-RF-CFG-042: El sistema debe ofrecer una acción manual Registrar recarga de papel que, tras confirmación del operador de que completó físicamente la impresora, restablezca la disponibilidad estimada a la capacidad máxima configurada y al 100 %.
 - PROP-RF-CFG-043: La recomendación de impresora puede considerar compatibilidad y disponibilidad estimada de papel, pero la decisión final de asignación permanece manual en V1.
+- PROP-RF-CFG-044: La Fase 5 debe permitir configurar cada día de la semana por separado, indicando si es operativo y sus horas de apertura y cierre.
+- PROP-RF-CFG-045: La Fase 5 debe permitir configurar en horas el tiempo estimado de preparación de un pedido para retiro en Casa Central.
+- PROP-RF-CFG-046: La Fase 5 debe permitir configurar en horas el tiempo estimado para preparar o liberar un pedido para envío.
+- PROP-RF-CFG-047: El cálculo de tiempos estimados debe consumir únicamente horas comprendidas dentro de las ventanas operativas configuradas.
+- PROP-RF-CFG-048: Si un pedido se recibe fuera de horario, el sistema debe poder aceptarlo, mostrarlo en cola y comenzar el cómputo en la próxima apertura comercial.
+- PROP-RF-CFG-049: La Fase 5 debe ofrecer una acción Administrar puntos que conduzca a un panel dedicado para consultar, agregar y editar puntos de entrega.
+- PROP-RF-CFG-050: Cada punto debe permitir configurar nombre, ubicación y, cuando se requiera, días y franjas horarias propias de atención o entrega.
+- PROP-RF-CFG-051: El cliente debe visualizar únicamente modalidades y puntos que estén realmente disponibles en el momento aplicable.
+- PROP-RF-CFG-052: La Fase 5 debe incluir una simulación del recorrido que muestre pedido recibido, fuera de horario/en cola cuando corresponda, próxima apertura, preparación, disponibilidad en Casa Central y disponibilidad en punto según franja horaria.
+- PROP-RF-CFG-053: Si un pedido finaliza antes del tiempo estimado, el sistema debe permitir avanzar inmediatamente al estado operativo correspondiente y actualizar el timeline del cliente.
+- PROP-RF-CFG-054: Si un punto posee franjas horarias propias, el cálculo presentado al cliente debe respetar la siguiente ventana válida del punto y no ofrecer un retiro fuera de ella.
 
 ### 3.2 Pausa y operación diaria
 
@@ -164,6 +187,11 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-OPE-010: El sistema debe permitir a un usuario interno autorizado registrar una recarga de papel de una impresora.
 - PROP-RF-OPE-011: Antes de confirmar la recarga, la interfaz debe informar la cantidad estimada actual, la capacidad máxima y que la acción supone haber completado físicamente la bandeja hasta el máximo configurado.
 - PROP-RF-OPE-012: La recarga debe restablecer únicamente el contador de disponibilidad actual y no el contador histórico de hojas impresas.
+- PROP-RF-OPE-013: El sistema debe permitir habilitar o deshabilitar un punto de entrega de forma inmediata desde su gestión operativa, sin solicitar motivo y sin crear una nueva versión de configuración.
+- PROP-RF-OPE-014: Un punto deshabilitado no debe ofrecerse como opción para nuevos pedidos hasta que vuelva a habilitarse.
+- PROP-RF-OPE-015: El dashboard debe mostrar un recordatorio persistente cuando exista al menos un punto de entrega deshabilitado y permitir acceder a su gestión.
+- PROP-RF-OPE-016: Deshabilitar un punto no debe reasignar ni cancelar automáticamente pedidos que ya tenían esa entrega pactada.
+- PROP-RF-OPE-017: El sistema debe permitir volver a habilitar manualmente el punto cuando esté operativo nuevamente.
 
 ### 3.3 Cotización y sesión
 
@@ -211,6 +239,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-AUD-003: Las decisiones sobre cuentas corrientes deben conservar trazabilidad.
 - PROP-RNF-AUD-004: Los registros históricos no deben eliminarse por cambios posteriores.
 - PROP-RNF-AUD-005: Los eventos de recarga de papel deben registrar al menos impresora, usuario y momento para poder evaluar la vigencia de la estimación.
+- PROP-RNF-AUD-006: Los cambios operativos de disponibilidad de puntos deben conservar al menos punto, usuario, estado anterior, estado nuevo y momento, aunque no requieran motivo.
 
 ### 4.3 Usabilidad
 
@@ -222,6 +251,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-USA-006: La Fase 3 debe explicar qué decisiones provienen de Fase 2 y cuáles permanecen editables.
 - PROP-RNF-USA-007: La disponibilidad de papel debe identificarse como estimada y diferenciarse del contador histórico de hojas impresas.
 - PROP-RNF-USA-008: Una impresora incompatible debe explicar la causa, por ejemplo formato no admitido o ausencia de impresión color.
+- PROP-RNF-USA-009: La Fase 5 debe mostrar cada día operativo de forma independiente y utilizar inputs claros para apertura, cierre y tiempos expresados en horas.
+- PROP-RNF-USA-010: Las franjas de entrega deben comunicarse como ventanas estimadas y el timeline debe explicar visualmente cuándo un pedido está en cola, cuándo comienza su cómputo y cuándo queda disponible.
 
 ### 4.4 Integridad y rendimiento
 
@@ -231,6 +262,7 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RNF-INT-004: La eliminación de temporales debe ejecutarse aun ante cierre inesperado.
 - PROP-RNF-INT-005: La pausa debe propagarse a los puntos de entrada en tiempo adecuado.
 - PROP-RNF-INT-006: La disponibilidad de papel debe actualizarse de forma consistente al registrar trabajos y recargas, sin confundirse con una lectura física de sensores.
+- PROP-RNF-INT-007: El cálculo de tiempos de Fase 5 debe utilizar una única fuente de verdad para calendario operativo, tiempos configurados y disponibilidad del punto.
 
 ## 5. Criterios de aceptación transversales
 
@@ -239,7 +271,8 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - Una cotización conserva su versión mientras permanece vigente.
 - Una pausa bloquea la creación aunque la interfaz todavía muestre una cotización.
 - Los temporizadores críticos no dependen exclusivamente del frontend.
-- Los módulos activos pertenecen al plan contratado.
+- La definición comercial de módulos y planes permanece fuera del alcance actual de Fase 5.
+- Las mejoras opcionales futuras no deben impedir completar el flujo básico del negocio.
 - Toda acción sensible queda auditada.
 - Existe exactamente una configuración activa por imprenta.
 - Existe como máximo un cambio pendiente: un borrador o una versión programada.
@@ -259,6 +292,13 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - En V1 la asignación es manual y la automática permanece deshabilitada.
 - La disponibilidad de papel se expresa como cantidad y porcentaje estimados.
 - Registrar una recarga presupone completar físicamente la capacidad máxima y restablece la estimación a 100 % sin afectar el contador histórico.
+- Los horarios operativos se configuran por día y determinan cuándo consume tiempo un compromiso estimado.
+- Los tiempos de preparación y preparación para envío se expresan en horas.
+- Un pedido recibido fuera del horario puede quedar en cola y comienza a consumir tiempo desde la próxima apertura comercial.
+- Los puntos pueden definir franjas horarias propias y el cliente no debe recibir una promesa fuera de una ventana válida.
+- Un punto puede deshabilitarse temporalmente sin motivo y sin crear una versión; el dashboard mantiene un recordatorio mientras continúe deshabilitado.
+- Los pedidos ya comprometidos con un punto no se reasignan automáticamente por una deshabilitación posterior.
+- Si un pedido queda listo antes del estimado, el flujo avanza inmediatamente y el cliente ve la actualización.
 - Las decisiones de cuenta corriente no autorizan producción automáticamente.
 
 ## 6. Reglas anteriores que requieren reinterpretación
@@ -273,6 +313,9 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | Configuración como mejora posterior | Motor central del producto definido |
 | Asignación manual de impresora | Se confirma como modalidad predeterminada de V1; la automatización se mantiene visible pero deshabilitada hasta contar con un modelo certificado |
 | Disponibilidad de papel no modelada | Se incorpora una estimación basada en capacidad configurada, consumo de trabajos y recarga manual a capacidad máxima |
+| Módulos dentro de Fase 5 | Se retiran de esta fase; catálogo, planes y activación comercial quedan como definición futura separada |
+| Tiempo de entrega como duración continua | Se redefine como horas operativas consumidas únicamente dentro de las ventanas configuradas |
+| Habilitación de puntos como cambio versionado | La disponibilidad temporal del punto pasa a ser un estado operativo inmediato y no una nueva versión |
 
 ## 7. Registro de cambios y justificación
 
@@ -290,6 +333,15 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | Compatibilidad y recomendación de impresora | Evitar asignaciones técnicamente inválidas y mejorar operación remota | Usa formato, color y disponibilidad para asistir la selección manual | Confirmado |
 | Disponibilidad estimada de papel | Permitir decidir remotamente si una impresora puede seguir trabajando | Vincula capacidad configurada, consumo y recarga física | Confirmado |
 | Recarga manual a capacidad máxima | Mantener sincronizado el estimado sin depender de sensores | El operador completa físicamente el faltante y confirma el reinicio a 100 % | Confirmado |
+| Horarios operativos por día | Evitar estimaciones imposibles fuera del horario de trabajo | El calendario define cuándo corre el reloj productivo | Confirmado |
+| Tiempos estimados en horas | Dar un compromiso comprensible y parametrizable | Permite calcular retiro en local y preparación para envío | Confirmado |
+| Pedidos fuera de horario en cola | Permitir recepción continua sin prometer producción nocturna | El tiempo comienza en la próxima apertura comercial | Confirmado |
+| Franjas horarias por punto | Evitar retiros prometidos fuera del horario real de cada ubicación | La disponibilidad se ajusta a ventanas configuradas | Confirmado |
+| Disponibilidad operativa de puntos | Evitar versionar contingencias temporales | Habilitar/deshabilitar es inmediato y no requiere motivo | Confirmado |
+| Recordatorio de puntos deshabilitados | Evitar olvidar una baja temporal | El dashboard mantiene visible la contingencia hasta reactivación | Confirmado |
+| Continuidad de entregas pactadas | Proteger compromisos existentes | Una baja posterior no reasigna automáticamente pedidos ya acordados | Confirmado |
+| Finalización anticipada | No convertir el estimado en una espera artificial | El timeline avanza y notifica apenas el pedido está listo | Confirmado |
+| Módulos fuera de Fase 5 | Los planes Gratis/Inicial/Avanzado todavía no están definidos | Evita inventar alcance comercial prematuro | Futuro |
 | RF de cotización temporal | Proteger condiciones y recursos | Vincula la cotización con una versión | Confirmado |
 | RF de pausa | Resolver emergencias operativas | Actúa por encima de la configuración | Confirmado |
 | RNF de UX guiada | Facilitar instalación remota | El motor debe ser comprensible sin asistencia presencial | Confirmado |
