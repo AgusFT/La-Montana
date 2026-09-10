@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.4 - Propuesta |
+| Versión | 2.5 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Documento relacionado | motor-de-configuracion-del-sistema.md |
 | Propósito | Proponer la evolución del motor sin modificar la definición vigente |
 
@@ -30,10 +30,14 @@ Puede contener:
 - reglas de seña;
 - impresoras y capacidades;
 - método de asignación;
-- módulos activos;
-- puntos de entrega;
+- horarios operativos;
+- tiempos estimados;
+- modalidades de entrega;
+- definición de puntos de entrega;
 - parámetros de notificación;
-- horarios y servicios habilitados.
+- servicios habilitados.
+
+La disponibilidad temporal de recursos, como una recarga de papel o la habilitación/deshabilitación cotidiana de un punto, se modela fuera de la versión cuando corresponda.
 
 ### 2.2 Modelo operativo certificado
 
@@ -116,6 +120,46 @@ La Fase 4 también establece la base para conocer la disponibilidad estimada de 
 
 La recarga de papel no es una nueva versión de configuración. Es un evento operativo: el operador completa físicamente el faltante hasta la capacidad máxima y luego confirma **Registrar recarga de papel**. El sistema restablece la disponibilidad estimada al 100 % sin reiniciar el contador histórico.
 
+#### Parametrización consolidada en la Fase 5
+
+La Fase 5 se redefine como **Horarios, puntos de entrega y envíos**. La definición comercial de módulos se retira de esta fase y queda para una etapa futura.
+
+La configuración de horarios permite definir cada día de la semana por separado con:
+
+- día habilitado o cerrado;
+- hora de apertura;
+- hora de cierre.
+
+Los compromisos de preparación se expresan en horas y se computan únicamente dentro de esas ventanas operativas.
+
+Si un pedido se recibe fuera de horario, puede aceptarse y quedar en cola. El tiempo comienza a correr en la próxima apertura comercial. Si el cálculo cruza el cierre de la jornada, las horas restantes continúan en la próxima apertura.
+
+La fase configura al menos:
+
+- horas estimadas de preparación para retiro en Casa Central;
+- horas estimadas para preparar o liberar un pedido para envío.
+
+Estos valores son estimaciones máximas de operación y no una espera obligatoria. Si el pedido queda listo antes, el flujo avanza inmediatamente y el timeline del cliente se actualiza.
+
+Los puntos de entrega se administran mediante un panel dedicado accesible desde **Administrar puntos**. Cada punto puede registrar nombre, ubicación y, cuando sea necesario, días y franjas horarias propias.
+
+Las franjas horarias son ventanas estimadas de atención o entrega. La coordinación exacta puede resolverse por WhatsApp u otro canal sin alterar la trazabilidad de estados de la aplicación.
+
+La disponibilidad temporal de un punto no crea una nueva versión:
+
+- habilitar o deshabilitar es una acción operativa inmediata;
+- no se solicita motivo;
+- un punto deshabilitado deja de ofrecerse a nuevos pedidos;
+- el dashboard mantiene un recordatorio mientras exista uno o más puntos deshabilitados;
+- las entregas ya pactadas conservan el mismo punto y no se reasignan automáticamente;
+- el punto vuelve a habilitarse manualmente cuando esté operativo.
+
+La estimación presentada al cliente debe respetar la combinación de horario operativo de la imprenta, tiempo configurado y siguiente franja válida del punto.
+
+La simulación de Fase 5 debe mostrar al menos:
+
+`Pedido recibido → En cola si está fuera de horario → Próxima apertura → En preparación → Listo en Casa Central → Disponible en punto según franja`
+
 ### 2.3 Parámetro controlado
 
 Valor que puede modificarse dentro de límites permitidos sin alterar invariantes del sistema.
@@ -123,6 +167,16 @@ Valor que puede modificarse dentro de límites permitidos sin alterar invariante
 ### 2.4 Invariante
 
 Regla que ninguna imprenta puede desactivar, como autenticación, autorización backend, auditoría, aislamiento de datos, protección de archivos y ejecución de impresión solamente autorizada.
+
+### 2.5 Modularidad comercial futura
+
+La gestión de módulos queda fuera del alcance actual de Fase 5.
+
+Se conserva únicamente el principio conceptual de que una capacidad opcional podrá representarse mediante un estado activo/inactivo, pero:
+
+- todavía no se define el catálogo de módulos;
+- todavía no se define qué incluyen los planes Gratis, Inicial y Avanzado;
+- ninguna mejora opcional futura debe impedir completar el flujo básico de cotización, pedido, producción y entrega.
 
 ## 3. Ciclo de vida
 
@@ -212,10 +266,10 @@ Cada acción debe registrar:
 - fecha de vigencia;
 - resultado de la verificación de seguridad;
 - cancelación, si corresponde;
-- motivo u observación;
+- motivo u observación cuando la acción lo requiera;
 - contexto técnico permitido.
 
-Los eventos operativos que no crean una versión, como una recarga de papel, deben conservar su propia auditoría cuando corresponda.
+Los eventos operativos que no crean una versión, como una recarga de papel o el cambio temporal de disponibilidad de un punto, deben conservar su propia auditoría cuando corresponda. La habilitación/deshabilitación de un punto no requiere motivo.
 
 ## 7. No retroactividad
 
@@ -230,20 +284,23 @@ Las configuraciones nuevas no alteran:
 
 La versión se captura en el momento de cotizar y queda asociada al resultado mientras la cotización permanezca vigente.
 
+La deshabilitación operativa posterior de un punto tampoco reasigna automáticamente pedidos que ya lo tenían pactado.
+
 ## 8. Flujo de cotización
 
 1. El cliente prepara el pedido.
 2. Presiona Cotizar pedido.
 3. El backend verifica que la imprenta no esté pausada.
 4. Consulta la versión activa.
-5. Calcula precio y condiciones.
-6. Genera un identificador temporal de cotización.
-7. Registra la versión utilizada.
-8. Devuelve resumen, medios de pago, entrega, seña y fecha estimada.
-9. El cliente confirma dentro del tiempo permitido.
-10. El backend valida nuevamente pausa, cotización y sesión.
-11. Crea el pedido con la información capturada.
-12. Elimina recursos temporales que ya no sean necesarios.
+5. Calcula precio, condiciones y alternativas de entrega disponibles.
+6. Aplica horarios operativos, tiempos estimados y disponibilidad de puntos cuando corresponda.
+7. Genera un identificador temporal de cotización.
+8. Registra la versión utilizada.
+9. Devuelve resumen, medios de pago, entrega, seña y estimación aplicable.
+10. El cliente confirma dentro del tiempo permitido.
+11. El backend valida nuevamente pausa, cotización, sesión y disponibilidad operativa relevante.
+12. Crea el pedido con la información capturada.
+13. Elimina recursos temporales que ya no sean necesarios.
 
 El frontend no debe ser la fuente de verdad de las reglas aplicadas.
 
@@ -301,6 +358,20 @@ La configuración define capacidades y la modalidad manual. Durante la operació
 5. puede recomendar un equipo;
 6. un usuario interno autorizado realiza la selección final manualmente.
 
+### 10.3 Disponibilidad temporal de puntos
+
+La definición habitual del punto pertenece a Fase 5; su disponibilidad cotidiana se administra operativamente.
+
+Flujo conceptual:
+
+1. un usuario autorizado deshabilita un punto desde el dashboard o panel de puntos;
+2. no se solicita motivo;
+3. el punto deja de ofrecerse para nuevos pedidos;
+4. los pedidos ya pactados conservan ese punto y pueden continuar con demora;
+5. el dashboard mantiene un recordatorio mientras exista uno o más puntos deshabilitados;
+6. cuando el punto vuelve a estar operativo, el usuario lo habilita manualmente;
+7. el aviso desaparece cuando ya no quedan puntos deshabilitados.
+
 ## 11. Reanudación y fecha de entrega
 
 Al reanudar:
@@ -337,10 +408,11 @@ La conducta al superar el límite queda pendiente de validación por Agustín.
 |---:|---|
 | 1 | Seguridad, autorización, integridad y auditoría |
 | 2 | Pausa operativa |
-| 3 | Disponibilidad de módulos según plan |
+| 3 | Disponibilidad operativa de recursos como puntos e impresoras |
 | 4 | Versión activa al cotizar |
-| 5 | Excepciones financieras autorizadas |
-| 6 | Parámetros visuales y preferencias no críticas |
+| 5 | Horarios y tiempos configurados |
+| 6 | Excepciones financieras autorizadas |
+| 7 | Parámetros visuales y preferencias no críticas |
 
 Esta precedencia debe validarse durante el diseño técnico.
 
@@ -348,15 +420,17 @@ Esta precedencia debe validarse durante el diseño técnico.
 
 Se preservan como evolución:
 
-- cambios por demanda;
-- cambios por horario;
+- definición del catálogo de módulos;
+- composición de los planes Gratis, Inicial y Avanzado;
+- cambios automáticos por demanda;
+- automatizaciones adicionales por horario;
 - pausas automáticas;
 - limitación por stock;
-- reprogramación para otro día;
+- reprogramación automática por saturación;
 - asignación automática o reasignación dinámica según carga mediante un modelo certificado;
-- respuestas automáticas ante saturación.
+- expansión de la red de puntos y lógica logística avanzada.
 
-No deben mezclarse con el alcance base de activación inmediata o programada.
+No deben mezclarse con el alcance base actual.
 
 ## 15. Registro de cambios y justificación
 
@@ -375,6 +449,13 @@ No deben mezclarse con el alcance base de activación inmediata o programada.
 | Ciclo de impresoras Fase 4 | Impresoras y capacidades descritas de forma general | Define estados, edición, eliminación y trazabilidad antes de diseñar las vistas | Confirmado |
 | Compatibilidad y asignación manual V1 | Método de asignación sin alcance temporal preciso | Permite recomendaciones automáticas sin delegar la decisión final | Confirmado |
 | Disponibilidad estimada y recarga | Papel no modelado como recurso operativo | Permite operar remotamente sin depender de sensores físicos | Confirmado |
+| Fase 5 sin módulos | Módulos figuraban dentro de la fase sin planes definidos | Evita inventar una política comercial aún pendiente | Confirmado |
+| Horarios por día y horas operativas | Entrega no definía el calendario de cómputo | Evita estimaciones fuera de la jornada real | Confirmado |
+| Pedido fuera de horario en cola | El plazo podía correr durante el cierre | El cómputo comienza en la próxima apertura comercial | Confirmado |
+| Puntos con franjas horarias | La disponibilidad de puntos era genérica | Permite ventanas de retiro coherentes con cada ubicación | Confirmado |
+| Estado temporal de punto fuera de versión | Una contingencia breve podía convertirse en configuración | Habilitar/deshabilitar es inmediato y no requiere motivo | Confirmado |
+| Recordatorio en dashboard | Una baja temporal podía olvidarse | Mantiene visible la contingencia operativa | Confirmado |
+| Finalización anticipada | El estimado podía interpretarse como espera obligatoria | El flujo avanza apenas el pedido está listo | Confirmado |
 | Cuenta corriente manual | Excepción genérica por lista | Requiere control financiero y operativo por pedido | Requiere revisión de Agustín |
 | Precedencia de reglas | No explicitada | El motor necesita resolver conflictos de manera determinista | Propuesta técnica |
 
