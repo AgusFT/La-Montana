@@ -2,18 +2,19 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 3.0 |
+| Versión | 3.1 |
 | Estado | Aprobado |
 | Fecha | 2026-09-09 |
-| Rama de elaboración | `docs/der-modelo-datos-postgresql` |
+| Rama de elaboración | `main` — revisión 3.1 sobre el DER v3 publicado |
 | Publicación | `main` |
-| Base documental | `main@09db5ad799362088dafb4bc8f881f432e67dc390` |
+| Base documental | `main@650b50ac52578040e847972896c19d9fb6e992b0` |
 | Issue relacionada | [#157 - Crear DER v3 PostgreSQL/Spring Boot](https://github.com/AgusFT/La-Montana/issues/157) |
 | Épica padre | [#155 - Fundación backend Spring Boot y PostgreSQL](https://github.com/AgusFT/La-Montana/issues/155) |
 | Milestone | [M10 - Fundación Spring Boot y PostgreSQL](https://github.com/AgusFT/La-Montana/milestone/11) |
 | Fuente editable | [`der-modelo-datos-postgresql.excalidraw`](./der-modelo-datos-postgresql.excalidraw) |
 | Vista SVG | [`DER-V3.svg`](./DER-V3.svg) |
-| Revisión visual | Aprobada por el usuario el 2026-09-09 |
+| Revisión visual | DER 3.0 aprobado por el usuario el 2026-09-09; revisión 3.1 verificada conforme al plan aprobado |
+| Revisión 3.1 | Activación programada, reintentos cada diez minutos, rollback manual y vigencia de cotizaciones; autorizada mediante `implementa el plan` el 2026-09-09 |
 
 ## 1. Estado y autoridad
 
@@ -23,17 +24,21 @@ El diseño representa **una instalación y una base de datos por imprenta**. Las
 
 La fuente gráfica editable es el archivo Excalidraw. Puede importarse directamente en [Excalidraw](https://excalidraw.com/) sin instalar una extensión de VSCodium. La [vista SVG](./DER-V3.svg) permite consultar el diagrama completo directamente desde el repositorio.
 
-La versión 3.0 aplica el escenario conservador de la auditoría de normalización. El lienzo separa una vista general con entidades completas y relaciones agregadas entre dominios de una vista formada por un grafo de relaciones para cada entidad. Esta duplicación visual no duplica datos del modelo: ambos sectores se generan desde este mismo diccionario.
+La versión 3.1 conserva el escenario de normalización aplicado en la 3.0 y amplía únicamente programación, intentos de activación, rollback y vigencia de cotizaciones. El lienzo separa una vista general con entidades completas y relaciones agregadas entre dominios de una vista formada por un grafo de relaciones para cada entidad. Esta duplicación visual no duplica datos del modelo: ambos sectores se generan desde este mismo diccionario.
 
 ## 2. Fuentes y precedencia
 
-1. Decisiones funcionales aprobadas durante el relevamiento específico de este DER.
+1. Decisiones funcionales aprobadas durante el relevamiento específico de este DER y el grill de la revisión 3.1.
 2. [Motor de configuración](../../marco-del-proyecto/motor-de-configuracion-del-sistema.md).
 3. [WBS de Spring Boot y PostgreSQL](../../marco-del-proyecto/wbs-v4-spring-boot-postgresql.md).
 4. [Stakeholders y actores](../../marco-del-proyecto/stakeholders-y-actores.md).
 5. [DER Supabase histórico](./der-modelo-datos-supabase.md), solo para trazabilidad del estado anterior.
 
 Ante contradicciones, este DER incorpora las decisiones posteriores aprobadas: motor de configuración oficial, aprobación automática/condicional, cuenta corriente, producción manual o automatizada, archivos ofimáticos convertidos y licencias por módulos.
+
+La revisión 3.1 toma como referencia acotada el [PR #196](https://github.com/AgusFT/La-Montana/pull/196), rama `docs/actualizacion-producto-configurable-revision@23fcd1680cd06fccbf576f3fba98e61078a137c5`, especialmente las propuestas [#203](https://github.com/AgusFT/La-Montana/issues/203), [#197](https://github.com/AgusFT/La-Montana/issues/197) y [#224](https://github.com/AgusFT/La-Montana/issues/224). Ese PR conserva su estado de propuesta; esta revisión no incorpora íntegramente su alcance.
+
+**Decisión posterior del usuario:** una activación efectiva, incluido un rollback, invalida las cotizaciones anteriores todavía sin confirmar y exige recotizar y aceptar. Esto sustituye expresamente la propuesta del PR #196 que conservaba la cotización de una versión anterior hasta su vencimiento. Los pedidos ya confirmados mantienen su versión, condiciones y hechos financieros. Las diferencias sobre pagos antes de cargar archivos y otros recortes UX quedan fuera de esta revisión.
 
 ## 3. Convenciones PostgreSQL
 
@@ -53,7 +58,7 @@ Ante contradicciones, este DER incorpora las decisiones posteriores aprobadas: m
 | Instalación, licencias e integraciones | `#0b7285` | 7 | Identificar la instalación local, licencias, módulos y eventos de proveedores. |
 | Identidad, acceso y clientes | `#1971c2` | 12 | Autenticación, autorización, clientes personales y empresas cliente. |
 | Sucursales y operación | `#2b8a3e` | 7 | Sucursales, horarios, pausas, puntos y zonas comunes. |
-| Configuración, catálogos y reglas | `#e67700` | 22 | Versionar catálogos, precios, reglas, medios, entregas e impresoras habilitadas. |
+| Configuración, catálogos y reglas | `#e67700` | 23 | Versionar catálogos y reglas; programar, intentar y recuperar activaciones con trazabilidad. |
 | Cotizaciones, pedidos y correcciones | `#d9480f` | 14 | Persistir cotizaciones, pedidos, snapshots y correcciones. |
 | Archivos, conversión y validación | `#c2255c` | 4 | Referenciar storage privado, validar, convertir y conservar trazabilidad. |
 | Agentes, impresoras y producción | `#6741d9` | 9 | Operar agentes, impresoras, trabajos y control humano de calidad. |
@@ -62,7 +67,7 @@ Ante contradicciones, este DER incorpora las decisiones posteriores aprobadas: m
 | Reclamos y compensaciones | `#a61e4d` | 5 | Resolver reclamos sin modificar pedidos cerrados. |
 | Notificaciones, alertas y auditoría | `#495057` | 6 | Mantener inbox personal, push, alertas operativas y auditoría. |
 
-**Total:** 106 entidades, 946 atributos y 229 relaciones FK explícitas.
+**Total:** 107 entidades, 968 atributos y 235 relaciones FK explícitas.
 
 
 ## 5. Diccionario de entidades
@@ -521,24 +526,70 @@ Códigos postales y localidades que delimitan una zona sin mapas.
 
 #### `configuracion_version`
 
-Versión completa e inmutable de las decisiones comerciales y operativas.
+Versión completa de decisiones comerciales y operativas; su contenido es editable solamente en preparación.
 
 | Campo | Tipo PostgreSQL | Nulo | Clave | Referencia | Descripción |
 |---|---|:---:|---|---|---|
 | `id_configuracion_version` | `bigint` | No | `PK` | — | Identificador interno. |
 | `id_version_base` | `bigint` | Sí | `FK` | `configuracion_version` | Versión copiada como origen. |
 | `numero_version` | `integer` | No | `UK` | — | Secuencia creciente local. |
-| `estado` | `varchar(20)` | No | — | — | EN_PREPARACION, ACTIVA o HISTORICA. |
+| `estado` | `varchar(20)` | No | — | — | EN_PREPARACION, PROGRAMADA, ACTIVA, HISTORICA o CANCELADA. |
 | `id_usuario_creador` | `bigint` | No | `FK` | `usuario` | Administrador creador. |
-| `id_usuario_activador` | `bigint` | Sí | `FK` | `usuario` | Administrador que activa. |
+| `id_usuario_activador` | `bigint` | Sí | `FK` | `usuario` | Actor de la activación manual exitosa; nulo si el ejecutor fue automático. |
+| `id_usuario_programador` | `bigint` | Sí | `FK` | `usuario` | Actor que confirmó la programación, conservado después de ejecutarla o cancelarla. |
+| `id_usuario_cancelador` | `bigint` | Sí | `FK` | `usuario` | Actor que canceló el borrador o la programación, incluido un rollback exitoso. |
 | `fecha_creacion` | `timestamptz` | No | — | — | Inicio de edición. |
-| `fecha_activacion` | `timestamptz` | Sí | — | — | Efecto manual inmediato. |
+| `fecha_programacion` | `timestamptz` | Sí | — | — | Confirmación de la programación y cierre de la edición. |
+| `fecha_programada` | `timestamptz` | Sí | — | — | Instante futuro previsto; nunca sustituye la fecha efectiva. |
+| `zona_horaria_programacion` | `varchar(64)` | Sí | — | — | Zona IANA usada al interpretar y mostrar la fecha programada. |
+| `fecha_activacion` | `timestamptz` | Sí | — | — | Instante efectivo de publicación; no se retrodata si hubo atraso. |
+| `fecha_cancelacion` | `timestamptz` | Sí | — | — | Cancelación sin publicación ni eliminación del registro. |
+| `motivo_cancelacion` | `text` | Sí | — | — | Motivo obligatorio de la cancelación. |
 | `observacion` | `text` | Sí | — | — | Motivo o resumen. |
 
 **Restricciones de entidad**
 
-- Antes del alta inicial puede haber cero activas y una en preparación.
-- Luego existe exactamente una activa y como máximo una en preparación.
+- Antes de la primera activación puede haber cero activas. Después existe exactamente una ACTIVA.
+- Existe como máximo un cambio pendiente: una EN_PREPARACION o una PROGRAMADA, nunca ambas. La cancelación conserva el registro con estado CANCELADA y libera ese lugar.
+- Solo EN_PREPARACION permite modificar contenido. PROGRAMADA, ACTIVA, HISTORICA y CANCELADA lo conservan inmutable; los datos de ejecución y las transiciones permitidas del ciclo de vida no reescriben sus reglas.
+- Los cuatro datos de programación —actor, fecha de confirmación, instante previsto y zona IANA— son nulos en una versión nunca programada o están todos presentes. Al programar, la fecha prevista debe ser posterior a la confirmación. Los datos se conservan tras activar o cancelar.
+- PROGRAMADA exige los datos de programación y no tiene fecha de activación ni cancelación. Un fallo no cambia ese estado ni abre su edición.
+- ACTIVA e HISTORICA tienen fecha de activación efectiva y ningún dato de cancelación. CANCELADA exige actor, fecha y motivo, nunca tiene fecha de activación y no vuelve a ser editable.
+- EN_PREPARACION no tiene datos de programación, activación ni cancelación. Una activación inmediata fallida conserva el borrador y no crea una programación.
+- `id_usuario_activador` solo se informa cuando el intento exitoso fue manual; la autorización original de una ejecución automática se conserva en `id_usuario_programador` y se revalida al ejecutar.
+- `id_version_base` identifica el contenido copiado, no necesariamente la predecesora que estuvo activa. El rollback publica una nueva copia; jamás reactiva una fila histórica.
+
+#### `intento_activacion_configuracion`
+
+Ejecución identificable de una activación o rollback; conserva el resultado final de cada intento, incluidos fallos e interrupciones.
+
+| Campo | Tipo PostgreSQL | Nulo | Clave | Referencia | Descripción |
+|---|---|:---:|---|---|---|
+| `id_intento_activacion_configuracion` | `bigint` | No | `PK` | — | Identificador del intento realmente iniciado. |
+| `id_version_objetivo` | `bigint` | No | `FK` | `configuracion_version` | Candidata a activar; en rollback, histórica cuyo contenido se recupera. |
+| `id_version_anterior` | `bigint` | Sí | `FK` | `configuracion_version` | Activa al comenzar; nula antes de la primera activación. |
+| `id_version_resultante` | `bigint` | Sí | `FK UK` | `configuracion_version` | Versión publicada por este intento exitoso; en rollback es una nueva copia. |
+| `id_usuario_actor` | `bigint` | Sí | `FK` | `usuario` | Actor del intento manual; nulo para ejecución automática. |
+| `operacion` | `varchar(16)` | No | — | — | ACTIVACION o ROLLBACK. |
+| `origen` | `varchar(20)` | No | — | — | MANUAL, PROGRAMACION, REINTENTO o RECUPERACION tras caída. |
+| `estado` | `varchar(16)` | No | — | — | INICIADO, EXITOSO, FALLIDO o INTERRUMPIDO. |
+| `fecha_inicio` | `timestamptz` | No | — | — | Inicio real, persistido antes de intentar publicar. |
+| `fecha_fin` | `timestamptz` | Sí | — | — | Cierre real; en una interrupción, momento en que se reconcilia el resultado. |
+| `fecha_atraso_detectado` | `timestamptz` | Sí | — | — | Detección al recuperar servicio de una programación vencida todavía pendiente. |
+| `codigo_resultado` | `varchar(80)` | Sí | — | — | Código estable; obligatorio para fallo o interrupción. |
+| `detalle_sanitizado` | `text` | Sí | — | — | Motivo o contexto sin secretos, credenciales ni errores brutos sensibles. |
+
+**Restricciones de entidad**
+
+- Un intento INICIADO no tiene fecha de fin ni versión resultante. Todo estado final tiene fecha de fin no anterior al inicio y conserva su resultado sin reescritura ni borrado ordinario.
+- Solo EXITOSO informa `id_version_resultante`. La unicidad de ese campo impide que dos intentos publiquen la misma versión. FALLIDO e INTERRUMPIDO conservan nula la resultante.
+- MANUAL exige actor humano; los otros orígenes lo prohíben y exigen que la versión objetivo estuviera PROGRAMADA al iniciar. ROLLBACK solo admite origen MANUAL.
+- ACTIVACION parte de una candidata EN_PREPARACION o PROGRAMADA, distinta de la activa anterior; al tener éxito, objetivo y resultante son la misma versión. En ROLLBACK exitoso, la resultante es nueva, distinta del objetivo y de la anterior, y su `id_version_base` señala al objetivo histórico.
+- El objetivo de ROLLBACK es la predecesora efectiva de la activa anterior, determinada por la sucesión de activaciones exitosas; versiones fallidas o canceladas no participan de esa sucesión. Sin predecesora efectiva no hay rollback disponible.
+- Hay como máximo un intento INICIADO en la instalación. Se bloquea la edición concurrente de su candidata. Publicación de nueva activa, paso de anterior a HISTORICA, invalidación de cotizaciones y resultado EXITOSO se confirman juntos. Un rollback agrega en esa misma transición la cancelación de la programación pendiente.
+- Los datos de inicio sobreviven al fallo de la publicación. Al recuperar servicio se reconcilia un intento inconcluso: se reconoce el éxito ya confirmado o se registra INTERRUMPIDO sin inventar un instante de publicación.
+- RECUPERACION exige `fecha_atraso_detectado`; los demás orígenes la dejan nula. No es anterior a `fecha_programada` ni posterior a `fecha_inicio` y no representa intentos ejecutados durante una caída.
+- El último fallo y el estado PROGRAMADA determinan el próximo reintento a los diez minutos de `fecha_fin`. No hay límite de intentos ni una cola por períodos sin servicio; cancelar o activar termina el ciclo.
 
 #### `politica_operativa`
 
@@ -886,8 +937,8 @@ Oferta persistida que congela configuración, importes, entrega y condiciones.
 | `id_empresa_cliente` | `bigint` | Sí | `FK` | `empresa_cliente` | Empresa propietaria si corresponde. |
 | `id_sucursal` | `bigint` | No | `FK` | `sucursal` | Sucursal elegida. |
 | `id_configuracion_version` | `bigint` | No | `FK` | `configuracion_version` | Versión capturada. |
-| `id_cotizacion_reemplazada` | `bigint` | Sí | `FK` | `cotizacion` | Cotización anterior cancelada. |
-| `estado` | `varchar(16)` | No | — | — | BORRADOR, VIGENTE, CONFIRMADA, EXPIRADA o CANCELADA. |
+| `id_cotizacion_reemplazada` | `bigint` | Sí | `FK` | `cotizacion` | Cotización anterior sustituida. |
+| `estado` | `varchar(16)` | No | — | — | BORRADOR, VIGENTE, CONFIRMADA, EXPIRADA, CANCELADA o INVALIDADA. |
 | `es_manual` | `boolean` | No | — | — | Creada por un usuario interno. |
 | `motivo_manual` | `text` | Sí | — | — | Justificación de excepción. |
 | `subtotal` | `numeric(19,2)` | No | — | — | Suma antes de entrega. |
@@ -904,6 +955,15 @@ Oferta persistida que congela configuración, importes, entrega y condiciones.
 | `generada_en` | `timestamptz` | No | — | — | Creación. |
 | `vigente_hasta` | `timestamptz` | No | — | — | Único vencimiento. |
 | `confirmada_en` | `timestamptz` | Sí | — | — | Confirmación única. |
+| `invalidada_en` | `timestamptz` | Sí | — | — | Momento efectivo del cambio de versión que impidió confirmar la oferta. |
+| `motivo_invalidacion` | `varchar(80)` | Sí | — | — | CAMBIO_CONFIGURACION; conserva el motivo sin modificar el precio ofrecido. |
+
+**Restricciones de entidad**
+
+- INVALIDADA exige `invalidada_en` y `motivo_invalidacion`; los demás estados no los informan. Una cotización CONFIRMADA nunca se invalida por un cambio posterior de configuración.
+- Solo puede confirmarse una VIGENTE, no vencida y cuya versión capturada siga siendo la activa al confirmar. La aceptación del cliente y los controles operativos siguen siendo obligatorios.
+- Activar una versión invalida las cotizaciones BORRADOR o VIGENTE de versiones anteriores en el mismo cambio efectivo. Las ya EXPIRADAS, CANCELADAS o INVALIDADAS conservan su estado terminal.
+- Invalidar conserva importes, condiciones, metadatos y relaciones originales. Una nueva oferta utiliza la versión activa, enlaza `id_cotizacion_reemplazada` y requiere nueva aceptación; no revive si un rollback copia el contenido anterior.
 
 #### `cotizacion_item`
 
@@ -2199,8 +2259,14 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 | Configuración, catálogos y reglas | `configuracion_version` (1) → `configuracion_servicio` (0..N) | `configuracion_servicio.id_configuracion_version` → `configuracion_version.id_configuracion_version` | configuracion_version |
 | Configuración, catálogos y reglas | `servicio` (1) → `configuracion_servicio` (0..N) | `configuracion_servicio.id_servicio` → `servicio.id_servicio` | servicio |
 | Configuración, catálogos y reglas | `usuario` (0..1) → `configuracion_version` (0..N) | `configuracion_version.id_usuario_activador` → `usuario.id_usuario` | activa |
+| Configuración, catálogos y reglas | `usuario` (0..1) → `configuracion_version` (0..N) | `configuracion_version.id_usuario_programador` → `usuario.id_usuario` | programa |
+| Configuración, catálogos y reglas | `usuario` (0..1) → `configuracion_version` (0..N) | `configuracion_version.id_usuario_cancelador` → `usuario.id_usuario` | cancela |
 | Configuración, catálogos y reglas | `usuario` (1) → `configuracion_version` (0..N) | `configuracion_version.id_usuario_creador` → `usuario.id_usuario` | usuario_creador |
 | Configuración, catálogos y reglas | `configuracion_version` (0..1) → `configuracion_version` (0..N) | `configuracion_version.id_version_base` → `configuracion_version.id_configuracion_version` | copia |
+| Configuración, catálogos y reglas | `configuracion_version` (1) → `intento_activacion_configuracion` (0..N) | `intento_activacion_configuracion.id_version_objetivo` → `configuracion_version.id_configuracion_version` | objetivo |
+| Configuración, catálogos y reglas | `configuracion_version` (0..1) → `intento_activacion_configuracion` (0..N) | `intento_activacion_configuracion.id_version_anterior` → `configuracion_version.id_configuracion_version` | anterior |
+| Configuración, catálogos y reglas | `configuracion_version` (0..1) → `intento_activacion_configuracion` (0..1) | `intento_activacion_configuracion.id_version_resultante` → `configuracion_version.id_configuracion_version` | resultante |
+| Configuración, catálogos y reglas | `usuario` (0..1) → `intento_activacion_configuracion` (0..N) | `intento_activacion_configuracion.id_usuario_actor` → `usuario.id_usuario` | usuario_actor |
 | Configuración, catálogos y reglas | `configuracion_version` (1) → `configuracion_zona_entrega` (0..N) | `configuracion_zona_entrega.id_configuracion_version` → `configuracion_version.id_configuracion_version` | configuracion_version |
 | Configuración, catálogos y reglas | `zona_entrega` (1) → `configuracion_zona_entrega` (0..N) | `configuracion_zona_entrega.id_zona_entrega` → `zona_entrega.id_zona_entrega` | zona_entrega |
 | Configuración, catálogos y reglas | `configuracion_version` (1) → `politica_operativa` (0..1) | `politica_operativa.id_configuracion_version` → `configuracion_version.id_configuracion_version` | configuracion_version |
@@ -2356,18 +2422,40 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 ### 7.2 Configuración
 
 - El primer inicio crea catálogos técnicos fijos y una configuración `EN_PREPARACION` vacía. No hay precios, plantilla comercial ni reglas predeterminadas de YG.
-- Antes de la primera activación puede haber cero configuraciones activas. Luego existe exactamente una `ACTIVA` y, como máximo, una `EN_PREPARACION`.
-- Activar requiere un administrador o SOPORTE habilitado, reingreso de contraseña y efecto inmediato. No existe activación programada.
-- Una versión activa o histórica es inmutable. La siguiente versión es una copia completa normalizada.
+- Antes de la primera activación puede haber cero configuraciones activas. Luego existe exactamente una `ACTIVA`. Solo puede existir un cambio pendiente: una `EN_PREPARACION` o una `PROGRAMADA`, nunca ambas.
+- Un administrador o SOPORTE con habilitación vigente puede preparar, programar, cancelar o activar mediante los controles existentes de cambios sensibles, incluido el reingreso de contraseña. El contenido se cierra al programar y el instante previsto queda separado de la fecha efectiva.
+- Solo `EN_PREPARACION` es editable. Las versiones programadas, activas, históricas y canceladas conservan su contenido inmutable. Una nueva versión es una copia completa normalizada; cancelar no vuelve editable la anterior ni borra su historial.
 - La activación no exige impresoras. Sin ellas, cotización, pedido, pago, producción manual, calidad y entrega siguen funcionando.
 - Catálogo y precios son globales; `sucursal_servicio` limita lo que cada sucursal puede realizar. Una impresora física solo participa en automatización si la versión activa la habilita.
 - Las reglas comerciales son datos estructurados, nunca SQL ni código. Sus condiciones se combinan con AND; alternativas requieren reglas separadas.
 - Cada regla tiene una sola acción. Por item se usa el mayor descuento porcentual y el mayor requisito de seña. El orden es precio base, descuento, subtotal y seña.
 - En modo `MANUAL`, todo pedido espera decisión interna. En `AUTOMATICA`, todo pedido elegible intenta aprobación técnica. En `CONDICIONAL`, ese intento ocurre solamente si coincide al menos una `regla_aprobacion`; dentro de cada regla las condiciones son AND y las reglas son alternativas.
 
+#### Activación programada y reintentos
+
+- La configuración actual conserva vigencia hasta que una candidata se publique completamente. La fecha programada es una intención: vencer ese instante no cambia la activa ni invalida cotizaciones por sí solo.
+- Cada intento revalida permisos aplicables, licencia, coherencia y compatibilidad actuales. La ejecución automática distingue al sistema ejecutor del usuario que autorizó programar; no reutiliza una autorización de SOPORTE vencida ni omite controles por provenir de una versión histórica.
+- Si la activación falla, se conserva íntegra la activa anterior y se registra FALLIDO. No se publican reglas parciales, no se crea una versión comercial de respaldo y no se invalidan cotizaciones. Antes de la primera activación, un fallo conserva el estado sin activa.
+- Una versión PROGRAMADA fallida se reintenta cada diez minutos desde la finalización del intento anterior, sin máximo de intentos. El usuario autorizado puede solicitar un intento manual inmediato sobre esa misma programación o cancelarla. Un intento manual fallido no duplica el ciclo; su resultado fija nuevamente el plazo de diez minutos.
+- Una cancelación detiene los reintentos y conserva actor, momento y motivo. Un intento exitoso termina el ciclo al dejar la versión activa. Una activación inmediata independiente o un rollback manual fallido no crea una programación ni reintentos automáticos propios.
+- Durante una caída no se registran intentos ficticios. Al recuperar servicio se resuelve el resultado de cualquier intento interrumpido y se atiende el vencimiento de la primera ejecución o del próximo reintento calculado. Si todavía no transcurrieron diez minutos desde el último fallo, se respeta ese plazo. Cuando la ejecución pendiente ya venció se registra el atraso y se intenta una sola vez; si falla, continúa el ciclo de diez minutos. La publicación tardía conserva separados el instante previsto y el efectivo.
+- Un intento manual y uno automático no pueden ejecutarse simultáneamente. Cancelar y activar compiten por la misma transición: después de activarse no puede cancelarse retroactivamente una versión.
+
+#### Rollback manual
+
+- Recupera el contenido de la configuración inmediatamente anterior que realmente estuvo activa. La predecesora se obtiene de las activaciones exitosas; no del mayor número de versión ni de borradores, intentos fallidos o programaciones canceladas.
+- La recuperación crea una nueva versión con `id_version_base` igual a la histórica recuperada. Por ejemplo, tras V1 → V2, un rollback publica V3 copiando V1; V1 y V2 permanecen históricas, y los pedidos conservan las referencias originales.
+- Si existe un borrador, debe cancelarse antes de iniciar el rollback. Si existe una programación, el rollback exitoso la cancela junto con sus reintentos, conservando la evidencia. Copia publicada, cambio de activa, cancelación e invalidación de cotizaciones se confirman juntos.
+- Si el rollback falla, la activa y la programación anterior siguen como estaban; se registra el fallo y no se informa recuperación exitosa. Sin una predecesora efectiva no hay rollback disponible.
+- Restaurar contenido no recupera permisos revocados ni disponibilidad física anterior. Los controles operativos actuales y las excepciones de licencia para terminar pedidos confirmados se mantienen.
+
 ### 7.3 Cotización, pedido y archivos
 
 - Una cotización se confirma una sola vez y produce exactamente un pedido. Cambiar archivo, impresión, servicio, entrega o pago cancela la cotización y crea otra enlazada.
+- Confirmar exige que la cotización siga vigente y pertenezca a la configuración actualmente activa, además de sesión, permisos, controles técnicos, crédito y cupo válidos. La confirmación y la activación se ordenan atómicamente: si confirma primero, conserva el pedido; si activa primero, exige recotizar.
+- Una activación efectiva, incluido un rollback, invalida las cotizaciones BORRADOR o VIGENTE anteriores todavía sin confirmar y registra momento y motivo. No cambia su precio ni las convierte en pedidos. Las ofertas ya terminales mantienen su historia.
+- El cliente obtiene una nueva cotización con la versión activa y acepta sus condiciones; `id_cotizacion_reemplazada` enlaza la anterior. Una cotización invalidada no recupera vigencia aunque un rollback restituya contenido equivalente.
+- Los pedidos ya confirmados conservan versión, importes, condiciones, snapshots y hechos financieros aunque después cambie la configuración. Los controles actuales de autorización, pausa, seguridad y disponibilidad física no se convierten en datos comerciales históricos.
 - La cotización no reserva crédito ni capacidad de entrega. La confirmación valida ambos atómicamente.
 - Un pedido personal pertenece al usuario; uno empresarial pertenece a la empresa y conserva el creador. Solo el creador, el administrador empresarial o personal interno autorizado puede modificarlo según etapa.
 - Cada item tiene un único archivo original y una configuración homogénea. No hay rangos de páginas ni modo mixto; blanco y negro y color del mismo archivo requieren pedidos distintos.
@@ -2421,6 +2509,7 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 - Existe una alerta activa por tipo, causa y entidad. Repeticiones aumentan contador; al desaparecer la causa se resuelve sin borrar historial.
 - Solo un administrador, con confirmación inmediata, puede eliminar físicamente una alerta ya resuelta. Una activa no se elimina.
 - Auditoría es append-only, no contiene secretos, tokens, archivos ni cuerpos brutos de webhook. Los historiales de dominio siguen siendo la fuente de verdad de las transiciones.
+- Programar, cancelar, intentar activar y hacer rollback registran su acción sensible en `auditoria`, referenciando `configuracion_version` o `intento_activacion_configuracion` mediante `tipo_entidad_afectada` e `id_entidad_afectada`. El estado tipado y los intentos determinan los reintentos; `metadatos_sanitizados` no sustituye esa evidencia ni decide la ejecución.
 
 ### 7.8 Licencias e integraciones
 
@@ -2436,14 +2525,18 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 |---|---|
 | `usuario.estado` | `PENDIENTE_VERIFICACION`, `ACTIVO`, `BLOQUEADO`, `DESACTIVADO` |
 | `rol.codigo` | `CLIENTE`, `EMPLEADO`, `ADMINISTRADOR`, `CLIENTE_EMPRESA`, `CLIENTE_EMPRESA_ADMIN` |
-| `configuracion_version.estado` | `EN_PREPARACION`, `ACTIVA`, `HISTORICA` |
+| `configuracion_version.estado` | `EN_PREPARACION`, `PROGRAMADA`, `ACTIVA`, `HISTORICA`, `CANCELADA` |
+| `intento_activacion_configuracion.operacion` | `ACTIVACION`, `ROLLBACK` |
+| `intento_activacion_configuracion.origen` | `MANUAL`, `PROGRAMACION`, `REINTENTO`, `RECUPERACION` |
+| `intento_activacion_configuracion.estado` | `INICIADO`, `EXITOSO`, `FALLIDO`, `INTERRUMPIDO` |
 | `politica_operativa.modo_aprobacion` | `MANUAL`, `AUTOMATICA`, `CONDICIONAL` |
 | `politica_operativa.modo_asignacion_impresora` | `MANUAL`, `AUTOMATICA` |
 | `servicio.tipo` | `IMPRESION`, `TERMINACION` |
 | `tarifa_impresion.modo_color` | `BLANCO_NEGRO`, `COLOR` |
 | `configuracion_medio_pago.medio_pago` | `EFECTIVO`, `TRANSFERENCIA`, `MERCADO_PAGO`, `MODO`, `CUENTA_CORRIENTE` |
 | `configuracion_modalidad_entrega.modalidad` | `RETIRO_SUCURSAL`, `RETIRO_PUNTO_ENTREGA`, `ENVIO_DOMICILIO` |
-| `cotizacion.estado` | `BORRADOR`, `VIGENTE`, `CONFIRMADA`, `EXPIRADA`, `CANCELADA` |
+| `cotizacion.estado` | `BORRADOR`, `VIGENTE`, `CONFIRMADA`, `EXPIRADA`, `CANCELADA`, `INVALIDADA` |
+| `cotizacion.motivo_invalidacion` | `CAMBIO_CONFIGURACION` cuando está `INVALIDADA`; nulo en otros estados |
 | `pedido.estado_interno` | `PENDIENTE_PAGO`, `PENDIENTE_REVISION`, `CORRECCION_SOLICITADA`, `APROBADO`, `EN_PRODUCCION`, `LISTO_PARA_ENTREGA`, `ENTREGADO`, `CERRADO`, `RECHAZADO`, `CANCELADO` |
 | `solicitud_correccion.estado` | `PENDIENTE`, `RESPONDIDA`, `CERRADA`, `CANCELADA` |
 | `solicitud_cancelacion.estado` | `PENDIENTE`, `APROBADA`, `RECHAZADA`, `CANCELADA` |
@@ -2478,6 +2571,9 @@ La notación se lee desde la entidad padre hacia la hija. La cardinalidad izquie
 | Estado visible del pedido | Proyección controlada de `estado_interno`, sin flujo independiente editable. |
 | Pedido listo para entrega | Último control de cada item aprobado. |
 | Módulo habilitado | Al menos una licencia vigente que lo conceda. |
+| Próximo reintento de configuración | Último intento FALLIDO de una versión todavía PROGRAMADA, `fecha_fin` más diez minutos; recuperar servicio respeta un vencimiento todavía futuro y atiende uno atrasado sin acumular ejecuciones. |
+| Predecesora efectiva de la activa | `id_version_anterior` del intento EXITOSO cuya `id_version_resultante` es la activa actual. |
+| Cotización confirmable | Estado VIGENTE, vencimiento no alcanzado y versión capturada igual a la activa, además de los controles operativos. |
 
 Los campos terminados en `_derivado` son cachés para consulta y deben poder reconstruirse. No sustituyen la fuente indicada.
 
@@ -2486,10 +2582,12 @@ Los campos terminados en `_derivado` son cachés para consulta y deben poder rec
 | Información | Política |
 |---|---|
 | Usuarios, empresas, sucursales, catálogos e impresoras | Baja lógica o anonimización según obligación; no se rompen referencias históricas. |
-| Configuraciones activas e históricas | Inmutables y sin borrado ordinario. |
+| Configuraciones programadas, activas, históricas y canceladas | Contenido inmutable y sin borrado ordinario; cambios de estado e información de ejecución conservan su evidencia. |
+| Intentos de activación finalizados | Resultado inmutable; sin borrado ordinario ni reemplazo por el último intento. Un INICIADO se completa o reconcilia una sola vez. |
 | Movimientos, pagos, aplicaciones, documentos y reembolsos | Append-only; corregir mediante reversión, anulación o nuevo hecho. |
 | Archivos de trabajo | Purga del objeto al vencer la retención; permanecen metadatos, hash y validaciones. |
 | Cotización expirada | Conserva metadatos y snapshots; sus binarios temporales se purgan y no se reutilizan. |
+| Cotización invalidada por configuración | Conserva oferta, metadatos, snapshots, momento y motivo. La invalidación no introduce otra política de archivos ni elimina hechos financieros. |
 | Documentos de cobro y comprobantes | Sin purga automática. |
 | Evidencias de reclamo | Nunca antes de resolver; después respetan el plazo aplicable del pedido. |
 | Notificación de inbox | El usuario puede borrar físicamente solo su relación; el acto se audita. |
@@ -2504,7 +2602,7 @@ Los campos terminados en `_derivado` son cachés para consulta y deben poder rec
 | Usuario de empresa | Historial comercial y financiero compartido de su empresa; notificaciones propias. |
 | Administrador empresarial | Además administra usuarios comunes de su empresa. |
 | Empleado | Sucursales asignadas; finanzas solo con permiso explícito. |
-| Administrador de imprenta | Configuración, usuarios, operación, finanzas, alertas y auditoría. |
+| Administrador de imprenta | Configuración, programación, cancelación, intentos manuales y rollback; usuarios, operación, finanzas, alertas y auditoría. |
 | Administrador propietario | Puede solicitar eliminación de otros administradores tras verificación externa de llave maestra. |
 | SOPORTE | Facultades administrativas solo durante una autorización vigente y auditada. |
 | Agente de impresión | Claim y transiciones técnicas autorizadas de su sucursal; nunca funciones comerciales. |
@@ -2514,12 +2612,17 @@ Los campos terminados en `_derivado` son cachés para consulta y deben poder rec
 - La base central de YG para emitir licencias, verificar identidad y restablecer la llave maestra pertenece a otro sistema.
 - Storage de objetos, CUPS, conversor ofimático, antivirus, correo, push, Mercado Pago y MODO son dependencias externas; este DER guarda referencias y resultados mínimos.
 - No se modelan inventario, compras, proveedores de insumos, ARCA, factura fiscal, IVA calculado, retenciones, comisiones de proveedor, mapas, distancias ni relay central de webhooks.
-- No hay multi-tenant dentro de una base, sucursales del cliente empresarial, entregas parciales, configuración programada ni cliente instalado por sucursal.
+- No hay multi-tenant dentro de una base, sucursales del cliente empresarial, entregas parciales ni cliente instalado por sucursal.
+- El rollback aquí modelado recupera contenido de configuración como nueva versión. No revierte transacciones, pedidos, pagos, archivos ni la base de datos, y no introduce monitoreo automático de fallos de una versión ya publicada.
 - Este artefacto diseña datos. Migraciones SQL, entidades JPA, repositorios, servicios y el diagrama de arquitectura corresponden a tareas posteriores.
 
 
 ## 13. Controles para una implementación futura
 
 Al traducir el diseño a migraciones deben materializarse las unicidades compuestas, índices parciales de “una activa”, checks XOR, importes no negativos, límites de suma y transacciones que abarcan confirmación de cotización, transferencia de archivos, crédito y cupo. Las operaciones sensibles deben bloquear las filas relevantes para evitar confirmaciones concurrentes.
+
+Para configuración deben materializarse la exclusión entre borrador y programación, un único intento en curso y la coherencia entre estados, actores, origen y fechas. El inicio y el resultado de los intentos necesitan persistencia recuperable: una caída no debe borrar el fallo ni duplicar una publicación exitosa. Publicar la nueva activa, conservar la anterior como histórica, invalidar ofertas abiertas y finalizar el intento exitoso constituye una misma transición; el rollback agrega la cancelación de la programación pendiente. La confirmación de pedidos y las cancelaciones se serializan respecto de esa transición.
+
+La verificación futura debe cubrir activación puntual y atrasada, primera activación sin respaldo, varios fallos con intervalos de diez minutos, recuperación de un intento interrumpido, adelanto manual, cancelación y rollback V1 → V2 → V3 con copia de V1. Debe comprobarse que cada pedido conserva su versión, una cotización previa ya no se confirma tras el cambio, una cancelada no se activa y ningún reintento omite controles vigentes. Esta revisión documenta esos requisitos; no ejecuta DDL ni demuestra el comportamiento de un backend implementado.
 
 Los nombres y tipos de este diccionario son la referencia inicial. Si una limitación real de PostgreSQL, Spring Boot o un proveedor exige cambiar alcance, comportamiento, seguridad, esquema o criterio de aceptación, corresponde revisar este diseño antes de implementar; no debe corregirse silenciosamente en código.

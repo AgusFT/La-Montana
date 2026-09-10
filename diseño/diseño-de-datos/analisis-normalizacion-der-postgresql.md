@@ -2,11 +2,12 @@
 
 | Campo | Valor |
 |---|---|
-| Version | 1.2 |
-| Estado | Revisado; escenario conservador publicado en el DER v3 |
+| Version | 1.3 |
+| Estado | Revision focalizada del DER 3.1 verificada: diccionario, graficos y huellas finales |
 | Fecha | 2026-09-09 |
-| Rama analizada | `docs/der-modelo-datos-postgresql` |
-| Commit base | `09db5ad799362088dafb4bc8f881f432e67dc390` |
+| Rama de la auditoria original | `docs/der-modelo-datos-postgresql` |
+| Commit base de la auditoria original | `09db5ad799362088dafb4bc8f881f432e67dc390` |
+| Base de la revision focalizada 3.1 | `main@650b50ac52578040e847972896c19d9fb6e992b0` |
 | DER relacional | [`der-modelo-datos-postgresql.md`](./der-modelo-datos-postgresql.md) |
 | Fuente grafica | [`der-modelo-datos-postgresql.excalidraw`](./der-modelo-datos-postgresql.excalidraw) |
 | Vista SVG | [`DER-V3.svg`](./DER-V3.svg) |
@@ -14,9 +15,11 @@
 | Huella Excalidraw auditada | `0d36c474eb26ddbc70586f80e5b56d1a9238db2b5760a18ea22fca943a7d047b` |
 | Huella Markdown iteracion local 2.0 | `075f0e4f76dc9abd89bae4a2b0de713605bcc6cc2887429ae7334d10ffb35199` |
 | Huella Excalidraw iteracion local 2.0 | `0f6ef9069d8c19a42ae5fee686b17181d8cbf83d1a011e5b4bc9046a857088e1` |
-| Huella Markdown DER v3 | `e18930f5cf82f204ce38b28cfe3108bb45bbc22c3159edbd3c0c6bd3fd77c082` |
-| Huella Excalidraw DER v3 | `535bbb966ff316ddbc811ef554328fd6451e4f45bb14070f3a0eb0496af41b1f` |
-| Huella SVG DER v3 | `8ed7358ab7e5b64dd65577cac9a24adb8ef16a9e9f1d17de910c1f02ab5b8960` |
+| Huella Markdown DER 3.0 | `e18930f5cf82f204ce38b28cfe3108bb45bbc22c3159edbd3c0c6bd3fd77c082` |
+| Huella Excalidraw DER 3.0 | `535bbb966ff316ddbc811ef554328fd6451e4f45bb14070f3a0eb0496af41b1f` |
+| Huella SVG DER 3.0 | `8ed7358ab7e5b64dd65577cac9a24adb8ef16a9e9f1d17de910c1f02ab5b8960` |
+
+Las secciones 1 a 12 conservan la auditoria original y el escenario conservador publicado como DER 3.0. Sus conteos, veredictos y huellas son evidencia historica, no una nueva auditoria automatica del DER 3.1. La seccion 13 registra la revision focalizada de programacion, intentos, rollback e invalidacion de cotizaciones. Los enlaces de los artefactos mantienen sus nombres y apuntan a la revision actual; las huellas historicas se conservan para identificar el antecedente.
 
 ## 1. Resumen ejecutivo
 
@@ -1559,3 +1562,126 @@ Los conteos contemplan mover las FK de logo, version documental, regla de sena, 
 La cantidad de tablas resultante es razonable para el alcance y la trazabilidad elegidos. La simplificacion conservadora adoptada es pequena pero elimina las duplicaciones que realmente podian producir dos fuentes de verdad. Las fusiones visualmente tentadoras se mantienen descartadas porque modelan hechos distintos o estados incompletos validos.
 
 El DER v3 aplica el escenario conservador completo y cierra los tres puntos que estaban pendientes. El Excalidraw correspondiente conserva una vista general con relaciones agregadas por dominio y una segunda vista con un grafo repetido por entidad; el SVG permite consultarlo directamente desde el repositorio. El DDL, las migraciones y la implementacion Spring Boot siguen requiriendo una tarea material posterior.
+
+## 13. Revision focalizada del DER 3.1
+
+### 13.1 Alcance y precedencia
+
+Esta revision incorpora las decisiones del grill de `PLAN-der-programacion-rollback.md` version 1, autorizado por el usuario mediante `implementa el plan` el 2026-09-09. Parte del DER 3.0 publicado en `main@650b50ac52578040e847972896c19d9fb6e992b0` y revisa tres entidades: `configuracion_version`, la nueva `intento_activacion_configuracion` y `cotizacion`.
+
+El alcance comprende activacion inmediata o programada, instante previsto separado del efectivo, registro de intentos, reintentos cada diez minutos sin limite, recuperacion tras caida, rollback manual mediante una nueva copia historica e invalidacion de ofertas sin confirmar. Se preservan los pedidos confirmados, los snapshots y los hechos financieros existentes.
+
+El [PR #196](https://github.com/AgusFT/La-Montana/pull/196), en `docs/actualizacion-producto-configurable-revision@23fcd1680cd06fccbf576f3fba98e61078a137c5`, permanece como propuesta. El usuario decidio que una activacion efectiva invalida las cotizaciones anteriores sin confirmar: esa decision reemplaza expresamente la propuesta de conservarlas hasta vencer. Esta revision no integra el resto del PR ni resuelve las diferencias de pagos antes de cargar archivos, modelos UX u otros dominios.
+
+La comprobacion es documental. No se implementaron migraciones, servicios, un programador de tareas ni pruebas de un backend ejecutable. Tampoco se repitio la auditoria global de normalizacion sobre entidades ajenas al cambio.
+
+### 13.2 Reconciliacion de conteos
+
+| Metrica | DER 3.0 publicado | DER 3.1 | Diferencia |
+|---|---:|---:|---:|
+| Entidades | 106 | 107 | +1 |
+| Atributos | 946 | 968 | +22 |
+| FK explicitas | 229 | 235 | +6 |
+| Pares dirigidos hija-padre | 217 | 219 | +2 |
+| Dominios | 11 | 11 | 0 |
+
+| Entidad afectada | Atributos antes | Atributos despues | FK antes | FK despues | Cambio |
+|---|---:|---:|---:|---:|---|
+| `configuracion_version` | 9 | 16 | 3 | 5 | Siete datos de programacion y cancelacion; dos FK de actores. |
+| `intento_activacion_configuracion` | 0 | 13 | 0 | 4 | Nuevo hecho de ejecucion con objetivo, anterior, resultante y actor. |
+| `cotizacion` | 24 | 26 | 8 | 8 | Momento y motivo de invalidacion; conserva sus referencias. |
+| **Variacion** | **33** | **55** | **11** | **17** | **+22 atributos y +6 FK.** |
+
+El dominio Configuracion, catalogos y reglas pasa de 22 a 23 entidades. Las dos nuevas FK de `configuracion_version` apuntan a `usuario`, un par dirigido que ya existia. La nueva entidad de intentos agrega solo dos pares: hacia `configuracion_version` y hacia `usuario`, aunque posea tres FK con papeles diferentes hacia la primera. No se eliminaron entidades, atributos o relaciones de otros dominios.
+
+Los conteos anteriores se calcularon desde el diccionario Markdown final, no desde etiquetas del lienzo. La comparacion automatizada de las 235 FK con la tabla de relaciones comprobo correspondencia completa, destino existente, PK referenciada y cardinalidad de nulabilidad. Se verifico tambien que los conteos del mapa de dominios suman 107.
+
+### 13.3 Revision de entidades y dependencias
+
+#### `configuracion_version`
+
+- **Claves y alcance:** conserva PK y numero de version unico local. Una unica ACTIVA despues del alta y un unico pendiente —EN_PREPARACION o PROGRAMADA— son restricciones temporales, no nuevas entidades de imprenta.
+- **Contenido y ciclo de vida:** programar cierra la edicion. ACTIVA, HISTORICA y CANCELADA tampoco permiten modificar contenido. Las transiciones y fechas de ejecucion evolucionan sin reescribir las reglas comerciales.
+- **Datos agregados:** actor y momento de programacion, instante previsto, zona IANA, actor y momento de cancelacion y motivo. El instante previsto no se reutiliza como fecha efectiva ni se sobrescribe al reintentar.
+- **Dependencias:** PK y numero de version identifican la version; los datos de programacion y cancelacion se validan en grupos coherentes segun su ciclo de vida. Los actores de creacion, programacion, activacion y cancelacion representan acciones distintas y no deben deducirse unos de otros.
+- **Redundancia controlada:** `fecha_activacion` y `id_usuario_activador` conservan el resumen de la publicacion efectiva en la version. Deben ser coherentes con el intento EXITOSO correspondiente, confirmado en la misma transicion. El historial de intentos conserva tambien los fallos; el resumen de la version no lo reemplaza.
+- **Origen de copia:** `id_version_base` representa contenido copiado. No sustituye la relacion de predecesora efectiva: tras V1 → V2 → V3 copiando V1, la base de V3 es V1 y su anterior efectiva es V2.
+
+#### `intento_activacion_configuracion`
+
+- **Finalidad independiente:** varios intentos pueden afectar a la misma version. Separarlos evita sobrescribir el fallo anterior o guardar una lista de resultados dentro de la configuracion o del JSON de auditoria.
+- **Claves:** PK propia y unicidad de `id_version_resultante` cuando esta informado. Una version se publica una sola vez; volver a su contenido requiere otra version.
+- **Referencias tipadas:** objetivo, activa anterior y resultante no son intercambiables. En ACTIVACION exitosa, objetivo y resultante coinciden; en ROLLBACK, objetivo es la historica fuente, anterior es la activa desplazada y resultante es la nueva copia. La anterior puede ser nula durante la primera activacion y la resultante es nula en intentos no exitosos.
+- **Actor y ejecucion:** MANUAL identifica al usuario; PROGRAMACION, REINTENTO y RECUPERACION identifican ejecucion automatica sobre una version previamente programada. Se mantiene la autorizacion de programacion en la version y se revalida al ejecutar.
+- **Estados y conservacion:** INICIADO es transitorio. EXITOSO, FALLIDO e INTERRUMPIDO tienen fecha de cierre y resultado definitivo; cada fila finalizada se conserva. La recuperacion distingue un resultado confirmado de una interrupcion, sin inventar actividad durante la caida.
+- **Datos derivados:** el proximo reintento se obtiene del ultimo fallo de una version todavia PROGRAMADA mas diez minutos. No se agrega una segunda cola persistida ni un contador mutable como fuente alternativa de verdad.
+- **Invariante transversal:** version activa, historizacion anterior, invalidacion de cotizaciones y resultado exitoso se confirman juntos; en rollback se agrega la cancelacion de la programacion pendiente. Un unico intento en curso y el bloqueo de edicion de la candidata protegen esa transicion.
+
+#### `cotizacion`
+
+- **Estructura conservada:** version capturada, importes, condiciones, snapshots e `id_cotizacion_reemplazada` mantienen su funcion. La nueva oferta enlaza a la anterior y requiere nueva aceptacion.
+- **Cambio focalizado:** se agrega INVALIDADA con `invalidada_en` y `motivo_invalidacion`. Esos datos identifican el hecho que impidio confirmar; no recotizan silenciosamente ni borran la oferta original.
+- **Restricciones condicionales:** solamente INVALIDADA informa esos dos campos; el motivo cerrado actual es CAMBIO_CONFIGURACION. CONFIRMADA nunca se invalida por una activacion posterior. Las ofertas ya terminales no se convierten en una nueva invalidacion.
+- **Frontera con pedido:** confirmar exige una cotizacion vigente de la version actualmente activa. Si la confirmacion gana la carrera, el pedido conserva su version; si la activacion gana, se exige recotizar. El nuevo estado no modifica reglas financieras ni politicas de purga de archivos.
+
+La revision mantiene valores atomicos, FK explicitas y evidencia de dominio separada de la auditoria transversal. Las igualdades y dependencias condicionadas por estado se materializan como restricciones de coherencia. No se convierte esta revision focalizada en un nuevo veredicto global de BCNF ni se eliminan snapshots para reducir conteos.
+
+### 13.4 Escenarios e invariantes revisados documentalmente
+
+La tabla registra cobertura del diseño en el diccionario y sus reglas transversales; no representa ejecuciones contra una base de datos o backend.
+
+| Escenario | Resultado exigido y evidencia modelada |
+|---|---|
+| Programar V2 mientras V1 esta activa | V1 conserva vigencia; V2 cierra contenido como PROGRAMADA y registra fecha prevista, zona y actor. No coexiste otro borrador. |
+| Activacion puntual exitosa | V2 pasa a ACTIVA, V1 a HISTORICA y el intento a EXITOSO con resultante V2. Se invalidan las ofertas anteriores abiertas, no los pedidos confirmados. |
+| Falla de activacion | V1 permanece integra y V2 PROGRAMADA. El intento FALLIDO conserva cierre y motivo; no invalida cotizaciones ni publica contenido parcial. |
+| Fallos reiterados | Cada cierre fallido fija el siguiente intento a diez minutos; no hay maximo. Los intentos anteriores conservan sus resultados. |
+| Reinicio antes del siguiente reintento | Si todavia no vencio `fecha_fin` mas diez minutos, se respeta el plazo; reiniciar no adelanta el ciclo. |
+| Reinicio con ejecucion vencida | Se registra el atraso y se atiende una sola ejecucion pendiente. No se inventan intentos por los periodos sin servicio ni se retrodata la publicacion. |
+| Caida durante un intento | Se reconcilia el resultado persistido. Un exito confirmado no se duplica; un inconcluso se distingue como INTERRUMPIDO y conserva evidencia. |
+| Intento manual de una programacion | Compite por la misma operacion, sin otro ciclo. Un exito termina la programacion y un fallo vuelve a fijar los diez minutos. |
+| Cancelacion de programacion | CANCELADA conserva actor, momento y motivo; detiene reintentos y no vuelve editable la version. |
+| Rollback V1 → V2 → V3 | Objetivo V1, anterior V2 y resultante V3; V3 copia V1 sin reactivar su fila. Los pedidos conservan V1 o V2 segun corresponda. |
+| Rollback exitoso con programacion pendiente | Publicacion de la copia y cancelacion de la programacion se confirman juntas, con invalidacion de ofertas abiertas y conservacion de historial. |
+| Rollback fallido | La activa y la programacion anterior siguen como estaban. El fallo manual no crea un ciclo automatico propio ni se informa como recuperacion exitosa. |
+| Rollback con borrador | Conserva el borrador y exige cancelarlo antes de iniciar la recuperacion historica. La cancelacion conjunta autorizada corresponde a programaciones. |
+| Primera activacion fallida | Puede permanecer sin activa; no existe una version de respaldo inventada ni una predecesora para rollback. |
+| Cotizacion anterior y posterior cambio | Una oferta abierta de la version anterior queda INVALIDADA. Debe generarse y aceptarse otra; restaurar contenido equivalente mediante rollback no revive la anterior. |
+| Confirmacion y activacion concurrentes | Tienen orden atomico: pedido confirmado primero se preserva; cambio efectivo primero impide confirmar la oferta anterior. |
+| Cancelacion, intento manual y automatico concurrentes | Un unico intento en curso y un unico resultado de la transicion impiden duplicar publicacion o cancelar retroactivamente una version activa. |
+| Permisos, licencias y capacidad actuales | Reintentar o copiar una historica no omite controles. Se mantienen las excepciones de licencia existentes para completar pedidos confirmados. |
+
+La auditoria transversal registra programacion, cancelacion, intentos y rollback mediante referencias logicas a la version o intento. El estado tipado de las entidades decide los reintentos; los metadatos JSON no cumplen ese papel.
+
+### 13.5 Evidencia de verificacion y cierre
+
+La verificacion estructural del Markdown se ejecuto con un parser temporal de Python 3 y biblioteca estandar, en modo de solo lectura. Se comprobaron nombres de entidad y columna unicos, una PK por entidad, las 235 FK contra destinos existentes, igualdad con la tabla de relaciones, cardinalidades de nulabilidad y suma del mapa de dominios. El resultado fue **107 entidades, 968 atributos, 235 FK y 219 pares dirigidos**. `git diff --check` sobre el Markdown del DER no informo errores.
+
+Estas comprobaciones verifican consistencia documental y estructura declarada. Las restricciones de concurrencia, los intervalos y las transacciones siguen siendo obligaciones para la implementacion posterior; no se presentan como comportamiento ejecutado.
+
+| Comprobacion final | Resultado |
+|---|---|
+| Concordancia del diccionario con Excalidraw y SVG, incluidos atributos, FK, roles y ambas vistas | Conforme: 107 entidades, 968 atributos, 235 FK y 219 pares; 107 grafos y 2.941 elementos editables. Las 3.433 lineas de texto del SVG coinciden con la fuente (incluidos titulos de marco). Claves, tipos, nulabilidad, roles, cardinalidades, vecinos, agregados, bindings y recortes validos. |
+| Legibilidad visual de tablas y conectores modificados, fuente editable y exportacion SVG | Conforme: recortes renderizados con Chrome local de configuracion_version, cotizacion, intento_activacion_configuracion y sus grafos, incluido usuario. Tablas y etiquetas modificadas legibles; sin solapes nuevos ni cruces adicionales de conectores con texto respecto de la base. Se conservan fuentes incrustadas, agrupaciones y edicion Excalidraw. |
+| Comandos y resultados finales de generacion, comparacion y revision del diff | Exportacion incremental con Python 3 y lxml ya instalado, conservando geometria nativa anterior; comparadores independientes del diccionario/Excalidraw y XML del SVG conformes; git diff --check sin errores. Detalle de comandos debajo. |
+
+Las siguientes huellas se calcularon sobre los tres archivos finales, despues de completar las correcciones y la inspeccion visual. Identifican DER 3.1 y no sustituyen las huellas historicas de la cabecera.
+
+| Artefacto DER 3.1 | SHA-256 final |
+|---|---|
+| `der-modelo-datos-postgresql.md` | `1ad8b5047e29a82e0ab7f41f065bd199fc39e0de74389db34399e86130b8ff1f` |
+| `der-modelo-datos-postgresql.excalidraw` | `6ee4ce64049a1bc0103ba65df8748ff055a82230c1ce4edb934718d9729aca8a` |
+| `DER-V3.svg` | `715e701ac2c55897c719d6ad7a85292304b0ea46935f61932216fe3a4f63bc62` |
+
+
+Los auxiliares se ejecutaron fuera del producto, en `/tmp`; no se agregaron dependencias, generadores ni pruebas de backend al repositorio. Los comandos registrados corresponden a esta comprobacion local y sus auxiliares temporales no son una herramienta publicada:
+
+```bash
+python3 /tmp/der31-export-svg.py /tmp/lamontana-der31-bthjf06_/der-modelo-datos-postgresql.excalidraw /tmp/lamontana-der31-bthjf06_/DER-V3.svg main/diseño/diseño-de-datos/der-modelo-datos-postgresql.excalidraw main/diseño/diseño-de-datos/DER-V3.svg
+python3 /tmp/der31-independent-check.py
+python3 /tmp/lamontana-der31-bthjf06_/check_svg.py
+git -C main diff --check
+sha256sum main/diseño/diseño-de-datos/der-modelo-datos-postgresql.md main/diseño/diseño-de-datos/der-modelo-datos-postgresql.excalidraw main/diseño/diseño-de-datos/DER-V3.svg
+```
+
+La exportacion conserva 829 elementos nativos sin cambios, traslada 1.926, actualiza 161 y agrega 25; no elimina elementos. El SVG mide 12.110 por 96.632 unidades y mantiene los 107 recortes de marco. La prueba de identidad del exportador sobre la base sin modificaciones produjo el mismo SHA-256 que el SVG original. Los recorridos de flechas usan los puntos de la fuente editable, con sus extremos comprobados contra las cajas referenciadas.
