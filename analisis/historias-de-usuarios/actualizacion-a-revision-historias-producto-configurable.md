@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.3 - Propuesta |
+| Versión | 2.4 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-08 |
+| Fecha | 2026-09-10 |
 | Identificadores | Provisionales |
 | Propósito | Facilitar validación e integración posterior |
 
@@ -77,16 +77,17 @@ Criterios propuestos:
 - la disponibilidad estimada se expresa como cantidad de hojas y porcentaje respecto de la capacidad configurada;
 - una impresora no operativa no debe ofrecerse para nuevos trabajos.
 
-### PROP-HU-ADM-005 - Administrar módulos
+### PROP-HU-ADM-005 - Administrar módulos - Futuro
 
-Como ADMIN_ADMIN quiero activar o desactivar módulos contratados para adaptar el producto a las necesidades de la imprenta.
+Como ADMIN_ADMIN quiero activar o desactivar módulos opcionales para adaptar el producto a las necesidades de la imprenta.
 
-Criterios propuestos:
+Estado actual:
 
-- se diferencian módulos incluidos y no incluidos;
-- no puede activarse un módulo fuera del plan;
-- desactivar un módulo no elimina historial;
-- se explican dependencias.
+- la definición comercial de módulos queda fuera de Fase 5;
+- todavía no se definieron las prestaciones de los planes Gratis, Inicial y Avanzado;
+- conceptualmente cada módulo podrá poseer un estado activo/inactivo;
+- una mejora opcional no debe impedir completar el flujo básico del negocio;
+- esta historia no debe utilizarse como base de los mockups actuales de Fase 5.
 
 ### PROP-HU-ADM-006 - Previsualizar configuración
 
@@ -97,7 +98,7 @@ Criterios propuestos:
 - muestra diferencias contra la versión activa;
 - presenta ejemplos de pedidos;
 - identifica conflictos;
-- explica impacto en aprobación, pago y producción.
+- explica impacto en aprobación, pago, producción, horarios y entrega.
 
 ### PROP-HU-ADM-007 - Activar inmediatamente
 
@@ -143,6 +144,36 @@ Criterios propuestos:
 - el sistema puede recomendar una impresora compatible sin asignarla automáticamente;
 - una futura asignación automática deberá basarse en un modelo certificado y considerar compatibilidad, disponibilidad, carga y estado operativo;
 - configurar el método no asigna ningún trabajo por sí mismo.
+
+### PROP-HU-ADM-011 - Configurar horarios y tiempos estimados
+
+Como ADMIN_ADMIN quiero configurar los horarios operativos y los tiempos estimados de preparación y envío para que el sistema calcule compromisos de entrega compatibles con la jornada real de la imprenta.
+
+Criterios propuestos:
+
+- cada día de la semana se configura por separado;
+- cada día puede habilitarse o cerrarse;
+- los días habilitados definen hora de apertura y hora de cierre;
+- el tiempo estimado de preparación en Casa Central se expresa en horas;
+- el tiempo estimado para preparar o liberar un pedido para envío se expresa en horas;
+- los tiempos se consumen únicamente dentro de los horarios operativos;
+- un pedido recibido fuera de horario puede quedar en cola y comienza a consumir tiempo en la próxima apertura comercial;
+- la vista incluye una simulación del recorrido resultante;
+- si un pedido se completa antes del estimado, el flujo puede avanzar inmediatamente.
+
+### PROP-HU-ADM-012 - Administrar puntos de entrega
+
+Como ADMIN_ADMIN quiero administrar los puntos de entrega y sus franjas horarias para ofrecer al cliente ubicaciones y ventanas de retiro realmente utilizables.
+
+Criterios propuestos:
+
+- la Fase 5 presenta una acción Administrar puntos;
+- el panel dedicado permite consultar, agregar y editar puntos;
+- cada punto puede definir nombre y ubicación;
+- cada punto puede definir, cuando sea necesario, días y franjas horarias propias;
+- las franjas expresan ventanas estimadas y no una hora exacta obligatoria;
+- la disponibilidad operativa temporal del punto se gestiona sin crear una versión nueva;
+- el cliente solo visualiza puntos actualmente disponibles.
 
 ## 2. Disponibilidad operativa
 
@@ -203,6 +234,20 @@ Criterios propuestos:
 - el evento registra la impresora, el usuario y el momento;
 - la interfaz identifica el dato de disponibilidad como estimado y no como lectura física de un sensor.
 
+### PROP-HU-OPE-005 - Gestionar disponibilidad temporal de un punto
+
+Como usuario interno autorizado quiero habilitar o deshabilitar rápidamente un punto de entrega para reflejar contingencias operativas sin modificar la configuración versionada.
+
+Criterios propuestos:
+
+- habilitar y deshabilitar no solicitan motivo;
+- la acción es inmediata y no crea una versión nueva;
+- un punto deshabilitado deja de ofrecerse a nuevos pedidos;
+- el dashboard mantiene un recordatorio visible mientras exista uno o más puntos deshabilitados;
+- el punto se vuelve a habilitar manualmente cuando esté operativo;
+- las entregas ya pactadas conservan el punto acordado y no se reasignan automáticamente;
+- una contingencia puede demorar esas entregas sin alterar automáticamente su modalidad.
+
 ## 3. Cliente y cotización
 
 ### PROP-HU-CLI-001 - Cotizar con configuración vigente
@@ -212,7 +257,7 @@ Como cliente quiero recibir una cotización basada en las condiciones actuales d
 Criterios propuestos:
 
 - captura la versión al presionar Cotizar pedido;
-- muestra solamente opciones vigentes;
+- muestra solamente opciones vigentes y disponibles;
 - conserva las condiciones mientras la cotización esté activa;
 - no permite cotizar si la imprenta está pausada.
 
@@ -250,6 +295,19 @@ Criterios propuestos:
 - conserva precio y demás condiciones;
 - exige aceptación explícita;
 - no crea el pedido si no acepta.
+
+### PROP-HU-CLI-005 - Visualizar estimación y avance de entrega
+
+Como cliente quiero visualizar en el timeline cuándo comenzará a trabajarse mi pedido y cuándo se estima que estará disponible para comprender demoras fuera de horario y recibir avisos si finaliza antes.
+
+Criterios propuestos:
+
+- si el pedido ingresa fuera de horario se muestra En cola;
+- se informa la próxima apertura operativa cuando corresponda;
+- el timeline muestra el avance real, por ejemplo En preparación, En camino y Listo para retirar;
+- la estimación respeta horas operativas y franjas válidas del punto;
+- si el pedido queda listo antes, el estado se actualiza inmediatamente y el cliente puede recibir la notificación correspondiente;
+- la coordinación fina de un punto puede completarse por canales externos como WhatsApp sin alterar el estado operativo mostrado en la aplicación.
 
 ## 4. Cuenta corriente - Requiere revisión
 
@@ -301,9 +359,12 @@ Criterios propuestos:
 
 Pueden utilizarse como base de mockups:
 
-- PROP-HU-ADM-001 a PROP-HU-ADM-010;
-- PROP-HU-OPE-001 a PROP-HU-OPE-004;
-- PROP-HU-CLI-001 a PROP-HU-CLI-004.
+- PROP-HU-ADM-001 a PROP-HU-ADM-004;
+- PROP-HU-ADM-006 a PROP-HU-ADM-012;
+- PROP-HU-OPE-001 a PROP-HU-OPE-005;
+- PROP-HU-CLI-001 a PROP-HU-CLI-005.
+
+PROP-HU-ADM-005 permanece como evolución futura y no forma parte de la Fase 5 actual.
 
 Las historias de cuenta corriente pueden representarse como exploración visual, pero deben mantenerse en estado de revisión.
 
@@ -321,6 +382,12 @@ Las historias de cuenta corriente pueden representarse como exploración visual,
 | Compatibilidad y recomendación | No estaba definido cómo elegir un equipo | Evita asignaciones inválidas y asiste la operación manual de V1 | Confirmado |
 | Disponibilidad estimada de papel | No existía una métrica para operación remota | Permite conocer cantidad y porcentaje estimados por impresora | Confirmado |
 | Recarga manual a capacidad máxima | La estimación podía quedar desincronizada | Sincroniza el contador cuando el operador completa físicamente el faltante | Confirmado |
+| Horarios y tiempos estimados | La entrega no contemplaba el calendario real de trabajo | Permite promesas calculadas dentro de horas operativas | Confirmado |
+| Pedidos fuera de horario | Una duración continua podía producir horarios imposibles | El pedido queda en cola y el reloj comienza en la próxima apertura | Confirmado |
+| Administración de puntos | Los puntos estaban tratados solo como opciones visibles | Define datos, franjas y acceso dedicado de gestión | Confirmado |
+| Baja operativa de punto | Una contingencia temporal podía confundirse con una nueva configuración | Permite deshabilitar y reactivar sin versionar | Confirmado |
+| Timeline de entrega | La estimación no explicaba el recorrido al cliente | Hace visible cola, inicio, preparación y finalización anticipada | Confirmado |
+| Módulos fuera de Fase 5 | Los planes comerciales todavía no están definidos | Evita convertir hipótesis comerciales en requisitos actuales | Futuro |
 | Previsualizar consecuencias | Hacer configuración comprensible | Facilita instalación remota y reduce errores | Confirmado |
 | Activar o programar | Definir vigencia | Permite aplicar cambios sin retroactividad | Confirmado |
 | Historial de versiones | Auditar cambios | Cada activación debe ser trazable | Confirmado |
