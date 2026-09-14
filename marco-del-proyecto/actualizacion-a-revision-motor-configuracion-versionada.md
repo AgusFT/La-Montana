@@ -490,3 +490,39 @@ Esta actualización debe contrastarse con:
 - marco-del-proyecto/matriz-trazabilidad.md
 
 La justificación principal de este documento es la incorporación del motor de configuración como núcleo del producto definido.
+
+---
+
+## Decisión consolidada de Fase 7 - Activación y creación del pedido
+
+> Decisión confirmada el 14/09/2026. El detalle normativo y los escenarios de prueba se encuentran en [contrato-funcional-fase-7-activacion-confirmacion.md](./contrato-funcional-fase-7-activacion-confirmacion.md).
+
+### Activación inmediata
+
+La activación es transaccional: el borrador validado deja de presentarse como tal y pasa a ser la única versión activa; la versión activa anterior pasa a histórica. Si falla cualquier validación, no puede quedar una transición parcial.
+
+La nueva versión rige nuevas cotizaciones e intentos de creación de pedido. No modifica pedidos ya creados.
+
+### Activación programada
+
+Al programar, el borrador se convierte en una versión programada e inmutable. La versión actual continúa activa hasta la fecha y hora indicadas. Mientras exista una versión programada no puede existir otro borrador.
+
+Para cambiarla se cancela primero la programación; la versión actualmente activa permanece intacta y luego puede iniciarse un nuevo borrador tomando la cancelada como base.
+
+### Seguridad
+
+Activar ahora, programar y cancelar una programación requieren rol `ADMIN_ADMIN`, reingreso de contraseña y código de un solo uso enviado por correo. El desafío vence, no es reutilizable y se invalida si el contenido vuelve a editarse. La inactividad puede exigir una nueva autenticación.
+
+### Cotización, confirmación y no retroactividad
+
+La cotización captura precio, condiciones, versión operativa y referencia comercial, pero todavía no es un pedido. El punto autoritativo ocurre al presionar **Confirmar / Crear pedido**.
+
+En ese momento el backend vuelve a validar la cotización contra el estado y las reglas activas: pausa, vigencia, disponibilidad de servicio y punto, compatibilidad/capacidad, medio de pago y condiciones de pago o seña.
+
+- Si la validación pasa, el pedido se crea de forma atómica y sus condiciones quedan congeladas.
+- Si falla, no se crea el pedido; se informa la incompatibilidad, se preservan los datos todavía válidos y se solicita corrección o recotización.
+- Un cambio exclusivo de tarifas no reescribe el precio capturado por una cotización todavía válida.
+- Una vez creado el pedido, ningún cambio posterior del motor, tarifas, puntos, impresoras o medios de pago actúa retroactivamente.
+
+Para auditoría deben conservarse tanto la versión utilizada al cotizar como la versión activa utilizada en la validación final.
+
