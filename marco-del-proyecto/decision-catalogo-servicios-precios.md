@@ -97,7 +97,9 @@ Ejemplos:
 
 Estos cambios no deben generar artificialmente una nueva versión del motor operativo.
 
-## 7. Trazabilidad comercial y cotizaciones
+Cuando una modificación comercial entra en vigencia, se utiliza para **nuevas cotizaciones generadas desde ese momento**. No modifica hacia atrás cotizaciones ya emitidas, pedidos aceptados ni trabajos en curso.
+
+## 7. No retroactividad y trazabilidad comercial
 
 La independencia del motor no debe eliminar la trazabilidad de precios.
 
@@ -108,7 +110,18 @@ Al cotizar deben poder identificarse por separado:
 - la versión operativa del motor utilizada;
 - la revisión comercial de servicios/precios utilizada.
 
-Una modificación posterior de precios no debe reescribir el precio congelado de una cotización ya generada ni de un pedido confirmado.
+### Regla de no retroactividad
+
+Un cambio de servicios o precios **no es retroactivo**.
+
+- una cotización ya generada conserva los servicios, precios y condiciones económicas capturados mientras permanezca vigente;
+- un pedido ya aceptado conserva los precios y servicios con los que fue confirmado;
+- un trabajo ya en producción o en curso no se recalcula por una actualización posterior del catálogo;
+- solamente las nuevas cotizaciones utilizan la revisión comercial vigente después del cambio.
+
+Por lo tanto, actualizar el catálogo desde Dashboard puede ser una operación habitual y directa sin romper la lógica histórica ni económica del sistema.
+
+Una modificación posterior de precios nunca debe reescribir el precio congelado de una cotización ya generada ni de un pedido confirmado.
 
 Esta separación permite modificar precios desde Dashboard sin crear una versión nueva del motor y, a la vez, mantener auditoría y reproducibilidad económica.
 
