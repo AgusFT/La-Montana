@@ -549,45 +549,122 @@ Los cambios comerciales afectan nuevas cotizaciones y no obligan a crear una nue
 
 ## 15. WF-CFG-12 - Activar o programar
 
-Dos alternativas principales:
+Referencia funcional: [Contrato de Fase 7](../../../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md).
+
+Esta vista corresponde a `MC-ADM-CFG-012` y aparece después del resumen y la resolución de conflictos. Debe identificar la versión activa, la candidata, el alcance de los cambios y las dos decisiones posibles.
 
 ### Activar ahora
 
-Texto: Se aplicará a la siguiente cotización confirmada después de la activación.
+Debe explicar que:
 
-### Programar
+- el borrador validado pasará a ser la única versión activa;
+- la versión activa anterior pasará al historial;
+- el borrador dejará de aparecer como pendiente;
+- las nuevas cotizaciones y confirmaciones serán evaluadas con el nuevo estado;
+- los pedidos ya creados no se modificarán;
+- se solicitará seguridad reforzada antes de ejecutar.
 
-Controles:
+Acción primaria: **Continuar con activación inmediata**.
+
+### Programar activación
+
+Controles y mensajes:
 
 - fecha;
 - hora;
 - zona horaria visible;
 - resumen de vigencia;
-- versión actual hasta ese momento.
+- versión actual que continuará vigente hasta ese momento;
+- advertencia de que la versión programada quedará bloqueada;
+- advertencia de que no podrá existir otro borrador.
+
+Acción primaria: **Continuar con programación**.
+
+Para editar posteriormente será necesario cancelar primero la programación mediante el flujo autorizado.
 
 ## 16. WF-CFG-13 - Verificación de seguridad
 
-Paso separado con:
+Esta vista corresponde a `MC-ADM-CFG-013` y es un paso separado de la edición.
 
-- resumen final;
-- impacto;
+Debe mostrar:
+
+- decisión elegida: inmediata o programada;
+- versión actual y versión candidata;
+- fecha efectiva cuando sea programada;
+- resumen de impacto y no retroactividad;
 - reingreso de contraseña;
-- código adicional cuando corresponda;
+- código de un solo uso enviado por correo;
+- vencimiento y opción de solicitar un nuevo código;
 - cancelar;
-- confirmar.
+- acción final explícita: **Activar configuración** o **Programar activación**.
 
-No debe permitir volver a editar después del código sin reiniciar la validación.
+Reglas:
+
+- requiere `ADMIN_ADMIN`;
+- el código no se solicita durante la edición ordinaria;
+- el desafío autoriza únicamente la operación y el contenido revisados;
+- volver a editar invalida el desafío;
+- la inactividad relevante exige nueva autenticación;
+- el backend vuelve a validar permisos, integridad, compatibilidad y concurrencia;
+- un fallo nunca debe producir una transición parcial.
 
 ## 17. WF-CFG-14 - Confirmación
 
+La confirmación se divide en dos variantes.
+
+### MC-ADM-CFG-014A - Activación inmediata confirmada
+
 Muestra:
 
-- versión creada;
+- versión activada;
+- estado `Activa`;
+- versión anterior enviada a `Histórica`;
 - fecha y hora;
-- activación inmediata o programada;
 - usuario;
+- aviso de aplicación a nuevas operaciones;
+- aviso de no retroactividad sobre pedidos existentes;
 - acceso al detalle;
-- volver al inicio.
+- **Volver al inicio**;
+- **Consultar historial**.
+
+### MC-ADM-CFG-014B - Activación programada confirmada
+
+Muestra:
+
+- versión programada;
+- estado `Programada`;
+- fecha, hora y zona horaria;
+- versión que continúa activa hasta ese instante;
+- usuario;
+- advertencia de inmutabilidad y exclusión de nuevos borradores;
+- acceso al detalle;
+- **Volver al inicio**;
+- **Consultar historial**;
+- acceso al flujo autorizado de cancelación.
+
+En ninguna variante debe aparecer **Guardar y salir**: la decisión ya fue persistida. Tampoco se ofrece volver a editar desde la confirmación.
+
+### Estados transitorios y de error
+
+Mientras se ejecuta la operación:
+
+- deshabilitar la acción final;
+- mostrar progreso;
+- evitar doble envío.
+
+Ante error:
+
+- explicar si fue seguridad, concurrencia, compatibilidad o fallo técnico;
+- confirmar que la versión anterior continúa activa;
+- permitir volver a intentar cuando sea seguro;
+- conservar el borrador si la activación no se realizó;
+- registrar auditoría del intento.
+
+### Impacto sobre cotizaciones y pedidos
+
+La interfaz debe explicar que una cotización conserva el importe capturado mientras siga vigente, pero todavía no es un pedido. Al presionar **Confirmar / Crear pedido**, el backend revalida el estado activo, la pausa, entrega, capacidad, pago y seña.
+
+Si existe incompatibilidad, el pedido no se crea y el cliente debe recibir una causa concreta y una vía de corrección o recotización. Si la validación pasa, el pedido se crea atómicamente y queda protegido frente a cambios posteriores.
 
 ## 18. WF-CFG-15 y 16 - Historial
 
