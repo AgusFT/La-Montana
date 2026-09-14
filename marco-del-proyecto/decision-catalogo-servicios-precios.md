@@ -5,7 +5,7 @@
 | Estado | Decisión confirmada |
 | Fecha | 2026-09-14 |
 | Alcance | Catálogo comercial, Fase 6 y activación del motor |
-| Relación | E19 #197 · Fase 6 #222 · DER revisión #226 · PR #196 |
+| Relación | E19 #197 · Fase 6 #222 · Servicios y precios #227 · DER revisión #226 · PR #196 |
 
 ## 1. Objetivo
 
@@ -97,6 +97,15 @@ Ejemplos:
 
 Estos cambios no deben generar artificialmente una nueva versión del motor operativo.
 
+### 6.1 Activación de una revisión comercial
+
+Una modificación del catálogo puede:
+
+- **activarse en el momento**, quedando disponible para las nuevas cotizaciones desde su confirmación;
+- **programarse para una fecha y hora**, manteniendo vigente la revisión comercial actual hasta ese instante.
+
+La programación comercial es independiente de la activación o programación de una versión del motor. El sistema debe mostrar cuál es la revisión comercial vigente y si existe una revisión futura programada.
+
 Cuando una modificación comercial entra en vigencia, se utiliza para **nuevas cotizaciones generadas desde ese momento**. No modifica hacia atrás cotizaciones ya emitidas, pedidos aceptados ni trabajos en curso.
 
 ## 7. No retroactividad y trazabilidad comercial
@@ -132,6 +141,12 @@ Al contratar/instalar el servicio se crea la configuración operativa inicial **
 Antes de que esa configuración pueda activarse como sistema funcional deben cumplirse todos los mínimos de las fases del motor y, además, debe existir una referencia comercial válida de servicios y precios.
 
 La instalación puede incluir valores iniciales o una plantilla comercial, pero la activación solo es válida cuando la información necesaria para cotizar está completa.
+
+Por lo tanto:
+
+- la **v1** exige una referencia de precios válida antes de comenzar a operar;
+- una **v2 o posterior del motor** no exige modificar el catálogo si la referencia comercial vigente continúa siendo válida;
+- los servicios, terminaciones y tarifas pueden agregarse o modificarse desde su propia vista administrativa.
 
 ## 9. Representación en Fase 6
 
