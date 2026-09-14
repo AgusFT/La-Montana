@@ -406,3 +406,49 @@ Las historias surgen de los cambios introducidos por el motor de configuración 
 - diseño/Front/ux-ui/wireflows/WF-ADMINISTRADOR-MVP.md
 
 La numeración definitiva deberá resolverse al integrar este documento.
+
+---
+
+## Ajuste confirmado de historias - Fase 7
+
+> Confirmado el 14/09/2026. Ver [contrato funcional de Fase 7](../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md).
+
+### PROP-HU-ADM-007 - Activar inmediatamente
+
+Se agregan los siguientes criterios:
+
+- el borrador pasa a ser la única configuración activa;
+- la activa anterior pasa a histórica;
+- la transición es atómica y auditable;
+- si falla, la activa anterior no cambia;
+- requiere ADMIN_ADMIN, contraseña y código de un solo uso;
+- los pedidos ya creados no se modifican;
+- la confirmación final no ofrece Guardar y salir.
+
+### PROP-HU-ADM-008 - Programar activación
+
+Se agregan los siguientes criterios:
+
+- el borrador pasa a Programada e inmutable;
+- la activa continúa vigente hasta la fecha programada;
+- no puede existir otro borrador;
+- para editar se cancela primero la programación;
+- cancelar no modifica la versión activa;
+- la activación programada se ejecuta de forma atómica;
+- programación y cancelación requieren seguridad reforzada y auditoría.
+
+### PROP-HU-CLI-006 - Confirmar pedido bajo reglas vigentes
+
+Como cliente quiero que el sistema valide definitivamente mi cotización cuando confirmo el pedido para saber si la imprenta todavía puede aceptar esas condiciones sin que exista un pedido inconsistente.
+
+Criterios propuestos:
+
+- la cotización no crea ni garantiza por sí sola el pedido;
+- al confirmar, el backend revalida pausa, vigencia, servicio, entrega, capacidad, pago y seña;
+- si todo es compatible, el pedido se crea atómicamente y congela sus condiciones;
+- si algo dejó de ser compatible, no se crea el pedido y se informa el motivo concreto;
+- las selecciones todavía válidas se conservan;
+- un cambio exclusivo de tarifas no reescribe el importe de una cotización vigente;
+- los pedidos creados no son alterados por cambios posteriores;
+- se registran la versión usada al cotizar y la versión activa utilizada en la validación final.
+
