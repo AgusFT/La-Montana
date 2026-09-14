@@ -348,7 +348,44 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 | Cuenta corriente manual | Limitar riesgo de deuda y recursos | Excepción financiera controlada | Requiere revisión de Agustín |
 | Identificadores PROP | Evitar colisiones con códigos existentes | Facilita revisión antes de integración | Provisional |
 
-## 8. Referencias para integración
+## 8. Requerimientos consolidados de Fase 6 y catálogo comercial
+
+### PROP-RF-CFG-038 — Resumir la configuración
+
+El sistema debe presentar en Fase 6 un resumen de las decisiones válidas de las Fases 1–5, con acceso a cada fase para corregir sus parámetros.
+
+### PROP-RF-CFG-039 — Validar una referencia tarifaria
+
+Antes de avanzar a Fase 7, el sistema debe comprobar que exista una revisión comercial vigente o aplicable con tarifas y servicios suficientes para resolver las opciones ofrecidas por el cotizador.
+
+La referencia de precios es obligatoria para activar la configuración inicial v1. Una v2 o posterior del motor puede reutilizarla sin modificarla cuando continúe siendo válida.
+
+### PROP-RF-ADM-040 — Administrar servicios y precios
+
+El ADMIN_ADMIN debe poder acceder desde el Dashboard a una vista independiente para consultar, agregar, editar, habilitar o deshabilitar tarifas de impresión, productos, servicios y terminaciones admitidos.
+
+Estos cambios no deben crear una nueva versión del motor operativo.
+
+### PROP-RF-ADM-041 — Activar o programar precios
+
+El sistema debe permitir activar una revisión comercial inmediatamente o programarla para una fecha y hora. Hasta la vigencia programada continúa aplicándose la revisión comercial actual.
+
+### PROP-RF-COT-042 — Conservar la referencia económica
+
+Cada cotización debe registrar la revisión comercial y los importes aplicados. Una modificación posterior del catálogo no debe recalcular cotizaciones vigentes, pedidos confirmados ni trabajos en curso.
+
+### Reglas de bloqueo
+
+Fase 6 debe impedir continuar cuando:
+
+- no existe una revisión comercial utilizable;
+- falta una tarifa necesaria para cotizar una opción habilitada;
+- existe un servicio o producto ofrecido cuyo precio no puede resolverse;
+- cualquier otra incompatibilidad global de Fases 1–5 impide un recorrido completo.
+
+La vista debe diferenciar Bloqueos, Advertencias e Información, y volver a validar automáticamente al regresar desde Servicios y precios.
+
+## 9. Referencias para integración
 
 La propuesta se justifica por la evolución del motor de configuración y debe revisarse contra:
 
