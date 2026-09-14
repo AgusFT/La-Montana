@@ -396,3 +396,40 @@ La propuesta se justifica por la evolución del motor de configuración y debe r
 - matriz-trazabilidad.md
 
 Los códigos definitivos deberán asignarse únicamente durante la integración oficial.
+
+---
+
+## Reglas consolidadas de Fase 7
+
+> Decisiones confirmadas el 14/09/2026. Referencia completa: [contrato funcional de Fase 7](../../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md).
+
+### Reglas de negocio
+
+- **PROP-RN-ACT-001 - Activación atómica:** al activar inmediatamente, el borrador validado pasa a Activa y la activa anterior pasa a Histórica dentro de una única transacción.
+- **PROP-RN-ACT-002 - Sin estado parcial:** si falla una validación o persistencia, la versión anterior continúa activa y el borrador permanece recuperable.
+- **PROP-RN-ACT-003 - Programación exclusiva:** una versión Programada es inmutable y no puede coexistir con un Borrador.
+- **PROP-RN-ACT-004 - Cancelar para editar:** para modificar una versión Programada se debe cancelar su programación y comenzar un nuevo borrador; la activa no cambia.
+- **PROP-RN-ACT-005 - Seguridad final:** activar, programar o cancelar programación exige ADMIN_ADMIN, contraseña y código de un solo uso.
+- **PROP-RN-ACT-006 - Desafío ligado al contenido:** editar después del desafío invalida la autorización de seguridad.
+- **PROP-RN-PED-001 - Cotización no equivalente a pedido:** cotizar no reserva aceptación ni crea el pedido.
+- **PROP-RN-PED-002 - Breakpoint autoritativo:** la última validación ocurre en backend al confirmar/crear el pedido.
+- **PROP-RN-PED-003 - Creación atómica:** si una regla no se cumple, no se crea ninguna parte del pedido.
+- **PROP-RN-PED-004 - No retroactividad:** desde su creación, el pedido conserva sus condiciones aunque luego cambien motor, tarifas, recursos o medios de pago.
+- **PROP-RN-PED-005 - Precio cotizado:** un cambio exclusivo de tarifas no reescribe una cotización todavía vigente.
+- **PROP-RN-PED-006 - Pausa:** la recepción pausada impide confirmar una cotización, pero no altera pedidos existentes.
+
+### Requerimientos funcionales
+
+- **PROP-RF-ACT-001:** mostrar elección explícita entre Activar ahora y Programar, con impacto, versión y vigencia.
+- **PROP-RF-ACT-002:** solicitar contraseña y código de un solo uso antes de ejecutar la decisión final.
+- **PROP-RF-ACT-003:** registrar actor, instante, versión anterior, versión nueva, modalidad y resultado.
+- **PROP-RF-ACT-004:** ejecutar automáticamente la transición programada en la fecha, hora y zona horaria registradas.
+- **PROP-RF-PED-001:** al confirmar, revalidar vigencia, pausa, servicio, entrega, capacidad, pago y seña con las reglas activas.
+- **PROP-RF-PED-002:** ante incompatibilidad, impedir el alta, informar el motivo concreto y preservar las selecciones todavía válidas.
+- **PROP-RF-PED-003:** al crear el pedido, congelar importe, detalle, entrega, pago, versión cotizada, versión validada y referencia comercial.
+- **PROP-RF-PED-004:** impedir creaciones duplicadas ante reintentos o confirmaciones concurrentes.
+
+### Criterio de consistencia
+
+La conservación de una cotización y la revalidación final no se contradicen: el importe capturado puede conservarse mientras la cotización esté vigente, pero el backend debe comprobar que el pedido todavía puede aceptarse. La no retroactividad plena comienza cuando el pedido fue creado correctamente.
+
