@@ -521,3 +521,66 @@ La propuesta se fundamenta en el motor de configuración y debe contrastarse con
 - marco-del-proyecto/actualizacion-a-revision-motor-configuracion-versionada.md
 - analisis/especificacion-de-requerimientos/actualizacion-a-revision-reglas-y-requerimientos-configurables.md
 - analisis/historias-de-usuarios/actualizacion-a-revision-historias-producto-configurable.md
+
+---
+
+## Anexo de precisión - Casos de uso de Fase 7
+
+> Confirmado el 14/09/2026. Este anexo complementa los casos de activación inmediata, programación, cancelación y confirmación de pedido. Ver [contrato funcional de Fase 7](../../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md).
+
+### Activar inmediatamente
+
+**Precondiciones:** sesión ADMIN_ADMIN vigente, borrador íntegro y validado, ausencia de versión programada.
+
+**Flujo principal:**
+
+1. El administrador revisa el impacto y elige Activar ahora.
+2. El sistema muestra la versión actual y la candidata.
+3. El administrador reingresa contraseña e ingresa el código de un solo uso.
+4. El backend revalida permisos, integridad, compatibilidad y concurrencia.
+5. En una transacción, la activa pasa a Histórica y el borrador pasa a Activa.
+6. El sistema registra la auditoría y muestra la confirmación.
+
+**Alternativas:** ante código inválido/vencido, cambio concurrente o fallo técnico, no hay transición parcial. La versión anterior continúa activa.
+
+### Programar activación
+
+**Flujo principal:**
+
+1. El administrador selecciona fecha, hora y zona horaria.
+2. Completa el desafío de seguridad.
+3. El borrador pasa a Programada e inmutable.
+4. La versión actual permanece activa.
+5. Al cumplirse el instante, el backend revalida y ejecuta el intercambio atómico.
+
+**Restricciones:** no se puede editar la programada ni crear otro borrador. Para cambiarla debe cancelarse la programación mediante el flujo autorizado y comenzar un nuevo borrador.
+
+### Confirmar cotización y crear pedido
+
+**Actor primario:** cliente.  
+**Punto autoritativo:** solicitud recibida por el backend al presionar Confirmar/Crear pedido.
+
+**Flujo principal:**
+
+1. El backend comprueba vigencia e integridad de la cotización.
+2. Verifica que la recepción no esté pausada.
+3. Revalida servicio, entrega, capacidad, medio de pago y condiciones económicas con el estado activo.
+4. Conserva el importe cotizado cuando la cotización sigue vigente y no existe una incompatibilidad material.
+5. Crea el pedido atómicamente.
+6. Guarda el snapshot de condiciones y las referencias de versión.
+7. Devuelve confirmación al cliente.
+
+**Flujos alternativos:**
+
+- punto de entrega deshabilitado;
+- medio de pago ya no aceptado;
+- servicio o capacidad incompatibles;
+- pago previo o seña incumplidos;
+- cotización vencida;
+- recepción pausada;
+- intento duplicado o conflicto concurrente.
+
+En todos los casos el pedido no se crea, el mensaje explica el motivo, se conservan los datos todavía válidos y se solicita corregir o recotizar.
+
+**Postcondición:** una vez creado, el pedido no se modifica automáticamente por cambios posteriores de configuración o tarifas.
+
