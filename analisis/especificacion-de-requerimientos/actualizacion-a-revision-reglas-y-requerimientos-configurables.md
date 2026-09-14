@@ -401,7 +401,7 @@ Los códigos definitivos deberán asignarse únicamente durante la integración 
 
 ## Reglas consolidadas de Fase 7
 
-> Decisiones confirmadas el 14/09/2026. Referencia completa: [contrato funcional de Fase 7](../../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md).
+> Decisiones confirmadas el 14/09/2026. Referencia completa: [contrato funcional de Fase 7](../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md).
 
 ### Reglas de negocio
 
