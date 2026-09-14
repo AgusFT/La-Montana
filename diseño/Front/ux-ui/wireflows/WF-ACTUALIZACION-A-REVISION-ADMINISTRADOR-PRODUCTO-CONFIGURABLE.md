@@ -58,8 +58,9 @@ La pausa operativa, la recarga de papel y la disponibilidad temporal de puntos d
 | WF-CFG-07 | Método de asignación | Mockups V3 aprobados para revisión |
 | WF-CFG-08 | Horarios operativos y tiempos estimados | Mockup V3 aprobado para revisión |
 | WF-CFG-09 | Entrega, puntos y envíos | Mockup V3 aprobado para revisión |
-| WF-CFG-10 | Resumen y simulación | Lista para mockup |
-| WF-CFG-11 | Conflictos de configuración | Lista para mockup |
+| WF-CFG-10 | Resumen y simulación | Mockup V3 aprobado para revisión |
+| WF-CFG-11 | Conflictos de configuración | Mockup V3 aprobado para revisión |
+| WF-ADM-01 | Servicios y precios | Mockup V3 aprobado para revisión |
 | WF-CFG-12 | Activar o programar | Lista para mockup |
 | WF-CFG-13 | Verificación de seguridad | Lista para mockup |
 | WF-CFG-14 | Confirmación de activación | Lista para mockup |
@@ -492,54 +493,59 @@ La especificación detallada se encuentra en `WF-FASE-5-HORARIOS-PUNTOS-ENVIOS.m
 
 ## 13. WF-CFG-10 - Resumen y simulación
 
-Debe ser una vista narrativa.
+La Fase 6 es una vista de revisión integral: no agrega parámetros nuevos al motor.
 
-Ejemplo:
+Debe resumir seis áreas:
 
-Un pedido compatible ingresa. Se aplican el modelo operativo y la configuración financiera capturados. Si existe una condición económica previa, el archivo no se habilita hasta que esa condición quede acreditada. Después puede continuar hacia las reglas de producción, la selección de una impresora compatible y el cálculo de disponibilidad según horarios y modalidad de entrega.
+1. modelo operativo y aprobación;
+2. pagos y reglas de seña;
+3. impresoras y producción;
+4. horarios y tiempos;
+5. entrega y puntos;
+6. referencia vigente de servicios y precios.
 
-Secciones:
+Los cinco bloques del motor permiten volver a su fase correspondiente. El bloque de Servicios y precios abre la misma vista administrativa independiente disponible desde el Dashboard.
 
-- cambios respecto de la versión activa;
-- recorrido resultante;
-- ejemplo estándar;
-- ejemplo con pago previo;
-- ejemplo con seña;
-- ejemplo por monto dentro y fuera del umbral;
-- ejemplo de trabajo con impresoras compatibles, incompatibles y una recomendada;
-- disponibilidad estimada de papel de las impresoras compatibles;
-- ejemplo de pedido recibido fuera de horario y en cola;
-- siguiente apertura operativa;
-- tiempo estimado para retiro o envío;
-- disponibilidad en punto según franja horaria;
-- ejemplo de finalización anticipada;
-- ejemplo con error;
-- advertencias.
+La referencia tarifaria es obligatoria para activar la v1. No es obligatorio modificarla al crear una v2 o posterior del motor si sigue siendo válida.
 
-La definición comercial de módulos no forma parte del resumen de Fase 5 hasta que exista un catálogo aprobado.
+La simulación debe mostrar un recorrido completo y predecible:
+
+`Pedido → Cotización → condición económica → habilitación del archivo → cola/horario → impresora compatible → producción → entrega`.
+
+También debe explicar adelantos, demoras y las consecuencias de las decisiones seleccionadas.
 
 ## 14. WF-CFG-11 - Conflictos
 
-Formato recomendado:
+Los resultados se clasifican en:
 
-| Conflicto | Por qué ocurre | Cómo resolver |
-|---|---|---|
-| Pago previo sin medio acreditable | No existe forma habilitada de completar la condición | Activar transferencia o pago digital |
-| Pago previo con seña adicional | El modelo ya exige el 100 % previo | Deshabilitar la seña o elegir otro modelo |
-| Pago de seña con efectivo como única opción | El efectivo no puede acreditar una seña previa | Activar transferencia o pago digital |
-| Monto superior con seña sin medio acreditable | No existe forma de registrar la seña previa | Activar transferencia o pago digital |
-| Impresora incompatible | El trabajo requiere un formato o capacidad que el equipo no posee | Seleccionar otra impresora compatible |
-| Papel estimado insuficiente | La impresora no tendría hojas suficientes para completar el trabajo | Recargar papel o seleccionar otra impresora |
-| Intento de editar impresora Operativa | Las capacidades no pueden cambiar mientras el equipo está habilitado para recibir trabajos | Deshabilitar la impresora antes de editar |
-| Asignación automática en V1 | La automatización todavía no dispone de un modelo certificado | Mantener Asignación manual |
-| Horario operativo inválido | La apertura no es anterior al cierre o falta una hora requerida | Corregir la ventana del día |
-| Tiempo estimado inválido | El compromiso de preparación no posee un valor válido mayor que cero | Completar el tiempo en horas |
-| Punto sin franja válida | La ventana configurada no permite ofrecer el retiro correctamente | Corregir días y franja del punto |
-| Modalidad sin disponibilidad real | La opción no puede cumplirse con la configuración o estado operativo actual | Revisar horario, punto o modalidad |
+- **Bloqueo:** impide continuar a Fase 7;
+- **Advertencia:** permite continuar, pero exige atención;
+- **Información:** explica una consecuencia sin requerir corrección.
 
-No debe utilizar mensajes genéricos.
+Bloqueos mínimos:
 
-Los conflictos asociados a módulos se definirán cuando se cierre la estrategia comercial de planes.
+- no existe ninguna impresora Operativa;
+- no existe modalidad de entrega utilizable;
+- solo existen puntos como modalidad y ninguno puede utilizarse;
+- la combinación de aprobación, pago o seña está incompleta;
+- el horario o un tiempo obligatorio es inválido;
+- no existe una revisión comercial válida;
+- falta el precio necesario para cotizar un producto, servicio o terminación habilitados.
+
+La interfaz no debe utilizar mensajes genéricos: cada conflicto explica su causa, el impacto y el acceso concreto para corregirlo.
+
+## 14.1 WF-ADM-01 - Servicios y precios
+
+Vista administrativa independiente, accesible desde:
+
+- `Dashboard / Administración → Servicios y precios`;
+- `Fase 6 → Ver detalle de servicios y precios`.
+
+Permite administrar tarifas de impresión, productos, servicios y terminaciones, incluyendo altas, edición y habilitación/deshabilitación según reglas certificadas.
+
+Cada revisión comercial puede activarse en el momento o programarse para una fecha y hora. La revisión vigente continúa aplicándose hasta la entrada en vigencia de la programada.
+
+Los cambios comerciales afectan nuevas cotizaciones y no obligan a crear una nueva versión del motor. Cotizaciones emitidas, pedidos confirmados y trabajos en curso conservan los importes y la referencia capturados.
 
 ## 15. WF-CFG-12 - Activar o programar
 
