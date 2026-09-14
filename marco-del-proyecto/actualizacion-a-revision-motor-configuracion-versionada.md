@@ -2,9 +2,9 @@
 
 | Campo | Valor |
 |---|---|
-| Versión | 2.5 - Propuesta |
+| Versión | 2.6 - Propuesta |
 | Estado | Actualización a revisión |
-| Fecha | 2026-09-10 |
+| Fecha | 2026-09-14 |
 | Documento relacionado | motor-de-configuracion-del-sistema.md |
 | Propósito | Proponer la evolución del motor sin modificar la definición vigente |
 
@@ -35,7 +35,7 @@ Puede contener:
 - modalidades de entrega;
 - definición de puntos de entrega;
 - parámetros de notificación;
-- servicios habilitados.
+- referencia a una revisión comercial válida de servicios y precios, administrada fuera del motor.
 
 La disponibilidad temporal de recursos, como una recarga de papel o la habilitación/deshabilitación cotidiana de un punto, se modela fuera de la versión cuando corresponda.
 
@@ -159,6 +159,25 @@ La estimación presentada al cliente debe respetar la combinación de horario op
 La simulación de Fase 5 debe mostrar al menos:
 
 `Pedido recibido → En cola si está fuera de horario → Próxima apertura → En preparación → Listo en Casa Central → Disponible en punto según franja`
+
+### 2.2.1 Validación consolidada en la Fase 6
+
+La Fase 6 no incorpora parámetros operativos nuevos. Resume las decisiones de las Fases 1–5, ejecuta una simulación narrativa de punta a punta y clasifica inconsistencias como Bloqueo, Advertencia o Información.
+
+El resumen incluye:
+
+1. modelo operativo y aprobación;
+2. pagos y reglas de seña;
+3. impresoras y producción;
+4. horarios y tiempos;
+5. entrega y puntos;
+6. referencia comercial vigente de servicios y precios.
+
+El catálogo de servicios y precios es un dominio administrativo independiente, accesible desde Dashboard y desde la Fase 6. Para activar la configuración inicial v1 debe existir una referencia comercial válida que permita cotizar. En versiones posteriores del motor no es obligatorio modificarla: puede reutilizarse mientras continúe válida.
+
+Las revisiones comerciales pueden activarse inmediatamente o programarse para una fecha y hora. Sus cambios se aplican únicamente a nuevas cotizaciones y conservan trazabilidad propia, sin crear una versión operativa del motor.
+
+Si falta una tarifa necesaria o el cotizador no puede resolver el precio de una opción ofrecida, la Fase 6 registra un Bloqueo e impide avanzar hacia la aplicación o programación de la versión.
 
 ### 2.3 Parámetro controlado
 
