@@ -130,7 +130,7 @@ Los cuatro PNG cubren el recorrido principal. Durante implementación deben cont
 
 - [Carpeta de mockups V3](https://github.com/AgusFT/La-Montana/tree/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3)
 - [Commit visual `b43604a`](https://github.com/AgusFT/La-Montana/commit/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed)
-- [Contrato funcional de Fase 7](../../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md)
+- [Contrato funcional de Fase 7](../../../../marco-del-proyecto/contrato-funcional-fase-7-activacion-confirmacion.md)
 - [Fase 6 - #222](https://github.com/AgusFT/La-Montana/issues/222)
 - [Fase 7 - #224](https://github.com/AgusFT/La-Montana/issues/224)
 - [E19 - #197](https://github.com/AgusFT/La-Montana/issues/197)
