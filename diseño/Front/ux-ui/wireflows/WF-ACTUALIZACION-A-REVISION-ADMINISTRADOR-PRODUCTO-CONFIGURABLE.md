@@ -666,6 +666,21 @@ La interfaz debe explicar que una cotización conserva el importe capturado mien
 
 Si existe incompatibilidad, el pedido no se crea y el cliente debe recibir una causa concreta y una vía de corrección o recotización. Si la validación pasa, el pedido se crea atómicamente y queda protegido frente a cambios posteriores.
 
+### Evidencia visual vigente de Fase 7
+
+Los siguientes cuatro PNG utilizan el shell visual de la Fase 6 y mantienen el sidebar real de ocho fases:
+
+![MC-ADM-CFG-012 — Activar o programar](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-012-activar-o-programar.png)
+
+![MC-ADM-CFG-013 — Verificación de seguridad](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-013-verificacion-seguridad.png)
+
+![MC-ADM-CFG-014A — Activación inmediata confirmada](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-014A-activacion-inmediata-confirmada.png)
+
+![MC-ADM-CFG-014B — Activación programada confirmada](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-014B-activacion-programada-confirmada.png)
+
+Detalle: [WF-FASE-7-ACTIVACION-SEGURIDAD-CONFIRMACION.md](./WF-FASE-7-ACTIVACION-SEGURIDAD-CONFIRMACION.md).  
+Commit visual: [`b43604a`](https://github.com/AgusFT/La-Montana/commit/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed).
+
 ## 18. WF-CFG-15 y 16 - Historial
 
 Listado:
