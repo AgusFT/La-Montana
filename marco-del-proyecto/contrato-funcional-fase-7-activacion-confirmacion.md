@@ -1,6 +1,6 @@
 # Contrato funcional de Fase 7 - Activación, programación y confirmación
 
-**Estado:** decisiones funcionales confirmadas; evidencia visual pendiente de diseño y validación.  
+**Estado:** decisiones funcionales confirmadas; cuatro mockups PNG versionados; validación final del equipo pendiente.  
 **Fecha de consolidación:** 14/09/2026  
 **Alcance:** E19 / Fase 7 / WF-CFG-12, WF-CFG-13 y WF-CFG-14.
 
@@ -148,17 +148,31 @@ La pausa es una facultad operativa independiente del versionado:
 | Programada | Consultar o cancelar | No se permite editar ni crear borrador |
 | Histórica | Ver detalle o usar como base | Nunca se modifica la versión histórica |
 
-## 9. Evidencia visual prevista
+## 9. Evidencia visual vigente
 
-La Fase 7 debe cubrir, como mínimo:
+Los cuatro mockups conservan los componentes visuales y el sidebar de la Fase 6.
 
-- `MC-ADM-CFG-012`: elección entre activación inmediata y programada;
-- `MC-ADM-CFG-013`: verificación de seguridad;
-- `MC-ADM-CFG-014A`: confirmación de activación inmediata;
-- `MC-ADM-CFG-014B`: confirmación de activación programada;
-- estados de procesamiento, éxito y error recuperable.
+### MC-ADM-CFG-012 - Activar o programar
 
-La pantalla de confirmación es de salida: no debe ofrecer **Guardar y salir**. Debe permitir volver al inicio, consultar el historial y, cuando corresponda, ver el detalle de la versión.
+![MC-ADM-CFG-012 — Activar o programar](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-012-activar-o-programar.png)
+
+La evidencia muestra Activar ahora seleccionado. Programar activación es un estado alternativo de la misma pantalla.
+
+### MC-ADM-CFG-013 - Verificación de seguridad
+
+![MC-ADM-CFG-013 — Verificación de seguridad](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-013-verificacion-seguridad.png)
+
+### MC-ADM-CFG-014A - Activación inmediata confirmada
+
+![MC-ADM-CFG-014A — Activación inmediata confirmada](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-014A-activacion-inmediata-confirmada.png)
+
+### MC-ADM-CFG-014B - Activación programada confirmada
+
+![MC-ADM-CFG-014B — Activación programada confirmada](https://raw.githubusercontent.com/AgusFT/La-Montana/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed/dise%C3%B1o/Front/ux-ui/vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-014B-activacion-programada-confirmada.png)
+
+La confirmación es una salida: no muestra Guardar y salir. Mantiene Volver al inicio, Consultar historial y acceso al detalle o programación según corresponda.
+
+Documento visual específico: [WF-FASE-7-ACTIVACION-SEGURIDAD-CONFIRMACION.md](../diseño/Front/ux-ui/wireflows/WF-FASE-7-ACTIVACION-SEGURIDAD-CONFIRMACION.md).
 
 ## 10. Escenarios mínimos de prueba
 
