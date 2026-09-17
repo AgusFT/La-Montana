@@ -39,7 +39,7 @@ El nombre formal ADMIN_ADMIN debe validarse durante la integración.
 | CAND-CU-CFG-007 | Programar activación | P1 | Confirmado para revisión |
 | CAND-CU-CFG-008 | Cancelar activación programada | P1 | Confirmado para revisión |
 | CAND-CU-CFG-009 | Consultar historial de versiones | P1 | Confirmado para revisión |
-| CAND-CU-CFG-010 | Utilizar versión histórica como base | P2 | Propuesto |
+| CAND-CU-CFG-010 | Utilizar versión histórica como base | P2 | Confirmado para revisión |
 | CAND-CU-CFG-011 | Configurar impresora y capacidades | P0 | Confirmado para diseño |
 | CAND-CU-CFG-012 | Administrar estado, edición y eliminación de impresora | P0 | Confirmado para diseño |
 | CAND-CU-CFG-013 | Configurar método de asignación de impresora | P0 | Confirmado para diseño |
