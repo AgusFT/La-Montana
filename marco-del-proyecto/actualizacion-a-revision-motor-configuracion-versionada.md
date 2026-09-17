@@ -251,9 +251,20 @@ La programación consume el único cambio pendiente permitido. Mientras exista, 
 
 ### 4.3 Reutilización de una versión anterior
 
-Si se desea recuperar una configuración histórica, debe copiarse como base de una nueva versión.
+Si se desea recuperar una configuración activa o histórica, la acción **Usar como base** crea una copia como nueva versión en estado Borrador.
 
-No se modifica el historial ni se reactiva silenciosamente un registro anterior.
+La versión seleccionada:
+
+- permanece inmutable;
+- conserva su vigencia, autoría y auditoría;
+- no se reactiva ni se edita;
+- queda vinculada al nuevo borrador mediante la referencia de origen.
+
+La operación solo está disponible cuando no existe otro cambio pendiente. Si ya hay un borrador debe continuarse o cancelarse. Si existe una versión Programada, primero debe cancelarse mediante el flujo autorizado.
+
+Creado el borrador, el recorrido comienza en la **Fase 2**. El ADMIN_ADMIN debe confirmar nuevamente cada módulo hasta Fase 6. El sistema vuelve a validar recursos dinámicos —en especial impresoras, capacidades, puntos y disponibilidad— y no presume que continúen vigentes por haber formado parte de la versión de origen.
+
+En la Fase 7 se decide conservar el borrador, activarlo inmediatamente o programar su activación. Activar o programar mantiene la seguridad reforzada, la validación transaccional y la no retroactividad.
 
 ## 5. Protocolo de seguridad
 
