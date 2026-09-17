@@ -122,16 +122,23 @@ Criterios propuestos:
 - la fecha se muestra claramente;
 - activación y cancelación quedan auditadas.
 
-### PROP-HU-ADM-009 - Consultar historial
+### PROP-HU-ADM-009 - Consultar historial y reutilizar una versión
 
-Como ADMIN_ADMIN quiero consultar versiones anteriores para conocer qué configuración estuvo vigente y quién la activó.
+Como ADMIN_ADMIN quiero consultar, comparar y utilizar una configuración anterior como base para preparar una nueva versión sin alterar el historial.
 
 Criterios propuestos:
 
-- muestra autor, fecha, diferencias y vigencia;
-- las versiones históricas no se editan;
-- puede utilizarse una versión como base de otra nueva;
-- no se altera el historial.
+- muestra estado, autor, rol, fechas, motivo, diferencias y vigencia;
+- permite filtrar y ordenar versiones activas, programadas e históricas;
+- el detalle y la comparación son de solo lectura;
+- las versiones consultadas no se editan ni se reactivan;
+- Usar como base crea un nuevo borrador y registra la versión de origen;
+- la operación se bloquea si existe otro borrador o una versión programada;
+- el nuevo borrador inicia en Fase 2;
+- el administrador debe confirmar nuevamente Fases 2 a 6;
+- se revalidan impresoras, puntos y demás recursos dinámicos;
+- en Fase 7 se decide conservar, activar o programar el borrador;
+- no se altera el historial ni se aplican cambios retroactivos.
 
 ### PROP-HU-ADM-010 - Configurar método de asignación
 
