@@ -137,6 +137,7 @@ Los archivos vigentes no fueron modificados en esta rama.
 | Wireflows | WF-ACTUALIZACION-A-REVISION-ADMINISTRADOR-PRODUCTO-CONFIGURABLE.md | Base general de mockups |
 | Wireflows | WF-FASE-4-IMPRESORAS-ACCESOS-OPERATIVOS.md | Separación de configuración y operación de impresoras |
 | Wireflows | WF-FASE-5-HORARIOS-PUNTOS-ENVIOS.md | Reglas y navegación detalladas de Fase 5 |
+| Wireflows | WF-FASE-8-HISTORIAL-DETALLE-VERSIONES.md | Consulta, comparación y reutilización segura de versiones |
 | Trazabilidad | Este documento | Relaciones e impacto |
 
 ## 7. Orden recomendado de integración
@@ -232,6 +233,16 @@ El mockup de Fase 5 debe representar:
 
 Los dos mockups confirmados el 10/09/2026 constituyen la evidencia visual vigente de la Fase 5. Las versiones intermedias no deben utilizarse para presentación.
 
+### Evidencia visual trazable de Fase 8
+
+| Mockup | Reglas y requisitos principales | Historia / caso | Wireflow | Contexto |
+|---|---|---|---|---|
+| `MC-ADM-CFG-015-historial-versiones.png` | PROP-RF-CFG-055; inmutabilidad y estados | PROP-HU-ADM-009; CAND-CU-CFG-009 | WF-CFG-15 | Consulta |
+| `MC-ADM-CFG-016-detalle-version.png` | PROP-RF-CFG-056, 058 a 061 | PROP-HU-ADM-009; CAND-CU-CFG-009/010 | WF-CFG-16 | Auditoría y creación de borrador |
+| `MC-ADM-CFG-016B-comparar-versiones.png` | PROP-RF-CFG-057 a 061 | PROP-HU-ADM-009; CAND-CU-CFG-009/010 | WF-CFG-16B | Comparación y selección de base |
+
+La acción Usar como base conserva la fuente inmutable, crea el único borrador permitido, registra su origen e inicia la reconfirmación desde Fase 2. La Fase 7 decide su destino.
+
 Cuenta corriente debe diseñarse como exploración identificada y revisarse antes de consolidarse.
 
 ## 9. Registro de cambios y justificación
@@ -257,6 +268,8 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 | Disponibilidad operativa de puntos | Una baja temporal podía versionarse innecesariamente | Separa estructura habitual de contingencia diaria | Confirmado |
 | Timeline de Fase 5 | La consecuencia temporal no se veía de punta a punta | Explica próxima apertura, preparación y disponibilidad al cliente | Confirmado |
 | Evidencia visual Fase 5 | Las reglas estaban cerradas pero las imágenes finales no estaban versionadas | Vincula horarios, simulación y administración de puntos con sus RN, RF, HU, CU y wireflows | Confirmado para revisión |
+| Reutilización segura Fase 8 | Faltaba definir qué ocurría al pulsar Usar como base | Vincula historial inmutable, único borrador, reconfirmación desde Fase 2 y decisión final en Fase 7 | Confirmado para revisión |
+| Evidencia visual Fase 8 | Historial y comparación aún no estaban publicados en el Project | Vincula tres mockups con RF, HU, CU y wireflow específico | Confirmado para revisión |
 | Módulos postergados | No se definieron planes Gratis/Inicial/Avanzado | Evita consolidar hipótesis comerciales | Futuro |
 | Referencias a documentos afectados | La integración será realizada después | Facilita revisión de Agustín y su IA | Confirmado |
 
