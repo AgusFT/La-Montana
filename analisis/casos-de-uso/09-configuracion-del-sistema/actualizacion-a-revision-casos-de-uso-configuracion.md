@@ -257,20 +257,70 @@ Evitar que una configuración futura entre en vigencia.
 
 ## 12. CAND-CU-CFG-009 - Consultar historial
 
-### Información
+### Intención
 
-- número de versión;
-- autor;
-- fecha;
-- vigencia;
-- diferencias;
-- activación inmediata o programada;
-- cancelaciones;
-- estado actual.
+Consultar y auditar configuraciones sin modificar su contenido ni estado.
 
-Las versiones históricas no se editan.
+### Actor
 
-## 13. CAND-CU-CFG-011 - Configurar impresora y capacidades
+ADMIN_ADMIN.
+
+### Flujo principal
+
+1. El actor abre Historial de versiones.
+2. El sistema lista versiones Activas, Programadas e Históricas.
+3. El actor busca, filtra u ordena resultados.
+4. Selecciona Ver detalle.
+5. El sistema muestra vigencia, autor, motivo, módulos y auditoría.
+6. El actor puede comparar la versión con otra.
+7. La comparación identifica cambios y secciones sin modificaciones.
+
+### Resultado
+
+No cambia ninguna versión. La consulta y la comparación son de solo lectura.
+
+## 13. CAND-CU-CFG-010 - Utilizar versión anterior como base
+
+### Intención
+
+Crear una nueva configuración editable a partir de una versión conocida sin alterar ni reactivar el registro de origen.
+
+### Precondiciones
+
+- sesión ADMIN_ADMIN vigente;
+- versión de origen existente y elegible;
+- exactamente una configuración activa;
+- ausencia de borrador;
+- ausencia de versión programada.
+
+### Flujo principal
+
+1. El actor consulta el detalle o la comparación.
+2. Selecciona Usar como base sobre la versión elegida.
+3. El backend valida permisos, imprenta y exclusión del cambio pendiente.
+4. El sistema copia los parámetros versionados en un nuevo Borrador.
+5. Registra la versión de origen, el actor, el momento y el motivo USO_COMO_BASE.
+6. Ejecuta un barrido inicial de recursos dinámicos.
+7. Dirige al actor a Fase 2.
+8. El actor confirma nuevamente Fases 2 a 6.
+9. En Fase 4 se vuelven a detectar y validar impresoras, capacidades y compatibilidades.
+10. En Fase 5 se revalidan horarios, puntos y modalidades.
+11. En Fase 6 se ejecutan resumen, simulación y resolución de conflictos.
+12. En Fase 7 el actor conserva el borrador, lo activa o programa su activación.
+
+### Alternativas y excepciones
+
+- Si existe un borrador, no se crea otro y se informa cómo continuarlo o cancelarlo.
+- Si existe una Programada, se bloquea la operación hasta cancelar la programación mediante el flujo autorizado.
+- Si un recurso dinámico cambió, se marca para revisión y no se presume válido.
+- Si falla la copia, no se crea un borrador parcial.
+- La versión de origen nunca se modifica.
+
+### Resultado
+
+Existe un único borrador vinculado a la versión de origen. Ninguna regla entra en vigencia hasta completar Fase 7.
+
+## 14. CAND-CU-CFG-011 - Configurar impresora y capacidades
 
 ### Intención
 
@@ -314,7 +364,7 @@ Registrar una impresora con la información necesaria para identificarla y decid
 
 La impresora queda definida para la configuración, sin alterar todavía la versión activa.
 
-## 14. CAND-CU-CFG-012 - Administrar estado, edición y eliminación de impresora
+## 15. CAND-CU-CFG-012 - Administrar estado, edición y eliminación de impresora
 
 ### Intención
 
@@ -343,7 +393,7 @@ Controlar el ciclo de mantenimiento de una impresora sin permitir cambios mientr
 
 La impresora queda Operativa, Deshabilitada, modificada o retirada según la acción válida, conservando trazabilidad.
 
-## 15. CAND-CU-CFG-013 - Configurar método de asignación
+## 16. CAND-CU-CFG-013 - Configurar método de asignación
 
 ### Intención
 
@@ -368,7 +418,7 @@ Definir cómo se seleccionará una impresora compatible para un trabajo.
 
 La configuración registra la modalidad manual. No se realiza ninguna asignación concreta de trabajos durante este caso de configuración.
 
-## 16. CAND-CU-CFG-014 - Configurar horarios operativos y tiempos estimados
+## 17. CAND-CU-CFG-014 - Configurar horarios operativos y tiempos estimados
 
 ### Intención
 
@@ -406,7 +456,7 @@ Definir el calendario operativo que gobierna el cálculo de tiempos y el comprom
 
 La configuración queda preparada para calcular compromisos horarios coherentes con la jornada real.
 
-## 17. CAND-CU-CFG-015 - Administrar definición de puntos de entrega
+## 18. CAND-CU-CFG-015 - Administrar definición de puntos de entrega
 
 ### Intención
 
@@ -434,7 +484,7 @@ Mantener la información estructural de los puntos y sus ventanas habituales sin
 
 Los puntos quedan definidos para su uso por el flujo de entrega y por el cálculo de disponibilidad.
 
-## 18. Seguridad transversal
+## 19. Seguridad transversal
 
 - autorización backend obligatoria;
 - aislamiento por imprenta;
@@ -444,7 +494,7 @@ Los puntos quedan definidos para su uso por el flujo de entrega y por el cálcul
 - factor adicional para activaciones sensibles;
 - frontend no autoritativo.
 
-## 19. Auditoría transversal
+## 20. Auditoría transversal
 
 Registrar:
 
@@ -460,7 +510,7 @@ Registrar:
 - cambios de capacidades o estado de impresoras cuando corresponda;
 - cambios estructurales de horarios y puntos cuando formen parte de una configuración.
 
-## 20. Casos que no pertenecen a este dominio
+## 21. Casos que no pertenecen a este dominio
 
 No deben incorporarse como configuración permanente:
 
@@ -475,7 +525,7 @@ No deben incorporarse como configuración permanente:
 
 Esas intenciones pertenecen a disponibilidad, pedidos, seguridad, producción o finanzas. La Fase 4 configura capacidades y método; la recarga y la selección concreta son eventos operativos. La Fase 5 configura horarios, tiempos y definición de puntos; la disponibilidad temporal de un punto también es un evento operativo.
 
-## 21. Requisitos para documentación definitiva
+## 22. Requisitos para documentación definitiva
 
 Cada caso aprobado deberá:
 
@@ -487,7 +537,7 @@ Cada caso aprobado deberá:
 - definir auditoría y criterios de aceptación;
 - actualizar el catálogo oficial o su versión consolidada.
 
-## 22. Registro de cambios y justificación
+## 23. Registro de cambios y justificación
 
 | Cambio | Documentación previa | Justificación por el motor de configuración | Estado |
 |---|---|---|---|
@@ -512,7 +562,7 @@ Cada caso aprobado deberá:
 | Validación y previsualización | No documentadas como interacción | Evitan errores y sostienen UX remota | Confirmado |
 | Códigos CAND | Catálogo oficial sin CU-CFG | Evita presentar identificadores no validados como definitivos | Provisional |
 
-## 23. Referencias para integración
+## 24. Referencias para integración
 
 La propuesta se fundamenta en el motor de configuración y debe contrastarse con:
 
