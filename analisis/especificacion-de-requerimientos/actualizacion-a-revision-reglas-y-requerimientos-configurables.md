@@ -173,6 +173,14 @@ Proponer reglas de negocio, requerimientos funcionales y requerimientos no funci
 - PROP-RF-CFG-053: Si un pedido finaliza antes del tiempo estimado, el sistema debe permitir avanzar inmediatamente al estado operativo correspondiente y actualizar el timeline del cliente.
 - PROP-RF-CFG-054: Si un punto posee franjas horarias propias, el cálculo presentado al cliente debe respetar la siguiente ventana válida del punto y no ofrecer un retiro fuera de ella.
 
+- PROP-RF-CFG-055: El historial debe permitir consultar versiones activas, programadas e históricas sin modificar sus registros.
+- PROP-RF-CFG-056: El detalle de versión debe mostrar estado, vigencia, autor, motivo, módulos y auditoría.
+- PROP-RF-CFG-057: La comparación entre versiones debe ser de solo lectura e identificar secciones modificadas y sin cambios.
+- PROP-RF-CFG-058: Usar como base debe copiar la versión elegida en un nuevo borrador, conservar la versión de origen inmutable y registrar la relación entre ambas.
+- PROP-RF-CFG-059: Usar como base debe bloquearse cuando exista un borrador o una versión programada.
+- PROP-RF-CFG-060: El nuevo borrador creado desde una versión anterior debe iniciar el recorrido en Fase 2 y exigir la reconfirmación de Fases 2 a 6 antes de llegar a Fase 7.
+- PROP-RF-CFG-061: Al reutilizar una versión, el sistema debe volver a detectar y validar recursos dinámicos, especialmente impresoras, capacidades, puntos y disponibilidad, antes de permitir su activación o programación.
+
 ### 3.2 Pausa y operación diaria
 
 - PROP-RF-OPE-001: El sistema debe permitir pausar la recepción a ADMIN_ADMIN y empleados autenticados.
