@@ -681,7 +681,7 @@ Los siguientes cuatro PNG utilizan el shell visual de la Fase 6 y mantienen el s
 Detalle: [WF-FASE-7-ACTIVACION-SEGURIDAD-CONFIRMACION.md](./WF-FASE-7-ACTIVACION-SEGURIDAD-CONFIRMACION.md).  
 Commit visual: [`b43604a`](https://github.com/AgusFT/La-Montana/commit/b43604a7e0d917a4c6d13a495c2eef21d48fe6ed).
 
-## 18. WF-CFG-15 y 16 - Historial
+## 18. WF-CFG-15 y 16 - Historial, detalle y comparación
 
 Listado:
 
@@ -691,19 +691,35 @@ Listado:
 - autor;
 - modelo;
 - resumen;
-- ver detalle.
+- búsqueda, filtro y orden;
+- Ver detalle;
+- Volver al inicio;
+- Ver configuración actual.
 
 Detalle:
 
-- comparación;
+- estado y vigencia;
+- autor, rol y motivo;
+- resumen por módulo;
 - auditoría;
-- impresoras y asignación;
-- horarios y tiempos estimados;
-- definición de puntos y modalidades;
-- parámetros;
-- opción Usar como base.
+- referencia comercial informativa;
+- Comparar con versión activa;
+- Usar como base.
 
-No existe Editar versión.
+Comparación:
+
+- versión de origen y destino;
+- secciones modificadas y sin cambios;
+- Cambiar comparación;
+- Volver al detalle;
+- Usar la versión seleccionada como base.
+
+No existe Editar versión. Activas, Programadas e Históricas son inmutables.
+
+**Usar como base** crea un único Borrador nuevo, conserva la versión de origen sin cambios y registra la relación entre ambas. Solo puede ejecutarse si no existe borrador ni programación pendiente. El recorrido comienza en Fase 2 y obliga a confirmar nuevamente los módulos hasta Fase 6, incluida la detección de impresoras y recursos dinámicos. En Fase 7 se decide conservar, activar o programar el borrador.
+
+Detalle completo: [WF-FASE-8-HISTORIAL-DETALLE-VERSIONES.md](./WF-FASE-8-HISTORIAL-DETALLE-VERSIONES.md).  
+Commit visual: [`4216060`](https://github.com/AgusFT/La-Montana/commit/421606090a859c5b105b74d490245deced071e68).
 
 ## 19. WF-OPE-01 - Pausar recepción
 
@@ -954,7 +970,7 @@ La autorización real debe validarse en backend.
 | Resumen y simulación | Sin previsualización integral | Permite comprender consecuencias | Lista para mockup |
 | Activar o programar | Sin flujo temporal | Define cuándo aplican los cambios | Lista para mockup |
 | Verificación reforzada | Acciones administrativas generales | Protege cambios operativos y financieros | Lista para mockup |
-| Historial de versiones | Auditoría centrada en pedidos | El motor requiere trazabilidad propia | Lista para mockup |
+| Historial, detalle y comparación | Auditoría centrada en pedidos | El motor requiere trazabilidad propia y reutilización segura como nuevo borrador | Mockups V3 aprobados para documentación |
 | Pausa operativa | No priorizada | Atiende emergencias reales | Lista para mockup |
 | Temporizadores cliente | Cotización sin caducidad detallada | Protege sesión económica y temporales | Lista para mockup |
 | Cuenta corriente | No formalizada | Explora excepción financiera controlada | Requiere revisión |
@@ -971,6 +987,7 @@ Este wireflow se justifica por los cambios del motor de configuración y debe co
 - analisis/casos-de-uso/10-disponibilidad-operativa/actualizacion-a-revision-casos-de-uso-disponibilidad.md
 - diseño/Front/ux-ui/wireflows/WF-FASE-4-IMPRESORAS-ACCESOS-OPERATIVOS.md
 - diseño/Front/ux-ui/wireflows/WF-FASE-5-HORARIOS-PUNTOS-ENVIOS.md
+- diseño/Front/ux-ui/wireflows/WF-FASE-8-HISTORIAL-DETALLE-VERSIONES.md
 
 ### Evidencia V3 de Fase 4
 
@@ -985,3 +1002,12 @@ Este wireflow se justifica por los cambios del motor de configuración y debe co
 - [MC-ADM-CFG-009 - Administrar puntos de entrega](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-009-administrar-puntos-entrega.png)
 
 Ambas imágenes corresponden a la evidencia final confirmada el 10/09/2026. La primera representa la configuración temporal y la simulación de punta a punta; la segunda centraliza la definición y consulta de los puntos de entrega. No deben sustituirse por pruebas visuales anteriores.
+
+
+### Evidencia de Fase 8
+
+- [MC-ADM-CFG-015 - Historial de versiones](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-015-historial-versiones.png)
+- [MC-ADM-CFG-016 - Detalle de versión](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-016-detalle-version.png)
+- [MC-ADM-CFG-016B - Comparar versiones](../vistas-web-mockups/administrador/motor-configuracion-v3/MC-ADM-CFG-016B-comparar-versiones.png)
+
+Las tres imágenes constituyen la evidencia vigente de la Fase 8. La acción Usar como base crea un borrador nuevo, inicia el recorrido en Fase 2 y no modifica la versión seleccionada.
