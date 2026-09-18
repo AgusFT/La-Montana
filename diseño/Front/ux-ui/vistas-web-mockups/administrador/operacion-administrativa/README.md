@@ -16,7 +16,9 @@ Se utilizan prefijos por dominio para evitar colisiones con la numeración del m
 - `MC-ADM-PRO`: producción y control de calidad;
 - `MC-ADM-ENT`: entregas y logística.
 
-## Evidencia visual actual
+## Evidencia visual definida
+
+> Los siguientes nombres quedan reservados para los PNG exactos aprobados en la revisión UX/UI. Los binarios se incorporarán sin reconstrucción ni conversión para preservar la evidencia visual original.
 
 ### Pedidos
 
