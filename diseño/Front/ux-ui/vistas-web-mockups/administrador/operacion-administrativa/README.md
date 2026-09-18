@@ -18,7 +18,7 @@ Se utilizan prefijos por dominio para evitar colisiones con la numeración del m
 
 ## Evidencia visual definida
 
-> Los siguientes nombres quedan reservados para los PNG exactos aprobados en la revisión UX/UI. Los binarios se incorporarán sin reconstrucción ni conversión para preservar la evidencia visual original.
+> Publicados el 18/09/2026: seis PNG originales aprobados, copiados sin edición, conversión ni reconstrucción. E22 [#228](https://github.com/AgusFT/La-Montana/issues/228), milestone M16. Los ejemplos gráficos no sustituyen las reglas ni acreditan implementación.
 
 ### Pedidos
 
@@ -79,4 +79,43 @@ Se utilizan prefijos por dominio para evitar colisiones con la numeración del m
 
 ## Estado documental
 
-Estas vistas forman parte de la alineación UX/UI posterior al motor de configuración. Las incumbencias y recorridos deberán sincronizarse con wireflows, issues, historias/casos de uso y documentación del administrador una vez finalizada la revisión de todas las áreas del panel.
+Las incumbencias, acciones y trazabilidad de las seis vistas están documentadas en [WF-OPERACION-ADMINISTRATIVA](../../../wireflows/WF-OPERACION-ADMINISTRATIVA.md). La evidencia está publicada; la validación del equipo y los detalles de Entregas siguen pendientes. La publicación no implica código implementado ni cierre de E06/E07.
+
+## Galería de evidencia aprobada
+
+### MC-ADM-PED-001-estado-pedidos
+
+![MC-ADM-PED-001-estado-pedidos](MC-ADM-PED-001-estado-pedidos.png)
+
+### MC-ADM-PRO-001-produccion
+
+![MC-ADM-PRO-001-produccion](MC-ADM-PRO-001-produccion.png)
+
+### MC-ADM-PRO-002-asignacion-impresora-inicio-produccion
+
+![MC-ADM-PRO-002-asignacion-impresora-inicio-produccion](MC-ADM-PRO-002-asignacion-impresora-inicio-produccion.png)
+
+### MC-ADM-PRO-003-control-calidad-bandeja
+
+![MC-ADM-PRO-003-control-calidad-bandeja](MC-ADM-PRO-003-control-calidad-bandeja.png)
+
+### MC-ADM-PRO-004-control-calidad-detalle
+
+![MC-ADM-PRO-004-control-calidad-detalle](MC-ADM-PRO-004-control-calidad-detalle.png)
+
+### MC-ADM-ENT-001-entregas
+
+![MC-ADM-ENT-001-entregas](MC-ADM-ENT-001-entregas.png)
+
+## Integridad de los originales
+
+SHA-256 calculado sobre el PNG original y comprobado después de copiarlo.
+
+| Archivo | SHA-256 |
+|---|---|
+| `MC-ADM-PED-001-estado-pedidos.png` | `c940a74ea05ace8aac050de24ca76d123141fa190bcb4549339395aca35e6fd8` |
+| `MC-ADM-PRO-001-produccion.png` | `8aa0f0c91a046c377b2df390dab64e2483ce6c4e57e4fc1416480fedae8c3e64` |
+| `MC-ADM-PRO-002-asignacion-impresora-inicio-produccion.png` | `fb61815ff936686edb49713047aeac8584e119e29c53a649d9cdb16e22b2b6f9` |
+| `MC-ADM-PRO-003-control-calidad-bandeja.png` | `a62bf32e93237a9d8c8877c2eee982175af0ba8d633eec451f2eb0eeb7a43328` |
+| `MC-ADM-PRO-004-control-calidad-detalle.png` | `9aaf77f76ba6f11f87b1c55e8515c22ccc38c12f6a03840fc6611e8b639cbacb` |
+| `MC-ADM-ENT-001-entregas.png` | `32c0eec53d2eef2521f548818693dcf3b70f91f04601e3232b7e607ff70ffcec` |

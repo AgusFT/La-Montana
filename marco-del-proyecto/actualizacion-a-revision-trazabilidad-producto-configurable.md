@@ -278,3 +278,14 @@ Cuenta corriente debe diseñarse como exploración identificada y revisarse ante
 La presente matriz existe porque el motor de configuración transforma reglas que durante el MVP se consideraban fijas en decisiones operativas versionadas.
 
 Su objetivo es conservar el origen de cada cambio y facilitar que la integración final no pierda relaciones entre negocio, seguridad, requerimientos, interacción y diseño.
+
+## Operación administrativa — 18/09/2026
+
+E22 #228 (M16) incorpora seis PNG originales y el documento `diseño/Front/ux-ui/wireflows/WF-OPERACION-ADMINISTRATIVA.md`, con matriz de acciones, referencias HU/CU, diferencias gráficas y pruebas de escritorio propuestas. Complementa E19 #197; no agrega fases al motor.
+
+- PED-001: estado transversal de pedidos.
+- PRO-001/002: producción y asignación manual/inicio.
+- PRO-003/004: calidad manual, aprobación o reimpresión.
+- ENT-001: bandeja de entregas; sus detalles y cierre siguen pendientes.
+
+La documentación distingue publicación visual, validación del equipo e implementación. E06/E07 mantienen su histórico y requieren relevamiento antes de cierre o reemplazo; E16 #179 sigue siendo referencia de backend administrativo. Los datos de ejemplo y diferencias del sidebar en los PNG no agregan reglas, permisos ni capacidades.

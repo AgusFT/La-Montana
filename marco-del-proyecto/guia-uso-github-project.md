@@ -37,6 +37,10 @@ Decisiones cerradas:
 - El cierre requiere consistencia entre entrega, cobro, comprobante, auditoría y estado final.
 - No se usan rutas locales del cliente como mecanismo de impresión.
 
+### 2.1 Evolución configurable — actualización 18/09/2026
+
+Las reglas de revisión humana universal y seña fija del contexto anterior describen la base MVP. Para el producto configurable, leerlas junto con los modelos certificados, condiciones de aprobación/pago y precedencia de `actualizacion-a-revision-motor-configuracion-versionada.md` y los documentos del PR #196. No tratar una configuración de ejemplo como regla universal. Spring Boot/PostgreSQL sigue siendo la arquitectura vigente.
+
 ## 3. Metodología de trabajo
 
 No se usará Scrum completo porque el equipo tiene dos integrantes y dedicación semanal reducida.
@@ -264,6 +268,8 @@ La vista Ruta Critica es un roadmap manual. GitHub Projects no calcula automáti
 | M12 - Flujo clientes backend | Endpoints backend para autenticación, pedidos, archivos, resumen y seguimiento del cliente |
 | M13 - Flujo administracion backend | Endpoints backend administrativos, revisión, cotización, pagos, estados y auditoría |
 | M14 - Deploy | Despliegue, hosting, secretos, archivos, backups y validación de entorno |
+| M15 - Definición funcional del producto configurable | Revisión funcional y trazabilidad, E18 |
+| M16 - Evolución UX/UI del producto | Diseño del motor, disponibilidad, continuidad cliente y operación administrativa; E19–E22 |
 
 No usar milestones para áreas técnicas. Para eso existe Area.
 
@@ -290,6 +296,24 @@ Los milestones M2 y M3 conservan el histórico Supabase. El trabajo backend vige
 | E15 - Flujo clientes backend Spring Boot | #171 | M12 | Backend para pedidos y consultas del flujo cliente |
 | E16 - Flujo administracion backend Spring Boot | #179 | M13 | Backend para revisión, cotización, estados, pagos, impresión autorizada y auditoría |
 | E17 - Deploy backend Spring Boot | #188 | M14 | Estrategia y preparación de despliegue del backend vigente |
+
+### 15.2 Evolución del producto — 18/09/2026
+
+| Épica | Issue | Milestone | Propósito |
+|---|---:|---|---|
+| E18 - Definición funcional y trazabilidad del producto configurable | #200 | M15 | Reglas, casos, historias y revisión documental |
+| E19 - Diseño UX/UI del motor de configuración administrativo | #197 | M16 | Ocho fases del asistente versionado |
+| E20 - Diseño UX/UI de disponibilidad operativa | #199 | M16 | Pausa y reanudación |
+| E21 - Diseño UX/UI de cotización y continuidad del cliente | #198 | M16 | Inactividad, pausa y nueva fecha |
+| E22 - Diseño UX/UI de operación administrativa | #228 | M16 | Pedidos, producción, control de calidad y entregas |
+
+Cuenta corriente permanece en el spike #225; E22 no se utiliza para cuenta corriente. Las ideas anteriores de numeración eran propuestas; esta tabla registra los elementos efectivamente creados.
+
+E03 se conserva cerrada como diseño MVP. E06/E07 son implementación, no contenedores de mockups. Al 18/09 están abiertas y en Para hacer; E06 muestra 14/19 subissues cerradas, E07 13/13, pero sus criterios globales no están validados. El porcentaje de subissues no demuestra aceptación funcional. No cerrarlas como completadas ni reabrir todo su histórico para incorporar las vistas nuevas.
+
+Antes de reemplazar E06/E07: relevar commits reutilizables, pendientes reales y dependencias; migrar tareas vigentes con referencias. Si una parte se reemplaza, documentar Deprecado/Descartado, sin presentarla como implementada. La continuidad backend ya tiene E14/E15/E16/E17; no duplicar esas tareas por publicar imágenes.
+
+Se recomienda una épica de implementación Web del producto configurable separada, con contratos, alcance y estimaciones refinados con Agustín. No se registra como creada ni se compromete una entrega completa para el domingo. M16 registra diseño y revisión, no software funcionando.
 
 ## 16. Flujo de uso: crear una épica
 
