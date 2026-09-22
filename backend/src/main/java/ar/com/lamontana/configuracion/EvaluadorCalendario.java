@@ -12,9 +12,11 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class EvaluadorCalendario {
     public record Simulacion(long version,String zonaHoraria,Instant recibidoEn,Instant inicioPreparacion,Instant finPreparacion,
-                             Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias,DestinoPunto destinoPunto) {}
+                             Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias,DestinoPunto destinoPunto,DestinoZona destinoZona) {}
     public record DestinoPunto(UUID punto,String nombre,String zonaHoraria,String costo,long versionDisponibilidad,LocalDate fecha,
                                String apertura,String cierre,Instant franjaDesde,Instant franjaHasta,int cupoConfigurado) {}
+    public record DestinoZona(UUID zona,String nombre,String zonaHoraria,String costo,TerritorioEntrega territorio,LocalDate fecha,
+                              String apertura,String cierre,Instant franjaDesde,Instant franjaHasta,int cupoConfigurado) {}
     public Simulacion evaluar(long version,EntregaRepositorio.Horario horario,String preparacionHoras,String trasladoHoras,Modalidad modalidad,Instant recibidoEn) {
         ZoneId zona=ZoneId.of(horario.zonaHoraria());Instant limite=limite(recibidoEn,horario.zonaHoraria());var dias=new HashMap<Integer,Dia>();for(var dia:horario.dias())dias.put(dia.dia(),dia);
         Instant comienzo=siguienteApertura(recibidoEn,zona,dias,limite);
@@ -23,9 +25,9 @@ public class EvaluadorCalendario {
         var notas=new ArrayList<String>();notas.add("La preparación y el traslado estimados consumen únicamente las ventanas operativas de la sucursal de origen.");
         notas.add("Son estimaciones del calendario semanal guardado; el avance real puede adelantarlas o demorarlas y no obliga a esperar.");
         if(modalidad==Modalidad.RETIRO_SUCURSAL)disponible=siguienteApertura(fin,zona,dias,limite);
-        else if(modalidad==Modalidad.ENVIO_DOMICILIO||modalidad==Modalidad.RETIRO_PUNTO_ENTREGA){llegada=consumir(fin,segundos(trasladoHoras),zona,dias,limite);if(modalidad==Modalidad.ENVIO_DOMICILIO)notas.add("La llegada calculada no confirma disponibilidad: faltan cobertura domiciliaria, franjas y cupos de entrega.");}
+        else if(modalidad==Modalidad.ENVIO_DOMICILIO||modalidad==Modalidad.RETIRO_PUNTO_ENTREGA){llegada=consumir(fin,segundos(trasladoHoras),zona,dias,limite);}
         else throw error("Modalidad de entrega no admitida.");
-        return new Simulacion(version,zona.getId(),recibidoEn,comienzo,fin,llegada,disponible,comienzo.isAfter(recibidoEn),List.copyOf(notas),null);
+        return new Simulacion(version,zona.getId(),recibidoEn,comienzo,fin,llegada,disponible,comienzo.isAfter(recibidoEn),List.copyOf(notas),null,null);
     }
     static Instant limite(Instant recibidoEn,String zonaHoraria){
         try{var inicio=recibidoEn.atZone(ZoneId.of(zonaHoraria));if(inicio.getYear()<1||inicio.getYear()>9994)throw new DateTimeException("Fuera del rango soportado");return inicio.plusYears(5).toInstant();}

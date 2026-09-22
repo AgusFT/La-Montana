@@ -53,9 +53,9 @@ class ConfiguracionEntregaIntegrationTest {
         guardar("4",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
         servicios(List.of(a,b));assertProblemas("HORARIO_PENDIENTE");
         guardar("4","0",List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
-        guardar("4","2",List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertProblemas("COBERTURA_ENVIO_PENDIENTE");
+        guardar("4","2",List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
         assertThat(validacion().get("avisos").toString()).contains("No se ofrecerán puntos de entrega");
-        assertThat(validacion().get("valida").asBoolean()).isFalse();status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_PUNTO_ENTREGA","2026-09-21T05:00:00Z")),400);
+        assertThat(validacion().get("avisos").toString()).contains("No se ofrecerá envío a domicilio");status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_PUNTO_ENTREGA","2026-09-21T05:00:00Z")),400);
         String antes=borrador.toString();
         for(String invalido:List.of("0","-1","0.001","10000.01","10001","1e2","NaN"))status(put(admin,ruta(),entrega(invalido,"0",List.of("RETIRO_SUCURSAL"),List.of())),400);
         for(var dias:List.of(List.of(dia(1,true,"09:00","09:00")),List.of(dia(1,true,"18:00","09:00")),List.of(dia(1,false,"09:00",null)),List.of(dia(1,null,"09:00",null)),List.of(dia(0,true,"09:00","18:00")),List.of(dia(1,true,"9:00","18:00")),List.of(dia(1,true,"09:00:00","18:00")),List.of(dia(1,true,"09:00","24:00")),List.of(dia(1,false,null,null),dia(1,false,null,null))))
@@ -76,7 +76,8 @@ class ConfiguracionEntregaIntegrationTest {
         s=simular(a,"RETIRO_SUCURSAL","2026-09-21T20:00:00Z");assertInstante(s,"finPreparacion","2026-09-22T15:00:00Z");assertThat(s.get("enCola").asBoolean()).isFalse();
         guardar("1","2",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00"))));
         s=simular(a,"RETIRO_SUCURSAL","2026-09-21T20:00:00Z");assertInstante(s,"finPreparacion","2026-09-21T21:00:00Z");assertInstante(s,"disponibleDesde","2026-09-22T12:00:00Z");
-        s=simular(a,"ENVIO_DOMICILIO","2026-09-21T20:00:00Z");assertInstante(s,"llegadaEstimada","2026-09-22T14:00:00Z");assertThat(s.get("disponibleDesde").isNull()).isTrue();assertThat(s.get("advertencias").toString()).contains("cobertura","ventanas operativas");
+        var zona=comando();zona.putAll(Map.of("codigo","Z","nombre","Zona prueba","zonaHoraria","America/Argentina/Buenos_Aires","costo","0","habilitada",true,"territorios",List.of(Map.of("codigoPostal","1234","localidad","Ciudad","provincia","Provincia")),"franjas",List.of(Map.of("dia",2,"apertura","12:00","cierre","18:00","capacidadPedidos",3,"habilitada",true))));aceptar(post(admin,ruta()+"/zonas",zona));
+        var ejemplo=simulacion(a,"ENVIO_DOMICILIO","2026-09-21T20:00:00Z");ejemplo.put("territorio",Map.of("codigoPostal","1234","localidad","Ciudad","provincia","Provincia"));var respuesta=post(admin,ruta()+"/simular",ejemplo);status(respuesta,200);s=JSON.readTree(respuesta.body());assertInstante(s,"llegadaEstimada","2026-09-22T14:00:00Z");assertInstante(s,"disponibleDesde","2026-09-22T15:00:00Z");assertThat(s.get("advertencias").toString()).contains("ventanas operativas","globales");
         guardar("2",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00"))));
         s=simular(a,"RETIRO_SUCURSAL","2026-09-25T20:00:00Z");assertInstante(s,"finPreparacion","2026-09-28T13:00:00Z");
         guardar("0.01",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00"))));s=simular(a,"RETIRO_SUCURSAL","2026-09-21T12:00:00Z");assertInstante(s,"finPreparacion","2026-09-21T12:00:36Z");

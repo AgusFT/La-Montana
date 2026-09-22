@@ -58,17 +58,9 @@ public class PuntoEntregaService {
             exigir(!filas.isEmpty(),"La sucursal de origen no existe.");var sucursal=filas.get(0);
             boolean habilitadaAntes=punto!=null&&Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_punto_entrega WHERE id_configuracion_version=? AND id_punto_entrega=? AND id_sucursal=? AND habilitado)",Boolean.class,config,punto,sucursal.id()));
             if(r.habilitado()&&!sucursal.activa()&&!habilitadaAntes)throw conflicto("No se puede habilitar una nueva relación con una sucursal desactivada.");
-            validarFranjas(r.franjas());relaciones.add(new Relacion(sucursal.id(),r.habilitado(),new BigDecimal(r.costo()),r.franjas()));
+            FranjasEntrega.validar(r.franjas());relaciones.add(new Relacion(sucursal.id(),r.habilitado(),new BigDecimal(r.costo()),r.franjas()));
         }
         return relaciones;
-    }
-    private void validarFranjas(List<Franja> franjas) {
-        exigir(franjas!=null&&franjas.size()<=100,"Ingresá una lista válida de franjas para la sucursal.");
-        for(var f:franjas){exigir(f!=null&&f.dia()!=null&&f.dia()>=1&&f.dia()<=7,"El día de una franja debe estar entre lunes (1) y domingo (7).");
-            LocalTime desde=hora(f.apertura()),hasta=hora(f.cierre());exigir(desde.isBefore(hasta),"La apertura de cada franja debe ser anterior al cierre dentro del mismo día.");
-            exigir(f.capacidadPedidos()!=null&&f.capacidadPedidos()>=0&&f.habilitada()!=null,"Cada franja exige capacidad entera no negativa y habilitación explícita.");}
-        var ordenadas=new ArrayList<>(franjas);ordenadas.sort(Comparator.comparing(Franja::dia).thenComparing(Franja::apertura));
-        for(int i=1;i<ordenadas.size();i++){var anterior=ordenadas.get(i-1);var actual=ordenadas.get(i);exigir(!anterior.dia().equals(actual.dia())||!LocalTime.parse(actual.apertura()).isBefore(LocalTime.parse(anterior.cierre())),"Las franjas de un punto para la misma sucursal y día no pueden superponerse; pueden ser contiguas.");}
     }
     private void guardarDefinicion(long config,long punto,Definicion in,List<Relacion> relaciones) {
         jdbc.update("""

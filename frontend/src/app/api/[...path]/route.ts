@@ -29,7 +29,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 6 ? ["PUT"]
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 7 && ["estado", "retirar"].includes(path[6]) ? ["POST"] : null;
   const deliveryMethods = configDraft && path.length === 6 && path[4] === "entrega" ? path[5] === "validacion" ? ["GET"] : path[5] === "simular" ? ["POST"] : null : null;
-  const pointMethods = configDraft && path[4] === "entrega" && path[5] === "puntos" ? path.length === 6 ? ["POST"] : path.length === 7 && uuidPattern.test(path[6]) ? ["PUT"] : null : null;
+  const pointMethods = configDraft && path[4] === "entrega" && ["puntos", "zonas"].includes(path[5]) ? path.length === 6 ? ["POST"] : path.length === 7 && uuidPattern.test(path[6]) ? ["PUT"] : null : null;
   const availabilityMethods = path.length === 4 && path[0] === "admin" && path[1] === "puntos-entrega" && path[2] === "disponibilidad" && uuidPattern.test(path[3]) ? ["PUT"] : null;
   const methods = availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]

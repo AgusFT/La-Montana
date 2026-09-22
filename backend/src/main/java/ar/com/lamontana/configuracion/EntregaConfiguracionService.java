@@ -63,14 +63,16 @@ public class EntregaConfiguracionService {
         if(e.modalidades().isEmpty())problemas.add(new Problema("SIN_MODALIDAD",null,"Elegí al menos una modalidad real de entrega."));
         if((e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)||e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))&&e.trasladoHoras()==null)
             problemas.add(new Problema("TRASLADO_PENDIENTE",null,"Definí el tiempo adicional de traslado/envío, incluso si es cero."));
-        if(e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))problemas.add(new Problema("COBERTURA_ENVIO_PENDIENTE",null,"El envío requiere zonas de cobertura, franjas y cupos de entrega. Su configuración está en construcción."));
         var operativas=operativas(id(codigo));var opciones=opciones(e,operativas);
+        boolean retiro=e.modalidades().contains(Modalidad.RETIRO_SUCURSAL),envio=e.modalidades().contains(Modalidad.ENVIO_DOMICILIO),cobertura=e.zonas().stream().anyMatch(ZonasRepositorio.Zona::utilizable);
+        if(envio&&!cobertura){String motivo="El envío requiere una zona habilitada con cobertura territorial y al menos una franja habilitada de cupo positivo.";
+            if(retiro||!opciones.isEmpty())avisos.add("No se ofrecerá envío a domicilio. "+motivo);else problemas.add(new Problema("COBERTURA_ENVIO_PENDIENTE",null,motivo));}
         if(e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)) {
             var origenes=new HashSet<UUID>();for(var sucursal:operativas)origenes.add(sucursal.codigo());
             boolean preparado=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0));
             String motivo=!preparado?(e.puntos().isEmpty()?"Agregá un punto con origen, costo y franjas de cupo positivo.":"Falta una relación habilitada desde una sucursal operativa con una franja habilitada y cupo positivo.")
                 :opciones.isEmpty()?"Habilitá temporalmente al menos un punto utilizable desde Disponibilidad de puntos.":null;
-            if(motivo!=null){if(e.modalidades().contains(Modalidad.RETIRO_SUCURSAL))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" El retiro local puede seguir disponible.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
+            if(motivo!=null){if(retiro||(envio&&cobertura))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" Las otras modalidades utilizables pueden seguir disponibles.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
 
         }
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Habilitá servicios en al menos una sucursal activa para ofrecer entregas."));
@@ -84,6 +86,7 @@ public class EntregaConfiguracionService {
         exigir(input.recibidoEn()!=null&&input.sucursal()!=null&&input.modalidad()!=null,"Completá sucursal, modalidad y fecha de recepción.");
         if(!e.modalidades().contains(input.modalidad()))throw conflicto("Seleccioná y guardá esa modalidad antes de simularla.");
         exigir((input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)==(input.punto()!=null),"Elegí un punto sólo para la modalidad Puntos de entrega.");
+        exigir((input.modalidad()==Modalidad.ENVIO_DOMICILIO)==(input.territorio()!=null),"Completá código postal, localidad y provincia sólo para envío a domicilio.");
         var sucursales=operativas(id(codigo));var operativa=sucursales.stream().filter(s->s.codigo().equals(input.sucursal())).findFirst();
         if(operativa.isEmpty())throw conflicto("La sucursal debe estar activa y tener servicios habilitados en el borrador para simular su calendario.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);
@@ -95,13 +98,22 @@ public class EntregaConfiguracionService {
             opcion=opciones(e,sucursales).stream().filter(p->p.punto().equals(input.punto())&&p.sucursal().equals(input.sucursal())).findFirst().orElseThrow(()->conflicto("El punto ya no está disponible para este origen. Revisá su disponibilidad temporal, relación habilitada y franjas con cupo positivo."));
         }
         var resultado=evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad(),input.recibidoEn());
+        if(input.modalidad()==Modalidad.ENVIO_DOMICILIO){
+            var territorio=input.territorio().normalizado();
+            var zona=e.zonas().stream().filter(ZonasRepositorio.Zona::utilizable).filter(z->z.territorios().contains(territorio)).findFirst().orElseThrow(()->conflicto("El domicilio no tiene una zona habilitada con esa combinación de código postal, localidad y provincia y una franja de cupo positivo."));
+            var ventana=franjas.siguiente(resultado.llegadaEstimada(),zona.zonaHoraria(),zona.franjas(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
+            var disponible=resultado.llegadaEstimada().isAfter(ventana.desde())?resultado.llegadaEstimada():ventana.desde();
+            var destino=new EvaluadorCalendario.DestinoZona(zona.codigoPublico(),zona.nombre(),zona.zonaHoraria(),zona.costo(),territorio,ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
+            var notas=new ArrayList<>(resultado.advertencias());notas.add("La zona, su costo y el cupo por fecha/franja son globales, compartidos por todas las sucursales. La ventana es estimada, no una cita exacta.");notas.add("El cupo configurado no representa plazas libres ni crea una reserva. La oferta a clientes aún está en construcción.");
+            return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),null,destino);
+        }
         if(opcion==null)return resultado;
         var relacion=punto.sucursales().stream().filter(r->r.sucursal().equals(input.sucursal())).findFirst().orElseThrow();
         var ventana=franjas.siguiente(resultado.llegadaEstimada(),punto.zonaHoraria(),relacion.franjas(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
         var disponible=resultado.llegadaEstimada().isAfter(ventana.desde())?resultado.llegadaEstimada():ventana.desde();
         var destino=new EvaluadorCalendario.DestinoPunto(punto.codigoPublico(),punto.nombre(),punto.zonaHoraria(),relacion.costo(),opcion.versionDisponibilidad(),ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
         var notas=new ArrayList<>(resultado.advertencias());notas.add("La llegada se ajusta a una franja del punto en su zona horaria. La ventana es estimada, no una cita exacta.");notas.add("El cupo indicado es el configurado para esa fecha y franja; no representa plazas libres ni crea una reserva. La oferta a clientes aún está en construcción.");
-        return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),destino);
+        return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),destino,null);
     }
 
     private List<PuntoDisponible> opciones(EntregaRepositorio.Entrega entrega,List<Sucursal> sucursales){
