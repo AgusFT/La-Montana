@@ -10,3 +10,17 @@
 
 .order-timeline{list-style:none;padding:0;margin:1.4rem 0}.order-timeline li{border-left:3px solid #ff7215;padding:0 0 1rem 1rem}.order-timeline span{display:block;color:#55657a;margin:.5rem 0}.order-confirmation .client-grid>div{min-width:0}.order-confirmation fieldset{min-width:0}.order-confirmation .client-warning ul{padding-left:1.2rem}
 .order-confirmation>button{margin-top:.8rem}
+
+.order-management { margin-block: 1.25rem; padding: 0 1.25rem 1.25rem; overflow-wrap: anywhere; }
+.order-management-heading { margin: 0 -1.25rem 1.25rem; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0; background: #304b8d; color: white; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; }
+.order-management-heading h2 { color: white; margin: 0; }
+.order-management-heading span { color: #243865; background: #f3d777; border-radius: 6px; padding: .4rem .65rem; font-weight: 600; }
+.order-decision-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; margin-block: 1rem; }
+.order-decision-grid .client-button { width: 100%; }
+.client-button.order-approve { background: #27813c; border-color: #27813c; color: white; }
+.client-button.order-danger { background: #a93235; border-color: #a93235; color: white; }
+.order-decision-form { margin-block: 1.5rem; border-top: 1px solid #dbe1e9; padding-top: 1rem; }
+.order-private-notes,.order-internal-history { border-top: 1px solid #dbe1e9; margin-top: 1.5rem; padding-top: 1rem; }
+.order-private-note { padding: .8rem; margin-top: .8rem; background: #f5f7fb; border-left: 3px solid #61769e; border-radius: 3px; }
+.order-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media(max-width: 650px) { .order-decision-grid { grid-template-columns: 1fr; } }

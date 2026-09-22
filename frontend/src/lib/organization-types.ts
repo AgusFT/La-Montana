@@ -5,6 +5,7 @@ export type Branch = {
   correo: string | null; telefono: string | null; estado: "ACTIVA" | "DESACTIVADA"; version: number;
 };
 export const permissionLabels = {
+  GESTIONAR_PEDIDOS: "Revisar y decidir pedidos",
   REGISTRAR_COBRO: "Registrar cobros", ACREDITAR_PAGO: "Acreditar pagos", REGISTRAR_DEVOLUCION: "Registrar devoluciones",
 } as const;
 export type Permission = keyof typeof permissionLabels;
