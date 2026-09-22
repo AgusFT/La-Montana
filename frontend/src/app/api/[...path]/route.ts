@@ -1,6 +1,7 @@
-const allowed: Record<string, "GET" | "POST"> = {
-  "setup/estado": "GET", "auth/csrf": "GET", "auth/me": "GET",
-  "setup/propietario": "POST", "auth/login": "POST", "auth/logout": "POST", "auth/registro": "POST",
+const allowed: Record<string, readonly string[]> = {
+  "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
+  "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
+  "admin/sucursales": ["GET", "POST"],
 };
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const { path } = await context.params;
   const route = path.join("/");
   if (path.length !== 2 || !Object.hasOwn(allowed, route)) return error(404, "Ruta no disponible.");
-  if (allowed[route] !== request.method) return error(405, "Método no permitido.");
+  if (!allowed[route].includes(request.method)) return error(405, "Método no permitido.");
   const base = process.env.BACKEND_INTERNAL_URL;
   if (!base) return error(503, "La conexión con el sistema no está configurada.");
   let responseHeaders: Headers | undefined;

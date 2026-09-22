@@ -14,7 +14,8 @@ public class ErroresIdentidad {
         return ResponseEntity.status(ex.getStatusCode()).body(Map.of("mensaje", ex.getReason() == null ? "No se pudo completar la operación." : ex.getReason()));
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<Map<String, String>> validacion() {
-        return ResponseEntity.badRequest().body(Map.of("mensaje", "Revisá los datos: nombre y apellido obligatorios, correo válido y contraseña de 12 a 128 caracteres."));
+    ResponseEntity<Map<String, String>> validacion(MethodArgumentNotValidException ex) {
+        String campos = ex.getBindingResult().getFieldErrors().stream().map(error -> error.getField()).distinct().sorted().collect(java.util.stream.Collectors.joining(", "));
+        return ResponseEntity.badRequest().body(Map.of("mensaje", "Revisá los campos: " + campos + "."));
     }
 }

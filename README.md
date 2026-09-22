@@ -2,11 +2,11 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 3
+## Estado actual · entrega 4
 
 Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa y de cliente con sesiones reales, registro de particulares y redirección según rol. Compose incluye base, backend, frontend y buzón local Mailpit.
 
-**Ya se puede crear al propietario, registrar clientes particulares e iniciar/cerrar ambas sesiones.** Empleados, sucursales, configuración, pedidos, pagos, PDF y operación siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
+**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar ambas sesiones y crear/listar sucursales desde administración.** Empleados, horarios, edición/desactivación de sucursales, configuración comercial, pedidos, pagos, PDF y operación siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
 ## Arranque local
 
@@ -100,7 +100,7 @@ Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/syst
 
 ## Continuación
 
-Siguiente entrega: administración de sucursales/empleados y verificación/recuperación por correo. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: empleados y asignaciones a sucursales, edición/desactivación de sucursales y verificación/recuperación por correo. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
 
 Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
@@ -113,3 +113,13 @@ El cliente puede ingresar mientras la imprenta se configura, pero crear pedidos 
 Este README es el único documento manual de producto. Se actualiza con lo efectivamente terminado, pruebas y decisiones relevantes en cada entrega.
 
 Validación de entrega 3: Maven verify, build/typecheck y circuito HTTP real de registro/login de cliente pasaron. Se comprobaron duplicados concurrentes, perfil propio y rechazo de API administrativa con 403; redirecciones por rol y logout correctos. Datos usados solo en PostgreSQL temporal.
+
+## Sucursales: alta y listado
+
+En `/administracion/sucursales`, el administrador puede crear varias sucursales con código, nombre, dirección completa y zona horaria IANA. Correo y teléfono son opcionales. El formulario comienza vacío; no hay sucursales precargadas. Los códigos se normalizan a mayúsculas, son únicos y las zonas horarias se validan en el servidor. La migración V4 registra también al usuario que dio el alta.
+
+Crear una sucursal conserva sus datos en PostgreSQL; todavía no habilita recepción de pedidos. Empleados/asignaciones, horarios/capacidades, edición/desactivación y operación siguen en construcción. Clientes y usuarios anónimos no pueden acceder a esta API administrativa.
+
+Pruebas backend de entrega 4: se crean dos sucursales, se rechaza código duplicado y zona inválida, se controla CSRF, se niega GET/POST al cliente y se conserva el listado al reiniciar. Build y typecheck del frontend también pasaron.
+
+Comprobación integrada entrega 4: Next → Spring → PostgreSQL real permitió crear y ver ambas sucursales. El duplicado devolvió 409; un cliente recibió 403 tanto al listar como al crear y su pantalla redirigió a su propio espacio. Servidores temporales detenidos al finalizar.

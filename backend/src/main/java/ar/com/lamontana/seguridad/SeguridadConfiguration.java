@@ -29,6 +29,8 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/admin/estado").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/estado").hasRole("CLIENTE")
                         .anyRequest().denyAll())
                 .addFilterBefore(new LimiteAccesoFilter(), UsernamePasswordAuthenticationFilter.class)

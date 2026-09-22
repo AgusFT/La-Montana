@@ -58,6 +58,14 @@ class IdentidadIntegrationTest {
                 assertThat(cookie(cookies)).isNotEqualTo(beforeLogin);
                 assertThat(get(client, "/api/auth/me").body()).contains("ADMIN_ADMIN", "admin@example.test").doesNotContain("hash_contrasena", PASSWORD);
                 assertThat(get(client, "/api/admin/estado").statusCode()).isEqualTo(200);
+                assertThat(get(client, "/api/admin/sucursales").body()).isEqualTo("[]");
+                String adminCsrf = csrf(client);
+                assertThat(post(client, "/api/admin/sucursales", sucursal("CENTRO"), "application/json", null).statusCode()).isEqualTo(403);
+                assertThat(post(client, "/api/admin/sucursales", sucursal("CENTRO"), "application/json", adminCsrf).statusCode()).isEqualTo(201);
+                assertThat(post(client, "/api/admin/sucursales", sucursal("NORTE"), "application/json", adminCsrf).statusCode()).isEqualTo(201);
+                assertThat(post(client, "/api/admin/sucursales", sucursal("centro"), "application/json", adminCsrf).statusCode()).isEqualTo(409);
+                assertThat(post(client, "/api/admin/sucursales", sucursal("SUR").replace("America/Argentina/Buenos_Aires", "zona-inexistente"), "application/json", adminCsrf).statusCode()).isEqualTo(400);
+                assertThat(JSON.readTree(get(client, "/api/admin/sucursales").body()).size()).isEqualTo(2);
                 assertThat(get(client, "/api/cliente/estado").statusCode()).isEqualTo(403);
                 assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.sesion_http WHERE principal_name='admin@example.test'", Integer.class)).isEqualTo(1);
                 oldCookie = cookie(cookies);
@@ -73,6 +81,8 @@ class IdentidadIntegrationTest {
                 assertThat(post(cliente, "/api/auth/login", "username=CLIENTE%40EXAMPLE.TEST&password=" + PASSWORD, "application/x-www-form-urlencoded", clienteCsrf).statusCode()).isEqualTo(200);
                 assertThat(get(cliente, "/api/auth/me").body()).contains("\"rol\":\"CLIENTE\"", "cliente@example.test").doesNotContain("admin@example.test");
                 assertThat(get(cliente, "/api/admin/estado").statusCode()).isEqualTo(403);
+                assertThat(get(cliente, "/api/admin/sucursales").statusCode()).isEqualTo(403);
+                assertThat(post(cliente, "/api/admin/sucursales", sucursal("OTRA"), "application/json", csrf(cliente)).statusCode()).isEqualTo(403);
                 assertThat(get(cliente, "/api/cliente/estado").statusCode()).isEqualTo(200);
                 assertThat(jdbc.queryForObject("SELECT es_administrador_propietario FROM lamontana.usuario WHERE correo='cliente@example.test'", Boolean.class)).isFalse();
                 assertThat(jdbc.queryForObject("SELECT correo_verificado_en IS NULL FROM lamontana.usuario WHERE correo='cliente@example.test'", Boolean.class)).isTrue();
@@ -81,6 +91,7 @@ class IdentidadIntegrationTest {
             // La segunda aplicación usa la misma base y la cookie anterior: no una sesión en memoria.
             try (var app = iniciar(pg, files)) {
                 assertThat(get(client, "/api/auth/me").statusCode()).isEqualTo(200);
+                assertThat(JSON.readTree(get(client, "/api/admin/sucursales").body()).size()).isEqualTo(2);
                 assertThat(get(client, "/api/setup/estado").body()).contains("\"requierePropietario\":false");
                 assertThat(post(client, "/api/auth/logout", "", "application/x-www-form-urlencoded", null).statusCode()).isEqualTo(403);
                 assertThat(post(client, "/api/auth/logout", "", "application/x-www-form-urlencoded", csrf(client)).statusCode()).isEqualTo(204);
@@ -114,6 +125,9 @@ class IdentidadIntegrationTest {
     }
     private String registro() {
         return JSON.writeValueAsString(Map.of("nombre", "Cliente", "apellido", "Prueba", "correo", "cliente@example.test", "contrasena", PASSWORD));
+    }
+    private String sucursal(String codigo) {
+        return JSON.writeValueAsString(Map.of("codigo", codigo, "nombre", "Sucursal " + codigo, "calle", "Prueba", "numero", "123", "localidad", "Ciudad", "provincia", "Provincia", "codigoPostal", "1234", "zonaHoraria", "America/Argentina/Buenos_Aires"));
     }
     private URI uri(String path) { return URI.create("http://127.0.0.1:" + port + path); }
     private HttpResponse<String> get(HttpClient client, String path) throws Exception {

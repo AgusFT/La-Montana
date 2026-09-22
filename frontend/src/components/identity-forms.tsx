@@ -122,3 +122,36 @@ export function LogoutButton() {
   }
   return <div><button className="refresh" onClick={logout} disabled={busy}>{busy ? "Cerrando sesión…" : "Cerrar sesión"}</button>{message && <p className="form-message error-message" role="alert">{message}</p>}</div>;
 }
+
+export function BranchForm() {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [created, setCreated] = useState(false);
+  const router = useRouter();
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const fields = ["codigo", "nombre", "calle", "numero", "localidad", "provincia", "codigoPostal", "correo", "telefono", "zonaHoraria"];
+    const payload = Object.fromEntries(fields.map(key => [key, String(data.get(key) ?? "").trim()]));
+    setBusy(true); setMessage(""); setCreated(false);
+    try {
+      await post("/api/admin/sucursales", JSON.stringify(payload), "application/json");
+      form.reset(); setCreated(true); router.refresh();
+    } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos crear la sucursal."); }
+    finally { setBusy(false); }
+  }
+  return <form className="identity-form" onSubmit={submit}>
+    <h2>Nueva sucursal</h2>
+    <div className="form-columns"><label>Código<input name="codigo" required maxLength={40} pattern={"[A-Za-z0-9_\\-]+"} title="Letras, números, guion o guion bajo; hasta 40 caracteres." /></label><label>Nombre<input name="nombre" required maxLength={140} /></label></div>
+    <div className="form-columns"><label>Calle<input name="calle" required maxLength={160} /></label><label>Número<input name="numero" required maxLength={20} /></label></div>
+    <div className="form-columns"><label>Localidad<input name="localidad" required maxLength={120} /></label><label>Provincia<input name="provincia" required maxLength={120} /></label></div>
+    <div className="form-columns"><label>Código postal<input name="codigoPostal" required maxLength={12} /></label><label>Zona horaria IANA<input name="zonaHoraria" required maxLength={64} placeholder="America/Argentina/Buenos_Aires" aria-describedby="timezone-help" /></label></div>
+    <p id="timezone-help" className="field-help">Ingresá la zona horaria correspondiente a la sucursal.</p>
+    <div className="form-columns"><label>Correo (opcional)<input name="correo" type="email" maxLength={254} /></label><label>Teléfono (opcional)<input name="telefono" type="tel" maxLength={40} /></label></div>
+    {message && <p className="form-message error-message" role="alert">{message}</p>}
+    {created && <p className="form-message" role="status">Sucursal creada. El listado se actualiza con los datos guardados.</p>}
+    <button className="refresh" disabled={busy}>{busy ? "Guardando…" : "Crear sucursal"}</button>
+  </form>;
+}

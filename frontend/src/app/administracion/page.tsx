@@ -13,7 +13,7 @@ export default async function AdministrationPage() {
   const owner = session.profile;
   return <IdentityShell title={`Hola, ${owner.nombre}`} description="Tu sesión como propietario está activa.">
     <div className="owner-profile"><h2>{owner.nombre} {owner.apellido}</h2><p>{owner.correo}</p><span className="environment">Propietario de la imprenta</span></div>
-    <dl className="capabilities"><div><dt>Gestión de clientes, empleados y sucursales</dt><dd>En construcción</dd></div><div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div><div><dt>Pedidos y operación</dt><dd>En construcción</dd></div></dl>
-    <LogoutButton />
+    <dl className="capabilities"><div><dt>Gestión de clientes y empleados</dt><dd>En construcción</dd></div><div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div><div><dt>Pedidos y operación</dt><dd>En construcción</dd></div></dl>
+    <div className="page-actions"><a className="refresh" href="/administracion/sucursales">Administrar sucursales</a><LogoutButton /></div>
   </IdentityShell>;
 }
