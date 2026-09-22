@@ -91,19 +91,24 @@ public class EntregaConfiguracionService {
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public EvaluadorCalendario.Simulacion simular(UUID codigo,SimularEntrega input,String correo,int minimoServiciosMinutos) {
-        configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());var e=b.entrega();
+        configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());
+        return calcular(b,input,minimoServiciosMinutos);
+    }
+    List<PuntoDisponible> puntosCotizacion(ConfiguracionService.Borrador b){return opciones(b.entrega(),operativas(id(b.codigoPublico())));}
+    EvaluadorCalendario.Simulacion calcular(ConfiguracionService.Borrador b,SimularEntrega input,int minimoServiciosMinutos){
+        var e=b.entrega();UUID codigo=b.codigoPublico();
         exigir(input.recibidoEn()!=null&&input.sucursal()!=null&&input.modalidad()!=null,"Completá sucursal, modalidad y fecha de recepción.");
-        if(!e.modalidades().contains(input.modalidad()))throw conflicto("Seleccioná y guardá esa modalidad antes de simularla.");
+        if(!e.modalidades().contains(input.modalidad()))throw conflicto("La modalidad ya no está habilitada en esta configuración.");
         exigir((input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)==(input.punto()!=null),"Elegí un punto sólo para la modalidad Puntos de entrega.");
         exigir((input.modalidad()==Modalidad.ENVIO_DOMICILIO)==(input.territorio()!=null),"Completá código postal, localidad y provincia sólo para envío a domicilio.");
         var sucursales=operativas(id(codigo));var operativa=sucursales.stream().filter(s->s.codigo().equals(input.sucursal())).findFirst();
-        if(operativa.isEmpty())throw conflicto("La sucursal debe estar activa y tener servicios habilitados en el borrador para simular su calendario.");
+        if(operativa.isEmpty())throw conflicto("La sucursal debe estar activa y tener servicios habilitados para ofrecer entregas.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);
         var errores=problemasCalendario(horario,input.sucursal(),operativa.get().nombre());if(!errores.isEmpty())throw conflicto(errores.get(0).mensaje());
         if(e.preparacionHoras()==null||(input.modalidad()!=Modalidad.RETIRO_SUCURSAL&&e.trasladoHoras()==null))throw conflicto("Completá y guardá los tiempos estimados de la modalidad antes de simular.");
         PuntoDisponible opcion=null;PuntosRepositorio.Punto punto=null;
         if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){
-            punto=e.puntos().stream().filter(p->p.codigoPublico().equals(input.punto())).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"El punto no pertenece a este borrador."));
+            punto=e.puntos().stream().filter(p->p.codigoPublico().equals(input.punto())).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"El punto no pertenece a esta configuración."));
             opcion=opciones(e,sucursales).stream().filter(p->p.punto().equals(input.punto())&&p.sucursal().equals(input.sucursal())).findFirst().orElseThrow(()->conflicto("El punto ya no está disponible para este origen. Revisá su disponibilidad temporal, relación habilitada y franjas con cupo positivo."));
         }
         var resultado=evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad(),input.recibidoEn(),minimoServiciosMinutos);
@@ -113,7 +118,7 @@ public class EntregaConfiguracionService {
             var ventana=franjas.siguiente(resultado.llegadaEstimada(),zona.zonaHoraria(),zona.franjas(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
             var disponible=resultado.llegadaEstimada().isAfter(ventana.desde())?resultado.llegadaEstimada():ventana.desde();
             var destino=new EvaluadorCalendario.DestinoZona(zona.codigoPublico(),zona.nombre(),zona.zonaHoraria(),zona.costo(),territorio,ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
-            var notas=new ArrayList<>(resultado.advertencias());notas.add("La zona, su costo y el cupo por fecha/franja son globales, compartidos por todas las sucursales. La ventana es estimada, no una cita exacta.");notas.add("El cupo configurado no representa plazas libres ni crea una reserva. La oferta a clientes aún está en construcción.");
+            var notas=new ArrayList<>(resultado.advertencias());notas.add("La zona, su costo y el cupo por fecha/franja son globales, compartidos por todas las sucursales. La ventana es estimada, no una cita exacta.");notas.add("El cupo configurado no representa plazas libres ni crea una reserva. La disponibilidad definitiva se verifica al confirmar el pedido.");
             return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),null,destino);
         }
         if(opcion==null)return resultado;
@@ -121,7 +126,7 @@ public class EntregaConfiguracionService {
         var ventana=franjas.siguiente(resultado.llegadaEstimada(),punto.zonaHoraria(),relacion.franjas(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
         var disponible=resultado.llegadaEstimada().isAfter(ventana.desde())?resultado.llegadaEstimada():ventana.desde();
         var destino=new EvaluadorCalendario.DestinoPunto(punto.codigoPublico(),punto.nombre(),punto.zonaHoraria(),relacion.costo(),opcion.versionDisponibilidad(),ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
-        var notas=new ArrayList<>(resultado.advertencias());notas.add("La llegada se ajusta a una franja del punto en su zona horaria. La ventana es estimada, no una cita exacta.");notas.add("El cupo indicado es el configurado para esa fecha y franja; no representa plazas libres ni crea una reserva. La oferta a clientes aún está en construcción.");
+        var notas=new ArrayList<>(resultado.advertencias());notas.add("La llegada se ajusta a una franja del punto en su zona horaria. La ventana es estimada, no una cita exacta.");notas.add("El cupo indicado es el configurado para esa fecha y franja; no representa plazas libres ni crea una reserva. La disponibilidad definitiva se verifica al confirmar el pedido.");
         return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),destino,null);
     }
 

@@ -68,6 +68,8 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/programacion/solicitar", "/api/admin/configuracion/borradores/*/programacion/confirmar", "/api/admin/configuracion/borradores/*/programacion/revocar", "/api/admin/configuracion/borradores/*/programacion/cancelacion/solicitar", "/api/admin/configuracion/borradores/*/programacion/cancelacion/confirmar", "/api/admin/configuracion/borradores/*/programacion/cancelacion/revocar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/cancelacion/solicitar", "/api/admin/configuracion/borradores/*/cancelacion/confirmar", "/api/admin/configuracion/borradores/*/cancelacion/revocar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/contexto", "/api/operacion/sucursales/*").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
+                        .requestMatchers(HttpMethod.GET, "/api/cliente/cotizaciones/opciones", "/api/cliente/cotizaciones", "/api/cliente/cotizaciones/*").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.POST, "/api/cliente/cotizaciones", "/api/cliente/cotizaciones/*/aceptar", "/api/cliente/cotizaciones/*/cancelar").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/estado").hasRole("CLIENTE")
                         .anyRequest().denyAll())
                 .addFilterBefore(new SesionVigenteFilter(jdbc), UsernamePasswordAuthenticationFilter.class)

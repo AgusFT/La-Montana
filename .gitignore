@@ -8,3 +8,6 @@
 **/*.tsbuildinfo
 *.log
 .DS_Store
+
+# PDF.js worker generated from the pinned dependency.
+frontend/public/pdfjs/

@@ -48,7 +48,7 @@ public class RevisionConfiguracionService {
         var entregaActual=historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
         for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
         for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","MODALIDAD_SIN_DESTINO","entrega",5,aviso,null));
-        var opciones=opciones(b,comercial,activas);var revision=comercial.actual();
+        var opciones=OpcionesImpresion.calcular(b,comercial,activas);var revision=comercial.actual();
         if(revision==null)bloqueo(h,"CATALOGO_PENDIENTE","catalogo",0,"Activá una revisión comercial válida. Una revisión programada para el futuro todavía no sirve para cotizar.",null);
         var tipos=new HashMap<UUID,TipoServicio>();comercial.servicios().forEach(s->tipos.put(s.codigoPublico(),s.tipo()));
         for(var origen:b.recursos().serviciosPorSucursal()){
@@ -72,16 +72,6 @@ public class RevisionConfiguracionService {
         h.add(new Hallazgo("INFORMACION","OPERACION_MANUAL","recursos",4,"La producción requiere asignación y registro manual. CUPS, pasarelas de pago y oferta de pedidos siguen En construcción.",null));
         return new Revision(b,comercial,List.copyOf(sucursales),entregaActual.valida(),List.copyOf(h),h.stream().filter(x->x.nivel().equals("BLOQUEO")).count(),h.stream().filter(x->x.nivel().equals("ADVERTENCIA")).count(),opciones,entregaActual.puntosDisponibles(),configuracion.huella(new Referencia(b,comercial,sucursales,h,entregaActual.puntosDisponibles())));
     }
-    private List<Opcion> opciones(ConfiguracionService.Borrador b,CatalogoService.Estado c,Set<UUID> activas){
-        if(c.actual()==null)return List.of();var tipos=new HashMap<UUID,TipoServicio>();c.servicios().forEach(s->tipos.put(s.codigoPublico(),s.tipo()));var resultado=new ArrayList<Opcion>();
-        for(var origen:b.recursos().serviciosPorSucursal())if(activas.contains(origen.sucursal()))for(var servicio:c.actual().servicios())if(servicio.habilitado()&&tipos.get(servicio.servicio())==TipoServicio.IMPRESION&&origen.servicios().contains(servicio.servicio()))for(var tarifa:c.actual().tarifas())if(tarifa.habilitada()){
-            var compatibles=b.recursos().impresoras().stream().filter(p->compatible(p,origen.sucursal(),tarifa.formato(),tarifa.color(),false)).toList();if(compatibles.isEmpty())continue;
-            var adicionales=c.actual().servicios().stream().filter(s->s.habilitado()&&tipos.get(s.servicio())==TipoServicio.TERMINACION&&origen.servicios().contains(s.servicio())&&s.compatibilidades().contains(new Compatibilidad(tarifa.formato(),tarifa.papel()))).map(OfertaServicio::servicio).toList();
-            resultado.add(new Opcion(origen.sucursal(),servicio.servicio(),tarifa.formato(),tarifa.papel(),tarifa.color(),compatibles.stream().anyMatch(RecursosRepositorio.Impresora::admiteDobleFaz),adicionales));
-        }
-        return List.copyOf(resultado);
-    }
-    private boolean compatible(RecursosRepositorio.Impresora p,UUID sucursal,UUID formato,ModoColor color,boolean doble){return p.estado().equals("OPERATIVA")&&p.sucursal().equals(sucursal)&&p.formatos().contains(formato)&&(color==ModoColor.BLANCO_NEGRO||p.admiteColor())&&(!doble||p.admiteDobleFaz());}
     private void bloqueo(List<Hallazgo> h,String codigo,String area,int fase,String mensaje,UUID sucursal){h.add(new Hallazgo("BLOQUEO",codigo,area,fase,mensaje,sucursal));}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -97,7 +87,7 @@ public class RevisionConfiguracionService {
         String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
         BigDecimal total=new BigDecimal(precio.subtotal()).add(new BigDecimal(costo));precios.limite(total);
         var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,precio.carillas());
-        var impresoras=b.recursos().impresoras().stream().filter(p->compatible(p,input.sucursal(),item.formato(),item.color(),item.dobleFaz())).map(p->new Impresora(p.codigoPublico(),p.nombre())).toList();
+        var impresoras=b.recursos().impresoras().stream().filter(p->OpcionesImpresion.compatible(p,input.sucursal(),item.formato(),item.color(),item.dobleFaz())).map(p->new Impresora(p.codigoPublico(),p.nombre())).toList();
         var recorrido=new ArrayList<String>();recorrido.add("Cotización de ejemplo con la revisión comercial "+r.catalogo().actual().numero()+": ARS "+total.toPlainString()+". Vigencia configurada: "+b.pagos().vigenciaCotizacionMinutos()+" minutos.");
         recorrido.addAll(economica.instrucciones());recorrido.add(economica.cargaRequiereAcreditacion()?"Archivo: carga del PDF bloqueada hasta acreditar el importe requerido; después se inspecciona su contenido real.":"Archivo: carga e inspección real del PDF; las discrepancias y correcciones se resuelven antes de producir.");
         if(economica.revisionHumana())recorrido.add("Revisión humana: aprobar o pedir correcciones. Si la seña se exige después de aprobar, producción espera su acreditación.");
