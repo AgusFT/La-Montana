@@ -82,6 +82,10 @@ public class EntregaConfiguracionService {
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public EvaluadorCalendario.Simulacion simular(UUID codigo,SimularEntrega input,String correo) {
+        return simular(codigo,input,correo,0);
+    }
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public EvaluadorCalendario.Simulacion simular(UUID codigo,SimularEntrega input,String correo,int minimoServiciosMinutos) {
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());var e=b.entrega();
         exigir(input.recibidoEn()!=null&&input.sucursal()!=null&&input.modalidad()!=null,"Completá sucursal, modalidad y fecha de recepción.");
         if(!e.modalidades().contains(input.modalidad()))throw conflicto("Seleccioná y guardá esa modalidad antes de simularla.");
@@ -97,7 +101,7 @@ public class EntregaConfiguracionService {
             punto=e.puntos().stream().filter(p->p.codigoPublico().equals(input.punto())).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"El punto no pertenece a este borrador."));
             opcion=opciones(e,sucursales).stream().filter(p->p.punto().equals(input.punto())&&p.sucursal().equals(input.sucursal())).findFirst().orElseThrow(()->conflicto("El punto ya no está disponible para este origen. Revisá su disponibilidad temporal, relación habilitada y franjas con cupo positivo."));
         }
-        var resultado=evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad(),input.recibidoEn());
+        var resultado=evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad(),input.recibidoEn(),minimoServiciosMinutos);
         if(input.modalidad()==Modalidad.ENVIO_DOMICILIO){
             var territorio=input.territorio().normalizado();
             var zona=e.zonas().stream().filter(ZonasRepositorio.Zona::utilizable).filter(z->z.territorios().contains(territorio)).findFirst().orElseThrow(()->conflicto("El domicilio no tiene una zona habilitada con esa combinación de código postal, localidad y provincia y una franja de cupo positivo."));

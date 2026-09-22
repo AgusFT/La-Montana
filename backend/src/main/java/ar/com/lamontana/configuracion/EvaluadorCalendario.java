@@ -18,9 +18,12 @@ public class EvaluadorCalendario {
     public record DestinoZona(UUID zona,String nombre,String zonaHoraria,String costo,TerritorioEntrega territorio,LocalDate fecha,
                               String apertura,String cierre,Instant franjaDesde,Instant franjaHasta,int cupoConfigurado) {}
     public Simulacion evaluar(long version,EntregaRepositorio.Horario horario,String preparacionHoras,String trasladoHoras,Modalidad modalidad,Instant recibidoEn) {
+        return evaluar(version,horario,preparacionHoras,trasladoHoras,modalidad,recibidoEn,0);
+    }
+    public Simulacion evaluar(long version,EntregaRepositorio.Horario horario,String preparacionHoras,String trasladoHoras,Modalidad modalidad,Instant recibidoEn,int minimoServiciosMinutos) {
         ZoneId zona=ZoneId.of(horario.zonaHoraria());Instant limite=limite(recibidoEn,horario.zonaHoraria());var dias=new HashMap<Integer,Dia>();for(var dia:horario.dias())dias.put(dia.dia(),dia);
         Instant comienzo=siguienteApertura(recibidoEn,zona,dias,limite);
-        Instant fin=consumir(comienzo,segundos(preparacionHoras),zona,dias,limite);
+        Instant fin=consumir(comienzo,Math.max(segundos(preparacionHoras),Math.multiplyExact((long)minimoServiciosMinutos,60)),zona,dias,limite);
         Instant llegada=null,disponible=null;
         var notas=new ArrayList<String>();notas.add("La preparación y el traslado estimados consumen únicamente las ventanas operativas de la sucursal de origen.");
         notas.add("Son estimaciones del calendario semanal guardado; el avance real puede adelantarlas o demorarlas y no obliga a esperar.");

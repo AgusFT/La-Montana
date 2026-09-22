@@ -58,6 +58,7 @@ public class PagosConfiguracionService {
             throw error(HttpStatus.CONFLICT,"El borrador cambió o ya no se puede editar. Consultá su versión actual.");
         if(borrador.modelo()==null)throw error(HttpStatus.CONFLICT,"Seleccioná primero el modelo operativo.");
     }
+    void comprobar(ConfiguracionService.Borrador b){validar(b,b.pagos());}
     private record Valores(BigDecimal umbralSena,BigDecimal valorSena,BigDecimal umbralAprobacion) {}
     private Valores validar(ConfiguracionService.Borrador b,Pagos p) {
         exigir(p!=null&&p.medios()!=null&&!p.medios().isEmpty()&&p.medios().size()<=2,"Elegí al menos un medio de pago habilitado.");

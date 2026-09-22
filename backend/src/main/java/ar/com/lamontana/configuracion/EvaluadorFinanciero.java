@@ -20,8 +20,8 @@ public class EvaluadorFinanciero {
         Momento momento=Momento.ANTES_ENTREGA;
         var instrucciones=new ArrayList<String>();
         if(modelo==Modelo.CONDICIONAL&&criterio==Criterio.PAGO_PREVIO) {
-            previo=total;carga=true;momento=Momento.ANTES_CARGA;
-            instrucciones.add("Acreditar el total por transferencia antes de habilitar la carga del PDF.");
+            previo=total;carga=total.signum()>0;momento=Momento.ANTES_CARGA;
+            instrucciones.add(carga?"Acreditar el total por transferencia antes de habilitar la carga del PDF.":"El total es cero: no hay importe que acreditar antes de cargar el PDF. Las validaciones técnicas siguen siendo obligatorias.");
         } else {
             boolean corresponde=pagos.exigirSena()&&switch(pagos.condicionSena()) {
                 case SIEMPRE -> true;

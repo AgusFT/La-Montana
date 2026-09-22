@@ -35,7 +35,10 @@ public class CatalogoService {
 
     @Transactional
     public Estado estado() {
-        bloquear(); aplicarVencida();
+        bloquear(); aplicarVencida();return leerEstado();
+    }
+    @Transactional(readOnly=true)
+    public Estado leerEstado() {
         var actuales=jdbc.query("SELECT codigo_publico FROM lamontana.catalogo_revision WHERE vigente",(rs,row)->rs.getObject(1,UUID.class));
         var programadas=jdbc.query("SELECT codigo_publico FROM lamontana.catalogo_revision WHERE estado='PROGRAMADA'",(rs,row)->rs.getObject(1,UUID.class));
         return new Estado(formatos(),papeles(),servicios(),actuales.isEmpty()?null:cargarRevision(actuales.get(0)),
