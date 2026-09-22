@@ -40,7 +40,12 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const copyMethods = path.length===5 && path[0]==="admin" && path[1]==="configuracion" && path[2]==="historial" && uuidPattern.test(path[3]) && path[4]==="base" ? ["POST"] : null;
   const rollbackMethods = path.length===4 && path[0]==="admin" && path[1]==="configuracion" && path[2]==="rollback" ? path[3]==="revision" ? ["GET"] : ["solicitar","confirmar","revocar"].includes(path[3]) ? ["POST"] : null : null;
   const quoteMethods = path[0]==="cliente" && path[1]==="cotizaciones" ? path.length===2 ? ["GET","POST"] : path.length===3 && (path[2]==="opciones"||uuidPattern.test(path[2])) ? ["GET"] : path.length===4 && uuidPattern.test(path[2]) && ["aceptar","cancelar"].includes(path[3]) ? ["POST"] : null : null;
-  const methods = quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
+  const fileRoute = ["cliente","operacion"].includes(path[0]) && path[1]==="cotizaciones" && uuidPattern.test(path[2]??"") && path[3]==="archivos";
+  const fileMethods = fileRoute ? path.length===4 ? (path[0]==="cliente"?["GET","POST"]:["GET"]) : uuidPattern.test(path[4]??"") ? path.length===5 ? ["GET"] : path.length===6 && path[5]==="original" ? ["GET"] : path.length===7 && path[5]==="paginas" && /^[1-9][0-9]{0,4}$/.test(path[6]) ? ["GET"] : path.length===6 && path[0]==="cliente" ? path[5]==="contenido" ? ["PUT"] : path[5]==="aceptar" ? ["POST"] : path[5]==="carga" ? ["GET"] : null : null : null : null;
+  const binaryUpload=!!fileMethods&&request.method==="PUT";
+  const binaryDownload=!!fileMethods&&request.method==="GET"&&(path[5]==="original"||path[5]==="paginas");
+  const receivedMethods=path.length===4&&path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2])&&path[3]==="archivos"?["GET"]:null;
+  const methods = receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
@@ -55,12 +60,27 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       const value = request.headers.get(name);
       if (value) headers.set(name, value);
     }
-    const body = ["POST", "PUT"].includes(request.method) ? await request.text() : undefined;
+    let body:BodyInit|undefined;
+    if(binaryUpload){
+      if(request.headers.get("Content-Type")?.split(";")[0]!=="application/pdf")return error(415,"Sólo se recibe contenido PDF.");
+      if(Number(request.headers.get("Content-Length")??0)>10485760)return error(413,"El PDF supera el máximo de 10 MiB.");
+      const check=await fetch(`${base.replace(/\/+$/, "")}/api/${path.slice(0,5).join("/")}/carga`,{headers,cache:"no-store",redirect:"manual",signal:AbortSignal.timeout(8000)});
+      if(!check.ok){const data=await check.json().catch(()=>null);return error(check.status,typeof data?.mensaje==="string"?data.mensaje:"No se autorizó la carga.");}
+      const gate=await check.json();
+      if(gate.habilitada!==true){
+        const current=await fetch(`${base.replace(/\/+$/, "")}/api/${path.slice(0,5).join("/")}`,{headers,cache:"no-store",redirect:"manual",signal:AbortSignal.timeout(8000)});
+        if(current.ok){const saved=await current.json();if(typeof saved.estado==="string"&&saved.estado!=="PENDIENTE")return Response.json(saved,{headers:{"Cache-Control":"no-store"}});}
+        return error(409,typeof gate.motivo==="string"?gate.motivo:"La carga está bloqueada.");
+      }
+      const reader=request.body?.getReader();if(!reader)return error(400,"Falta el PDF.");const chunks:Uint8Array[]=[];let total=0;
+      try{for(;;){const next=await reader.read();if(next.done)break;total+=next.value.length;if(total>10485760){await reader.cancel();return error(413,"El PDF supera el máximo de 10 MiB.");}chunks.push(next.value);}}finally{reader.releaseLock();}
+      const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}body=bytes;
+    }else body=["POST", "PUT"].includes(request.method)?await request.text():undefined;
     const maxBytes = (route === "admin/catalogo/revisiones" || pointMethods || quoteMethods) ? 131072 : 16384;
-    if (body && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
-    const query = historyMethods || quoteMethods ? new URL(request.url).search : "";
+    if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
+    const query = historyMethods || quoteMethods || receivedMethods ? new URL(request.url).search : "";
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {
-      method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(8000),
+      method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(binaryUpload?90000:binaryDownload?30000:8000),
     });
     const resultHeaders = new Headers({ "Cache-Control": "no-store" });
     responseHeaders = resultHeaders;
@@ -75,6 +95,11 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     if (["setup/propietario", "auth/registro"].includes(route) && response.status === 201) {
       resultHeaders.set("Content-Type", "application/json");
       return Response.json({ mensaje: route === "auth/registro" ? "Cuenta de cliente creada." : "Propietario creado." }, { status: 201, headers: resultHeaders });
+    }
+    if(binaryDownload&&response.ok&&["application/pdf","image/png"].includes(contentType??"")){
+      resultHeaders.set("X-Content-Type-Options","nosniff");resultHeaders.set("Content-Security-Policy","default-src 'none'; sandbox");
+      const disposition=response.headers.get("Content-Disposition");if(disposition)resultHeaders.set("Content-Disposition",disposition);
+      return new Response(await response.arrayBuffer(),{status:response.status,headers:resultHeaders});
     }
     if (!contentType?.includes("application/json")) return error(502, "El sistema respondió con un formato inesperado.", resultHeaders);
     const data = await response.json();

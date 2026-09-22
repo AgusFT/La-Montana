@@ -37,6 +37,8 @@ spring:
           time_zone: UTC
 server:
   port: 8080
+  tomcat:
+    connection-timeout: 20s
   error:
     include-message: never
     include-stacktrace: never
@@ -66,3 +68,7 @@ lamontana:
     token: ${SETUP_TOKEN:}
   archivos:
     directorio: ${FILES_DIR:./var/archivos}
+    inspector-jar: ${PDF_INSPECTOR_JAR:}
+    antivirus:
+      host: ${CLAMAV_HOST:127.0.0.1}
+      port: ${CLAMAV_PORT:3310}

@@ -25,6 +25,9 @@ services:
       DB_USER: lamontana
       DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
       FILES_DIR: /app/archivos
+      PDF_INSPECTOR_JAR: /app/app.jar
+      CLAMAV_HOST: antivirus
+      CLAMAV_PORT: "3310"
       SETUP_TOKEN: ${SETUP_TOKEN:-}
       SESSION_COOKIE_SECURE: "false"
       SMTP_HOST: mailpit
@@ -32,6 +35,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-noreply@lamontana.local}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
+    networks: [default, analisis]
     volumes:
       - archivos_data:/app/archivos
     depends_on:
@@ -60,6 +64,14 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  antivirus:
+    build: ./infra/antivirus
+    networks: [analisis]
+    volumes:
+      - antivirus_data:/var/lib/clamav
+    mem_limit: 4g
+    restart: unless-stopped
+
   mailpit:
     image: axllent/mailpit:v1.31.0
     ports:
@@ -74,3 +86,7 @@ volumes:
   postgres_data:
   archivos_data:
   mail_data:
+  antivirus_data:
+
+networks:
+  analisis:

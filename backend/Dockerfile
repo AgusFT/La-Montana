@@ -5,7 +5,7 @@ COPY src ./src
 RUN mvn -B -DskipTests package
 
 FROM eclipse-temurin:17.0.20_8-jre-jammy
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 RUN groupadd --gid 10001 lamontana && useradd --uid 10001 --gid lamontana --no-create-home lamontana \
     && mkdir -p /app/archivos && chown -R lamontana:lamontana /app
 WORKDIR /app
