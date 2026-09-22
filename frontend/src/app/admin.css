@@ -14,3 +14,5 @@
 .configuration-mode .admin-sidebar{display:none}.configuration-mode .admin-main{width:100%}
 
 .admin-form .configuration-option input[type=radio],.admin-form .configuration-conditions input[type=radio]{width:18px;height:18px;min-height:18px;flex:0 0 18px;padding:0;display:inline-block;margin:0 10px 0 0;vertical-align:middle}.configuration-conditions label.admin-check{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:10px;text-align:left}.configuration-option>strong{vertical-align:middle}
+
+.draft-cancellation .admin-form{max-width:760px}.configuration-history{margin-top:24px}.configuration-history .admin-table td{white-space:normal;overflow-wrap:anywhere}.configuration-history .admin-table{min-width:720px}

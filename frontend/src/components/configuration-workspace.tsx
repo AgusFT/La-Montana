@@ -1,5 +1,6 @@
 "use client";
 import {useRef,useState,type FormEvent} from "react";
+import {DraftCancellation} from "@/components/draft-cancellation";
 import {MutationError,secureMutation} from "@/lib/secure-mutation";
 import {catalogDate} from "@/lib/catalog-types";
 import {isConfigurationDraft,isConfigurationState,modelLabels,criterionLabels,type ConfigurationState,type ConfigurationDraft,type OperatingModel,type ApprovalCriterion} from "@/lib/configuration-types";
@@ -8,13 +9,16 @@ type Command={path:string;method:"POST"|"PUT";body:string};
 async function readState(){const r=await fetch("/api/admin/configuracion",{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw new Error("No pudimos consultar el borrador.");const data:unknown=await r.json();if(!isConfigurationState(data))throw new Error("La configuración tiene un formato inesperado.");return data;}
 
 export function ConfigurationWorkspace({initial}:{initial:ConfigurationState}){
+  const[history,setHistory]=useState(initial.historial),[cancelEpoch,setCancelEpoch]=useState(0);
   const[draft,setDraft]=useState(initial.borrador),[phase,setPhase]=useState(1),[model,setModel]=useState<OperatingModel|"">(initial.borrador?.modelo??""),[criterion,setCriterion]=useState<ApprovalCriterion|"">(initial.borrador?.criterio??"");
   const[baseVersion,setBaseVersion]=useState(initial.borrador?.version??0),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[message,setMessage]=useState(""),[success,setSuccess]=useState(""),[conflict,setConflict]=useState(false),[latest,setLatest]=useState<ConfigurationDraft|null>(null);
   const command=useRef<Command|null>(null);const locked=busy||uncertain;
   function loadDraft(data:ConfigurationDraft){setDraft(data);setBaseVersion(data.version);setModel(data.modelo??"");setCriterion(data.criterio??"");}
+  async function refreshCurrent(){const state=await readState();setHistory(state.historial);if(state.borrador)loadDraft(state.borrador);else{setDraft(null);setBaseVersion(0);setModel("");setCriterion("");}setCancelEpoch(value=>value+1);}
+  async function cancelled(data:ConfigurationDraft){setDraft(null);setPhase(1);setBaseVersion(0);setModel("");setCriterion("");setHistory(current=>[data,...current.filter(item=>item.codigoPublico!==data.codigoPublico)]);setSuccess(`Borrador ${data.numero} cancelado. Su registro permanece en el historial.`);setMessage("");try{await refreshCurrent();}catch{setMessage("La cancelación fue confirmada, pero no pudimos actualizar el estado. Recargá la página para consultar los datos actuales.");}}
   async function send(next?:Command){
     if(busy)return;setBusy(true);setMessage("");setSuccess("");if(next)command.current=next;
-    try{if(!command.current)throw new Error("No hay una solicitud pendiente.");const c=command.current;const response=await secureMutation(c.path,c.body,"application/json",c.method);const data:unknown=await response.json();if(!isConfigurationDraft(data))throw new Error("No pudimos confirmar el borrador recibido.");command.current=null;setUncertain(false);setConflict(false);setLatest(null);loadDraft(data);setPhase(2);setSuccess("Solicitud procesada. El formulario muestra el borrador guardado en el sistema.");}
+    try{if(!command.current)throw new Error("No hay una solicitud pendiente.");const c=command.current;const response=await secureMutation(c.path,c.body,"application/json",c.method);const data:unknown=await response.json();if(!isConfigurationDraft(data))throw new Error("No pudimos confirmar el borrador recibido.");command.current=null;setUncertain(false);setConflict(false);setLatest(null);if(data.estado==="CANCELADA"){await cancelled(data);}else{loadDraft(data);setPhase(2);setSuccess("Solicitud procesada. El formulario muestra el borrador guardado en el sistema.");}}
     catch(error){setMessage(error instanceof Error?error.message:"No pudimos guardar el borrador.");if(error instanceof MutationError&&!error.uncertain){command.current=null;setUncertain(false);setConflict(error.status===409);}else if(command.current)setUncertain(true);}
     finally{setBusy(false);}
   }
@@ -31,7 +35,7 @@ export function ConfigurationWorkspace({initial}:{initial:ConfigurationState}){
           <h2>Configuración actual</h2><p className="admin-note">Prepará un único borrador. Todas las decisiones comienzan sin seleccionar.</p>
           <div className="configuration-summary"><section className="admin-card"><small>CONFIGURACIÓN VIGENTE</small><h3>Sin configuración activa</h3><p>La activación segura está En construcción.</p></section><section className="admin-card"><small>PRÓXIMA CONFIGURACIÓN</small><h3>No programada</h3><p>La programación operativa está En construcción.</p></section><section className="admin-card"><small>ESTADO DE EDICIÓN</small><h3>{draft?"Borrador en curso":"Sin borrador"}</h3><p>{draft?`Borrador ${draft.numero} · Edición ${draft.version}`:"Creá el borrador para elegir cómo operará la imprenta."}</p></section></div>
           {draft?<section className="admin-card configuration-resume"><h3>Continuar el borrador guardado</h3><p>Responsable: {draft.actor} · Último guardado: {catalogDate(draft.actualizadaEn)}</p><p>Modelo: {draft.modelo?modelLabels[draft.modelo]:"Sin seleccionar"}{draft.criterio&&` · ${criterionLabels[draft.criterio]}`}</p><button type="button" className="admin-button" disabled={locked} onClick={()=>setPhase(2)}>Editar borrador</button></section>:<section className="admin-card"><h3>Comenzar la configuración</h3><p className="admin-note">Se crea un borrador vacío. No se copian reglas, importes ni datos de ejemplo.</p><button type="button" className="admin-button" disabled={locked||conflict} onClick={create}>Crear borrador</button></section>}
-          {draft&&<section className="admin-card"><h3>Administrar el cambio pendiente</h3><p className="admin-note">La cancelación requiere contraseña y código por correo. Su confirmación de seguridad está En construcción.</p><button className="admin-button secondary" type="button" disabled>Cancelar borrador · En construcción</button></section>}
+          {draft&&<DraftCancellation key={`${draft.codigoPublico}:${draft.version}:${cancelEpoch}`} draft={draft} onCancelled={cancelled} onRefresh={refreshCurrent}/>}
         </>:draft&&<form className="admin-form" onSubmit={save}>
           <div><h2>Fase 2 · Modelo operativo y aprobación</h2><p className="admin-note">Borrador {draft.numero} · Editando versión {baseVersion}. Esta selección se completa con las reglas financieras de la fase 3.</p></div>
           <fieldset disabled={locked} className="admin-fieldset"><legend className="configuration-legend">Elegir modo de operación</legend><div className="configuration-models">
@@ -51,6 +55,9 @@ export function ConfigurationWorkspace({initial}:{initial:ConfigurationState}){
         {latest&&<section className="admin-card"><h3>Borrador guardado · Edición {latest.version}</h3><p>Modelo: {latest.modelo?modelLabels[latest.modelo]:"Sin seleccionar"}{latest.criterio&&` · ${criterionLabels[latest.criterio]}`}</p><button type="button" className="admin-button secondary" disabled={locked} onClick={adopt}>{draft?"Usar versión actual conservando mi selección":"Continuar este borrador"}</button></section>}
       </div>
     </div>
+    <section className="admin-card configuration-history"><h2>Borradores cancelados</h2><p className="admin-note">La cancelación conserva lo que se había preparado. El historial de versiones activas sigue En construcción.</p>
+      {history.length===0?<p className="admin-empty">Todavía no hay borradores cancelados.</p>:<div className="admin-table-wrap" tabIndex={0} aria-label="Borradores cancelados"><table className="admin-table"><thead><tr><th>Borrador</th><th>Cancelación</th><th>Responsable</th><th>Motivo</th><th>Selección conservada</th></tr></thead><tbody>{history.map(item=><tr key={item.codigoPublico}><td>{item.numero}<small>Edición {item.version}</small></td><td>{item.canceladaEn?catalogDate(item.canceladaEn):"Sin fecha"}</td><td>{item.cancelador}</td><td>{item.motivoCancelacion}</td><td>{item.modelo?modelLabels[item.modelo]:"Sin seleccionar"}{item.criterio&&<small>{criterionLabels[item.criterio]}</small>}</td></tr>)}</tbody></table></div>}
+    </section>
     <div className="admin-page-footer"><a href="/administracion">← Volver a administración</a><span>Borrador sin activar</span></div>
   </>;
 }

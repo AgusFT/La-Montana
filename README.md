@@ -2,9 +2,9 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 7
+## Estado actual · entrega 10
 
-Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Se puede crear y retomar un borrador operativo, y guardar la selección de modelo y condición de aprobación. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Se puede crear y retomar un borrador operativo, guardar modelo y condición de aprobación, o cancelarlo con contraseña y código de correo conservando su historial. Compose incluye base, backend, frontend y buzón local Mailpit.
 
 **Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Las tarifas y los servicios globales ya se pueden configurar y programar. Horarios/capacidades, reglas operativas, pedidos, pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
@@ -30,7 +30,7 @@ Puertos predeterminados, publicados solo en la máquina local:
 | Buzón de correo local | http://localhost:8025 |
 | PostgreSQL | localhost:5432 · base y usuario técnicos `lamontana` |
 
-Mailpit recibe los códigos de verificación y recuperación enviados por el backend mediante SMTP `mailpit:1025`. Abrir el buzón local para leerlos; no se envían a proveedores de correo externos. Los códigos de activación de configuración siguen pendientes.
+Mailpit recibe los códigos de verificación, recuperación y cancelación de borradores enviados por el backend mediante SMTP `mailpit:1025`. Abrir el buzón local para leerlos; no se envían a proveedores de correo externos. Los códigos de activación de configuración siguen pendientes.
 
 Si hay puertos ocupados, agregar `FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT` o `MAILPIT_PORT` a `.env`; `.env.example` muestra las opciones. Los puertos internos no cambian. No reemplazar la contraseña si ya existe un volumen de PostgreSQL inicializado: editar el entorno no cambia la contraseña guardada en la base.
 
@@ -77,9 +77,9 @@ Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWOR
 
 Las contraseñas se guardan con PBKDF2 y sal aleatoria; el correo se compara sin distinguir mayúsculas. El correo comienza sin verificar y sólo cambia al confirmar un código recibido en el buzón local. Las sesiones se guardan mediante Spring Session JDBC, vencen tras 30 minutos de inactividad y usan cookies HttpOnly/SameSite=Lax. Cada POST requiere un token CSRF obtenido para esa sesión, renovado tras login/logout. El backend renueva el identificador al autenticar e invalida la sesión al salir.
 
-El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 solicitudes de alta/login/registro/correo/cambio de contraseña por minuto y proceso; ese contador se reinicia con el backend. Los códigos tienen además límites persistentes de reenvío e intentos.
+El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 solicitudes de alta/login/registro/correo/cambio de contraseña/autorización de cancelación por minuto y proceso; ese contador se reinicia con el backend. Los códigos tienen además límites persistentes de reenvío e intentos.
 
-El proxy Next admite solo las rutas declaradas de identidad, organización y catálogo, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
+El proxy Next admite solo las rutas declaradas de identidad, organización, catálogo y configuración, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
 
 Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de Spring Session; no implementa un circuito paralelo de refresh tokens. El rol técnico de administrador conserva el código ADMIN_ADMIN utilizado desde la entrega 2; el empleado usa EMPLEADO. Las migraciones V3–V6 extienden usuarios, sucursales, permisos y credenciales temporales. La instalación inicia sin configuración ni datos comerciales.
 
@@ -94,13 +94,13 @@ Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de 
 - Producción manual, correcciones, calidad/reimpresión, cancelaciones y entrega/cobro completos. Retiro local: **Listo para entregar**. **En viaje** solo para traslado a punto o domicilio; llegada y entrega efectiva son hechos diferentes.
 - Reclamos posteriores, empresas/cuenta corriente, conversión DOCX/ODT, CUPS/agentes, mobile, pasarelas y seriales/licencias: **En construcción**. D2 y las correcciones operativas no pertenecen a los reclamos diferidos.
 
-Referencia funcional: DER y flujos de `main` en `3983058e`, más contratos/mocks de `docs/actualizacion-producto-configurable-revision` en `56f89d40`. Las decisiones del usuario prevalecen. El subconjunto del DER y sus adaptaciones se incorporarán por etapas; aún no hay entidades comerciales implementadas.
+Referencia funcional: DER y flujos de `main` en `3983058e`, más contratos/mocks de `docs/actualizacion-producto-configurable-revision` en `56f89d40`. Las decisiones del usuario prevalecen. El subconjunto del DER y sus adaptaciones se incorporan por etapas: identidad, organización, catálogo y preparación de configuración ya persisten; cotizaciones, pedidos y movimientos financieros siguen pendientes.
 
 Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/system-requirements.html), [Next.js](https://nextjs.org/docs/app/getting-started/installation) y [PostgreSQL](https://www.postgresql.org/docs/current/release.html). Versiones exactas del frontend en el lockfile y del backend en Maven; las imágenes están declaradas en Dockerfiles/Compose.
 
 ## Continuación
 
-Siguiente entrega: programación comercial persistente; después configurador con horarios/capacidades. Luego recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: fase 3 del configurador, medios de pago y parámetros financieros sin valores predeterminados. Después, capacidades/horarios/entregas, simulación y activación; luego recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
 
 Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
@@ -203,12 +203,23 @@ Migración comprobada sobre V7 poblada: al aplicar V8 se conservaron revisión v
 
 Desde Administración → Configurar la imprenta se puede crear un único borrador vacío, retomar su edición y elegir Control manual o Control condicional. El manual no lleva criterio automático; el condicional exige elegir Pago previo total, Pago de seña o Monto total del pedido. Al crear, modelo y criterio están sin seleccionar; no se asignan importes, porcentajes ni políticas predeterminadas.
 
-Guardar esta selección **no activa reglas ni habilita pedidos**. Los parámetros financieros de fase 3, recursos/capacidades, horarios, entregas, simulación, activación segura e historial operativo siguen En construcción. La cancelación del borrador permanece deshabilitada: el mock exige contraseña y código por correo y ese recorrido todavía no está implementado. Se puede seguir editando el borrador existente.
+Guardar esta selección **no activa reglas ni habilita pedidos**. Los parámetros financieros de fase 3, recursos/capacidades, horarios, entregas, simulación, activación segura e historial operativo siguen En construcción. La entrega 10 habilita cancelar el borrador con contraseña y código por correo, como exige el mock; también se puede seguir editando el existente.
 
-V9 incorpora el subconjunto inicial de `configuracion_version`, separado de `catalogo_revision`: número de configuración, versión de edición, creador, fechas y selección del modelo. Sólo admite EN_PREPARACION en esta entrega; los demás estados y relaciones se agregarán con sus recorridos. Comprobantes y eventos conservan actor, destino, tipo y versión. El backend exige propietario activo, rol y CSRF. Un reintento devuelve el estado actual del mismo borrador y no vuelve a aplicar cambios antiguos.
+V9 incorpora el subconjunto inicial de `configuracion_version`, separado de `catalogo_revision`: número de configuración, versión de edición, creador, fechas y selección del modelo. V9 admite EN_PREPARACION; V10 agrega CANCELADA. Los demás estados y relaciones se agregarán con sus recorridos. Comprobantes y eventos conservan actor, destino, tipo y versión. El backend exige propietario activo, rol y CSRF. Un reintento devuelve el estado actual del mismo borrador y no vuelve a aplicar cambios antiguos.
 
 Dos editores no se sobrescriben silenciosamente: la versión obsoleta recibe conflicto, el formulario conserva la selección y permite consultar/adoptar la versión actual antes de guardar. Creación, guardado, auditoría y comprobante son atómicos. El borrador y la sesión se conservaron al reiniciar en la prueba integrada.
 
 Dos pruebas integradas con PostgreSQL real/HTTP comprobaron estado vacío, selección y validaciones, permisos, CSRF, concurrencia, idempotencia, fallos de almacenamiento con rollback y reinicio. Se corrigió el manejo de JSON/enum inválido para devolver un error 400 sanitizado en lugar de un error de autorización 403. La prueba de migración comercial V7→V8 sigue pasando con su destino fijado en V8.
 
 El recorrido de navegador comprobó creación con respuesta perdida/reintento, guardado manual y recuperación al recargar, conflicto entre dos editores y recuperación conservando la selección, exclusión del cliente y distintivos de las funciones pendientes. Build/typecheck correctos. Las vistas se contrastaron con CFG-001B y CFG-002 de Alejandro: navegación por fases, resumen en tarjetas, modelos comparables, selección azul y automatización futura deshabilitada. Se adaptó el estado inicial vacío y se corrigió el tamaño/alineación de los controles de selección. No se copiaron valores de ejemplo del mock. La revisión visual final de toda la aplicación continúa pendiente.
+
+
+## Cancelación segura de borradores · entrega 10
+
+Desde Configuración actual, **Cancelar borrador** solicita motivo y contraseña del propietario. El código llega al buzón local Mailpit y debe confirmarse junto con la contraseña. Cancelar conserva selección, creador, número y fechas; agrega responsable, motivo y fecha de cancelación al historial. Después permite crear un nuevo borrador vacío. No activa reglas ni modifica revisiones comerciales.
+
+V10 incorpora autorizaciones ligadas a propósito, propietario, correo, generación de acceso, operación, borrador, edición y motivo. El código aleatorio de 43 caracteres se guarda sólo como hash, vence a los 15 minutos y admite cinco intentos; se exige un minuto entre emisiones. Contraseña incorrecta al solicitar no envía correo. Cambiar el borrador, la contraseña o el correo invalida la autorización pendiente. Contraseñas y códigos no forman parte de comprobantes ni de representaciones de los DTO.
+
+Las respuestas perdidas se recuperan reenviando el mismo comando: solicitar otra vez no duplica el correo y confirmar otra vez recupera la cancelación registrada sin repetirla ni afectar un borrador posterior. Confirmar y guardar estado, consumo, comprobante y auditoría forman una transacción. Un fallo SQL conserva el borrador; un fallo SMTP conserva también la autorización anterior y no consume el intervalo de reenvío. El historial muestra los últimos 50 borradores cancelados; activación, comparación y rollback de versiones operativas siguen En construcción.
+
+Validación: cinco pruebas nuevas con PostgreSQL real/HTTP/SMTP y doce regresiones de configuración y correo pasaron, sin fallos ni omitidos. Cubren permisos/CSRF/actor, separación de propósitos, contraseña, límite de intentos, expiración, revocación, concurrencia, reinicio, reintentos y fallos SQL/SMTP. Build/typecheck Next correctos. El recorrido real Next → Spring → PostgreSQL → Mailpit verificó errores corregibles, respuestas perdidas al solicitar y confirmar, historial persistente, nuevo borrador vacío y cliente rechazado. Capturas de escritorio/móvil revisadas sin desbordes, errores JavaScript ni 5xx. El piloto E2E completo y el arranque de Compose permanecen pendientes.

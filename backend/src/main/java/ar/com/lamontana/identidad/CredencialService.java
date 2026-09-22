@@ -75,6 +75,7 @@ public class CredencialService {
     public void revocar(long usuario) {
         jdbc.update("UPDATE lamontana.usuario SET version_acceso=version_acceso+1 WHERE id_usuario=?",usuario);
         for(Tipo tipo:Tipo.values()) jdbc.update("UPDATE lamontana."+tipo.tabla+" SET fecha_revocacion=now() WHERE id_usuario=? AND fecha_consumo IS NULL AND fecha_revocacion IS NULL",usuario);
+        jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_revocacion=clock_timestamp() WHERE id_actor=? AND fecha_consumo IS NULL AND fecha_revocacion IS NULL",usuario);
     }
     private Usuario usuario(String email) {
         return jdbc.query("""
