@@ -29,6 +29,8 @@ public class RevisionConfiguracionService {
     public Revision revisar(UUID codigo,String correo){
         return evaluar(codigo,correo,false);
     }
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Revision revisarProgramada(UUID codigo,String correo){return evaluar(codigo,correo,true);}
     Revision evaluar(UUID codigo,String correo,boolean programada){
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);var comercial=catalogo.leerEstado();var h=new ArrayList<Hallazgo>();
         var sucursales=jdbc.query("SELECT codigo_publico,nombre,estado='ACTIVA' FROM lamontana.sucursal ORDER BY codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getBoolean(3)));

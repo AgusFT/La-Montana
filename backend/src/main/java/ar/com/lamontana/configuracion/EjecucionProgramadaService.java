@@ -13,41 +13,35 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Una conexión dedicada conserva la exclusión entre el inicio durable y la publicación. */
 @Service
 public class EjecucionProgramadaService {
-    private final DataSource dataSource;
+    private final CoordinadorActivacion coordinador;
     private final JdbcTemplate jdbc;
     private final ConfiguracionService configuracion;
     private final RevisionConfiguracionService revision;
-    private final ActivacionConfiguracionService activacion;
+    private final PublicacionConfiguracion activacion;
     private final CatalogoService catalogo;
     private final TransactionTemplate tx;
-    public EjecucionProgramadaService(DataSource dataSource,JdbcTemplate jdbc,ConfiguracionService configuracion,RevisionConfiguracionService revision,ActivacionConfiguracionService activacion,CatalogoService catalogo,PlatformTransactionManager manager){
-        this.dataSource=dataSource;this.jdbc=jdbc;this.configuracion=configuracion;this.revision=revision;this.activacion=activacion;this.catalogo=catalogo;tx=new TransactionTemplate(manager);tx.setTimeout(30);
+    public EjecucionProgramadaService(CoordinadorActivacion coordinador,JdbcTemplate jdbc,ConfiguracionService configuracion,RevisionConfiguracionService revision,PublicacionConfiguracion activacion,CatalogoService catalogo,PlatformTransactionManager manager){
+        this.coordinador=coordinador;this.jdbc=jdbc;this.configuracion=configuracion;this.revision=revision;this.activacion=activacion;this.catalogo=catalogo;tx=new TransactionTemplate(manager);tx.setTimeout(30);
     }
     public void reconciliar(boolean recuperando){
-        // Este lock de sesión nunca se toma desde una transacción que posea el lock de configuración.
-        try(var conexion=dataSource.getConnection()){
-            boolean tomado;
-            try(var q=conexion.createStatement();var r=q.executeQuery("SELECT pg_try_advisory_lock(764004)")){r.next();tomado=r.getBoolean(1);}
-            if(!tomado)return;
+        coordinador.exclusivo(false,()->{
+            UUID intento=tx.execute(status->iniciar(recuperando));
+            if(intento==null)return null;
             try{
-                UUID intento=tx.execute(status->iniciar(recuperando));
-                if(intento==null)return;
-                try{
-                    // Conciliar precios tiene su propia transacción; un fallo operativo no revierte su vigencia.
-                    catalogo.reconciliarProgramaciones();
-                    tx.executeWithoutResult(status->publicar(intento));
-                }catch(RuntimeException ex){
-                    String codigo=ex instanceof AutorizacionVencida?"AUTORIZACION_NO_VIGENTE":ex instanceof CondicionesInvalidas?"CONDICIONES_NO_VALIDAS":"ERROR_PUBLICACION";
-                    String detalle=ex instanceof CondicionesInvalidas c?c.getMessage():ex instanceof AutorizacionVencida?"El usuario que autorizó programar ya no conserva la autorización vigente. Cancelá la programación y autorizá una nueva.":"No se pudo publicar la configuración. La anterior conserva su vigencia; se reintentará en diez minutos.";
-                    tx.executeWithoutResult(status->{configuracion.bloquear();jdbc.update("UPDATE lamontana.intento_activacion_configuracion SET estado='FALLIDO',fecha_fin=clock_timestamp(),codigo_resultado=?,detalle_sanitizado=? WHERE id_intento=? AND estado='INICIADO'",codigo,detalle,intento);});
-                }
-            }finally{try(var q=conexion.createStatement()){q.execute("SELECT pg_advisory_unlock(764004)");}}
-        }catch(SQLException ex){throw new IllegalStateException("No se pudo coordinar la ejecución programada.",ex);}
+                catalogo.reconciliarProgramaciones();
+                tx.executeWithoutResult(status->publicar(intento));
+            }catch(RuntimeException ex){
+                String codigo=ex instanceof AutorizacionVencida?"AUTORIZACION_NO_VIGENTE":ex instanceof CondicionesInvalidas?"CONDICIONES_NO_VALIDAS":"ERROR_PUBLICACION";
+                String detalle=ex instanceof CondicionesInvalidas c?c.getMessage():ex instanceof AutorizacionVencida?"El usuario que autorizó programar ya no conserva la autorización vigente. Cancelá la programación y autorizá una nueva.":"No se pudo publicar la configuración. La anterior conserva su vigencia; se reintentará en diez minutos.";
+                tx.executeWithoutResult(status->{configuracion.bloquear();jdbc.update("UPDATE lamontana.intento_activacion_configuracion SET estado='FALLIDO',fecha_fin=clock_timestamp(),codigo_resultado=?,detalle_sanitizado=? WHERE id_intento=? AND estado='INICIADO'",codigo,detalle,intento);});
+            }
+            return null;
+        });
     }
     private UUID iniciar(boolean recuperando){
         configuracion.bloquear();
         // Con el lock de sesión, cualquier inicio que siga abierto pertenece a una ejecución interrumpida.
-        int interrumpidos=jdbc.update("UPDATE lamontana.intento_activacion_configuracion SET estado='INTERRUMPIDO',fecha_fin=clock_timestamp(),codigo_resultado='EJECUCION_INTERRUMPIDA',detalle_sanitizado='Se recuperó un intento sin publicación confirmada.' WHERE estado='INICIADO'");
+        int interrumpidos=coordinador.recuperar();
         var pendientes=jdbc.query("""
             SELECT c.id_configuracion_version,c.codigo_publico,p.fecha_programada FROM lamontana.configuracion_version c
             JOIN lamontana.programacion_configuracion p USING(id_configuracion_version) WHERE c.estado='PROGRAMADA'
@@ -55,8 +49,9 @@ public class EjecucionProgramadaService {
         if(pendientes.isEmpty())return null;
         var p=pendientes.get(0);var vista=configuracion.programacion(p.codigo());Instant ahora=ahora(),proxima=vista.proximoIntentoEn();
         if(proxima==null||proxima.isAfter(ahora))return null;
-        boolean recuperar=recuperando||interrumpidos>0;
-        String origen=recuperar?"RECUPERACION":vista.intentos().isEmpty()?"PROGRAMACION":"REINTENTO";
+        // Un reintento de adelanto puede vencer antes de la fecha original: todavía no hay atraso de esa fecha.
+        boolean recuperar=(recuperando||interrumpidos>0)&&!p.prevista().isAfter(ahora);
+        String origen=recuperar?"RECUPERACION":vista.intentos().stream().noneMatch(i->!i.iniciadoEn().isBefore(vista.confirmadaEn()))?"PROGRAMACION":"REINTENTO";
         UUID id=UUID.randomUUID();
         jdbc.update("""
             INSERT INTO lamontana.intento_activacion_configuracion(id_intento,id_version_objetivo,id_version_anterior,origen,estado,fecha_inicio,fecha_atraso_detectado)
