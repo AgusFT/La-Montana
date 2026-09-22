@@ -2,6 +2,7 @@ package ar.com.lamontana.seguridad;
 
 import ar.com.lamontana.identidad.IdentidadService;
 import java.util.Map;
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,6 +26,7 @@ public class SeguridadConfiguration {
     SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad, org.springframework.jdbc.core.JdbcTemplate jdbc) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
@@ -42,6 +44,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.PUT, "/api/admin/puntos-entrega/disponibilidad/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion/borradores/*/programacion/revision").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/programacion/activacion/solicitar", "/api/admin/configuracion/borradores/*/programacion/activacion/confirmar", "/api/admin/configuracion/borradores/*/programacion/activacion/revocar").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/historial/*/base", "/api/admin/configuracion/borradores/*/revision/confirmar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion/historial", "/api/admin/configuracion/historial/*", "/api/admin/configuracion/historial/*/auditoria", "/api/admin/configuracion/historial/*/comparacion/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores").hasRole("ADMIN_ADMIN")

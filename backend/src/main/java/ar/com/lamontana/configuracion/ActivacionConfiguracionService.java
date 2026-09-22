@@ -88,6 +88,7 @@ public class ActivacionConfiguracionService {
     private void validar(UUID destino,Decision i,String actor,boolean programada){
         var r=revision.evaluar(destino,actor,programada);
         if(!r.borrador().estado().equals(programada?"PROGRAMADA":"EN_PREPARACION")||r.borrador().version()!=i.version())throw conflicto("La configuración cambió. Volvé a revisar antes de autorizar.");
+        configuracion.exigirRevisionCopia(r.borrador(),r.huella(),programada);
         if(r.bloqueos()>0)throw conflicto("Hay bloqueos en la revisión integral. Corregilos antes de activar.");
         if(!r.huella().equals(i.huellaRevision())||r.catalogo().actual()==null||!r.catalogo().actual().codigoPublico().equals(i.revisionComercial()))throw conflicto("La configuración o su referencia comercial cambió. Volvé a revisar las condiciones actuales.");
         if(!Boolean.TRUE.equals(i.advertenciasRevisadas()))throw conflicto("Confirmá la revisión de las advertencias antes de activar.");

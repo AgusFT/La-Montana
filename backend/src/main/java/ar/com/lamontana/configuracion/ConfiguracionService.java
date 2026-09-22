@@ -35,7 +35,8 @@ public class ConfiguracionService {
     public ConfiguracionService(JdbcTemplate jdbc,RecursosRepositorio recursos,EntregaRepositorio entrega) { this.jdbc=jdbc;this.recursos=recursos;this.entrega=entrega; }
 
     public record Borrador(UUID codigoPublico,long numero,long version,String estado,Modelo modelo,Criterio criterio,
-                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos,EntregaRepositorio.Entrega entrega) {}
+                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos,EntregaRepositorio.Entrega entrega,Copia copia) {}
+    public record Copia(UUID origen,long numeroOrigen,Instant creadaEn,List<Integer> fasesConfirmadas,List<RevisionConfiguracionService.Hallazgo> barridoInicial) {}
     public record Version(Borrador configuracion,Instant activadaEn,Instant finVigencia,String activador,String motivo,UUID predecesora,UUID revisionComercial) {}
     public record Intento(UUID codigo,UUID configuracion,long numero,String origen,String estado,Instant iniciadoEn,Instant terminadoEn,Instant atrasoDetectadoEn,String resultado,String detalle) {}
     public record Programacion(Borrador configuracion,Instant confirmadaEn,Instant previstaEn,String zonaHoraria,String programador,String motivo,Instant proximoIntentoEn,List<Intento> intentos) {}
@@ -158,6 +159,7 @@ public class ConfiguracionService {
     void registrar(UUID operacion,String tipo,long id,long actor,String huella,String evento,long version,UUID recurso,String motivo) {
         jdbc.update("INSERT INTO lamontana.comprobante_configuracion(id_operacion,tipo,id_configuracion_version,id_actor,hash_solicitud) VALUES (?,?,?,?,?)",operacion,tipo,id,actor,huella);
         jdbc.update("INSERT INTO lamontana.evento_configuracion(id_configuracion_version,id_actor,tipo,version,codigo_recurso,motivo) VALUES (?,?,?,?,?,?)",id,actor,evento,version,recurso,motivo);
+        reconfirmarGuardado(id,evento,actor,version);
     }
     Borrador cargar(UUID codigo) {
         var result=jdbc.query(BORRADOR_SQL+" WHERE c.codigo_publico=?",this::mapear,codigo);
@@ -169,7 +171,20 @@ public class ConfiguracionService {
         return new Borrador(rs.getObject("codigo_publico",UUID.class),rs.getLong("numero_version"),rs.getLong("version"),rs.getString("estado"),
                 modelo==null?null:Modelo.valueOf(modelo),criterio==null?null:Criterio.valueOf(criterio),
                 rs.getTimestamp("fecha_creacion").toInstant(),rs.getTimestamp("fecha_actualizacion").toInstant(),rs.getString("actor"),
-                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")),recursos.leer(rs.getLong("id_configuracion_version")),entrega.leer(rs.getLong("id_configuracion_version")));
+                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")),recursos.leer(rs.getLong("id_configuracion_version")),entrega.leer(rs.getLong("id_configuracion_version")),copia(rs.getLong("id_configuracion_version")));
+    }
+    Copia copia(long id){var rows=jdbc.query("SELECT v.codigo_publico,v.numero_version,o.creada_en,o.barrido_inicial::text FROM lamontana.origen_configuracion o JOIN lamontana.configuracion_version v ON v.id_configuracion_version=o.id_version_origen WHERE o.id_configuracion_version=?",(r,n)->new Copia(r.getObject(1,UUID.class),r.getLong(2),r.getTimestamp(3).toInstant(),jdbc.query("SELECT fase FROM lamontana.reconfirmacion_configuracion WHERE id_configuracion_version=? ORDER BY fase",(f,k)->f.getInt(1),id),java.util.Arrays.asList(json.readValue(r.getString(4),RevisionConfiguracionService.Hallazgo[].class))),id);return rows.isEmpty()?null:rows.get(0);}
+    private void reconfirmarGuardado(long id,String evento,long actor,long version){
+        if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.origen_configuracion WHERE id_configuracion_version=?)",Boolean.class,id)))return;
+        int fase=switch(evento){case "MODELO_SELECCIONADO"->2;case "PAGOS_CONFIGURADOS"->3;case "RECURSOS_CONFIGURADOS","IMPRESORA_CREADA","IMPRESORA_EDITADA","IMPRESORA_ESTADO_CAMBIADO","IMPRESORA_RETIRADA"->4;case "ENTREGA_CONFIGURADA","PUNTO_CREADO","PUNTO_EDITADO","ZONA_CREADA","ZONA_EDITADA"->5;default->0;};
+        if(fase==0)return;
+        jdbc.update("DELETE FROM lamontana.reconfirmacion_configuracion WHERE id_configuracion_version=? AND fase>=?",id,fase);
+        if(java.util.Set.of("MODELO_SELECCIONADO","PAGOS_CONFIGURADOS","RECURSOS_CONFIGURADOS","ENTREGA_CONFIGURADA").contains(evento))jdbc.update("INSERT INTO lamontana.reconfirmacion_configuracion(id_configuracion_version,fase,id_actor,version) VALUES (?,?,?,?)",id,fase,actor,version);
+    }
+    void exigirRevisionCopia(Borrador b,String huella,boolean programada){
+        if(b.copia()==null)return;
+        if(!b.copia().fasesConfirmadas().containsAll(List.of(2,3,4,5,6)))throw error(HttpStatus.CONFLICT,"La copia requiere revisar y confirmar nuevamente las fases 2 a 6.");
+        if(!programada&&!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.reconfirmacion_configuracion f JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE c.codigo_publico=? AND f.fase=6 AND f.version=c.version AND f.huella_revision=?)",Boolean.class,b.codigoPublico(),huella)))throw error(HttpStatus.CONFLICT,"La revisión confirmada de la copia cambió. Volvé a fase 6 y confirmá las condiciones actuales.");
     }
     private Pagos pagos(long id) {
         var result=jdbc.query("SELECT * FROM lamontana.configuracion_financiera WHERE id_configuracion_version=?",(rs,row)->{

@@ -52,3 +52,5 @@
 .configuration-history-panel>h2{font-size:28px;line-height:1.25;margin:0 0 12px}
 
 .history-module-description{flex:1}.history-module-description small{display:block;color:#607b9f;font-weight:400;line-height:1.6;margin-top:8px}.history-modules summary{align-items:flex-start}.history-comparison td>p{margin:0 0 10px}
+
+.configuration-copy-info{margin-bottom:20px;overflow-wrap:anywhere}.configuration-copy-info details{margin-top:12px}.configuration-copy-info summary{cursor:pointer;font-weight:600}

@@ -24,10 +24,11 @@ public class HistorialConfiguracionService {
  public record Pagina<T>(List<T> elementos,long total,int pagina,int tamano){}
  public record Listado(Pagina<Fila> versiones,Map<String,Long> cantidades,Referencia activa){}
  public record Modulo(String codigo,String titulo,JsonNode valores){}
- public record Detalle(Fila version,List<Modulo> modulos,Referencia predecesora,Referencia reemplazadaPor,Referencia revisionComercial,Actor activador,Actor programador,String motivoProgramacion,Map<String,String> referencias){}
+ public record Base(boolean permitida,String motivo){}
+ public record Detalle(Fila version,List<Modulo> modulos,Referencia predecesora,Referencia reemplazadaPor,Referencia revisionComercial,Actor activador,Actor programador,String motivoProgramacion,Map<String,String> referencias,ConfiguracionService.Copia copia,Base base){}
  public record Evento(String clave,Instant fecha,String tipo,String descripcion,Actor actor,Long edicion,String recurso,String estadoAnterior,String estadoNuevo,String origen,Instant inicio,Instant fin,Instant atraso){}
  public record Seccion(String codigo,String titulo,boolean modificada,JsonNode origen,JsonNode destino){}
- public record Comparacion(Fila origen,Fila destino,List<Seccion> secciones,long modificadas,Referencia comercialOrigen,Referencia comercialDestino,Map<String,String> referencias){}
+ public record Comparacion(Fila origen,Fila destino,List<Seccion> secciones,long modificadas,Referencia comercialOrigen,Referencia comercialDestino,Map<String,String> referencias,Base base){}
  private static final String FILA="""
  SELECT c.*,coalesce(c.nombre_actor,u.nombre||' '||u.apellido) AS autor_nombre,c.rol_actor AS autor_rol,c.nombre_actor IS NOT NULL AS capturado,
  a.fecha_activacion,a.fin_vigencia,p.fecha_confirmacion,p.fecha_programada,p.zona_horaria,
@@ -48,8 +49,8 @@ public class HistorialConfiguracionService {
  }
  private Fila fila(ResultSet r,int n)throws SQLException{return new Fila(r.getObject("codigo_publico",UUID.class),r.getLong("numero_version"),r.getString("estado"),r.getString("modelo"),r.getString("criterio"),fecha(r,"fecha_creacion"),fecha(r,"fecha_activacion"),fecha(r,"fin_vigencia"),fecha(r,"fecha_confirmacion"),fecha(r,"fecha_programada"),r.getString("zona_horaria"),fecha(r,"fecha_cancelacion"),new Actor(r.getString("autor_nombre"),r.getString("autor_rol"),r.getBoolean("capturado")),r.getString("motivo"));}
  private Fila fila(UUID id){var rows=jdbc.query(FILA+" WHERE c.codigo_publico=? AND c.estado<>'EN_PREPARACION'",(r,n)->fila(r,n),id);if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"La versión cerrada no existe. Los borradores se consultan desde la configuración actual.");return rows.get(0);}
- public Detalle detalle(UUID id,String correo){permiso(correo);return detalle(id);}
- private Detalle detalle(UUID id){
+ public Detalle detalle(UUID id,String correo){permiso(correo);return leerDetalle(id,correo);}
+ private Detalle leerDetalle(UUID id,String correo){
   var f=fila(id);var b=configuracion.cargar(id);var e=b.entrega();var modelo=new LinkedHashMap<String,Object>();modelo.put("modelo",b.modelo());modelo.put("criterio",b.criterio());var horarios=new LinkedHashMap<String,Object>();horarios.put("preparacionHoras",e.preparacionHoras());horarios.put("trasladoHoras",e.trasladoHoras());horarios.put("horariosPorSucursal",e.horariosPorSucursal());
   var entrega=Map.of("modalidades",e.modalidades(),"puntos",e.puntos(),"zonas",e.zonas());
   List<Modulo> modulos=List.of(modulo("modelo","Modelo operativo y aprobación",modelo),modulo("pagos","Pagos y reglas de seña",b.pagos()),modulo("recursos","Impresoras y asignación",b.recursos()),modulo("horarios","Horarios y tiempos",horarios),modulo("entrega","Entrega, puntos y zonas",entrega));
@@ -57,13 +58,20 @@ public class HistorialConfiguracionService {
   var siguiente=referencia("SELECT v.codigo_publico,v.numero_version FROM lamontana.activacion_configuracion a JOIN lamontana.configuracion_version v USING(id_configuracion_version) JOIN lamontana.configuracion_version c ON c.id_configuracion_version=a.id_predecesora WHERE c.codigo_publico=?",id);
   var comercial=referencia("SELECT r.codigo_publico,r.id_catalogo_revision FROM lamontana.configuracion_version c LEFT JOIN lamontana.activacion_configuracion a USING(id_configuracion_version) LEFT JOIN lamontana.programacion_configuracion p USING(id_configuracion_version) JOIN lamontana.catalogo_revision r ON r.id_catalogo_revision=coalesce(a.id_catalogo_revision,p.id_catalogo_revision) WHERE c.codigo_publico=?",id);
   var motivos=jdbc.query("SELECT p.motivo FROM lamontana.programacion_configuracion p JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE c.codigo_publico=?",(r,n)->r.getString(1),id);
-  return new Detalle(f,modulos,previa,siguiente,comercial,actor("activacion_configuracion",id),actor("programacion_configuracion",id),motivos.isEmpty()?null:motivos.get(0),referencias());
+  return new Detalle(f,modulos,previa,siguiente,comercial,actor("activacion_configuracion",id),actor("programacion_configuracion",id),motivos.isEmpty()?null:motivos.get(0),referencias(),b.copia(),base(f,correo));
+ }
+ private Base base(Fila f,String correo){
+  if(!Set.of("ACTIVA","HISTORICA").contains(f.estado()))return new Base(false,"Sólo las versiones activas o históricas pueden usarse como base.");
+  if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT es_administrador_propietario FROM lamontana.usuario WHERE correo=?",Boolean.class,correo)))return new Base(false,"La preparación de configuraciones requiere al propietario de la imprenta.");
+  if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado IN ('EN_PREPARACION','PROGRAMADA'))",Boolean.class)))return new Base(false,"Ya hay un cambio pendiente. Continuá o cancelá el borrador; una programación requiere cancelación autorizada.");
+  if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.intento_activacion_configuracion WHERE estado='INICIADO')",Boolean.class)))return new Base(false,"Hay una activación en curso. Consultá su resultado antes de continuar.");
+  return new Base(true,"Se creará un nuevo borrador y deberás revisar nuevamente las fases 2 a 6.");
  }
  private Actor actor(String tabla,UUID id){var rows=jdbc.query("SELECT coalesce(x.nombre_actor,u.nombre||' '||u.apellido,'Sistema automático'),x.rol_actor,x.nombre_actor IS NOT NULL FROM lamontana."+tabla+" x JOIN lamontana.configuracion_version c USING(id_configuracion_version) LEFT JOIN lamontana.usuario u ON u.id_usuario=x.id_actor WHERE c.codigo_publico=?",(r,n)->new Actor(r.getString(1),r.getString(2),r.getBoolean(3)),id);return rows.isEmpty()?null:rows.get(0);}
  private Referencia referencia(String sql,Object...args){var rows=jdbc.query(sql,(r,n)->new Referencia(r.getObject(1,UUID.class),r.getLong(2)),args);return rows.isEmpty()?null:rows.get(0);}
  private Modulo modulo(String codigo,String titulo,Object valores){return new Modulo(codigo,titulo,json.valueToTree(valores));}
  private Map<String,String> referencias(){Map<String,String> refs=new LinkedHashMap<>();for(String tabla:List.of("sucursal","servicio","formato"))jdbc.query("SELECT codigo_publico::text,codigo||' · '||nombre FROM lamontana."+tabla,r->{refs.put(r.getString(1),r.getString(2));});return refs;}
- public Comparacion comparar(UUID origen,UUID destino,String correo){permiso(correo);var a=detalle(origen);var b=detalle(destino);var secciones=new ArrayList<Seccion>();for(int n=0;n<a.modulos().size();n++){var x=a.modulos().get(n);var y=b.modulos().get(n);secciones.add(new Seccion(x.codigo(),x.titulo(),!canonico(x.valores()).equals(canonico(y.valores())),x.valores(),y.valores()));}return new Comparacion(a.version(),b.version(),secciones,secciones.stream().filter(Seccion::modificada).count(),a.revisionComercial(),b.revisionComercial(),a.referencias());}
+ public Comparacion comparar(UUID origen,UUID destino,String correo){permiso(correo);var a=leerDetalle(origen,correo);var b=leerDetalle(destino,correo);var secciones=new ArrayList<Seccion>();for(int n=0;n<a.modulos().size();n++){var x=a.modulos().get(n);var y=b.modulos().get(n);secciones.add(new Seccion(x.codigo(),x.titulo(),!canonico(x.valores()).equals(canonico(y.valores())),x.valores(),y.valores()));}return new Comparacion(a.version(),b.version(),secciones,secciones.stream().filter(Seccion::modificada).count(),a.revisionComercial(),b.revisionComercial(),a.referencias(),a.base());}
  // Listas representan conjuntos (días, recursos, referencias y franjas), no prioridades de ejecución.
  private String canonico(JsonNode n){if(n==null||n.isNull())return "null";if(n.isArray()){var parts=new ArrayList<String>();for(var v:n)parts.add(canonico(v));Collections.sort(parts);return "["+String.join(",",parts)+"]";}if(n.isObject()){var parts=new TreeMap<String,String>();n.properties().forEach(p->parts.put(p.getKey(),canonico(p.getValue())));return json.writeValueAsString(parts);}return n.toString();}
  private static final String AUDITORIA="""

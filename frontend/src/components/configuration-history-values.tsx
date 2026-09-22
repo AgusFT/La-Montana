@@ -13,10 +13,11 @@ export function HistoryValues({value,refs,field=""}:{value:Value;refs:Record<str
 export function historySummary(code:string,value:Value):string{
  if(value===null||Array.isArray(value)||typeof value!=="object")return "Sin configurar";
  const list=(k:string)=>Array.isArray(value[k])?value[k] as Value[]:[];
+ const count=(key:string,one:string,many:string)=>`${list(key).length} ${list(key).length===1?one:many}`;
  const word=(v:Value|undefined)=>v===null||v===undefined?"Sin configurar":terms[String(v)]??String(v);
  if(code==="modelo")return word(value.modelo)+(value.criterio?" · "+word(value.criterio):"");
  if(code==="pagos")return list("medios").map(word).join(" y ")+" · "+(value.exigirSena?"Seña configurada":"Sin seña exigida");
- if(code==="recursos")return `${list("impresoras").length} impresoras declaradas · ${list("serviciosPorSucursal").length} sucursales`;
- if(code==="horarios")return `${list("horariosPorSucursal").length} calendarios · Preparación ${word(value.preparacionHoras)} h · Traslado ${word(value.trasladoHoras)} h`;
- return list("modalidades").map(word).join(" · ")+` · ${list("puntos").length} puntos · ${list("zonas").length} zonas`;
+ if(code==="recursos")return `${count("impresoras","impresora declarada","impresoras declaradas")} · ${count("serviciosPorSucursal","sucursal","sucursales")}`;
+ if(code==="horarios")return `${count("horariosPorSucursal","calendario","calendarios")} · Preparación ${word(value.preparacionHoras)} h · Traslado ${word(value.trasladoHoras)} h`;
+ return list("modalidades").map(word).join(" · ")+` · ${count("puntos","punto","puntos")} · ${count("zonas","zona","zonas")}`;
 }

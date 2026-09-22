@@ -25,7 +25,9 @@ export type DeliveryPoint = {codigoPublico:string;codigo:string;nombre:string;ca
 export type DeliveryTerritory = {codigoPostal:string;localidad:string;provincia:string};
 export type DeliveryZone = {codigoPublico:string;codigo:string;nombre:string;descripcion:string|null;zonaHoraria:string;costo:string;habilitada:boolean;territorios:DeliveryTerritory[];franjas:PointSlot[]};
 export type DeliveryConfiguration = {zonas:DeliveryZone[];puntos:DeliveryPoint[];preparacionHoras:string|null;trasladoHoras:string|null;modalidades:DeliveryMode[];horariosPorSucursal:BranchSchedule[]};
+export type ConfigurationCopy = {origen:string;numeroOrigen:number;creadaEn:string;fasesConfirmadas:number[];barridoInicial:{nivel:string;codigo:string;area:string;fase:number;mensaje:string;sucursal:string|null}[]};
 export type ConfigurationDraft = {
+  copia: ConfigurationCopy | null;
   codigoPublico: string; numero: number; version: number; estado: "EN_PREPARACION" | "PROGRAMADA" | "CANCELADA" | "ACTIVA" | "HISTORICA";
   modelo: OperatingModel | null; criterio: ApprovalCriterion | null;
   creadaEn: string; actualizadaEn: string; actor: string;
@@ -72,8 +74,9 @@ export function isDeliveryConfiguration(value:unknown):value is DeliveryConfigur
     Array.isArray(value.modalidades) && value.modalidades.every(m=>["RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"].includes(String(m))) &&
     Array.isArray(value.horariosPorSucursal) && value.horariosPorSucursal.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.zonaHoraria==="string"&&Array.isArray(s.dias)&&s.dias.every(d=>record(d)&&Number.isInteger(d.dia)&&Number(d.dia)>=1&&Number(d.dia)<=7&&(d.habilitado===null||typeof d.habilitado==="boolean")&&["apertura","cierre"].every(k=>d[k]===null||typeof d[k]==="string")));
 }
+export function isConfigurationCopy(v:unknown):v is ConfigurationCopy{return record(v)&&typeof v.origen==="string"&&Number.isSafeInteger(v.numeroOrigen)&&typeof v.creadaEn==="string"&&Array.isArray(v.fasesConfirmadas)&&v.fasesConfirmadas.every(n=>Number.isInteger(n)&&Number(n)>=2&&Number(n)<=6)&&Array.isArray(v.barridoInicial)&&v.barridoInicial.every(h=>record(h)&&["nivel","codigo","area","mensaje"].every(k=>typeof h[k]==="string")&&Number.isInteger(h.fase)&&(h.sucursal===null||typeof h.sucursal==="string"));}
 export function isConfigurationDraft(value:unknown):value is ConfigurationDraft {
-  return record(value)&&["codigoPublico","creadaEn","actualizadaEn","actor"].every(key=>typeof value[key]==="string")&&
+  return record(value)&&(value.copia===null||isConfigurationCopy(value.copia))&&["codigoPublico","creadaEn","actualizadaEn","actor"].every(key=>typeof value[key]==="string")&&
     Number.isSafeInteger(value.numero)&&Number.isSafeInteger(value.version)&&Number(value.numero)>0&&Number(value.version)>0&&["EN_PREPARACION","PROGRAMADA","CANCELADA","ACTIVA","HISTORICA"].includes(String(value.estado))&&
     ["canceladaEn","motivoCancelacion","cancelador"].every(key=>value[key]===null||typeof value[key]==="string")&&
     (value.modelo===null||Object.hasOwn(modelLabels,String(value.modelo)))&&(value.criterio===null||Object.hasOwn(criterionLabels,String(value.criterio)))&&(value.pagos===null||isPaymentConfiguration(value.pagos))&&isResourceConfiguration(value.recursos)&&isDeliveryConfiguration(value.entrega);
