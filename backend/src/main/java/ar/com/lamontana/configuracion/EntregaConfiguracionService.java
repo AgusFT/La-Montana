@@ -61,9 +61,14 @@ public class EntregaConfiguracionService {
         if(e.modalidades().isEmpty())problemas.add(new Problema("SIN_MODALIDAD",null,"Elegí al menos una modalidad real de entrega."));
         if((e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)||e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))&&e.trasladoHoras()==null)
             problemas.add(new Problema("TRASLADO_PENDIENTE",null,"Definí el tiempo adicional de traslado/envío, incluso si es cero."));
-        if(e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA))problemas.add(new Problema("PUNTOS_PENDIENTES",null,"La modalidad de puntos requiere puntos utilizables, franjas y cupos. Su configuración está en construcción."));
         if(e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))problemas.add(new Problema("COBERTURA_ENVIO_PENDIENTE",null,"El envío requiere zonas de cobertura, franjas y cupos de entrega. Su configuración está en construcción."));
         var operativas=operativas(id(codigo));
+        if(e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)) {
+            var origenes=new HashSet<UUID>();for(var sucursal:operativas)origenes.add(sucursal.codigo());
+            boolean preparado=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0));
+            if(!preparado)problemas.add(new Problema("PUNTOS_PENDIENTES",null,e.puntos().isEmpty()?"Agregá la definición de al menos un punto con origen, costo y franjas de cupo positivo.":"Hay definiciones de puntos guardadas, pero falta una relación habilitada desde una sucursal operativa con una franja habilitada y cupo positivo."));
+            problemas.add(new Problema("DISPONIBILIDAD_PUNTO_PENDIENTE",null,"Las definiciones y sus condiciones se conservan en el borrador. La disponibilidad temporal y la oferta real de puntos todavía están en construcción."));
+        }
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Habilitá servicios en al menos una sucursal activa para ofrecer entregas."));
         for(var sucursal:operativas){var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));}
         return new Validacion(b.version(),problemas.isEmpty(),List.copyOf(problemas));
@@ -74,7 +79,7 @@ public class EntregaConfiguracionService {
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());var e=b.entrega();
         exigir(input.recibidoEn()!=null&&input.sucursal()!=null&&input.modalidad()!=null,"Completá sucursal, modalidad y fecha de recepción.");
         if(!e.modalidades().contains(input.modalidad()))throw conflicto("Seleccioná y guardá esa modalidad antes de simularla.");
-        if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)throw conflicto("La simulación de puntos requiere puntos y franjas; está en construcción.");
+        if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)throw conflicto("La disponibilidad temporal y la simulación de oferta real de puntos están en construcción; las definiciones guardadas se conservan.");
         var operativa=operativas(id(codigo)).stream().filter(s->s.codigo().equals(input.sucursal())).findFirst();
         if(operativa.isEmpty())throw conflicto("La sucursal debe estar activa y tener servicios habilitados en el borrador para simular su calendario.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);

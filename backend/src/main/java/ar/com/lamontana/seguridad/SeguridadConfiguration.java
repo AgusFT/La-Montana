@@ -47,6 +47,8 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.PUT, "/api/admin/configuracion/borradores/*/entrega").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion/borradores/*/entrega/validacion").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/entrega/simular").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/entrega/puntos").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/configuracion/borradores/*/entrega/puntos/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/impresoras", "/api/admin/configuracion/borradores/*/impresoras/*/estado", "/api/admin/configuracion/borradores/*/impresoras/*/retirar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/cancelacion/solicitar", "/api/admin/configuracion/borradores/*/cancelacion/confirmar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/contexto", "/api/operacion/sucursales/*").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
