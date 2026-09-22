@@ -29,11 +29,12 @@ public class ConfiguracionService {
             LEFT JOIN lamontana.usuario cancelador ON cancelador.id_usuario=c.id_usuario_cancelador
             """;
     private final JdbcTemplate jdbc;
+    private final RecursosRepositorio recursos;
     private final JsonMapper json=JsonMapper.builder().build();
-    public ConfiguracionService(JdbcTemplate jdbc) { this.jdbc=jdbc; }
+    public ConfiguracionService(JdbcTemplate jdbc,RecursosRepositorio recursos) { this.jdbc=jdbc;this.recursos=recursos; }
 
     public record Borrador(UUID codigoPublico,long numero,long version,String estado,Modelo modelo,Criterio criterio,
-                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos) {}
+                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos) {}
     public record Estado(Borrador borrador,List<Borrador> historial) {}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -114,8 +115,11 @@ public class ConfiguracionService {
     }
     private record Comprobante(String tipo,UUID destino,long actor,String huella) {}
     void registrar(UUID operacion,String tipo,long id,long actor,String huella,String evento,long version) {
+        registrar(operacion,tipo,id,actor,huella,evento,version,null,null);
+    }
+    void registrar(UUID operacion,String tipo,long id,long actor,String huella,String evento,long version,UUID recurso,String motivo) {
         jdbc.update("INSERT INTO lamontana.comprobante_configuracion(id_operacion,tipo,id_configuracion_version,id_actor,hash_solicitud) VALUES (?,?,?,?,?)",operacion,tipo,id,actor,huella);
-        jdbc.update("INSERT INTO lamontana.evento_configuracion(id_configuracion_version,id_actor,tipo,version) VALUES (?,?,?,?)",id,actor,evento,version);
+        jdbc.update("INSERT INTO lamontana.evento_configuracion(id_configuracion_version,id_actor,tipo,version,codigo_recurso,motivo) VALUES (?,?,?,?,?,?)",id,actor,evento,version,recurso,motivo);
     }
     Borrador cargar(UUID codigo) {
         var result=jdbc.query(BORRADOR_SQL+" WHERE c.codigo_publico=?",this::mapear,codigo);
@@ -127,7 +131,7 @@ public class ConfiguracionService {
         return new Borrador(rs.getObject("codigo_publico",UUID.class),rs.getLong("numero_version"),rs.getLong("version"),rs.getString("estado"),
                 modelo==null?null:Modelo.valueOf(modelo),criterio==null?null:Criterio.valueOf(criterio),
                 rs.getTimestamp("fecha_creacion").toInstant(),rs.getTimestamp("fecha_actualizacion").toInstant(),rs.getString("actor"),
-                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")));
+                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")),recursos.leer(rs.getLong("id_configuracion_version")));
     }
     private Pagos pagos(long id) {
         var result=jdbc.query("SELECT * FROM lamontana.configuracion_financiera WHERE id_configuracion_version=?",(rs,row)->{
