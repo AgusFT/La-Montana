@@ -53,8 +53,9 @@ class ConfiguracionEntregaIntegrationTest {
         guardar("4",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
         servicios(List.of(a,b));assertProblemas("HORARIO_PENDIENTE");
         guardar("4","0",List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
-        guardar("4","2",List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertProblemas("PUNTOS_PENDIENTES","COBERTURA_ENVIO_PENDIENTE");
-        assertThat(validacion().get("valida").asBoolean()).isFalse();status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_PUNTO_ENTREGA","2026-09-21T05:00:00Z")),409);
+        guardar("4","2",List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertProblemas("COBERTURA_ENVIO_PENDIENTE");
+        assertThat(validacion().get("avisos").toString()).contains("No se ofrecerán puntos de entrega");
+        assertThat(validacion().get("valida").asBoolean()).isFalse();status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_PUNTO_ENTREGA","2026-09-21T05:00:00Z")),400);
         String antes=borrador.toString();
         for(String invalido:List.of("0","-1","0.001","10000.01","10001","1e2","NaN"))status(put(admin,ruta(),entrega(invalido,"0",List.of("RETIRO_SUCURSAL"),List.of())),400);
         for(var dias:List.of(List.of(dia(1,true,"09:00","09:00")),List.of(dia(1,true,"18:00","09:00")),List.of(dia(1,false,"09:00",null)),List.of(dia(1,null,"09:00",null)),List.of(dia(0,true,"09:00","18:00")),List.of(dia(1,true,"9:00","18:00")),List.of(dia(1,true,"09:00:00","18:00")),List.of(dia(1,true,"09:00","24:00")),List.of(dia(1,false,null,null),dia(1,false,null,null))))

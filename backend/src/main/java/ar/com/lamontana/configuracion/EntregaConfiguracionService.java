@@ -17,9 +17,11 @@ public class EntregaConfiguracionService {
     private final JdbcTemplate jdbc;
     private final ConfiguracionService configuracion;
     private final EvaluadorCalendario evaluador;
-    public EntregaConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,EvaluadorCalendario evaluador){this.jdbc=jdbc;this.configuracion=configuracion;this.evaluador=evaluador;}
+    private final EvaluadorFranjas franjas;
+    public EntregaConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,EvaluadorCalendario evaluador,EvaluadorFranjas franjas){this.jdbc=jdbc;this.configuracion=configuracion;this.evaluador=evaluador;this.franjas=franjas;}
     public record Problema(String codigo,UUID sucursal,String mensaje){}
-    public record Validacion(long version,boolean valida,List<Problema> problemas){}
+    public record PuntoDisponible(UUID punto,UUID sucursal,String nombre,String zonaHoraria,String costo,long versionDisponibilidad){}
+    public record Validacion(long version,boolean valida,List<Problema> problemas,List<String> avisos,List<PuntoDisponible> puntosDisponibles){}
     private record Sucursal(long id,UUID codigo,String nombre,String zona){}
     private record Calendario(long sucursal,String zona,List<Dia> dias){}
 
@@ -55,23 +57,25 @@ public class EntregaConfiguracionService {
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Validacion validar(UUID codigo,String correo) {
-        configuracion.propietario(correo);var b=configuracion.cargar(codigo);var e=b.entrega();var problemas=new ArrayList<Problema>();
+        configuracion.propietario(correo);var b=configuracion.cargar(codigo);var e=b.entrega();var problemas=new ArrayList<Problema>();var avisos=new ArrayList<String>();
         if(!b.estado().equals("EN_PREPARACION"))problemas.add(new Problema("BORRADOR_NO_EDITABLE",null,"La configuración ya no está en preparación."));
         if(e.preparacionHoras()==null)problemas.add(new Problema("PREPARACION_PENDIENTE",null,"Definí el tiempo estimado de preparación."));
         if(e.modalidades().isEmpty())problemas.add(new Problema("SIN_MODALIDAD",null,"Elegí al menos una modalidad real de entrega."));
         if((e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)||e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))&&e.trasladoHoras()==null)
             problemas.add(new Problema("TRASLADO_PENDIENTE",null,"Definí el tiempo adicional de traslado/envío, incluso si es cero."));
         if(e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))problemas.add(new Problema("COBERTURA_ENVIO_PENDIENTE",null,"El envío requiere zonas de cobertura, franjas y cupos de entrega. Su configuración está en construcción."));
-        var operativas=operativas(id(codigo));
+        var operativas=operativas(id(codigo));var opciones=opciones(e,operativas);
         if(e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)) {
             var origenes=new HashSet<UUID>();for(var sucursal:operativas)origenes.add(sucursal.codigo());
             boolean preparado=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0));
-            if(!preparado)problemas.add(new Problema("PUNTOS_PENDIENTES",null,e.puntos().isEmpty()?"Agregá la definición de al menos un punto con origen, costo y franjas de cupo positivo.":"Hay definiciones de puntos guardadas, pero falta una relación habilitada desde una sucursal operativa con una franja habilitada y cupo positivo."));
-            problemas.add(new Problema("OFERTA_PUNTOS_PENDIENTE",null,"Las definiciones y sus condiciones se conservan en el borrador. La disponibilidad temporal se gestiona por separado. La oferta real y las reservas de puntos todavía están en construcción."));
+            String motivo=!preparado?(e.puntos().isEmpty()?"Agregá un punto con origen, costo y franjas de cupo positivo.":"Falta una relación habilitada desde una sucursal operativa con una franja habilitada y cupo positivo.")
+                :opciones.isEmpty()?"Habilitá temporalmente al menos un punto utilizable desde Disponibilidad de puntos.":null;
+            if(motivo!=null){if(e.modalidades().contains(Modalidad.RETIRO_SUCURSAL))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" El retiro local puede seguir disponible.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
+
         }
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Habilitá servicios en al menos una sucursal activa para ofrecer entregas."));
         for(var sucursal:operativas){var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));}
-        return new Validacion(b.version(),problemas.isEmpty(),List.copyOf(problemas));
+        return new Validacion(b.version(),problemas.isEmpty(),List.copyOf(problemas),List.copyOf(avisos),opciones);
     }
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -79,13 +83,34 @@ public class EntregaConfiguracionService {
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());var e=b.entrega();
         exigir(input.recibidoEn()!=null&&input.sucursal()!=null&&input.modalidad()!=null,"Completá sucursal, modalidad y fecha de recepción.");
         if(!e.modalidades().contains(input.modalidad()))throw conflicto("Seleccioná y guardá esa modalidad antes de simularla.");
-        if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)throw conflicto("La simulación de oferta real de puntos está en construcción; las definiciones guardadas se conservan.");
-        var operativa=operativas(id(codigo)).stream().filter(s->s.codigo().equals(input.sucursal())).findFirst();
+        exigir((input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)==(input.punto()!=null),"Elegí un punto sólo para la modalidad Puntos de entrega.");
+        var sucursales=operativas(id(codigo));var operativa=sucursales.stream().filter(s->s.codigo().equals(input.sucursal())).findFirst();
         if(operativa.isEmpty())throw conflicto("La sucursal debe estar activa y tener servicios habilitados en el borrador para simular su calendario.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);
         var errores=problemasCalendario(horario,input.sucursal(),operativa.get().nombre());if(!errores.isEmpty())throw conflicto(errores.get(0).mensaje());
-        if(e.preparacionHoras()==null||(input.modalidad()==Modalidad.ENVIO_DOMICILIO&&e.trasladoHoras()==null))throw conflicto("Completá y guardá los tiempos estimados de la modalidad antes de simular.");
-        return evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad(),input.recibidoEn());
+        if(e.preparacionHoras()==null||(input.modalidad()!=Modalidad.RETIRO_SUCURSAL&&e.trasladoHoras()==null))throw conflicto("Completá y guardá los tiempos estimados de la modalidad antes de simular.");
+        PuntoDisponible opcion=null;PuntosRepositorio.Punto punto=null;
+        if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){
+            punto=e.puntos().stream().filter(p->p.codigoPublico().equals(input.punto())).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"El punto no pertenece a este borrador."));
+            opcion=opciones(e,sucursales).stream().filter(p->p.punto().equals(input.punto())&&p.sucursal().equals(input.sucursal())).findFirst().orElseThrow(()->conflicto("El punto ya no está disponible para este origen. Revisá su disponibilidad temporal, relación habilitada y franjas con cupo positivo."));
+        }
+        var resultado=evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad(),input.recibidoEn());
+        if(opcion==null)return resultado;
+        var relacion=punto.sucursales().stream().filter(r->r.sucursal().equals(input.sucursal())).findFirst().orElseThrow();
+        var ventana=franjas.siguiente(resultado.llegadaEstimada(),punto.zonaHoraria(),relacion.franjas(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
+        var disponible=resultado.llegadaEstimada().isAfter(ventana.desde())?resultado.llegadaEstimada():ventana.desde();
+        var destino=new EvaluadorCalendario.DestinoPunto(punto.codigoPublico(),punto.nombre(),punto.zonaHoraria(),relacion.costo(),opcion.versionDisponibilidad(),ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
+        var notas=new ArrayList<>(resultado.advertencias());notas.add("La llegada se ajusta a una franja del punto en su zona horaria. La ventana es estimada, no una cita exacta.");notas.add("El cupo indicado es el configurado para esa fecha y franja; no representa plazas libres ni crea una reserva. La oferta a clientes aún está en construcción.");
+        return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),destino);
+    }
+
+    private List<PuntoDisponible> opciones(EntregaRepositorio.Entrega entrega,List<Sucursal> sucursales){
+        if(!entrega.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA))return List.of();
+        var habilitados=new HashMap<UUID,Long>();jdbc.query("SELECT p.codigo_publico,d.version FROM lamontana.disponibilidad_punto_entrega d JOIN lamontana.punto_entrega p USING(id_punto_entrega) WHERE d.estado='HABILITADO'",rs->{habilitados.put(rs.getObject(1,UUID.class),rs.getLong(2));});
+        var origenes=new HashSet<UUID>();for(var sucursal:sucursales)origenes.add(sucursal.codigo());var opciones=new ArrayList<PuntoDisponible>();
+        for(var p:entrega.puntos())if(habilitados.containsKey(p.codigoPublico()))for(var r:p.sucursales())if(r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0))
+            opciones.add(new PuntoDisponible(p.codigoPublico(),r.sucursal(),p.nombre(),p.zonaHoraria(),r.costo(),habilitados.get(p.codigoPublico())));
+        return List.copyOf(opciones);
     }
 
     private List<Problema> problemasCalendario(EntregaRepositorio.Horario horario,UUID codigo,String nombre) {

@@ -12,29 +12,30 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class EvaluadorCalendario {
     public record Simulacion(long version,String zonaHoraria,Instant recibidoEn,Instant inicioPreparacion,Instant finPreparacion,
-                             Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias) {}
-    private record Ventana(Instant desde,Instant hasta) {}
+                             Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias,DestinoPunto destinoPunto) {}
+    public record DestinoPunto(UUID punto,String nombre,String zonaHoraria,String costo,long versionDisponibilidad,LocalDate fecha,
+                               String apertura,String cierre,Instant franjaDesde,Instant franjaHasta,int cupoConfigurado) {}
     public Simulacion evaluar(long version,EntregaRepositorio.Horario horario,String preparacionHoras,String trasladoHoras,Modalidad modalidad,Instant recibidoEn) {
-        ZoneId zona=ZoneId.of(horario.zonaHoraria());ZonedDateTime inicio;
-        try{inicio=recibidoEn.atZone(zona);if(inicio.getYear()<1||inicio.getYear()>9994)throw new DateTimeException("Fuera del rango soportado");}
-        catch(DateTimeException ex){throw error("Ingresá una fecha válida entre los años 1 y 9994.");}
-        Instant limite=inicio.plusYears(5).toInstant();var dias=new HashMap<Integer,Dia>();for(var dia:horario.dias())dias.put(dia.dia(),dia);
+        ZoneId zona=ZoneId.of(horario.zonaHoraria());Instant limite=limite(recibidoEn,horario.zonaHoraria());var dias=new HashMap<Integer,Dia>();for(var dia:horario.dias())dias.put(dia.dia(),dia);
         Instant comienzo=siguienteApertura(recibidoEn,zona,dias,limite);
         Instant fin=consumir(comienzo,segundos(preparacionHoras),zona,dias,limite);
         Instant llegada=null,disponible=null;
         var notas=new ArrayList<String>();notas.add("La preparación y el traslado estimados consumen únicamente las ventanas operativas de la sucursal de origen.");
         notas.add("Son estimaciones del calendario semanal guardado; el avance real puede adelantarlas o demorarlas y no obliga a esperar.");
         if(modalidad==Modalidad.RETIRO_SUCURSAL)disponible=siguienteApertura(fin,zona,dias,limite);
-        else if(modalidad==Modalidad.ENVIO_DOMICILIO){llegada=consumir(fin,segundos(trasladoHoras),zona,dias,limite);notas.add("La llegada calculada no confirma disponibilidad: faltan cobertura domiciliaria, franjas y cupos de entrega.");}
-        else throw error("La simulación de puntos requiere su definición y franjas; está en construcción.");
-        return new Simulacion(version,zona.getId(),recibidoEn,comienzo,fin,llegada,disponible,comienzo.isAfter(recibidoEn),List.copyOf(notas));
+        else if(modalidad==Modalidad.ENVIO_DOMICILIO||modalidad==Modalidad.RETIRO_PUNTO_ENTREGA){llegada=consumir(fin,segundos(trasladoHoras),zona,dias,limite);if(modalidad==Modalidad.ENVIO_DOMICILIO)notas.add("La llegada calculada no confirma disponibilidad: faltan cobertura domiciliaria, franjas y cupos de entrega.");}
+        else throw error("Modalidad de entrega no admitida.");
+        return new Simulacion(version,zona.getId(),recibidoEn,comienzo,fin,llegada,disponible,comienzo.isAfter(recibidoEn),List.copyOf(notas),null);
+    }
+    static Instant limite(Instant recibidoEn,String zonaHoraria){
+        try{var inicio=recibidoEn.atZone(ZoneId.of(zonaHoraria));if(inicio.getYear()<1||inicio.getYear()>9994)throw new DateTimeException("Fuera del rango soportado");return inicio.plusYears(5).toInstant();}
+        catch(DateTimeException ex){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Ingresá una fecha válida entre los años 1 y 9994.");}
     }
     private long segundos(String horas){return new BigDecimal(horas).multiply(BigDecimal.valueOf(3600)).longValueExact();}
     private Instant siguienteApertura(Instant desde,ZoneId zona,Map<Integer,Dia> dias,Instant limite) {
         LocalDate fecha=desde.atZone(zona).toLocalDate();
         while(!fecha.atStartOfDay(zona).toInstant().isAfter(limite)) {
-            var ventana=ventana(fecha,zona,dias);
-            if(ventana!=null&&desde.isBefore(ventana.hasta())) {
+            for(var ventana:ventanas(fecha,zona,dias))if(desde.isBefore(ventana.hasta())) {
                 Instant resultado=desde.isAfter(ventana.desde())?desde:ventana.desde();
                 if(!resultado.isAfter(limite))return resultado;
             }
@@ -47,19 +48,16 @@ public class EvaluadorCalendario {
         // Duration conserva los segundos reales en cambios DST y no redondea fracciones de hora.
         Duration restante=Duration.ofSeconds(segundos);Instant cursor=desde;
         while(!cursor.isAfter(limite)) {
-            cursor=siguienteApertura(cursor,zona,dias,limite);var ventana=ventana(cursor.atZone(zona).toLocalDate(),zona,dias);
+            cursor=siguienteApertura(cursor,zona,dias,limite);var instante=cursor;var ventana=ventanas(cursor.atZone(zona).toLocalDate(),zona,dias).stream().filter(v->!instante.isBefore(v.desde())&&instante.isBefore(v.hasta())).findFirst().orElseThrow();
             Duration disponible=Duration.between(cursor,ventana.hasta());
             if(restante.compareTo(disponible)<=0){Instant resultado=cursor.plus(restante);if(resultado.isAfter(limite))throw horizonte();return resultado;}
             restante=restante.minus(disponible);cursor=ventana.hasta();
         }
         throw horizonte();
     }
-    private Ventana ventana(LocalDate fecha,ZoneId zona,Map<Integer,Dia> dias) {
-        var dia=dias.get(fecha.getDayOfWeek().getValue());if(dia==null||!Boolean.TRUE.equals(dia.habilitado())||dia.apertura()==null||dia.cierre()==null)return null;
-        // atZone adelanta horas inexistentes por el salto DST. Un overlap incluye ambas ocurrencias.
-        Instant desde=fecha.atTime(LocalTime.parse(dia.apertura())).atZone(zona).withEarlierOffsetAtOverlap().toInstant();
-        Instant hasta=fecha.atTime(LocalTime.parse(dia.cierre())).atZone(zona).withLaterOffsetAtOverlap().toInstant();
-        return hasta.isAfter(desde)?new Ventana(desde,hasta):null;
+    private List<VentanasLocales.Intervalo> ventanas(LocalDate fecha,ZoneId zona,Map<Integer,Dia> dias) {
+        var dia=dias.get(fecha.getDayOfWeek().getValue());if(dia==null||!Boolean.TRUE.equals(dia.habilitado())||dia.apertura()==null||dia.cierre()==null)return List.of();
+        return VentanasLocales.calcular(fecha,zona,dia.apertura(),dia.cierre());
     }
     private ResponseStatusException horizonte(){return error("La estimación supera el horizonte técnico de cinco años. Revisá las horas y las ventanas operativas.");}
     private ResponseStatusException error(String mensaje){return new ResponseStatusException(HttpStatus.BAD_REQUEST,mensaje);}

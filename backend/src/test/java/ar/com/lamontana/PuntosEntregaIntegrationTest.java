@@ -37,14 +37,14 @@ class PuntosEntregaIntegrationTest {
     private void arrancar(){app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
 
     @Test void estructuraVaciaCompartidaPorDosOrigenesCostosCuposYDisponibilidadPendiente()throws Exception {
-        assertThat(puntos().size()).isZero();assertThat(contar("punto_entrega")).isZero();assertThat(problemas()).contains("PUNTOS_PENDIENTES","OFERTA_PUNTOS_PENDIENTE");
+        assertThat(puntos().size()).isZero();assertThat(contar("punto_entrega")).isZero();assertThat(problemas()).contains("PUNTOS_PENDIENTES");
         aceptar(post(admin,ruta(),alta(" p_uno ",List.of())));String punto=primerId();assertThat(puntos().get(0).get("codigo").asString()).isEqualTo("P_UNO");assertThat(puntos().get(0).has("disponibilidadOperativa")).isFalse();assertThat(puntos().get(0).get("sucursales").size()).isZero();
-        assertThat(problemas()).contains("PUNTOS_PENDIENTES","OFERTA_PUNTOS_PENDIENTE");
+        assertThat(problemas()).contains("PUNTOS_PENDIENTES");
         var cero=relacion(a,"0",true,List.of(franja(1,"09:00","10:00",0,true)));aceptar(put(admin,ruta()+"/"+punto,edicion(List.of(cero))));assertThat(problemas()).contains("PUNTOS_PENDIENTES");
         var relA=relacion(a,"0",true,List.of(franja(1,"09:00","10:00",0,true),franja(1,"10:00","11:00",5,true)));
         var relB=relacion(b,"25.50",true,List.of(franja(1,"09:00","10:00",3,true)));
         aceptar(put(admin,ruta()+"/"+punto,edicion(List.of(relA,relB))));
-        assertThat(problemas()).doesNotContain("PUNTOS_PENDIENTES").contains("OFERTA_PUNTOS_PENDIENTE");assertThat(validacion().get("valida").asBoolean()).isFalse();
+        assertThat(problemas()).doesNotContain("PUNTOS_PENDIENTES").contains("DISPONIBILIDAD_PUNTO_PENDIENTE");assertThat(validacion().get("valida").asBoolean()).isFalse();
         var p=puntos().get(0);assertThat(p.get("sucursales").size()).isEqualTo(2);assertThat(p.get("sucursales").get(0).get("costo").asString()).isEqualTo("0.00");assertThat(p.get("sucursales").get(1).get("costo").asString()).isEqualTo("25.50");assertThat(contar("franja_entrega")).isEqualTo(3);
         assertThat(p.get("codigoPublico").asString()).isEqualTo(punto);assertThat(p.get("zonaHoraria").asString()).isEqualTo("America/Argentina/Buenos_Aires");
         jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',fecha_desactivacion=clock_timestamp() WHERE codigo_publico=?",UUID.fromString(b));

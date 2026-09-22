@@ -25,5 +25,5 @@ public class EntregaConfiguracionController {
                                  @Size(max=8) String preparacionHoras,@Size(max=8) String trasladoHoras,
                                  @NotNull @Size(max=3) List<@NotNull Modalidad> modalidades,
                                  @NotNull @Size(max=100) List<@NotNull @Valid HorarioSucursal> horariosPorSucursal) {}
-    public record SimularEntrega(@NotNull @Min(1) Long version,@NotNull UUID sucursal,@NotNull Modalidad modalidad,@NotNull Instant recibidoEn) {}
+    public record SimularEntrega(@NotNull @Min(1) Long version,@NotNull UUID sucursal,@NotNull Modalidad modalidad,@NotNull Instant recibidoEn,UUID punto) {}
 }
