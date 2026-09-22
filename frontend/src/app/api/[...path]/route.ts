@@ -36,7 +36,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const scheduleCancellation = configDraft && path.length === 7 && path[4] === "programacion" && path[5] === "cancelacion" && ["solicitar","confirmar","revocar"].includes(path[6]) ? ["POST"] : null;
   const scheduledReview = configDraft && path.length === 6 && path[4] === "programacion" && path[5] === "revision" ? ["GET"] : null;
   const scheduledActivation = configDraft && path.length === 7 && path[4] === "programacion" && path[5] === "activacion" && ["solicitar","confirmar","revocar"].includes(path[6]) ? ["POST"] : null;
-  const methods = scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
+  const historyMethods = path[0]==="admin" && path[1]==="configuracion" && path[2]==="historial" && (path.length===3 || uuidPattern.test(path[3]??"") && (path.length===4 || path.length===5 && path[4]==="auditoria" || path.length===6 && path[4]==="comparacion" && uuidPattern.test(path[5]))) ? ["GET"] : null;
+  const methods = historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
@@ -54,7 +55,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     const body = ["POST", "PUT"].includes(request.method) ? await request.text() : undefined;
     const maxBytes = (route === "admin/catalogo/revisiones" || pointMethods) ? 131072 : 16384;
     if (body && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
-    const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}`, {
+    const query = historyMethods ? new URL(request.url).search : "";
+    const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {
       method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(8000),
     });
     const resultHeaders = new Headers({ "Cache-Control": "no-store" });
