@@ -55,7 +55,7 @@ class CatalogoMigracionV8IntegrationTest {
             var serviciosAntes=jdbc.queryForList("SELECT * FROM lamontana.configuracion_servicio ORDER BY id_configuracion_servicio");
             var compatibilidadesAntes=jdbc.queryForList("SELECT * FROM lamontana.compatibilidad_servicio ORDER BY id_configuracion_servicio");
 
-            var actual=Flyway.configure().dataSource(dataSource).defaultSchema("lamontana").schemas("lamontana").load();
+            var actual=Flyway.configure().dataSource(dataSource).defaultSchema("lamontana").schemas("lamontana").target("8").load();
             assertThat(actual.migrate().migrationsExecuted).isEqualTo(1);
             assertThat(actual.info().current().getVersion().getVersion()).isEqualTo("8");
             assertThat(jdbc.queryForList("SELECT codigo_publico,id_operacion,hash_solicitud,id_actor,creada_en FROM lamontana.catalogo_revision ORDER BY id_catalogo_revision")).isEqualTo(comprobantesAntes);

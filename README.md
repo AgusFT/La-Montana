@@ -4,7 +4,7 @@ Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `
 
 ## Estado actual · entrega 7
 
-Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Se puede crear y retomar un borrador operativo, y guardar la selección de modelo y condición de aprobación. Compose incluye base, backend, frontend y buzón local Mailpit.
 
 **Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Las tarifas y los servicios globales ya se pueden configurar y programar. Horarios/capacidades, reglas operativas, pedidos, pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
@@ -197,3 +197,18 @@ Validación del backend: cinco pruebas de programación y la regresión del cat�
 Recorrido real de navegador de programación: guardar un cambio futuro conserva el precio vigente; cancelar con respuesta perdida permite reintentar el mismo comando; corregir una fecha pasada conserva el formulario; esperar la fecha real activa la nueva revisión y actualizar el estado carga la base correcta. Historial y vistas de escritorio/móvil comprobados sin errores JavaScript, respuestas 5xx ni desbordes de página. Se corrigió la asociación explícita entre las etiquetas y los campos de motivo para mantener su identificación al editar después de un error.
 
 Migración comprobada sobre V7 poblada: al aplicar V8 se conservaron revisión vigente, histórica, tarifas, terminaciones, compatibilidades, fechas y comprobantes; repetir solicitudes V7 sin el campo nuevo recuperó las mismas revisiones sin duplicar eventos. La prueba específica de actualización también pasó.
+
+
+## Borrador del configurador · entrega 9
+
+Desde Administración → Configurar la imprenta se puede crear un único borrador vacío, retomar su edición y elegir Control manual o Control condicional. El manual no lleva criterio automático; el condicional exige elegir Pago previo total, Pago de seña o Monto total del pedido. Al crear, modelo y criterio están sin seleccionar; no se asignan importes, porcentajes ni políticas predeterminadas.
+
+Guardar esta selección **no activa reglas ni habilita pedidos**. Los parámetros financieros de fase 3, recursos/capacidades, horarios, entregas, simulación, activación segura e historial operativo siguen En construcción. La cancelación del borrador permanece deshabilitada: el mock exige contraseña y código por correo y ese recorrido todavía no está implementado. Se puede seguir editando el borrador existente.
+
+V9 incorpora el subconjunto inicial de `configuracion_version`, separado de `catalogo_revision`: número de configuración, versión de edición, creador, fechas y selección del modelo. Sólo admite EN_PREPARACION en esta entrega; los demás estados y relaciones se agregarán con sus recorridos. Comprobantes y eventos conservan actor, destino, tipo y versión. El backend exige propietario activo, rol y CSRF. Un reintento devuelve el estado actual del mismo borrador y no vuelve a aplicar cambios antiguos.
+
+Dos editores no se sobrescriben silenciosamente: la versión obsoleta recibe conflicto, el formulario conserva la selección y permite consultar/adoptar la versión actual antes de guardar. Creación, guardado, auditoría y comprobante son atómicos. El borrador y la sesión se conservaron al reiniciar en la prueba integrada.
+
+Dos pruebas integradas con PostgreSQL real/HTTP comprobaron estado vacío, selección y validaciones, permisos, CSRF, concurrencia, idempotencia, fallos de almacenamiento con rollback y reinicio. Se corrigió el manejo de JSON/enum inválido para devolver un error 400 sanitizado en lugar de un error de autorización 403. La prueba de migración comercial V7→V8 sigue pasando con su destino fijado en V8.
+
+El recorrido de navegador comprobó creación con respuesta perdida/reintento, guardado manual y recuperación al recargar, conflicto entre dos editores y recuperación conservando la selección, exclusión del cliente y distintivos de las funciones pendientes. Build/typecheck correctos. Las vistas se contrastaron con CFG-001B y CFG-002 de Alejandro: navegación por fases, resumen en tarjetas, modelos comparables, selección azul y automatización futura deshabilitada. Se adaptó el estado inicial vacío y se corrigió el tamaño/alineación de los controles de selección. No se copiaron valores de ejemplo del mock. La revisión visual final de toda la aplicación continúa pendiente.

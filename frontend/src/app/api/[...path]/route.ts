@@ -5,6 +5,7 @@ const allowed: Record<string, readonly string[]> = {
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
+  "admin/configuracion": ["GET"], "admin/configuracion/borradores": ["POST"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
   "auth/recuperacion/solicitar": ["POST"], "auth/recuperacion/confirmar": ["POST"],
@@ -24,7 +25,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const methods = (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
-        : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : null;
+        : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && path[4] === "modelo" ? ["PUT"] : null;
   if (!methods) return error(404, "Ruta no disponible.");
   if (!methods.includes(request.method)) return error(405, "Método no permitido.");
   const base = process.env.BACKEND_INTERNAL_URL;

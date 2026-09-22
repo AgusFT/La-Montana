@@ -15,7 +15,7 @@ export default async function AdministrationPage() {
   const owner = session.profile;
   return <IdentityShell title={`Hola, ${owner.nombre}`} description="Tu sesión como propietario está activa.">
     <div className="owner-profile"><h2>{owner.nombre} {owner.apellido}</h2><p>{owner.correo}</p><span className="environment">Propietario de la imprenta</span></div>
-    <dl className="capabilities"><div><dt>Gestión de clientes</dt><dd>En construcción</dd></div><div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div><div><dt>Pedidos y operación</dt><dd>En construcción</dd></div></dl>
-    <div className="page-actions"><a className="refresh" href="/administracion/catalogo">Servicios y precios</a><a className="refresh" href="/administracion/sucursales">Administrar sucursales</a><a className="refresh" href="/administracion/empleados">Administrar empleados</a><a className="secondary-link" href="/operacion">Ver sucursales operativas</a><a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a><LogoutButton /></div>
+    <dl className="capabilities"><div><dt>Gestión de clientes</dt><dd>En construcción</dd></div><div><dt>Configuración de la imprenta</dt><dd>Borrador y modelo disponibles; fases restantes En construcción</dd></div><div><dt>Pedidos y operación</dt><dd>En construcción</dd></div></dl>
+    <div className="page-actions"><a className="refresh" href="/administracion/configuracion">Configurar la imprenta</a><a className="refresh" href="/administracion/catalogo">Servicios y precios</a><a className="refresh" href="/administracion/sucursales">Administrar sucursales</a><a className="refresh" href="/administracion/empleados">Administrar empleados</a><a className="secondary-link" href="/operacion">Ver sucursales operativas</a><a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a><LogoutButton /></div>
   </IdentityShell>;
 }
