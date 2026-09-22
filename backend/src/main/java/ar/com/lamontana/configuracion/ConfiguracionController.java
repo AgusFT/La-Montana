@@ -36,6 +36,7 @@ public class ConfiguracionController {
     public ConfiguracionService.Borrador confirmarCancelacion(@PathVariable UUID codigo,@Valid @RequestBody ConfirmarCancelacion input,Principal actor) {
         return cancelacion.confirmar(codigo,input,actor.getName());
     }
+    @PostMapping("/borradores/{codigo}/cancelacion/revocar") public java.util.Map<String,String> revocarCancelacion(@PathVariable UUID codigo,@Valid @RequestBody ActivacionConfiguracionController.Revocar input,Principal actor){cancelacion.revocar(codigo,input.operacion(),actor.getName());return java.util.Map.of("mensaje","La autorización quedó invalidada.");}
     @PutMapping("/borradores/{codigo}/pagos")
     public ConfiguracionService.Borrador guardarPagos(@PathVariable UUID codigo,@Valid @RequestBody GuardarPagos input,Principal actor) {
         return pagos.guardar(codigo,input,actor.getName());

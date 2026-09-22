@@ -26,14 +26,17 @@ export type DeliveryTerritory = {codigoPostal:string;localidad:string;provincia:
 export type DeliveryZone = {codigoPublico:string;codigo:string;nombre:string;descripcion:string|null;zonaHoraria:string;costo:string;habilitada:boolean;territorios:DeliveryTerritory[];franjas:PointSlot[]};
 export type DeliveryConfiguration = {zonas:DeliveryZone[];puntos:DeliveryPoint[];preparacionHoras:string|null;trasladoHoras:string|null;modalidades:DeliveryMode[];horariosPorSucursal:BranchSchedule[]};
 export type ConfigurationDraft = {
-  codigoPublico: string; numero: number; version: number; estado: "EN_PREPARACION" | "CANCELADA" | "ACTIVA" | "HISTORICA";
+  codigoPublico: string; numero: number; version: number; estado: "EN_PREPARACION" | "PROGRAMADA" | "CANCELADA" | "ACTIVA" | "HISTORICA";
   modelo: OperatingModel | null; criterio: ApprovalCriterion | null;
   creadaEn: string; actualizadaEn: string; actor: string;
   canceladaEn: string | null; motivoCancelacion: string | null; cancelador: string | null;
   pagos: PaymentConfiguration | null; recursos: ResourceConfiguration; entrega: DeliveryConfiguration;
 };
 export type ConfigurationVersion={configuracion:ConfigurationDraft;activadaEn:string;finVigencia:string|null;activador:string;motivo:string;predecesora:string|null;revisionComercial:string};
-export type ConfigurationState = { borrador: ConfigurationDraft | null; historial: ConfigurationDraft[];activa:ConfigurationVersion|null };
+export type ConfigurationAttempt={codigo:string;origen:string;estado:string;iniciadoEn:string;terminadoEn:string|null;atrasoDetectadoEn:string|null;resultado:string|null;detalle:string|null};
+export type ConfigurationSchedule={configuracion:ConfigurationDraft;confirmadaEn:string;previstaEn:string;zonaHoraria:string;programador:string;motivo:string;proximoIntentoEn:string|null;intentos:ConfigurationAttempt[]};
+export function isConfigurationSchedule(v:unknown):v is ConfigurationSchedule{return record(v)&&isConfigurationDraft(v.configuracion)&&["PROGRAMADA","ACTIVA","HISTORICA","CANCELADA"].includes(v.configuracion.estado)&&["confirmadaEn","previstaEn","zonaHoraria","programador","motivo"].every(k=>typeof v[k]==="string")&&(v.proximoIntentoEn===null||typeof v.proximoIntentoEn==="string")&&Array.isArray(v.intentos)&&v.intentos.every(i=>record(i)&&["codigo","origen","estado","iniciadoEn"].every(k=>typeof i[k]==="string")&&["terminadoEn","atrasoDetectadoEn","resultado","detalle"].every(k=>i[k]===null||typeof i[k]==="string"));}
+export type ConfigurationState = { borrador: ConfigurationDraft | null; historial: ConfigurationDraft[];activa:ConfigurationVersion|null;programada:ConfigurationSchedule|null };
 export const modelLabels: Record<OperatingModel,string> = {MANUAL:"Control manual",CONDICIONAL:"Control condicional"};
 export const criterionLabels: Record<ApprovalCriterion,string> = {PAGO_PREVIO:"Pago previo total",SENA:"Pago de seña",MONTO_TOTAL:"Monto total del pedido"};
 function record(value:unknown):value is Record<string,unknown>{return !!value&&typeof value==="object";}
@@ -68,9 +71,9 @@ export function isDeliveryConfiguration(value:unknown):value is DeliveryConfigur
 }
 export function isConfigurationDraft(value:unknown):value is ConfigurationDraft {
   return record(value)&&["codigoPublico","creadaEn","actualizadaEn","actor"].every(key=>typeof value[key]==="string")&&
-    Number.isSafeInteger(value.numero)&&Number.isSafeInteger(value.version)&&Number(value.numero)>0&&Number(value.version)>0&&["EN_PREPARACION","CANCELADA","ACTIVA","HISTORICA"].includes(String(value.estado))&&
+    Number.isSafeInteger(value.numero)&&Number.isSafeInteger(value.version)&&Number(value.numero)>0&&Number(value.version)>0&&["EN_PREPARACION","PROGRAMADA","CANCELADA","ACTIVA","HISTORICA"].includes(String(value.estado))&&
     ["canceladaEn","motivoCancelacion","cancelador"].every(key=>value[key]===null||typeof value[key]==="string")&&
     (value.modelo===null||Object.hasOwn(modelLabels,String(value.modelo)))&&(value.criterio===null||Object.hasOwn(criterionLabels,String(value.criterio)))&&(value.pagos===null||isPaymentConfiguration(value.pagos))&&isResourceConfiguration(value.recursos)&&isDeliveryConfiguration(value.entrega);
 }
 export function isConfigurationVersion(v:unknown):v is ConfigurationVersion{return record(v)&&isConfigurationDraft(v.configuracion)&&["ACTIVA","HISTORICA"].includes(v.configuracion.estado)&&["activadaEn","activador","motivo","revisionComercial"].every(k=>typeof v[k]==="string")&&["finVigencia","predecesora"].every(k=>v[k]===null||typeof v[k]==="string");}
-export function isConfigurationState(value:unknown):value is ConfigurationState{return record(value)&&(value.activa===null||(isConfigurationVersion(value.activa)&&value.activa.configuracion.estado==="ACTIVA"))&&(value.borrador===null||(isConfigurationDraft(value.borrador)&&value.borrador.estado==="EN_PREPARACION"))&&Array.isArray(value.historial)&&value.historial.every(item=>isConfigurationDraft(item)&&item.estado==="CANCELADA");}
+export function isConfigurationState(value:unknown):value is ConfigurationState{return record(value)&&(value.programada===null||(isConfigurationSchedule(value.programada)&&value.programada.configuracion.estado==="PROGRAMADA"))&&(value.activa===null||(isConfigurationVersion(value.activa)&&value.activa.configuracion.estado==="ACTIVA"))&&(value.borrador===null||(isConfigurationDraft(value.borrador)&&value.borrador.estado==="EN_PREPARACION"))&&Array.isArray(value.historial)&&value.historial.every(item=>isConfigurationDraft(item)&&item.estado==="CANCELADA");}

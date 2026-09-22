@@ -57,8 +57,11 @@ public class EntregaConfiguracionService {
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Validacion validar(UUID codigo,String correo) {
+        return evaluar(codigo,correo,false);
+    }
+    Validacion evaluar(UUID codigo,String correo,boolean programada){
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);var e=b.entrega();var problemas=new ArrayList<Problema>();var avisos=new ArrayList<String>();
-        if(!b.estado().equals("EN_PREPARACION"))problemas.add(new Problema("BORRADOR_NO_EDITABLE",null,"La configuración ya no está en preparación."));
+        if(!b.estado().equals(programada?"PROGRAMADA":"EN_PREPARACION"))problemas.add(new Problema("BORRADOR_NO_EDITABLE",null,"La configuración ya no está en preparación."));
         if(e.preparacionHoras()==null)problemas.add(new Problema("PREPARACION_PENDIENTE",null,"Definí el tiempo estimado de preparación."));
         if(e.modalidades().isEmpty())problemas.add(new Problema("SIN_MODALIDAD",null,"Elegí al menos una modalidad real de entrega."));
         if((e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)||e.modalidades().contains(Modalidad.ENVIO_DOMICILIO))&&e.trasladoHoras()==null)

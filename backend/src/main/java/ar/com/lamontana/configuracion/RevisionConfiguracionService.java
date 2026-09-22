@@ -27,9 +27,12 @@ public class RevisionConfiguracionService {
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Revision revisar(UUID codigo,String correo){
+        return evaluar(codigo,correo,false);
+    }
+    Revision evaluar(UUID codigo,String correo,boolean programada){
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);var comercial=catalogo.leerEstado();var h=new ArrayList<Hallazgo>();
         var sucursales=jdbc.query("SELECT codigo_publico,nombre,estado='ACTIVA' FROM lamontana.sucursal ORDER BY codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getBoolean(3)));
-        if(!b.estado().equals("EN_PREPARACION"))bloqueo(h,"BORRADOR_NO_EDITABLE","modelo",1,"Sólo una configuración en preparación puede revisarse para activar.",null);
+        if(!b.estado().equals(programada?"PROGRAMADA":"EN_PREPARACION"))bloqueo(h,"BORRADOR_NO_EDITABLE","modelo",1,"Sólo una configuración en preparación puede revisarse para activar.",null);
         if(b.modelo()==null)bloqueo(h,"MODELO_PENDIENTE","modelo",2,"Elegí el modelo operativo y su condición para definir el recorrido de aprobación.",null);
         if(b.pagos()==null)bloqueo(h,"PAGOS_PENDIENTES","pagos",3,"Completá medios, vigencia y parámetros financieros antes de cotizar.",null);
         else if(b.modelo()!=null)try{pagos.comprobar(b);}catch(ResponseStatusException ex){bloqueo(h,"PAGOS_INCOMPATIBLES","pagos",3,ex.getReason(),null);}
@@ -37,7 +40,7 @@ public class RevisionConfiguracionService {
         var activas=new HashSet<UUID>();sucursales.stream().filter(Sucursal::activa).forEach(s->activas.add(s.codigoPublico()));
         var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")&&activas.contains(p.sucursal())).toList();
         if(impresoras.isEmpty())bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar una impresora Operativa en una sucursal activa es obligatorio. No necesita conexión CUPS.",null);
-        var entregaActual=entrega.validar(codigo,correo);
+        var entregaActual=entrega.evaluar(codigo,correo,programada);
         for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
         for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","MODALIDAD_SIN_DESTINO","entrega",5,aviso,null));
         var opciones=opciones(b,comercial,activas);var revision=comercial.actual();

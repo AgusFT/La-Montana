@@ -37,22 +37,42 @@ public class ConfiguracionService {
     public record Borrador(UUID codigoPublico,long numero,long version,String estado,Modelo modelo,Criterio criterio,
                            Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos,EntregaRepositorio.Entrega entrega) {}
     public record Version(Borrador configuracion,Instant activadaEn,Instant finVigencia,String activador,String motivo,UUID predecesora,UUID revisionComercial) {}
-    public record Estado(Borrador borrador,List<Borrador> historial,Version activa) {}
+    public record Intento(UUID codigo,String origen,String estado,Instant iniciadoEn,Instant terminadoEn,Instant atrasoDetectadoEn,String resultado,String detalle) {}
+    public record Programacion(Borrador configuracion,Instant confirmadaEn,Instant previstaEn,String zonaHoraria,String programador,String motivo,Instant proximoIntentoEn,List<Intento> intentos) {}
+    public record Estado(Borrador borrador,List<Borrador> historial,Version activa,Programacion programada) {}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Estado estado(String correo) {
         propietario(correo);
         var borradores=jdbc.query(BORRADOR_SQL+" WHERE c.estado='EN_PREPARACION'",this::mapear);
         return new Estado(borradores.isEmpty()?null:borradores.get(0),
-                jdbc.query(BORRADOR_SQL+" WHERE c.estado='CANCELADA' ORDER BY c.fecha_cancelacion DESC,c.numero_version DESC LIMIT 50",this::mapear),activa());
+                jdbc.query(BORRADOR_SQL+" WHERE c.estado='CANCELADA' ORDER BY c.fecha_cancelacion DESC,c.numero_version DESC LIMIT 50",this::mapear),activa(),programada());
+    }
+
+    Programacion programada(){var ids=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='PROGRAMADA'",(r,n)->r.getObject(1,UUID.class));return ids.isEmpty()?null:programacion(ids.get(0));}
+    Programacion programacion(UUID codigo){
+        var b=cargar(codigo);var intentos=jdbc.query("""
+            SELECT i.* FROM lamontana.intento_activacion_configuracion i JOIN lamontana.configuracion_version c ON c.id_configuracion_version=i.id_version_objetivo
+            WHERE c.codigo_publico=? ORDER BY i.fecha_inicio DESC LIMIT 50
+            """,(r,n)->new Intento(r.getObject("id_intento",UUID.class),r.getString("origen"),r.getString("estado"),r.getTimestamp("fecha_inicio").toInstant(),r.getTimestamp("fecha_fin")==null?null:r.getTimestamp("fecha_fin").toInstant(),r.getTimestamp("fecha_atraso_detectado")==null?null:r.getTimestamp("fecha_atraso_detectado").toInstant(),r.getString("codigo_resultado"),r.getString("detalle_sanitizado")),codigo);
+        var rows=jdbc.query("""
+            SELECT p.*,u.nombre||' '||u.apellido AS actor FROM lamontana.programacion_configuracion p
+            JOIN lamontana.usuario u ON u.id_usuario=p.id_actor JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE c.codigo_publico=?
+            """,(r,n)->{
+                Instant prevista=r.getTimestamp("fecha_programada").toInstant(),proxima=prevista;
+                if(!b.estado().equals("PROGRAMADA")||!intentos.isEmpty()&&intentos.get(0).estado().equals("INICIADO"))proxima=null;
+                else if(!intentos.isEmpty()&&intentos.get(0).estado().equals("FALLIDO"))proxima=intentos.get(0).terminadoEn().plusSeconds(600);
+                return new Programacion(b,r.getTimestamp("fecha_confirmacion").toInstant(),prevista,r.getString("zona_horaria"),r.getString("actor"),r.getString("motivo"),proxima,intentos);
+            },codigo);
+        if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"No hay una programación para esta configuración.");return rows.get(0);
     }
 
     Version activa(){var ids=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='ACTIVA'",(r,n)->r.getObject(1,UUID.class));return ids.isEmpty()?null:versionActivada(ids.get(0));}
     Version versionActivada(UUID codigo){
         var b=cargar(codigo);var rows=jdbc.query("""
-            SELECT a.fecha_activacion,a.fin_vigencia,u.nombre||' '||u.apellido AS actor,a.motivo,p.codigo_publico AS predecesora,r.codigo_publico AS revision
+            SELECT a.fecha_activacion,a.fin_vigencia,coalesce(u.nombre||' '||u.apellido,'Sistema automático') AS actor,a.motivo,p.codigo_publico AS predecesora,r.codigo_publico AS revision
             FROM lamontana.activacion_configuracion a JOIN lamontana.configuracion_version c USING(id_configuracion_version)
-            JOIN lamontana.usuario u ON u.id_usuario=a.id_actor JOIN lamontana.catalogo_revision r USING(id_catalogo_revision)
+            LEFT JOIN lamontana.usuario u ON u.id_usuario=a.id_actor JOIN lamontana.catalogo_revision r USING(id_catalogo_revision)
             LEFT JOIN lamontana.configuracion_version p ON p.id_configuracion_version=a.id_predecesora WHERE c.codigo_publico=?
             """,(r,n)->new Version(b,r.getTimestamp("fecha_activacion").toInstant(),r.getTimestamp("fin_vigencia")==null?null:r.getTimestamp("fin_vigencia").toInstant(),r.getString("actor"),r.getString("motivo"),r.getObject("predecesora",UUID.class),r.getObject("revision",UUID.class)),codigo);
         if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"La configuración no tiene una activación registrada.");return rows.get(0);
@@ -63,8 +83,8 @@ public class ConfiguracionService {
         bloquear();long actor=propietario(correo);String huella=huella(input);
         Borrador repetido=reintento(input.operacion(),CREAR,null,actor,huella);
         if(repetido!=null) return repetido;
-        if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado='EN_PREPARACION')",Boolean.class)))
-            throw error(HttpStatus.CONFLICT,"Ya hay una configuración en preparación. Retomá el borrador existente.");
+        if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado IN ('EN_PREPARACION','PROGRAMADA'))",Boolean.class)))
+            throw error(HttpStatus.CONFLICT,"Ya hay una configuración pendiente. Retomá el borrador o consultá la programación existente.");
         UUID codigo=UUID.randomUUID();
         long id=jdbc.queryForObject("""
                 INSERT INTO lamontana.configuracion_version(codigo_publico,numero_version,id_usuario_creador,estado)
