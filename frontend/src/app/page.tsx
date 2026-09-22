@@ -21,7 +21,7 @@ export default async function HomePage() {
       <section className="intro" aria-labelledby="page-title">
         <span className="eyebrow">IDENTIDAD INICIAL</span>
         <h1 id="page-title">Estamos construyendo<br />La Montaña.</h1>
-        <p>Ya podés preparar el acceso del propietario. La configuración de la imprenta y la operación de pedidos todavía están en construcción.</p>
+        <p>Ya podés crear tu cuenta de cliente e ingresar. La configuración de la imprenta y la operación de pedidos todavía están en construcción.</p>
       </section>
 
       <section className="status-panel" aria-labelledby="status-title">
@@ -32,14 +32,15 @@ export default async function HomePage() {
         </div>
         <dl className="capabilities">
           <div><dt>Acceso del propietario</dt><dd>{setup ? setup.requierePropietario ? "Alta pendiente" : "Habilitado" : "Sin verificar"}</dd></div>
-          <div><dt>Clientes, empleados y sucursales</dt><dd>En construcción</dd></div>
+          <div><dt>Registro y acceso de clientes</dt><dd>{setup && !setup.requierePropietario ? "Habilitado" : "Pendiente de instalación"}</dd></div>
+          <div><dt>Gestión de usuarios y sucursales</dt><dd>En construcción</dd></div>
           <div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div>
           <div><dt>Pedidos y operación</dt><dd>En construcción</dd></div>
         </dl>
         <p className="empty-note">Esta instalación comienza sin sucursales ni configuración comercial precargadas.</p>
         {!setup && <p className="form-message error-message" role="alert">No pudimos verificar si la instalación necesita un propietario.</p>}
         {setup?.requierePropietario && !setup.altaHabilitada && <p className="empty-note">El operador debe habilitar el token de instalación en el servidor.</p>}
-        <div className="page-actions">{setup && <a className="refresh" href={setup.requierePropietario ? "/instalacion" : "/acceso"}>{setup.requierePropietario ? "Preparar instalación" : "Iniciar sesión"}</a>}<a className="secondary-link" href="/">Volver a comprobar <span aria-hidden="true">↗</span></a></div>
+        <div className="page-actions"><a className="refresh" href="/acceso">Iniciar sesión</a><a className="secondary-link" href="/registro">Crear cuenta de cliente</a>{setup?.requierePropietario && <a className="secondary-link" href="/instalacion">Preparar instalación</a>}<a className="secondary-link" href="/">Volver a comprobar <span aria-hidden="true">↗</span></a></div>
       </section>
 
       <footer>La Montaña <span aria-hidden="true">·</span> Identidad inicial</footer>

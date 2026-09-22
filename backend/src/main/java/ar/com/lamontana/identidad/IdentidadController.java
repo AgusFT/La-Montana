@@ -38,6 +38,24 @@ public class IdentidadController {
     @GetMapping("/api/admin/estado")
     public Map<String, Boolean> administracion() { return Map.of("configuracionDisponible", false, "operacionDisponible", false); }
 
+    @PostMapping("/api/auth/registro")
+    @ResponseStatus(HttpStatus.CREATED)
+    public Map<String, String> registro(@Valid @RequestBody RegistroCliente registro) {
+        identidad.registrarCliente(registro);
+        return Map.of("mensaje", "Cuenta creada. Ya podés iniciar sesión.");
+    }
+
+    @GetMapping("/api/cliente/estado")
+    public Map<String, Boolean> cliente() { return Map.of("operacionDisponible", false); }
+
+    public record RegistroCliente(
+            @NotBlank @Size(max = 100) String nombre,
+            @NotBlank @Size(max = 100) String apellido,
+            @NotBlank @Email @Size(max = 254) String correo,
+            @NotBlank @Size(min = 12, max = 128) String contrasena) {
+        @Override public String toString() { return "RegistroCliente[datos privados]"; }
+    }
+
     public record AltaPropietario(
             @NotBlank @Size(max = 256) String token,
             @NotBlank @Size(max = 100) String nombre,

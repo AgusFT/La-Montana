@@ -37,6 +37,7 @@ class IdentidadIntegrationTest {
                 assertThat(get(client, "/api/auth/me").statusCode()).isEqualTo(401);
                 assertThat(post(client, "/api/setup/propietario", alta(TOKEN), "application/json", null).statusCode()).isEqualTo(403);
                 String csrf = csrf(client);
+                assertThat(post(client, "/api/auth/registro", registro(), "application/json", csrf).statusCode()).isEqualTo(409);
                 var csrfCookie = cookies.getCookieStore().getCookies().get(0);
                 assertThat(csrfCookie.isHttpOnly()).isTrue();
                 assertThat(post(client, "/api/setup/propietario", alta("incorrecto"), "application/json", csrf).statusCode()).isEqualTo(403);
@@ -57,8 +58,24 @@ class IdentidadIntegrationTest {
                 assertThat(cookie(cookies)).isNotEqualTo(beforeLogin);
                 assertThat(get(client, "/api/auth/me").body()).contains("ADMIN_ADMIN", "admin@example.test").doesNotContain("hash_contrasena", PASSWORD);
                 assertThat(get(client, "/api/admin/estado").statusCode()).isEqualTo(200);
+                assertThat(get(client, "/api/cliente/estado").statusCode()).isEqualTo(403);
                 assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.sesion_http WHERE principal_name='admin@example.test'", Integer.class)).isEqualTo(1);
                 oldCookie = cookie(cookies);
+
+                var cliente = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
+                String clienteCsrf = csrf(cliente);
+                assertThat(post(cliente, "/api/auth/registro", registro(), "application/json", null).statusCode()).isEqualTo(403);
+                var registroRequest = requestPost("/api/auth/registro", registro(), "application/json", clienteCsrf);
+                var registroA = cliente.sendAsync(registroRequest, HttpResponse.BodyHandlers.ofString());
+                var registroB = cliente.sendAsync(registroRequest, HttpResponse.BodyHandlers.ofString());
+                assertThat(List.of(registroA.get().statusCode(), registroB.get().statusCode())).containsExactlyInAnyOrder(201, 409);
+                assertThat(get(cliente, "/api/auth/me").statusCode()).isEqualTo(401);
+                assertThat(post(cliente, "/api/auth/login", "username=CLIENTE%40EXAMPLE.TEST&password=" + PASSWORD, "application/x-www-form-urlencoded", clienteCsrf).statusCode()).isEqualTo(200);
+                assertThat(get(cliente, "/api/auth/me").body()).contains("\"rol\":\"CLIENTE\"", "cliente@example.test").doesNotContain("admin@example.test");
+                assertThat(get(cliente, "/api/admin/estado").statusCode()).isEqualTo(403);
+                assertThat(get(cliente, "/api/cliente/estado").statusCode()).isEqualTo(200);
+                assertThat(jdbc.queryForObject("SELECT es_administrador_propietario FROM lamontana.usuario WHERE correo='cliente@example.test'", Boolean.class)).isFalse();
+                assertThat(jdbc.queryForObject("SELECT correo_verificado_en IS NULL FROM lamontana.usuario WHERE correo='cliente@example.test'", Boolean.class)).isTrue();
             }
 
             // La segunda aplicación usa la misma base y la cookie anterior: no una sesión en memoria.
@@ -94,6 +111,9 @@ class IdentidadIntegrationTest {
 
     private String alta(String token) {
         return JSON.writeValueAsString(Map.of("token", token, "nombre", "Admin", "apellido", "Prueba", "correo", "admin@example.test", "contrasena", PASSWORD));
+    }
+    private String registro() {
+        return JSON.writeValueAsString(Map.of("nombre", "Cliente", "apellido", "Prueba", "correo", "cliente@example.test", "contrasena", PASSWORD));
     }
     private URI uri(String path) { return URI.create("http://127.0.0.1:" + port + path); }
     private HttpResponse<String> get(HttpClient client, String path) throws Exception {

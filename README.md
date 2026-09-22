@@ -2,11 +2,11 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 2
+## Estado actual · entrega 3
 
-Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y área administrativa con sesión real. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa y de cliente con sesiones reales, registro de particulares y redirección según rol. Compose incluye base, backend, frontend y buzón local Mailpit.
 
-**Ya se puede crear al propietario e iniciar/cerrar su sesión.** Registro de clientes, empleados, sucursales, configuración, pedidos, pagos, PDF y operación siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones.
+**Ya se puede crear al propietario, registrar clientes particulares e iniciar/cerrar ambas sesiones.** Empleados, sucursales, configuración, pedidos, pagos, PDF y operación siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
 ## Arranque local
 
@@ -64,7 +64,7 @@ pnpm build
 
 Las pruebas del backend usan binarios de PostgreSQL reales mediante una dependencia de test, sin requerir Docker. No usan H2 ni la base de la demo. Ejecutarlas como usuario normal en un sistema compatible con esos binarios. Las primeras descargas requieren Internet.
 
-Validación del 22/09/2026: Maven `verify` pasó 2 pruebas integradas contra PostgreSQL 18.6; `pnpm typecheck` y `pnpm build` pasaron con Node 24.19; el servidor standalone respondió HTTP 200 en `/health` y mostró el aviso correcto en `/` sin backend. Compose pasó `config --quiet` y el script pasó validación de sintaxis. Las imágenes Docker, el arranque conjunto, la persistencia de volúmenes y la inspección visual en navegador siguen sin verificar por las limitaciones del entorno. El build usa la API de TypeScript 5 mediante una opción soportada de Next; no se omitió la comprobación de tipos.
+Validación histórica de la entrega 1: Maven `verify` pasó 2 pruebas integradas contra PostgreSQL 18.6; `pnpm typecheck` y `pnpm build` pasaron con Node 24.19; el servidor standalone respondió HTTP 200 en `/health` y mostró el aviso correcto en `/` sin backend. Compose pasó `config --quiet` y el script pasó validación de sintaxis. En esa entrega no se verificaron las imágenes Docker, el arranque conjunto, la persistencia de volúmenes ni las vistas en navegador; los checkpoints siguientes registran lo comprobado después. El build usa la API de TypeScript 5 mediante una opción soportada de Next; no se omitió la comprobación de tipos.
 
 Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWORD` y opcionalmente `FILES_DIR` al backend, apuntando a un PostgreSQL propio. El frontend requiere `BACKEND_INTERNAL_URL` y se inicia con `pnpm dev`. Los directorios de archivos no se publican como recursos web. Son públicos el estado, el token CSRF y el recorrido inicial de alta/login; `/api/auth/me` exige sesión y `/api/admin/estado` exige rol administrativo. Las demás rutas de negocio permanecen cerradas. No existe usuario automático de Spring.
 
@@ -77,7 +77,7 @@ Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWOR
 
 Las contraseñas se guardan con PBKDF2 y sal aleatoria; el correo se compara sin distinguir mayúsculas. El correo ingresado aún no se verifica: no se marca falsamente como verificado en la base. Las sesiones se guardan mediante Spring Session JDBC, vencen tras 30 minutos de inactividad y usan cookies HttpOnly/SameSite=Lax. Cada POST requiere un token CSRF obtenido para esa sesión, renovado tras login/logout. El backend renueva el identificador al autenticar e invalida la sesión al salir.
 
-El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 intentos de alta/login por minuto y proceso; ese contador se reinicia con el backend. No existe todavía recuperación de contraseña: conservar las credenciales elegidas.
+El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 intentos de alta/login/registro por minuto y proceso; ese contador se reinicia con el backend. No existe todavía recuperación de contraseña: conservar las credenciales elegidas.
 
 El proxy Next admite solo las rutas de identidad declaradas, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
 
@@ -100,8 +100,16 @@ Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/syst
 
 ## Continuación
 
-Siguiente entrega: registro de clientes, verificación/recuperación por correo y administración de sucursales/empleados con autorización por sucursal. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: administración de sucursales/empleados y verificación/recuperación por correo. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
 
 Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
+## Acceso de clientes particulares
+
+Después de crear al propietario, `/registro` permite crear cuentas de particulares con nombre, apellido, correo y contraseña propia. El registro no inicia sesión automáticamente. `/acceso` dirige al administrador a `/administracion` y al cliente a `/cliente`; cada uno ve su propio perfil. El servidor asigna siempre el rol CLIENTE al registro público. Un cliente no puede consultar la API administrativa ni utilizar sus pantallas. Los duplicados de correo, incluso concurrentes, se rechazan sin crear cuentas adicionales.
+
+El cliente puede ingresar mientras la imprenta se configura, pero crear pedidos continúa en construcción. Verificación de correo y recuperación de contraseña permanecen visibles como pendientes; ningún correo se marca como verificado automáticamente. No hay registro de empresas.
+
 Este README es el único documento manual de producto. Se actualiza con lo efectivamente terminado, pruebas y decisiones relevantes en cada entrega.
+
+Validación de entrega 3: Maven verify, build/typecheck y circuito HTTP real de registro/login de cliente pasaron. Se comprobaron duplicados concurrentes, perfil propio y rechazo de API administrativa con 403; redirecciones por rol y logout correctos. Datos usados solo en PostgreSQL temporal.

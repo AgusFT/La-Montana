@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "La Montaña · Identidad inicial",
-  description: "Instalación y acceso del propietario de La Montaña 0.1.",
+  description: "Instalación, registro de clientes y acceso a La Montaña 0.1.",
   robots: { index: false, follow: false },
 };
 

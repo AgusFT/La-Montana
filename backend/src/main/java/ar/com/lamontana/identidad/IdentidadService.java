@@ -65,6 +65,22 @@ public class IdentidadService implements UserDetailsService {
                 .stream().findFirst().orElseThrow(() -> new UsernameNotFoundException("Credenciales incorrectas"));
     }
 
+    @Transactional
+    public void registrarCliente(IdentidadController.RegistroCliente registro) {
+        if (estado().requierePropietario()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La imprenta todavía no habilitó el registro.");
+        }
+        var ids = jdbc.query("""
+                INSERT INTO lamontana.usuario
+                  (codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado,es_administrador_propietario)
+                VALUES (?,(SELECT id_rol FROM lamontana.rol WHERE codigo='CLIENTE'),?,?,?,?, 'ACTIVO',false)
+                ON CONFLICT DO NOTHING RETURNING id_usuario
+                """, (rs, row) -> rs.getLong(1), UUID.randomUUID(), normalizar(registro.correo()),
+                encoder.encode(registro.contrasena()), registro.nombre().strip(), registro.apellido().strip());
+        if (ids.isEmpty()) throw new ResponseStatusException(HttpStatus.CONFLICT, "No se pudo registrar ese correo. Si ya tenés cuenta, iniciá sesión.");
+        jdbc.update("INSERT INTO lamontana.evento_acceso (tipo,id_usuario) VALUES ('REGISTRO_CLIENTE',?)", ids.get(0));
+    }
+
     public Perfil perfil(String correo) {
         return jdbc.queryForObject("""
                 SELECT u.codigo_publico,u.nombre,u.apellido,u.correo,r.codigo

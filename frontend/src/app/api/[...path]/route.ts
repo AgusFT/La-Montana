@@ -1,6 +1,6 @@
 const allowed: Record<string, "GET" | "POST"> = {
   "setup/estado": "GET", "auth/csrf": "GET", "auth/me": "GET",
-  "setup/propietario": "POST", "auth/login": "POST", "auth/logout": "POST",
+  "setup/propietario": "POST", "auth/login": "POST", "auth/logout": "POST", "auth/registro": "POST",
 };
 export const dynamic = "force-dynamic";
 
@@ -40,9 +40,9 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     }
     if (response.status >= 500) return error(response.status === 503 ? 503 : 502, "El sistema no está disponible. Intentá nuevamente.", resultHeaders);
     if (response.status === 204) return new Response(null, { status: 204, headers: resultHeaders });
-    if (route === "setup/propietario" && response.status === 201) {
+    if (["setup/propietario", "auth/registro"].includes(route) && response.status === 201) {
       resultHeaders.set("Content-Type", "application/json");
-      return Response.json({ mensaje: "Propietario creado." }, { status: 201, headers: resultHeaders });
+      return Response.json({ mensaje: route === "auth/registro" ? "Cuenta de cliente creada." : "Propietario creado." }, { status: 201, headers: resultHeaders });
     }
     if (!contentType?.includes("application/json")) return error(502, "El sistema respondió con un formato inesperado.", resultHeaders);
     const data = await response.json();
