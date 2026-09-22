@@ -37,6 +37,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/admin/empleados").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/catalogo", "/api/admin/catalogo/revisiones/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/formatos", "/api/admin/catalogo/papeles", "/api/admin/catalogo/servicios", "/api/admin/catalogo/revisiones").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/programaciones/*/cancelar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/contexto", "/api/operacion/sucursales/*").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/estado").hasRole("CLIENTE")
                         .anyRequest().denyAll())

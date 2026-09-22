@@ -4,12 +4,14 @@ import static ar.com.lamontana.catalogo.CatalogoController.*;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.json.JsonMapper;
@@ -23,16 +25,22 @@ public class CatalogoService {
     public record Formato(UUID codigoPublico,String codigo,String nombre,BigDecimal anchoMm,BigDecimal altoMm) {}
     public record Papel(UUID codigoPublico,String codigo,String nombre,BigDecimal gramaje,String terminacion) {}
     public record Servicio(UUID codigoPublico,String codigo,String nombre,TipoServicio tipo,String descripcion) {}
-    public record Resumen(UUID codigoPublico,long numero,String motivo,Instant creadaEn,String actor) {}
-    public record Revision(UUID codigoPublico,long numero,String motivo,Instant creadaEn,String actor,List<Tarifa> tarifas,List<OfertaServicio> servicios) {}
-    public record Estado(List<Formato> formatos,List<Papel> papeles,List<Servicio> servicios,Revision actual,List<Resumen> historial) {}
+    public enum EstadoRevision { VIGENTE, HISTORICA, PROGRAMADA, CANCELADA }
+    public record Resumen(UUID codigoPublico,long numero,String motivo,Instant creadaEn,String actor,
+                          EstadoRevision estado,Instant programadaPara,Instant activadaEn) {}
+    public record Revision(UUID codigoPublico,long numero,String motivo,Instant creadaEn,String actor,List<Tarifa> tarifas,List<OfertaServicio> servicios,
+                           EstadoRevision estado,Instant programadaPara,Instant activadaEn) {}
+    public record Estado(List<Formato> formatos,List<Papel> papeles,List<Servicio> servicios,Revision actual,List<Resumen> historial,Revision programada) {}
+    private static final String RESUMEN_SQL="SELECT r.codigo_publico,r.id_catalogo_revision,r.motivo,r.creada_en,u.nombre||' '||u.apellido AS actor,r.estado,r.programada_para,r.activada_en FROM lamontana.catalogo_revision r JOIN lamontana.usuario u ON u.id_usuario=r.id_actor";
 
-    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    @Transactional
     public Estado estado() {
+        bloquear(); aplicarVencida();
         var actuales=jdbc.query("SELECT codigo_publico FROM lamontana.catalogo_revision WHERE vigente",(rs,row)->rs.getObject(1,UUID.class));
-        return new Estado(formatos(),papeles(),servicios(),actuales.isEmpty()?null:revision(actuales.get(0)),
-                jdbc.query("SELECT r.codigo_publico,r.id_catalogo_revision,r.motivo,r.creada_en,u.nombre||' '||u.apellido FROM lamontana.catalogo_revision r JOIN lamontana.usuario u ON u.id_usuario=r.id_actor ORDER BY r.id_catalogo_revision DESC LIMIT 50",
-                        (rs,row)->new Resumen(rs.getObject(1,UUID.class),rs.getLong(2),rs.getString(3),rs.getTimestamp(4).toInstant(),rs.getString(5))));
+        var programadas=jdbc.query("SELECT codigo_publico FROM lamontana.catalogo_revision WHERE estado='PROGRAMADA'",(rs,row)->rs.getObject(1,UUID.class));
+        return new Estado(formatos(),papeles(),servicios(),actuales.isEmpty()?null:cargarRevision(actuales.get(0)),
+                jdbc.query(RESUMEN_SQL+" ORDER BY r.id_catalogo_revision DESC LIMIT 50",this::resumen),
+                programadas.isEmpty()?null:cargarRevision(programadas.get(0)));
     }
     private List<Formato> formatos() { return jdbc.query("SELECT codigo_publico,codigo,nombre,ancho_mm,alto_mm FROM lamontana.formato ORDER BY codigo",(r,n)->new Formato(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getBigDecimal(5))); }
     private List<Papel> papeles() { return jdbc.query("SELECT codigo_publico,codigo,nombre,gramaje_g_m2,terminacion_tipo FROM lamontana.papel ORDER BY codigo",(r,n)->new Papel(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getString(5))); }
@@ -59,27 +67,36 @@ public class CatalogoService {
         jdbc.update("INSERT INTO lamontana.evento_catalogo(id_actor,tipo,codigo_objeto) VALUES ((SELECT id_usuario FROM lamontana.usuario WHERE correo=?),?,?)",actor,tipo,objeto);
     }
 
-    @Transactional
+    // Una reconciliación vencida no se revierte por un comando posterior inválido o desactualizado.
+    // Todos los rechazos de negocio ocurren antes de escribir la nueva revisión.
+    @Transactional(noRollbackFor=ResponseStatusException.class)
     public Revision guardar(NuevaRevision in,String actor) {
         // Una sola revisión efectiva y confirmaciones idempotentes, incluyendo solicitudes simultáneas.
-        jdbc.execute("SELECT pg_advisory_xact_lock(764002)");
-        String fingerprint=hash(json.writeValueAsString(in));
+        bloquear(); aplicarVencida();
+        String fingerprint=huellaRevision(in);
         var existentes=jdbc.query("SELECT r.codigo_publico,r.hash_solicitud,u.correo FROM lamontana.catalogo_revision r JOIN lamontana.usuario u ON u.id_usuario=r.id_actor WHERE r.id_operacion=?",
                 (rs,row)->new String[]{rs.getString(1),rs.getString(2),rs.getString(3)},in.operacion());
         if(!existentes.isEmpty()) {
             var e=existentes.get(0);
             if(!e[1].equals(fingerprint)||!e[2].equals(actor)) throw error(HttpStatus.CONFLICT,"Esa confirmación ya se usó con otros datos. Volvé a revisar el catálogo.");
-            return revision(UUID.fromString(e[0]));
+            return cargarRevision(UUID.fromString(e[0]));
         }
+        if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.catalogo_cancelacion WHERE id_operacion=?)",Boolean.class,in.operacion())))
+            throw error(HttpStatus.CONFLICT,"Esa confirmación ya se usó para otra operación.");
+        if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.catalogo_revision WHERE estado='PROGRAMADA')",Boolean.class)))
+            throw error(HttpStatus.CONFLICT,"Hay una revisión comercial programada. Cancelala o esperá su activación antes de guardar otra.");
+        if(in.programadaPara()!=null && !in.programadaPara().isAfter(ahora()))
+            throw error(HttpStatus.BAD_REQUEST,"La fecha y hora programadas deben ser futuras.");
         var actual=jdbc.query("SELECT codigo_publico FROM lamontana.catalogo_revision WHERE vigente",(rs,row)->rs.getObject(1,UUID.class));
         UUID base=actual.isEmpty()?null:actual.get(0);
         if(!Objects.equals(base,in.versionBase())) throw error(HttpStatus.CONFLICT,"El catálogo cambió desde que lo abriste. Consultá la revisión vigente y revisá tus cambios antes de guardar.");
         validar(in);
         UUID codigo=UUID.randomUUID();
         Long id=jdbc.queryForObject("""
-                INSERT INTO lamontana.catalogo_revision(codigo_publico,id_revision_base,id_operacion,hash_solicitud,motivo,id_actor)
-                VALUES (?,(SELECT id_catalogo_revision FROM lamontana.catalogo_revision WHERE codigo_publico=?),?,?,?,(SELECT id_usuario FROM lamontana.usuario WHERE correo=?)) RETURNING id_catalogo_revision
-                """,Long.class,codigo,base,in.operacion(),fingerprint,in.motivo().strip(),actor);
+                INSERT INTO lamontana.catalogo_revision(codigo_publico,id_revision_base,id_operacion,hash_solicitud,motivo,id_actor,estado,programada_para,activada_en)
+                VALUES (?,(SELECT id_catalogo_revision FROM lamontana.catalogo_revision WHERE codigo_publico=?),?,?,?,(SELECT id_usuario FROM lamontana.usuario WHERE correo=?),?,?,?) RETURNING id_catalogo_revision
+                """,Long.class,codigo,base,in.operacion(),fingerprint,in.motivo().strip(),actor,
+                in.programadaPara()==null?"HISTORICA":"PROGRAMADA",timestamp(in.programadaPara()),in.programadaPara()==null?timestamp(ahora()):null);
         for(Tarifa t:in.tarifas()) jdbc.update("""
                 INSERT INTO lamontana.tarifa_impresion(id_catalogo_revision,id_formato,id_papel,modo_color,precio_por_carilla,recargo_doble_faz,habilitada)
                 VALUES (?,(SELECT id_formato FROM lamontana.formato WHERE codigo_publico=?),(SELECT id_papel FROM lamontana.papel WHERE codigo_publico=?),?,?,?,?)
@@ -94,10 +111,61 @@ public class CatalogoService {
                     VALUES (?,(SELECT id_formato FROM lamontana.formato WHERE codigo_publico=?),(SELECT id_papel FROM lamontana.papel WHERE codigo_publico=?))
                     """,configuracion,c.formato(),c.papel());
         }
-        jdbc.update("UPDATE lamontana.catalogo_revision SET vigente=false WHERE vigente");
-        jdbc.update("UPDATE lamontana.catalogo_revision SET vigente=true WHERE id_catalogo_revision=?",id);
-        evento(actor,"REVISION_ACTIVADA",codigo);
-        return revision(codigo);
+        if(in.programadaPara()==null) {
+            publicar(id);
+            evento(actor,"REVISION_ACTIVADA",codigo);
+        } else evento(actor,"REVISION_PROGRAMADA",codigo);
+        return cargarRevision(codigo);
+    }
+
+    @Transactional(noRollbackFor=ResponseStatusException.class)
+    public Revision cancelar(UUID codigo,CancelarProgramacion in,String actor) {
+        bloquear(); aplicarVencida();
+        String fingerprint=hash(codigo+"\n"+json.writeValueAsString(in));
+        var existentes=jdbc.query("SELECT r.codigo_publico,c.hash_solicitud,u.correo FROM lamontana.catalogo_cancelacion c JOIN lamontana.catalogo_revision r USING(id_catalogo_revision) JOIN lamontana.usuario u ON u.id_usuario=c.id_actor WHERE c.id_operacion=?",
+                (rs,row)->new String[]{rs.getString(1),rs.getString(2),rs.getString(3)},in.operacion());
+        if(!existentes.isEmpty()) {
+            var e=existentes.get(0);
+            if(!e[0].equals(codigo.toString())||!e[1].equals(fingerprint)||!e[2].equals(actor))
+                throw error(HttpStatus.CONFLICT,"Esa confirmación ya se usó con otros datos.");
+            return cargarRevision(codigo);
+        }
+        if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.catalogo_revision WHERE id_operacion=?)",Boolean.class,in.operacion())))
+            throw error(HttpStatus.CONFLICT,"Esa confirmación ya se usó para otra operación.");
+        Revision revision=cargarRevision(codigo);
+        if(revision.estado()!=EstadoRevision.PROGRAMADA)
+            throw error(HttpStatus.CONFLICT,"Sólo puede cancelarse una revisión todavía programada; la revisión vigente permanece sin cambios.");
+        jdbc.update("INSERT INTO lamontana.catalogo_cancelacion(id_operacion,id_catalogo_revision,hash_solicitud,id_actor,motivo) VALUES (?,?,?,(SELECT id_usuario FROM lamontana.usuario WHERE correo=?),?)",
+                in.operacion(),revision.numero(),fingerprint,actor,in.motivo().strip());
+        jdbc.update("UPDATE lamontana.catalogo_revision SET estado='CANCELADA',cancelada_en=clock_timestamp() WHERE id_catalogo_revision=?",revision.numero());
+        evento(actor,"PROGRAMACION_CANCELADA",codigo);
+        return cargarRevision(codigo);
+    }
+
+    @Transactional
+    public void reconciliarProgramaciones() { bloquear(); aplicarVencida(); }
+
+    private void bloquear() { jdbc.execute("SELECT pg_advisory_xact_lock(764002)"); }
+    private Instant ahora() { return jdbc.queryForObject("SELECT clock_timestamp()",Timestamp.class).toInstant(); }
+    private Timestamp timestamp(Instant instante) { return instante==null?null:Timestamp.from(instante); }
+    private void publicar(long id) {
+        jdbc.update("UPDATE lamontana.catalogo_revision SET vigente=false,estado='HISTORICA' WHERE vigente");
+        jdbc.update("UPDATE lamontana.catalogo_revision SET vigente=true,estado='VIGENTE',activada_en=clock_timestamp() WHERE id_catalogo_revision=?",id);
+    }
+    private void aplicarVencida() {
+        var pendientes=jdbc.query("SELECT id_catalogo_revision,codigo_publico,id_actor FROM lamontana.catalogo_revision WHERE estado='PROGRAMADA' AND programada_para<=clock_timestamp()",
+                (rs,row)->new Pendiente(rs.getLong(1),rs.getObject(2,UUID.class),rs.getLong(3)));
+        if(pendientes.isEmpty()) return;
+        Pendiente pendiente=pendientes.get(0);
+        publicar(pendiente.id());
+        jdbc.update("INSERT INTO lamontana.evento_catalogo(id_actor,tipo,codigo_objeto) VALUES (?,'PROGRAMACION_APLICADA',?)",pendiente.actor(),pendiente.codigo());
+    }
+    private record Pendiente(long id,UUID codigo,long actor) {}
+    // Conserva las huellas de comandos inmediatos almacenadas por V7 antes de añadir programadaPara.
+    private record RevisionInmediata(UUID versionBase,UUID operacion,String motivo,List<Tarifa> tarifas,List<OfertaServicio> servicios) {}
+    private String huellaRevision(NuevaRevision in) {
+        String original=json.writeValueAsString(new RevisionInmediata(in.versionBase(),in.operacion(),in.motivo(),in.tarifas(),in.servicios()));
+        return hash(original+(in.programadaPara()==null?"":"\nPROGRAMADA:"+in.programadaPara()));
     }
 
     private void validar(NuevaRevision in) {
@@ -134,10 +202,18 @@ public class CatalogoService {
     private boolean combinacionExiste(Set<UUID> formatos,Set<UUID> papeles,UUID f,UUID p) { return formatos.contains(f)&&papeles.contains(p); }
     private void existe(boolean condition,String message) { if(!condition) throw error(HttpStatus.BAD_REQUEST,message); }
 
-    @Transactional(readOnly=true)
+    @Transactional(noRollbackFor=ResponseStatusException.class)
     public Revision revision(UUID codigo) {
-        var result=jdbc.query("SELECT r.id_catalogo_revision,r.motivo,r.creada_en,u.nombre||' '||u.apellido FROM lamontana.catalogo_revision r JOIN lamontana.usuario u ON u.id_usuario=r.id_actor WHERE r.codigo_publico=?",
-                (rs,row)->new Resumen(codigo,rs.getLong(1),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getString(4)),codigo);
+        bloquear(); aplicarVencida();
+        return cargarRevision(codigo);
+    }
+    private Resumen resumen(ResultSet rs,int row) throws SQLException {
+        Timestamp programada=rs.getTimestamp("programada_para"),activada=rs.getTimestamp("activada_en");
+        return new Resumen(rs.getObject("codigo_publico",UUID.class),rs.getLong("id_catalogo_revision"),rs.getString("motivo"),rs.getTimestamp("creada_en").toInstant(),rs.getString("actor"),
+                EstadoRevision.valueOf(rs.getString("estado")),programada==null?null:programada.toInstant(),activada==null?null:activada.toInstant());
+    }
+    private Revision cargarRevision(UUID codigo) {
+        var result=jdbc.query(RESUMEN_SQL+" WHERE r.codigo_publico=?",this::resumen,codigo);
         if(result.isEmpty()) throw error(HttpStatus.NOT_FOUND,"La revisión comercial no existe.");
         Resumen r=result.get(0);long id=r.numero();
         var tarifas=jdbc.query("""
@@ -152,7 +228,7 @@ public class CatalogoService {
                 """,(rs,row)->new OfertaServicio(rs.getObject(2,UUID.class),rs.getString(3),BasePrecio.valueOf(rs.getString(4)),rs.getBigDecimal(5),rs.getInt(6),rs.getBoolean(7),
                         jdbc.query("SELECT f.codigo_publico,p.codigo_publico FROM lamontana.compatibilidad_servicio x JOIN lamontana.formato f USING(id_formato) JOIN lamontana.papel p USING(id_papel) WHERE x.id_configuracion_servicio=? ORDER BY f.codigo,p.codigo",
                                 (c,n)->new Compatibilidad(c.getObject(1,UUID.class),c.getObject(2,UUID.class)),rs.getLong(1))),id);
-        return new Revision(codigo,id,r.motivo(),r.creadaEn(),r.actor(),tarifas,ofertas);
+        return new Revision(codigo,id,r.motivo(),r.creadaEn(),r.actor(),tarifas,ofertas,r.estado(),r.programadaPara(),r.activadaEn());
     }
     private ResponseStatusException error(HttpStatus status,String message) { return new ResponseStatusException(status,message); }
     private String hash(String text) {

@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -24,6 +25,10 @@ public class CatalogoController {
     public Map<String,String> servicio(@Valid @RequestBody AltaServicio data, Principal actor) { catalogo.servicio(data, actor.getName()); return Map.of("mensaje","Servicio creado."); }
     @PostMapping("/revisiones") public CatalogoService.Revision guardar(@Valid @RequestBody NuevaRevision data, Principal actor) { return catalogo.guardar(data, actor.getName()); }
     @GetMapping("/revisiones/{codigo}") public CatalogoService.Revision revision(@PathVariable UUID codigo) { return catalogo.revision(codigo); }
+    @PostMapping("/programaciones/{codigo}/cancelar")
+    public CatalogoService.Revision cancelar(@PathVariable UUID codigo, @Valid @RequestBody CancelarProgramacion data, Principal actor) {
+        return catalogo.cancelar(codigo, data, actor.getName());
+    }
 
     public record AltaFormato(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,40}") String codigo, @NotBlank @Size(max=100) String nombre,
                               @NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal anchoMm, @NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal altoMm) {}
@@ -43,5 +48,7 @@ public class CatalogoController {
                                  @NotNull @Min(0) @Max(10080) Integer preparacionMinutos, @NotNull Boolean habilitado,
                                  @NotNull @Size(max=300) List<@NotNull @Valid Compatibilidad> compatibilidades) {}
     public record NuevaRevision(UUID versionBase, @NotNull UUID operacion, @NotBlank @Size(max=500) String motivo,
-                                @NotNull @Size(max=300) List<@NotNull @Valid Tarifa> tarifas, @NotNull @Size(max=100) List<@NotNull @Valid OfertaServicio> servicios) {}
+                                @NotNull @Size(max=300) List<@NotNull @Valid Tarifa> tarifas, @NotNull @Size(max=100) List<@NotNull @Valid OfertaServicio> servicios,
+                                Instant programadaPara) {}
+    public record CancelarProgramacion(@NotNull UUID operacion, @NotBlank @Size(max=500) String motivo) {}
 }

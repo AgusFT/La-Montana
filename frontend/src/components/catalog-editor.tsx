@@ -15,15 +15,18 @@ function Options({items}:{items:Array<{codigoPublico:string;nombre:string;codigo
 export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(revision:CatalogRevision)=>void}){
   const [rates,setRates]=useState(()=>seedRates(catalog.actual)),[offers,setOffers]=useState(()=>seedOffers(catalog.actual));
   const [base,setBase]=useState(catalog.actual?.codigoPublico??null),[baseNumber,setBaseNumber]=useState(catalog.actual?.numero??null),[reason,setReason]=useState("");
-  const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[conflict,setConflict]=useState(false),[message,setMessage]=useState(""),[saved,setSaved]=useState<number|null>(null);
+  const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[conflict,setConflict]=useState(false),[message,setMessage]=useState(""),[saved,setSaved]=useState<CatalogRevision|null>(null);
+  const [scheduled,setScheduled]=useState(false),[scheduledFor,setScheduledFor]=useState("");
   const [comparison,setComparison]=useState<CatalogState|null>(null),[checking,setChecking]=useState(false);
   const pending=useRef<NewRevision|null>(null);
-  const locked=busy||uncertain;
+  const locked=busy||uncertain||catalog.programada!==null;
   function changeRate(id:string,change:Partial<RateDraft>){setSaved(null);setRates(current=>current.map(row=>row.id===id?{...row,...change}:row));}
   function changeOffer(id:string,change:Partial<OfferDraft>){setSaved(null);setOffers(current=>current.map(row=>row.id===id?{...row,...change}:row));}
   function chooseService(row:OfferDraft,id:string){const printing=catalog.servicios.find(service=>service.codigoPublico===id)?.tipo==="IMPRESION";changeOffer(row.id,{servicio:id,...(printing?{basePrecio:"POR_CARILLA",precio:"0",compatibilidades:[]}:row.basePrecio==="POR_CARILLA"&&catalog.servicios.find(service=>service.codigoPublico===row.servicio)?.tipo==="IMPRESION"?{basePrecio:"",precio:""}:{})});}
   function pairChange(row:OfferDraft,id:string,change:Partial<PairDraft>){changeOffer(row.id,{compatibilidades:row.compatibilidades.map(pair=>pair.id===id?{...pair,...change}:pair)});}
   function payload():NewRevision{
+    let date:string|null=null;
+    if(scheduled){const chosen=new Date(scheduledFor+":00Z");if(!scheduledFor||Number.isNaN(chosen.valueOf())||chosen.valueOf()<=Date.now())throw new Error("Elegí una fecha y hora UTC futura.");date=chosen.toISOString();}
     if(!rates.some(rate=>rate.habilitada))throw new Error("Habilitá al menos una tarifa de impresión.");
     if(offers.filter(offer=>offer.habilitado&&catalog.servicios.find(service=>service.codigoPublico===offer.servicio)?.tipo==="IMPRESION").length<1)throw new Error("Debe haber al menos un servicio de impresión habilitado.");
     const rateKeys=rates.map(rate=>`${rate.formato}/${rate.papel}/${rate.color}`);
@@ -33,7 +36,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
       if(!printing&&offer.habilitado&&offer.compatibilidades.length===0)throw new Error(`Agregá al menos una compatibilidad para ${offer.nombreVisible||"el servicio de terminación"}.`);
       const pairs=offer.compatibilidades.map(pair=>`${pair.formato}/${pair.papel}`);if(new Set(pairs).size!==pairs.length)throw new Error("Hay compatibilidades repetidas en un servicio.");
     }
-    return {versionBase:base,operacion:crypto.randomUUID(),motivo:reason.trim(),tarifas:rates.map(({formato,papel,color,precio,recargoDobleFaz,habilitada})=>({formato,papel,color:color as ColorMode,precio:Number(precio),recargoDobleFaz:Number(recargoDobleFaz),habilitada})),servicios:offers.map(({servicio,nombreVisible,basePrecio,precio,preparacionMinutos,habilitado,compatibilidades})=>({servicio,nombreVisible:nombreVisible.trim(),basePrecio:basePrecio as PriceBase,precio:Number(precio),preparacionMinutos:Number(preparacionMinutos),habilitado,compatibilidades:compatibilidades.map(({formato,papel})=>({formato,papel}))}))};
+    return {versionBase:base,operacion:crypto.randomUUID(),motivo:reason.trim(),programadaPara:date,tarifas:rates.map(({formato,papel,color,precio,recargoDobleFaz,habilitada})=>({formato,papel,color:color as ColorMode,precio:Number(precio),recargoDobleFaz:Number(recargoDobleFaz),habilitada})),servicios:offers.map(({servicio,nombreVisible,basePrecio,precio,preparacionMinutos,habilitado,compatibilidades})=>({servicio,nombreVisible:nombreVisible.trim(),basePrecio:basePrecio as PriceBase,precio:Number(precio),preparacionMinutos:Number(preparacionMinutos),habilitado,compatibilidades:compatibilidades.map(({formato,papel})=>({formato,papel}))}))};
   }
   async function save(event?:FormEvent<HTMLFormElement>){
     event?.preventDefault();if(busy)return;
@@ -42,7 +45,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
       if(!pending.current)pending.current=payload();
       const response=await secureMutation("/api/admin/catalogo/revisiones",JSON.stringify(pending.current),"application/json");
       const data:unknown=await response.json();if(!isCatalogRevision(data))throw new Error("No pudimos confirmar la revisión recibida.");
-      pending.current=null;setUncertain(false);setConflict(false);setComparison(null);setBase(data.codigoPublico);setBaseNumber(data.numero);setReason("");setRates(seedRates(data));setOffers(seedOffers(data));setSaved(data.numero);onSaved(data);
+      pending.current=null;setUncertain(false);setConflict(data.estado!=="VIGENTE"&&data.estado!=="PROGRAMADA");setComparison(null);if(data.estado==="VIGENTE"){setBase(data.codigoPublico);setBaseNumber(data.numero);}setReason("");setRates(seedRates(data));setOffers(seedOffers(data));setSaved(data);onSaved(data);
     }catch(error){
       setMessage(error instanceof Error?error.message:"No pudimos guardar la revisión.");
       if(error instanceof MutationError&&!error.uncertain){pending.current=null;setUncertain(false);setConflict(error.status===409);}
@@ -52,7 +55,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
   async function checkLatest(){setChecking(true);try{setComparison(await readCatalog());}catch(error){setMessage(error instanceof Error?error.message:"No pudimos consultar la revisión vigente.");}finally{setChecking(false);}}
   function adoptBase(){if(!comparison)return;setBase(comparison.actual?.codigoPublico??null);setBaseNumber(comparison.actual?.numero??null);setConflict(false);setComparison(null);setMessage("");pending.current=null;}
   return <section id="revision-comercial"><form onSubmit={save} className="admin-form">
-    <div className="catalog-editor-heading"><div><h2>Nueva revisión comercial</h2><p>{baseNumber===null?"Primera revisión: todavía no hay precios vigentes.":`Editando a partir de la revisión ${baseNumber}. Al guardar se creará una nueva revisión.`}</p></div><button type="button" className="admin-button secondary" disabled title="En construcción">Programar cambios · En construcción</button></div>
+    <div className="catalog-editor-heading"><div><h2>Nueva revisión comercial</h2><p>{baseNumber===null?"Primera revisión: todavía no hay precios vigentes.":`Editando a partir de la revisión ${baseNumber}. Al guardar se creará una nueva revisión.`}</p></div><button type="button" className="admin-button secondary" disabled={locked} onClick={()=>setScheduled(value=>!value)}>{scheduled?"Usar vigencia inmediata":"Programar cambios"}</button></div>
     <fieldset disabled={locked} className="admin-fieldset">
       <div className="catalog-two-columns">
         <section className="admin-card"><div className="admin-section-title"><div><h2>Tarifas de impresión</h2><p>Precio por carilla según formato, papel y color.</p></div><button type="button" className="admin-button" disabled={rates.length>=300||!catalog.formatos.length||!catalog.papeles.length} onClick={()=>setRates(current=>[...current,{id:crypto.randomUUID(),formato:"",papel:"",color:"",precio:"",recargoDobleFaz:"",habilitada:false}])}>+ Agregar tarifa</button></div>
@@ -74,13 +77,13 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
           <p className="admin-info compact">Habilitá al menos un servicio de impresión. Elegí los precios y compatibilidades de cada terminación.</p>
         </section>
       </div>
-      <div className="admin-card catalog-save"><label>Motivo de la nueva revisión<textarea required maxLength={500} value={reason} onChange={e=>{setReason(e.target.value);setSaved(null);}}/></label><p className="admin-note">Los cambios se aplican inmediatamente al catálogo vigente. El historial anterior se conserva.</p></div>
+      <div className="admin-card catalog-save">{scheduled&&<label>Fecha y hora de vigencia (UTC)<input type="datetime-local" required value={scheduledFor} onChange={event=>setScheduledFor(event.target.value)}/></label>}<div className="catalog-field"><label htmlFor="catalog-reason">Motivo de la nueva revisión</label><textarea id="catalog-reason" required maxLength={500} value={reason} onChange={e=>{setReason(e.target.value);setSaved(null);}}/></div><p className="admin-note">{scheduled?"La revisión vigente se conserva hasta la fecha elegida. Sólo puede haber una programación comercial pendiente; cancelala para reemplazarla.":"Los cambios se aplican inmediatamente al catálogo vigente. El historial anterior se conserva."}</p></div>
     </fieldset>
     {message&&<p className={`form-message ${conflict||uncertain?"admin-warning":"error-message"}`} role="alert">{message}</p>}
     {uncertain&&<div className="admin-warning"><p>No pudimos confirmar el resultado del envío. Conservamos la misma operación y sus datos para reintentar sin crear una revisión duplicada.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>save()}>{busy?"Confirmando…":"Reintentar el mismo envío"}</button></div>}
     {conflict&&<div className="admin-warning"><p>Tus valores siguen en el formulario. Consultá la revisión vigente antes de decidir si querés usarlos sobre la nueva base.</p><button type="button" className="admin-button secondary" disabled={checking} onClick={checkLatest}>{checking?"Consultando…":"Consultar revisión vigente"}</button></div>}
     {comparison&&<div className="admin-card"><h3>Comparar con el catálogo vigente</h3>{comparison.actual?<RevisionView catalog={comparison} revision={comparison.actual}/>:<p>No hay una revisión vigente.</p>}<button type="button" className="admin-button secondary" onClick={adoptBase}>Usar esta base conservando mis valores</button></div>}
-    {saved!==null&&<p className="admin-success" role="status">Revisión {saved} guardada y vigente.</p>}
-    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={busy||uncertain||conflict}>{busy?"Guardando…":"Guardar nueva revisión"}</button></div>
+    {saved!==null&&<p className="admin-success" role="status">{saved.estado==="PROGRAMADA"?`Revisión ${saved.numero} programada.`:saved.estado==="VIGENTE"?`Revisión ${saved.numero} guardada y vigente.`:`La revisión ${saved.numero} ya fue procesada; su estado actual es ${saved.estado.toLowerCase()}. Consultá la vigente antes de guardar nuevos cambios.`}</p>}
+    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva revisión"}</button></div>
   </form></section>;
 }

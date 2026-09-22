@@ -63,7 +63,11 @@ class CatalogoIntegrationTest {
                 status(r1.get(),200);status(r2.get(),200);assertThat(r1.get().body()).isEqualTo(r2.get().body());assertThat(count(jdbc,"catalogo_revision")).isEqualTo(2);
                 String segunda=JSON.readTree(r1.get().body()).get("codigoPublico").asString();
                 // La anterior permanece completa e inmutable.
-                assertThat(get(admin,"/api/admin/catalogo/revisiones/"+primera).body()).isEqualTo(guardada.body());
+                var historica=JSON.readTree(get(admin,"/api/admin/catalogo/revisiones/"+primera).body());
+                var original=JSON.readTree(guardada.body());
+                assertThat(historica.get("estado").asString()).isEqualTo("HISTORICA");
+                for(String campo:List.of("codigoPublico","numero","motivo","creadaEn","actor","tarifas","servicios","activadaEn"))
+                    assertThat(historica.get(campo)).isEqualTo(original.get(campo));
                 assertThat(jdbc.queryForObject("SELECT precio_por_carilla FROM lamontana.tarifa_impresion ORDER BY id_tarifa_impresion LIMIT 1",java.math.BigDecimal.class)).isEqualByComparingTo("12.34");
                 invalid=new HashMap<>(revision);invalid.put("operacion",UUID.randomUUID().toString());status(post(admin,"/api/admin/catalogo/revisiones",invalid),409);
                 revision.put("versionBase",segunda);revision.put("operacion",UUID.randomUUID().toString());
