@@ -4,14 +4,14 @@ import {secureMutation,MutationError} from "@/lib/secure-mutation";
 import {quoteRead,date} from "@/lib/quote-types";
 import {isFile,isFileView,type PrivateFile,type FileView} from "@/lib/file-types";
 
-export function PrivateFiles({quote,version,internal=false}:{quote:string;version:number;internal?:boolean}){
+export function PrivateFiles({quote,version,internal=false,refresh=0}:{quote:string;version:number;internal?:boolean;refresh?:number}){
  const stateNames:Record<string,string>={PENDIENTE:"Pendiente de carga",VALIDANDO:"Analizando",VALIDO:"PDF válido",REQUIERE_COTIZACION:"Necesita una nueva cotización",RECHAZADO:"Archivo rechazado",FALLIDO:"Carga interrumpida"};
  const base=`/api/${internal?"operacion":"cliente"}/cotizaciones/${quote}/archivos`;
  const[view,setView]=useState<FileView|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[selected,setSelected]=useState<Record<string,File>>({}),[preview,setPreview]=useState<PrivateFile|null>(null),[page,setPage]=useState(1),[visited,setVisited]=useState<Set<number>>(new Set()),[ack,setAck]=useState(false),[imageError,setImageError]=useState(false);
  const running=useRef(false),command=useRef<{kind:"upload";item:string;file:File;body:string;id?:string}|{kind:"accept";id:string;body:string}|null>(null);
  const locked=busy||uncertain;
  async function load(){try{const data=await quoteRead(base,isFileView);setView(data);setPreview(current=>current?data.items.flatMap(i=>i.archivos).find(f=>f.codigoPublico===current.codigoPublico)??current:null);}catch(e){setError(e instanceof Error?e.message:"No pudimos consultar los archivos.");}}
- useEffect(()=>{void load();},[quote,version,internal]);
+ useEffect(()=>{void load();},[quote,version,internal,refresh]);
  useEffect(()=>{if(!view?.items.some(i=>i.archivos.some(f=>f.estado==="VALIDANDO")))return;const timer=setTimeout(()=>void load(),3000);return()=>clearTimeout(timer);},[view]);
  function open(file:PrivateFile){setPreview(file);setPage(1);setVisited(new Set());setAck(false);setImageError(false);}
  async function execute(){

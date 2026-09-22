@@ -38,7 +38,7 @@ public class CotizacionService {
         String momento,List<MedioPago> mediosAcreditacion,List<String> instrucciones){}
     public record Oferta(UUID configuracion,long numeroConfiguracion,UUID revisionComercial,long numeroRevision,OfertaOperativaService.Sucursal sucursal,
         List<ItemCotizado> items,Modalidad modalidad,UUID punto,Direccion direccion,String destino,MedioPago medioPago,
-        String subtotal,String costoEntrega,String total,Condiciones condiciones,EvaluadorCalendario.Simulacion entrega){}
+        String subtotal,String costoEntrega,String total,Condiciones condiciones,EvaluadorCalendario.Simulacion entrega,List<MedioPago> mediosGenerales){}
     public record Detalle(UUID codigoPublico,long numero,long version,String estado,Instant generadaEn,Instant vigenteHasta,Instant aceptadaEn,
         Instant canceladaEn,String motivoCancelacion,UUID reemplaza,UUID reemplazadaPor,Oferta oferta){}
     public record Resumen(UUID codigoPublico,long numero,String estado,Instant generadaEn,Instant vigenteHasta,Instant aceptadaEn,String total,String sucursal,int items){}
@@ -90,7 +90,7 @@ public class CotizacionService {
         var condiciones=new Condiciones(economica.revisionHumana(),economica.cargaRequiereAcreditacion(),economica.pagoPrevioRequerido(),economica.senaRequerida(),economica.saldo(),economica.momento().name(),economica.mediosAcreditacion(),instrucciones);
         String destino=sucursal.direccion();if(in.punto()!=null){var punto=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(in.punto())).findFirst().orElseThrow();destino=punto.nombre()+" · "+punto.calle()+" "+punto.numero()+", "+punto.localidad()+", "+punto.provincia();}
         if(in.direccion()!=null)destino=in.direccion().calle().strip()+" "+in.direccion().numero().strip()+", "+in.direccion().territorio().localidad()+", "+in.direccion().territorio().provincia();
-        var oferta=new Oferta(b.codigoPublico(),b.numero(),c.catalogo().actual().codigoPublico(),c.catalogo().actual().numero(),sucursal,List.copyOf(items),in.modalidad(),in.punto(),in.direccion(),destino,in.medioPago(),subtotal.toPlainString(),costo,total.toPlainString(),condiciones,temporal);
+        var oferta=new Oferta(b.codigoPublico(),b.numero(),c.catalogo().actual().codigoPublico(),c.catalogo().actual().numero(),sucursal,List.copyOf(items),in.modalidad(),in.punto(),in.direccion(),destino,in.medioPago(),subtotal.toPlainString(),costo,total.toPlainString(),condiciones,temporal,List.copyOf(b.pagos().medios()));
         UUID codigo=UUID.randomUUID();long id=jdbc.queryForObject("""
             INSERT INTO lamontana.cotizacion(codigo_publico,id_usuario_creador,id_sucursal,id_configuracion_version,id_catalogo_revision,id_cotizacion_reemplazada,estado,generada_en,vigente_hasta,subtotal,costo_entrega,total,oferta)
             VALUES (?,?,(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?),(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),(SELECT id_catalogo_revision FROM lamontana.catalogo_revision WHERE codigo_publico=?),?,'VIGENTE',?,?,?,?,?,?::jsonb) RETURNING id_cotizacion

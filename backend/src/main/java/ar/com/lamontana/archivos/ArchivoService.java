@@ -25,10 +25,11 @@ public class ArchivoService {
     private final OrganizacionService organizacion;private final OfertaOperativaService operativa;private final EvaluadorFinanciero finanzas;
     private final JsonMapper json=JsonMapper.builder().build();
     private final Clock clock=Clock.systemUTC();
+    private final ar.com.lamontana.pagos.CoberturaPagos cobertura;
     public ArchivoService(JdbcTemplate jdbc,PlatformTransactionManager manager,ArchivosPrivados storage,InspectorPdf inspector,Antivirus antivirus,
-                          OrganizacionService organizacion,OfertaOperativaService operativa,EvaluadorFinanciero finanzas){
+                          OrganizacionService organizacion,OfertaOperativaService operativa,EvaluadorFinanciero finanzas,ar.com.lamontana.pagos.CoberturaPagos cobertura){
         this.jdbc=jdbc;this.tx=new TransactionTemplate(manager);this.storage=storage;this.inspector=inspector;this.antivirus=antivirus;
-        this.organizacion=organizacion;this.operativa=operativa;this.finanzas=finanzas;
+        this.organizacion=organizacion;this.operativa=operativa;this.finanzas=finanzas;this.cobertura=cobertura;
     }
     public record Acceso(boolean habilitada,String motivo){}
     public record Archivo(UUID codigoPublico,UUID item,String nombre,String estado,boolean activo,Instant creadoEn,Instant cargarHasta,
@@ -160,7 +161,10 @@ public class ArchivoService {
         if(b==null||current.sucursales().stream().noneMatch(s->s.codigoPublico().equals(c.oferta().sucursal().codigoPublico())))return new Acceso(false,"La sucursal no está disponible para recibir el trabajo.");
         int faces=c.oferta().items().stream().mapToInt(i->i.precio().carillas()).sum();
         var actual=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),new java.math.BigDecimal(c.oferta().total()),faces);
-        if(c.oferta().condiciones().cargaRequiereAcreditacion()||actual.cargaRequiereAcreditacion())return new Acceso(false,"La carga requiere dinero acreditado. La acreditación está En construcción; conservá el PDF en tu dispositivo.");
+        var ofrecida=c.oferta().condiciones();
+        if(ofrecida.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),ofrecida.pagoPrevioRequerido(),ofrecida.senaRequerida(),ofrecida.mediosAcreditacion())
+            ||actual.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),actual.pagoPrevioRequerido(),actual.senaRequerida(),actual.mediosAcreditacion()))
+            return new Acceso(false,"Falta acreditar y aplicar el anticipo requerido mediante los medios admitidos. Informar una transferencia no acredita dinero.");
         return new Acceso(true,"Podés enviar los PDF para su análisis y vista previa. La seña exigible después de aprobar sigue siendo un requisito independiente.");
     }
     private void exigirCarga(Cotizacion c){var a=gate(c);if(!a.habilitada())throw conflicto(a.motivo());}
