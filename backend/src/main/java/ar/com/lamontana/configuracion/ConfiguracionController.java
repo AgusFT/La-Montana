@@ -29,7 +29,7 @@ public class ConfiguracionController {
         return configuracion.seleccionar(codigo,input,actor.getName());
     }
     @PostMapping("/borradores/{codigo}/cancelacion/solicitar")
-    public CancelacionConfiguracionService.Solicitud solicitarCancelacion(@PathVariable UUID codigo,@Valid @RequestBody SolicitarCancelacion input,Principal actor) {
+    public SeguridadConfiguracion.Solicitud solicitarCancelacion(@PathVariable UUID codigo,@Valid @RequestBody SolicitarCancelacion input,Principal actor) {
         return cancelacion.solicitar(codigo,input,actor.getName());
     }
     @PostMapping("/borradores/{codigo}/cancelacion/confirmar")

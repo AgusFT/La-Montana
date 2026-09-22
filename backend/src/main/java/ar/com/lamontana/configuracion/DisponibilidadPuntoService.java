@@ -24,15 +24,15 @@ public class DisponibilidadPuntoService {
     public Panel listar(String correo){
         configuracion.propietario(correo);
         var borradores=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='EN_PREPARACION'",(rs,row)->rs.getObject(1,UUID.class));
-        if(borradores.isEmpty())return new Panel("SIN_CONFIGURACION_ACTIVA",null,List.of(),0);
+        boolean activa=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado='ACTIVA')",Boolean.class));
         var puntos=jdbc.query("""
-                SELECT p.id_punto_entrega,p.codigo_publico,p.codigo,d.nombre,
+                SELECT DISTINCT ON (p.id_punto_entrega) p.id_punto_entrega,p.codigo_publico,p.codigo,d.nombre,
                        d.calle||' '||d.numero||' · '||d.localidad||', '||d.provincia AS direccion,d.zona_horaria
                 FROM lamontana.punto_entrega p JOIN lamontana.configuracion_definicion_punto d USING(id_punto_entrega)
                 JOIN lamontana.configuracion_version c USING(id_configuracion_version)
-                WHERE c.codigo_publico=? ORDER BY p.codigo
-                """,(rs,row)->new Punto(rs.getObject("codigo_publico",UUID.class),rs.getString("codigo"),rs.getString("nombre"),rs.getString("direccion"),rs.getString("zona_horaria"),estado(rs.getLong("id_punto_entrega"),rs.getObject("codigo_publico",UUID.class))),borradores.get(0));
-        return new Panel("SIN_CONFIGURACION_ACTIVA",borradores.get(0),puntos,puntos.stream().filter(p->p.disponibilidad().estado().equals("DESHABILITADO")).count());
+                WHERE c.estado IN ('ACTIVA','EN_PREPARACION') ORDER BY p.id_punto_entrega,(c.estado='ACTIVA') DESC,c.numero_version DESC
+                """,(rs,row)->new Punto(rs.getObject("codigo_publico",UUID.class),rs.getString("codigo"),rs.getString("nombre"),rs.getString("direccion"),rs.getString("zona_horaria"),estado(rs.getLong("id_punto_entrega"),rs.getObject("codigo_publico",UUID.class))),new Object[0]).stream().sorted(Comparator.comparing(Punto::codigo)).toList();
+        return new Panel(activa?"CONFIGURACION_ACTIVA":"SIN_CONFIGURACION_ACTIVA",borradores.isEmpty()?null:borradores.get(0),puntos,puntos.stream().filter(p->p.disponibilidad().estado().equals("DESHABILITADO")).count());
     }
 
     @Transactional
@@ -48,8 +48,8 @@ public class DisponibilidadPuntoService {
             var r=anteriores.get(0);if(r.punto()!=id||r.actor()!=actor||!r.huella().equals(huella))throw conflicto("Esa operación ya se utilizó con otro destino o contenido.");
             return estado(id,codigo); // Recupera el estado actual sin volver a aplicar un comando anterior.
         }
-        boolean pertenece=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_definicion_punto d JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE d.id_punto_entrega=? AND c.estado='EN_PREPARACION')",Boolean.class,id));
-        if(!pertenece)throw conflicto("El punto ya no está en la preparación actual. Actualizá el panel antes de continuar.");
+        boolean pertenece=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_definicion_punto d JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE d.id_punto_entrega=? AND c.estado IN ('ACTIVA','EN_PREPARACION'))",Boolean.class,id));
+        if(!pertenece)throw conflicto("El punto ya no pertenece a la configuración activa ni al borrador actual. Actualizá el panel antes de continuar.");
         var actual=estado(id,codigo);if(actual.version()!=input.version())throw conflicto("La disponibilidad cambió. Actualizá el estado y elegí nuevamente la acción.");
         if(actual.estado().equals(input.estado().name()))throw conflicto("El punto ya tiene ese estado. No se registró otro cambio.");
         jdbc.update("""

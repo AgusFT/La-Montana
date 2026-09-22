@@ -19,7 +19,8 @@ public class RevisionConfiguracionService {
     public record Hallazgo(String nivel,String codigo,String area,int fase,String mensaje,UUID sucursal){}
     public record Sucursal(UUID codigoPublico,String nombre,boolean activa){}
     public record Opcion(UUID sucursal,UUID servicio,UUID formato,UUID papel,ModoColor color,boolean dobleFaz,List<UUID> terminaciones){}
-    public record Revision(ConfiguracionService.Borrador borrador,CatalogoService.Estado catalogo,List<Sucursal> sucursales,boolean fase5Valida,List<Hallazgo> hallazgos,long bloqueos,long advertencias,List<Opcion> opciones,List<EntregaConfiguracionService.PuntoDisponible> puntosDisponibles){}
+    public record Revision(ConfiguracionService.Borrador borrador,CatalogoService.Estado catalogo,List<Sucursal> sucursales,boolean fase5Valida,List<Hallazgo> hallazgos,long bloqueos,long advertencias,List<Opcion> opciones,List<EntregaConfiguracionService.PuntoDisponible> puntosDisponibles,String huella){}
+    private record Referencia(ConfiguracionService.Borrador borrador,CatalogoService.Estado catalogo,List<Sucursal> sucursales,List<Hallazgo> hallazgos,List<EntregaConfiguracionService.PuntoDisponible> puntos){}
     public record Impresora(UUID codigoPublico,String nombre){}
     public record Simulacion(long version,UUID revisionComercial,EvaluadorPrecioItem.Precio precio,String costoEntrega,String total,
         EvaluadorFinanciero.Simulacion finanzas,EvaluadorCalendario.Simulacion entrega,List<Impresora> impresoras,List<String> recorrido,List<String> observaciones){}
@@ -61,7 +62,7 @@ public class RevisionConfiguracionService {
         if(comercial.programada()!=null)h.add(new Hallazgo("ADVERTENCIA","CATALOGO_PROGRAMADO","catalogo",0,"Existe una revisión comercial programada. Este resumen usa la vigente; los precios se volverán a comprobar al activar y al cotizar.",null));
         h.add(new Hallazgo("INFORMACION","REFERENCIAS_INDEPENDIENTES","catalogo",0,"La revisión comercial es independiente del motor. Las cotizaciones y pedidos conservarán sus precios capturados; esta revisión no crea ni modifica pedidos.",null));
         h.add(new Hallazgo("INFORMACION","OPERACION_MANUAL","recursos",4,"La producción requiere asignación y registro manual. CUPS, pasarelas de pago y oferta de pedidos siguen En construcción.",null));
-        return new Revision(b,comercial,List.copyOf(sucursales),entregaActual.valida(),List.copyOf(h),h.stream().filter(x->x.nivel().equals("BLOQUEO")).count(),h.stream().filter(x->x.nivel().equals("ADVERTENCIA")).count(),opciones,entregaActual.puntosDisponibles());
+        return new Revision(b,comercial,List.copyOf(sucursales),entregaActual.valida(),List.copyOf(h),h.stream().filter(x->x.nivel().equals("BLOQUEO")).count(),h.stream().filter(x->x.nivel().equals("ADVERTENCIA")).count(),opciones,entregaActual.puntosDisponibles(),configuracion.huella(new Referencia(b,comercial,sucursales,h,entregaActual.puntosDisponibles())));
     }
     private List<Opcion> opciones(ConfiguracionService.Borrador b,CatalogoService.Estado c,Set<UUID> activas){
         if(c.actual()==null)return List.of();var tipos=new HashMap<UUID,TipoServicio>();c.servicios().forEach(s->tipos.put(s.codigoPublico(),s.tipo()));var resultado=new ArrayList<Opcion>();
