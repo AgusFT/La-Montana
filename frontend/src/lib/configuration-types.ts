@@ -18,7 +18,7 @@ export type ResourceConfiguration = {
 };
 export type DeliveryMode = "RETIRO_SUCURSAL" | "RETIRO_PUNTO_ENTREGA" | "ENVIO_DOMICILIO";
 export type OperatingDay = {dia:number;habilitado:boolean|null;apertura:string|null;cierre:string|null};
-export type BranchSchedule = {sucursal:string;zonaHoraria:string;dias:OperatingDay[]};
+export type BranchSchedule = {sucursal:string;zonaHoraria:string;dias:OperatingDay[];franjasRetiro?:PointSlot[]};
 export type PointSlot = {dia:number;apertura:string;cierre:string;capacidadPedidos:number;habilitada:boolean};
 export type PointOrigin = {sucursal:string;habilitado:boolean;costo:string;franjas:PointSlot[]};
 export type DeliveryPoint = {codigoPublico:string;codigo:string;nombre:string;calle:string;numero:string;localidad:string;provincia:string;codigoPostal:string;referencias:string|null;zonaHoraria:string;sucursales:PointOrigin[]};
@@ -72,7 +72,7 @@ export function isDeliveryZone(v:unknown):v is DeliveryZone {
 export function isDeliveryConfiguration(value:unknown):value is DeliveryConfiguration {
   return record(value) && Array.isArray(value.zonas) && value.zonas.every(isDeliveryZone) && Array.isArray(value.puntos) && value.puntos.every(isDeliveryPoint) && ["preparacionHoras","trasladoHoras"].every(k=>value[k]===null||typeof value[k]==="string") &&
     Array.isArray(value.modalidades) && value.modalidades.every(m=>["RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"].includes(String(m))) &&
-    Array.isArray(value.horariosPorSucursal) && value.horariosPorSucursal.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.zonaHoraria==="string"&&Array.isArray(s.dias)&&s.dias.every(d=>record(d)&&Number.isInteger(d.dia)&&Number(d.dia)>=1&&Number(d.dia)<=7&&(d.habilitado===null||typeof d.habilitado==="boolean")&&["apertura","cierre"].every(k=>d[k]===null||typeof d[k]==="string")));
+    Array.isArray(value.horariosPorSucursal) && value.horariosPorSucursal.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.zonaHoraria==="string"&&(s.franjasRetiro===undefined||Array.isArray(s.franjasRetiro)&&s.franjasRetiro.every(f=>record(f)&&Number.isInteger(f.dia)&&Number(f.dia)>=1&&Number(f.dia)<=7&&typeof f.apertura==="string"&&typeof f.cierre==="string"&&Number.isSafeInteger(f.capacidadPedidos)&&Number(f.capacidadPedidos)>=0&&typeof f.habilitada==="boolean"))&&Array.isArray(s.dias)&&s.dias.every(d=>record(d)&&Number.isInteger(d.dia)&&Number(d.dia)>=1&&Number(d.dia)<=7&&(d.habilitado===null||typeof d.habilitado==="boolean")&&["apertura","cierre"].every(k=>d[k]===null||typeof d[k]==="string")));
 }
 export function isConfigurationCopy(v:unknown):v is ConfigurationCopy{return record(v)&&["USO_COMO_BASE","ROLLBACK"].includes(String(v.tipo))&&typeof v.origen==="string"&&Number.isSafeInteger(v.numeroOrigen)&&typeof v.creadaEn==="string"&&Array.isArray(v.fasesConfirmadas)&&v.fasesConfirmadas.every(n=>Number.isInteger(n)&&Number(n)>=2&&Number(n)<=6)&&Array.isArray(v.barridoInicial)&&v.barridoInicial.every(h=>record(h)&&["nivel","codigo","area","mensaje"].every(k=>typeof h[k]==="string")&&Number.isInteger(h.fase)&&(h.sucursal===null||typeof h.sucursal==="string"));}
 export function isConfigurationDraft(value:unknown):value is ConfigurationDraft {

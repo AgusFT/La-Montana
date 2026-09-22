@@ -23,7 +23,7 @@ public class EntregaConfiguracionService {
     public record PuntoDisponible(UUID punto,UUID sucursal,String nombre,String zonaHoraria,String costo,long versionDisponibilidad){}
     public record Validacion(long version,boolean valida,List<Problema> problemas,List<String> avisos,List<PuntoDisponible> puntosDisponibles){}
     private record Sucursal(long id,UUID codigo,String nombre,String zona){}
-    private record Calendario(long sucursal,String zona,List<Dia> dias){}
+    private record Calendario(long sucursal,String zona,List<Dia> dias,List<PuntoEntregaController.Franja> franjasRetiro){}
 
     @Transactional
     public ConfiguracionService.Borrador guardar(UUID codigo,GuardarEntrega input,String correo) {
@@ -38,7 +38,8 @@ public class EntregaConfiguracionService {
         for(var horario:input.horariosPorSucursal()) {
             exigir(horario!=null&&horario.sucursal()!=null&&vistas.add(horario.sucursal()),"Una sucursal no puede aparecer más de una vez en el calendario.");
             validarDias(horario.dias());var sucursal=sucursal(horario.sucursal());
-            calendarios.add(new Calendario(sucursal.id(),zonas.getOrDefault(horario.sucursal(),sucursal.zona()),horario.dias()));
+            var retiros=horario.franjasRetiro()==null?List.<PuntoEntregaController.Franja>of():horario.franjasRetiro();FranjasEntrega.validar(retiros);
+            calendarios.add(new Calendario(sucursal.id(),zonas.getOrDefault(horario.sucursal(),sucursal.zona()),horario.dias(),retiros));
         }
         long id=id(codigo);
         jdbc.update("INSERT INTO lamontana.configuracion_entrega(id_configuracion_version,preparacion_horas,traslado_horas) VALUES (?,?,?) ON CONFLICT(id_configuracion_version) DO UPDATE SET preparacion_horas=excluded.preparacion_horas,traslado_horas=excluded.traslado_horas",id,preparacion,traslado);
@@ -48,6 +49,7 @@ public class EntregaConfiguracionService {
         for(var horario:calendarios) {
             jdbc.update("INSERT INTO lamontana.configuracion_horario_sucursal(id_configuracion_version,id_sucursal,zona_horaria) VALUES (?,?,?)",id,horario.sucursal(),horario.zona());
             for(var dia:horario.dias())jdbc.update("INSERT INTO lamontana.horario_sucursal(id_configuracion_version,id_sucursal,dia_semana,habilitado,hora_desde,hora_hasta) VALUES (?,?,?,?,?,?)",id,horario.sucursal(),dia.dia(),dia.habilitado(),hora(dia.apertura()),hora(dia.cierre()));
+            for(var f:horario.franjasRetiro())jdbc.update("INSERT INTO lamontana.franja_entrega(id_configuracion_retiro,id_sucursal_retiro,dia_semana,hora_desde,hora_hasta,capacidad_pedidos,habilitada) VALUES (?,?,?,?,?,?,?)",id,horario.sucursal(),f.dia(),hora(f.apertura()),hora(f.cierre()),f.capacidadPedidos(),f.habilitada());
         }
         jdbc.update("UPDATE lamontana.configuracion_version SET version=version+1,fecha_actualizacion=clock_timestamp() WHERE id_configuracion_version=?",id);
         configuracion.registrar(input.operacion(),"GUARDAR_ENTREGA",id,actor,huella,"ENTREGA_CONFIGURADA",borrador.version()+1);
@@ -81,7 +83,7 @@ public class EntregaConfiguracionService {
 
         }
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Habilitá servicios en al menos una sucursal activa para ofrecer entregas."));
-        for(var sucursal:operativas){var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));}
+        for(var sucursal:operativas){var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));if(retiro&&horario!=null&&!horario.retiroUtilizable())problemas.add(new Problema("RETIRO_SIN_FRANJAS_VALIDAS",sucursal.codigo(),"Configurá al menos una franja de retiro habilitada con cupo positivo en "+sucursal.nombre()+". Todas sus franjas habilitadas de cupo positivo deben quedar dentro del horario abierto."));}
         return new Validacion(b.version(),problemas.isEmpty(),List.copyOf(problemas),List.copyOf(avisos),opciones);
     }
 
@@ -121,7 +123,14 @@ public class EntregaConfiguracionService {
             var notas=new ArrayList<>(resultado.advertencias());notas.add("La zona, su costo y el cupo por fecha/franja son globales, compartidos por todas las sucursales. La ventana es estimada, no una cita exacta.");notas.add("El cupo configurado no representa plazas libres ni crea una reserva. La disponibilidad definitiva se verifica al confirmar el pedido.");
             return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),null,destino);
         }
-        if(opcion==null)return resultado;
+        if(input.modalidad()==Modalidad.RETIRO_SUCURSAL){
+            if(!horario.retiroUtilizable())throw conflicto("La sucursal necesita franjas de retiro habilitadas con cupo positivo dentro de su horario operativo.");
+            var ventana=franjas.siguiente(resultado.disponibleDesde(),horario.zonaHoraria(),horario.franjasRetiro(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
+            var disponible=resultado.disponibleDesde().isAfter(ventana.desde())?resultado.disponibleDesde():ventana.desde();
+            var destino=new EvaluadorCalendario.DestinoSucursal(input.sucursal(),operativa.get().nombre(),horario.zonaHoraria(),ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
+            var notas=new ArrayList<>(resultado.advertencias());notas.add("Retiro en sucursal: la disponibilidad se ajusta a una franja habilitada. El cupo configurado cuenta pedidos completos y todavía no representa plazas libres ni una reserva.");
+            return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),null,disponible,resultado.enCola(),List.copyOf(notas),null,null,destino);
+        }
         var relacion=punto.sucursales().stream().filter(r->r.sucursal().equals(input.sucursal())).findFirst().orElseThrow();
         var ventana=franjas.siguiente(resultado.llegadaEstimada(),punto.zonaHoraria(),relacion.franjas(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
         var disponible=resultado.llegadaEstimada().isAfter(ventana.desde())?resultado.llegadaEstimada():ventana.desde();

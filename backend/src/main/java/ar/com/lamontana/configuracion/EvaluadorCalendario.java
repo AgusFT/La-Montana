@@ -12,7 +12,10 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class EvaluadorCalendario {
     public record Simulacion(long version,String zonaHoraria,Instant recibidoEn,Instant inicioPreparacion,Instant finPreparacion,
-                             Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias,DestinoPunto destinoPunto,DestinoZona destinoZona) {}
+                             Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias,DestinoPunto destinoPunto,DestinoZona destinoZona,DestinoSucursal destinoSucursal) {
+        public Simulacion(long version,String zonaHoraria,Instant recibidoEn,Instant inicioPreparacion,Instant finPreparacion,Instant llegadaEstimada,Instant disponibleDesde,boolean enCola,List<String> advertencias,DestinoPunto destinoPunto,DestinoZona destinoZona){this(version,zonaHoraria,recibidoEn,inicioPreparacion,finPreparacion,llegadaEstimada,disponibleDesde,enCola,advertencias,destinoPunto,destinoZona,null);}
+    }
+    public record DestinoSucursal(UUID sucursal,String nombre,String zonaHoraria,LocalDate fecha,String apertura,String cierre,Instant franjaDesde,Instant franjaHasta,int cupoConfigurado){}
     public record DestinoPunto(UUID punto,String nombre,String zonaHoraria,String costo,long versionDisponibilidad,LocalDate fecha,
                                String apertura,String cierre,Instant franjaDesde,Instant franjaHasta,int cupoConfigurado) {}
     public record DestinoZona(UUID zona,String nombre,String zonaHoraria,String costo,TerritorioEntrega territorio,LocalDate fecha,

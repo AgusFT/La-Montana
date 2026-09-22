@@ -1,5 +1,6 @@
 package ar.com.lamontana.configuracion;
 
+import ar.com.lamontana.configuracion.PuntoEntregaController.Franja;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.security.Principal;
@@ -20,7 +21,7 @@ public class EntregaConfiguracionController {
     public record Dia(@NotNull @Min(1) @Max(7) Integer dia,Boolean habilitado,
                       @Pattern(regexp="(?:[01][0-9]|2[0-3]):[0-5][0-9]") String apertura,
                       @Pattern(regexp="(?:[01][0-9]|2[0-3]):[0-5][0-9]") String cierre) {}
-    public record HorarioSucursal(@NotNull UUID sucursal,@NotNull @Size(max=7) List<@NotNull @Valid Dia> dias) {}
+    public record HorarioSucursal(@NotNull UUID sucursal,@NotNull @Size(max=7) List<@NotNull @Valid Dia> dias,@Size(max=100) List<@NotNull @Valid Franja> franjasRetiro) {}
     public record GuardarEntrega(@NotNull UUID operacion,@NotNull @Min(1) Long version,
                                  @Size(max=8) String preparacionHoras,@Size(max=8) String trasladoHoras,
                                  @NotNull @Size(max=3) List<@NotNull Modalidad> modalidades,

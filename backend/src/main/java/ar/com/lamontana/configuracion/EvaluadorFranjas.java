@@ -19,7 +19,7 @@ public class EvaluadorFranjas {
             for(var ventana:ventanas){Instant desde=llegada.isAfter(ventana.desde())?llegada:ventana.desde();if(desde.isBefore(ventana.hasta())&&!desde.isAfter(limite))return ventana;}
             fecha=fecha.plusDays(1);
         }
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"No hay una franja utilizable dentro del horizonte técnico de cinco años. Revisá el calendario del punto.");
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"No hay una franja utilizable dentro del horizonte técnico de cinco años. Revisá el calendario del destino.");
     }
     private List<Ventana> ventanas(LocalDate fecha,ZoneId zona,PuntoEntregaController.Franja franja){
         return VentanasLocales.calcular(fecha,zona,franja.apertura(),franja.cierre()).stream()
