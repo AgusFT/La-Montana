@@ -1,6 +1,11 @@
 spring:
   application:
     name: lamontana
+  session:
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+      table-name: lamontana.sesion_http
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
@@ -30,6 +35,7 @@ server:
       cookie:
         http-only: true
         same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
 management:
   endpoints:
     web:
@@ -44,5 +50,7 @@ management:
         readiness:
           include: readinessState,db
 lamontana:
+  instalacion:
+    token: ${SETUP_TOKEN:}
   archivos:
     directorio: ${FILES_DIR:./var/archivos}

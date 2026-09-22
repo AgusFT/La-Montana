@@ -3,7 +3,8 @@ import "server-only";
 export type SystemStatus = {
   producto: "La Montaña";
   version: "0.1.0";
-  etapa: "BASE_TECNICA";
+  etapa: "IDENTIDAD_INICIAL";
+  accesoDisponible: true;
   configuracionDisponible: false;
   operacionDisponible: false;
 };
@@ -18,7 +19,8 @@ function isSystemStatus(value: unknown): value is SystemStatus {
   return (
     data.producto === "La Montaña" &&
     data.version === "0.1.0" &&
-    data.etapa === "BASE_TECNICA" &&
+    data.etapa === "IDENTIDAD_INICIAL" &&
+    data.accesoDisponible === true &&
     data.configuracionDisponible === false &&
     data.operacionDisponible === false
   );

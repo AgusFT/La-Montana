@@ -1,9 +1,10 @@
 import { getSystemStatus } from "@/lib/system-status";
+import { getSetupState } from "@/lib/identity-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const status = await getSystemStatus();
+  const [status, setup] = await Promise.all([getSystemStatus(), getSetupState()]);
   const errorMessage = !status.ok && status.reason === "not-configured"
     ? "La conexión con el backend todavía no está configurada."
     : !status.ok && status.reason === "invalid-response"
@@ -18,27 +19,30 @@ export default async function HomePage() {
       </header>
 
       <section className="intro" aria-labelledby="page-title">
-        <span className="eyebrow">ETAPA 1 · BASE TÉCNICA</span>
+        <span className="eyebrow">IDENTIDAD INICIAL</span>
         <h1 id="page-title">Estamos construyendo<br />La Montaña.</h1>
-        <p>Este es el punto de partida del nuevo sistema. La configuración de la imprenta y la operación de pedidos todavía están en construcción.</p>
+        <p>Ya podés preparar el acceso del propietario. La configuración de la imprenta y la operación de pedidos todavía están en construcción.</p>
       </section>
 
       <section className="status-panel" aria-labelledby="status-title">
         <div className="panel-heading"><h2 id="status-title">Estado del sistema</h2><span className="environment">Entorno local</span></div>
         <div className={`connection ${status.ok ? "connected" : "disconnected"}`} role="status">
           <span className="status-dot" aria-hidden="true" />
-          <div><h3>{status.ok ? "Conexión con el backend verificada" : "Conexión pendiente"}</h3><p>{status.ok ? "El backend respondió correctamente. La base técnica está disponible." : errorMessage}</p></div>
+          <div><h3>{status.ok ? "Conexión con el backend verificada" : "Conexión pendiente"}</h3><p>{status.ok ? "El backend respondió correctamente. El acceso inicial está disponible." : errorMessage}</p></div>
         </div>
         <dl className="capabilities">
-          <div><dt>Acceso de clientes y personal</dt><dd>En construcción</dd></div>
+          <div><dt>Acceso del propietario</dt><dd>{setup ? setup.requierePropietario ? "Alta pendiente" : "Habilitado" : "Sin verificar"}</dd></div>
+          <div><dt>Clientes, empleados y sucursales</dt><dd>En construcción</dd></div>
           <div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div>
           <div><dt>Pedidos y operación</dt><dd>En construcción</dd></div>
         </dl>
-        <p className="empty-note">Esta etapa no incluye usuarios, sucursales ni configuración comercial precargados.</p>
-        <a className="refresh" href="/">Volver a comprobar <span aria-hidden="true">↗</span></a>
+        <p className="empty-note">Esta instalación comienza sin sucursales ni configuración comercial precargadas.</p>
+        {!setup && <p className="form-message error-message" role="alert">No pudimos verificar si la instalación necesita un propietario.</p>}
+        {setup?.requierePropietario && !setup.altaHabilitada && <p className="empty-note">El operador debe habilitar el token de instalación en el servidor.</p>}
+        <div className="page-actions">{setup && <a className="refresh" href={setup.requierePropietario ? "/instalacion" : "/acceso"}>{setup.requierePropietario ? "Preparar instalación" : "Iniciar sesión"}</a>}<a className="secondary-link" href="/">Volver a comprobar <span aria-hidden="true">↗</span></a></div>
       </section>
 
-      <footer>La Montaña <span aria-hidden="true">·</span> Primera etapa de implementación</footer>
+      <footer>La Montaña <span aria-hidden="true">·</span> Identidad inicial</footer>
     </main>
   );
 }

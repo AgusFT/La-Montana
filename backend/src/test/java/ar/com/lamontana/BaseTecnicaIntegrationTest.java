@@ -50,8 +50,8 @@ class BaseTecnicaIntegrationTest {
     @Test
     void migraPostgresRealSinPrecargarElNegocio() {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.flyway_schema_history WHERE version='1' AND success", Integer.class)).isEqualTo(1);
-        assertThat(jdbc.queryForList("SELECT table_name FROM information_schema.tables WHERE table_schema='lamontana'", String.class))
-                .containsExactly("flyway_schema_history");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT completada_en IS NULL FROM lamontana.inicializacion_sistema", Boolean.class)).isTrue();
         assertThat(Files.isWritable(FILES)).isTrue();
     }
 
@@ -59,7 +59,7 @@ class BaseTecnicaIntegrationTest {
     void estadoYSaludPublicosNoHabilitanOperacion() throws Exception {
         var response = get("/api/sistema/estado");
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("\"etapa\":\"BASE_TECNICA\"", "\"configuracionDisponible\":false", "\"operacionDisponible\":false");
+        assertThat(response.body()).contains("\"etapa\":\"IDENTIDAD_INICIAL\"", "\"configuracionDisponible\":false", "\"operacionDisponible\":false");
         var readiness = get("/actuator/health/readiness");
         assertThat(readiness.statusCode()).isEqualTo(200);
         assertThat(readiness.body()).contains("\"status\":\"UP\"").doesNotContain("jdbc", "password", "components");

@@ -2,11 +2,11 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 1
+## Estado actual · entrega 2
 
-Implementado: estructura nueva, compilación del backend/frontend, esquema inicial con Flyway, conexión real a PostgreSQL, endpoints de estado/salud, almacenamiento privado preparado y pantalla inicial con estados reales. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y área administrativa con sesión real. Compose incluye base, backend, frontend y buzón local Mailpit.
 
-**Todavía no se puede crear el administrador ni iniciar sesión.** Configuración, usuarios, sucursales, pedidos, pagos, PDF y operación se implementan en las siguientes entregas. Las vistas indican **En construcción**. No hay credenciales de aplicación ni datos comerciales precargados. La migración V1 únicamente prepara/versiona el esquema; el modelo de negocio llegará en migraciones posteriores.
+**Ya se puede crear al propietario e iniciar/cerrar su sesión.** Registro de clientes, empleados, sucursales, configuración, pedidos, pagos, PDF y operación siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones.
 
 ## Arranque local
 
@@ -30,7 +30,7 @@ Puertos predeterminados, publicados solo en la máquina local:
 | Buzón de correo local | http://localhost:8025 |
 | PostgreSQL | localhost:5432 · base y usuario técnicos `lamontana` |
 
-Mailpit está preparado como infraestructura; el envío de códigos se integrará con identidad/configuración. Su SMTP dentro de Compose será `mailpit:1025`.
+Mailpit está preparado como infraestructura; verificación de correo, recuperación de contraseña y códigos sensibles todavía están en construcción. Su SMTP dentro de Compose será `mailpit:1025`.
 
 Si hay puertos ocupados, agregar `FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT` o `MAILPIT_PORT` a `.env`; `.env.example` muestra las opciones. Los puertos internos no cambian. No reemplazar la contraseña si ya existe un volumen de PostgreSQL inicializado: editar el entorno no cambia la contraseña guardada en la base.
 
@@ -66,9 +66,22 @@ Las pruebas del backend usan binarios de PostgreSQL reales mediante una dependen
 
 Validación del 22/09/2026: Maven `verify` pasó 2 pruebas integradas contra PostgreSQL 18.6; `pnpm typecheck` y `pnpm build` pasaron con Node 24.19; el servidor standalone respondió HTTP 200 en `/health` y mostró el aviso correcto en `/` sin backend. Compose pasó `config --quiet` y el script pasó validación de sintaxis. Las imágenes Docker, el arranque conjunto, la persistencia de volúmenes y la inspección visual en navegador siguen sin verificar por las limitaciones del entorno. El build usa la API de TypeScript 5 mediante una opción soportada de Next; no se omitió la comprobación de tipos.
 
-Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWORD` y opcionalmente `FILES_DIR` al backend, apuntando a un PostgreSQL propio. El frontend requiere `BACKEND_INTERNAL_URL` y se inicia con `pnpm dev`. Los directorios de archivos no se publican como recursos web. Solo los GET de estado/salud son públicos; el resto de rutas queda cerrado y no existe usuario automático de Spring.
+Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWORD` y opcionalmente `FILES_DIR` al backend, apuntando a un PostgreSQL propio. El frontend requiere `BACKEND_INTERNAL_URL` y se inicia con `pnpm dev`. Los directorios de archivos no se publican como recursos web. Son públicos el estado, el token CSRF y el recorrido inicial de alta/login; `/api/auth/me` exige sesión y `/api/admin/estado` exige rol administrativo. Las demás rutas de negocio permanecen cerradas. No existe usuario automático de Spring.
 
-Comprobación manual de esta entrega: iniciar, abrir la aplicación y verificar el estado conectado; detener solo el backend y volver a comprobar para ver el aviso de conexión; reiniciarlo y comprobar la recuperación. Login y acciones comerciales deben continuar señalados como pendientes.
+## Primer acceso y comprobación manual
+
+1. Ejecutar el script de arranque. Además de la credencial de base, genera `SETUP_TOKEN` aleatorio en `.env` si falta. Abrir ese archivo **localmente** y copiar únicamente el token al formulario; no publicarlo ni adjuntarlo a Git.
+2. Entrar a `/instalacion` e ingresar token, nombre, apellido, correo y una contraseña propia de 12 a 128 caracteres. No hay datos predeterminados. El token requiere al menos 32 caracteres al configurarlo manualmente; si falta o es insuficiente, el alta queda deshabilitada.
+3. Tras crear al propietario, entrar a `/acceso` con el correo y contraseña elegidos. El alta no inicia sesión automáticamente. `/administracion` muestra la identidad real y las funciones todavía en construcción.
+4. Recargar o reiniciar el backend y comprobar que la sesión continúa. Cerrar sesión y comprobar que volver a administración requiere autenticarse. El alta inicial permanece cerrada, incluso tras reiniciar o conservar el token antiguo.
+
+Las contraseñas se guardan con PBKDF2 y sal aleatoria; el correo se compara sin distinguir mayúsculas. El correo ingresado aún no se verifica: no se marca falsamente como verificado en la base. Las sesiones se guardan mediante Spring Session JDBC, vencen tras 30 minutos de inactividad y usan cookies HttpOnly/SameSite=Lax. Cada POST requiere un token CSRF obtenido para esa sesión, renovado tras login/logout. El backend renueva el identificador al autenticar e invalida la sesión al salir.
+
+El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 intentos de alta/login por minuto y proceso; ese contador se reinicia con el backend. No existe todavía recuperación de contraseña: conservar las credenciales elegidas.
+
+El proxy Next admite solo las rutas de identidad declaradas, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
+
+Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de Spring Session; no implementa un circuito paralelo de refresh tokens. La migración contiene únicamente el subconjunto de usuario/rol necesario para el propietario. Permisos de empleados, sucursales y demás atributos se incorporarán en las siguientes migraciones. Configuración y datos comerciales permanecen vacíos.
 
 ## Decisiones que se mantienen para completar la demo
 
@@ -87,6 +100,8 @@ Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/syst
 
 ## Continuación
 
-Siguiente entrega: alta única del propietario protegida por token local; usuarios y sesiones persistentes; registro/login/recuperación; administración de sucursales y empleados con autorización por sucursal. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: registro de clientes, verificación/recuperación por correo y administración de sucursales/empleados con autorización por sucursal. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+
+Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
 Este README es el único documento manual de producto. Se actualiza con lo efectivamente terminado, pruebas y decisiones relevantes en cada entrega.

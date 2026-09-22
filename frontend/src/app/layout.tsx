@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "La Montaña · Base técnica",
-  description: "Estado de la primera etapa de La Montaña 0.1.",
+  title: "La Montaña · Identidad inicial",
+  description: "Instalación y acceso del propietario de La Montaña 0.1.",
   robots: { index: false, follow: false },
 };
 

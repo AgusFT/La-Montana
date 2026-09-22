@@ -19,6 +19,19 @@ if [[ ! -e .env ]]; then
   echo 'Se creó .env con una credencial técnica aleatoria para PostgreSQL.'
 fi
 
+if grep -q '^SETUP_TOKEN=$' .env; then
+  sed -i '/^SETUP_TOKEN=$/d' .env
+fi
+if ! grep -q '^SETUP_TOKEN=' .env; then
+  (
+    umask 077
+    setup_secret=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+    printf 'SETUP_TOKEN=%s\n' "$setup_secret" >> .env
+  )
+  chmod 600 .env
+  echo 'Token de alta inicial creado en .env. Abrí ese archivo localmente para usarlo en /instalacion.'
+fi
+
 docker compose config --quiet
 docker compose up --build --detach --wait
 echo 'Base técnica iniciada. Consultá los puertos publicados con: docker compose ps'
