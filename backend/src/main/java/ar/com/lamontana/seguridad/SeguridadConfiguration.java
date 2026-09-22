@@ -38,6 +38,8 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/admin/catalogo", "/api/admin/catalogo/revisiones/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/formatos", "/api/admin/catalogo/papeles", "/api/admin/catalogo/servicios", "/api/admin/catalogo/revisiones").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/programaciones/*/cancelar").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/puntos-entrega/disponibilidad").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/puntos-entrega/disponibilidad/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/configuracion/borradores/*/modelo").hasRole("ADMIN_ADMIN")

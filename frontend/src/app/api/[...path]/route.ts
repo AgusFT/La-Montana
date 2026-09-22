@@ -5,6 +5,7 @@ const allowed: Record<string, readonly string[]> = {
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
+  "admin/puntos-entrega/disponibilidad": ["GET"],
   "admin/configuracion": ["GET"], "admin/configuracion/borradores": ["POST"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
@@ -29,7 +30,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 7 && ["estado", "retirar"].includes(path[6]) ? ["POST"] : null;
   const deliveryMethods = configDraft && path.length === 6 && path[4] === "entrega" ? path[5] === "validacion" ? ["GET"] : path[5] === "simular" ? ["POST"] : null : null;
   const pointMethods = configDraft && path[4] === "entrega" && path[5] === "puntos" ? path.length === 6 ? ["POST"] : path.length === 7 && uuidPattern.test(path[6]) ? ["PUT"] : null : null;
-  const methods = pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
+  const availabilityMethods = path.length === 4 && path[0] === "admin" && path[1] === "puntos-entrega" && path[2] === "disponibilidad" && uuidPattern.test(path[3]) ? ["PUT"] : null;
+  const methods = availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);

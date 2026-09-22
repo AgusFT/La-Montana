@@ -21,7 +21,7 @@ export type OperatingDay = {dia:number;habilitado:boolean|null;apertura:string|n
 export type BranchSchedule = {sucursal:string;zonaHoraria:string;dias:OperatingDay[]};
 export type PointSlot = {dia:number;apertura:string;cierre:string;capacidadPedidos:number;habilitada:boolean};
 export type PointOrigin = {sucursal:string;habilitado:boolean;costo:string;franjas:PointSlot[]};
-export type DeliveryPoint = {codigoPublico:string;codigo:string;nombre:string;calle:string;numero:string;localidad:string;provincia:string;codigoPostal:string;referencias:string|null;zonaHoraria:string;sucursales:PointOrigin[];disponibilidadOperativa:"PENDIENTE"};
+export type DeliveryPoint = {codigoPublico:string;codigo:string;nombre:string;calle:string;numero:string;localidad:string;provincia:string;codigoPostal:string;referencias:string|null;zonaHoraria:string;sucursales:PointOrigin[]};
 export type DeliveryConfiguration = {puntos:DeliveryPoint[];preparacionHoras:string|null;trasladoHoras:string|null;modalidades:DeliveryMode[];horariosPorSucursal:BranchSchedule[]};
 export type ConfigurationDraft = {
   codigoPublico: string; numero: number; version: number; estado: "EN_PREPARACION" | "CANCELADA";
@@ -53,7 +53,7 @@ export function isResourceConfiguration(value: unknown): value is ResourceConfig
       typeof s.sucursal === "string" && Array.isArray(s.servicios) && s.servicios.every(id => typeof id === "string"));
 }
 export function isDeliveryPoint(value:unknown):value is DeliveryPoint {
-  return record(value)&&["codigoPublico","codigo","nombre","calle","numero","localidad","provincia","codigoPostal","zonaHoraria"].every(k=>typeof value[k]==="string")&&(value.referencias===null||typeof value.referencias==="string")&&value.disponibilidadOperativa==="PENDIENTE"&&Array.isArray(value.sucursales)&&value.sucursales.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.habilitado==="boolean"&&typeof s.costo==="string"&&Array.isArray(s.franjas)&&s.franjas.every(f=>record(f)&&Number.isInteger(f.dia)&&Number(f.dia)>=1&&Number(f.dia)<=7&&typeof f.apertura==="string"&&typeof f.cierre==="string"&&Number.isSafeInteger(f.capacidadPedidos)&&Number(f.capacidadPedidos)>=0&&typeof f.habilitada==="boolean"));
+  return record(value)&&["codigoPublico","codigo","nombre","calle","numero","localidad","provincia","codigoPostal","zonaHoraria"].every(k=>typeof value[k]==="string")&&(value.referencias===null||typeof value.referencias==="string")&&Array.isArray(value.sucursales)&&value.sucursales.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.habilitado==="boolean"&&typeof s.costo==="string"&&Array.isArray(s.franjas)&&s.franjas.every(f=>record(f)&&Number.isInteger(f.dia)&&Number(f.dia)>=1&&Number(f.dia)<=7&&typeof f.apertura==="string"&&typeof f.cierre==="string"&&Number.isSafeInteger(f.capacidadPedidos)&&Number(f.capacidadPedidos)>=0&&typeof f.habilitada==="boolean"));
 }
 export function isDeliveryConfiguration(value:unknown):value is DeliveryConfiguration {
   return record(value) && Array.isArray(value.puntos) && value.puntos.every(isDeliveryPoint) && ["preparacionHoras","trasladoHoras"].every(k=>value[k]===null||typeof value[k]==="string") &&

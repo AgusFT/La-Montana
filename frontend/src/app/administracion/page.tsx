@@ -1,3 +1,4 @@
+import { getPointAvailability } from "@/lib/point-availability-server";
 import { redirect } from "next/navigation";
 import { roleHome } from "@/lib/roles";
 import { IdentityShell } from "@/components/identity-shell";
@@ -13,9 +14,11 @@ export default async function AdministrationPage() {
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const owner = session.profile;
+  const points = await getPointAvailability();
   return <IdentityShell title={`Hola, ${owner.nombre}`} description="Tu sesión como propietario está activa.">
     <div className="owner-profile"><h2>{owner.nombre} {owner.apellido}</h2><p>{owner.correo}</p><span className="environment">Propietario de la imprenta</span></div>
+    {!points?<p className="form-message error-message" role="alert">No pudimos consultar la disponibilidad de puntos. <a href="/administracion/puntos-entrega">Revisar disponibilidad</a></p>:points.deshabilitados>0?<p className="form-message error-message" role="status">Recordatorio: {points.deshabilitados} {points.deshabilitados===1?"punto de entrega deshabilitado":"puntos de entrega deshabilitados"}. <a href="/administracion/puntos-entrega">Revisar disponibilidad</a></p>:null}
     <dl className="capabilities"><div><dt>Gestión de clientes</dt><dd>En construcción</dd></div><div><dt>Configuración de la imprenta</dt><dd>Borrador, modelo, pagos, recursos y horarios disponibles; fases 6–8 En construcción</dd></div><div><dt>Pedidos y operación</dt><dd>En construcción</dd></div></dl>
-    <div className="page-actions"><a className="refresh" href="/administracion/configuracion">Configurar la imprenta</a><a className="refresh" href="/administracion/catalogo">Servicios y precios</a><a className="refresh" href="/administracion/sucursales">Administrar sucursales</a><a className="refresh" href="/administracion/empleados">Administrar empleados</a><a className="secondary-link" href="/operacion">Ver sucursales operativas</a><a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a><LogoutButton /></div>
+    <div className="page-actions"><a className="refresh" href="/administracion/configuracion">Configurar la imprenta</a><a className="refresh" href="/administracion/puntos-entrega">Disponibilidad de puntos</a><a className="refresh" href="/administracion/catalogo">Servicios y precios</a><a className="refresh" href="/administracion/sucursales">Administrar sucursales</a><a className="refresh" href="/administracion/empleados">Administrar empleados</a><a className="secondary-link" href="/operacion">Ver sucursales operativas</a><a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a><LogoutButton /></div>
   </IdentityShell>;
 }
