@@ -2,11 +2,11 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 10
+## Estado actual · entrega 11
 
-Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Se puede crear y retomar un borrador operativo, guardar modelo y condición de aprobación, o cancelarlo con contraseña y código de correo conservando su historial. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Se puede crear y retomar un borrador operativo, guardar modelo y condición de aprobación, o cancelarlo con contraseña y código de correo conservando su historial. La fase 3 guarda medios y parámetros financieros, y calcula ejemplos sin crear pedidos. Compose incluye base, backend, frontend y buzón local Mailpit.
 
-**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Las tarifas y los servicios globales ya se pueden configurar y programar. Horarios/capacidades, reglas operativas, pedidos, pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
+**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Las tarifas y los servicios globales ya se pueden configurar y programar. Horarios/capacidades, activación de reglas, pedidos, movimientos de pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
 ## Arranque local
 
@@ -100,7 +100,7 @@ Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/syst
 
 ## Continuación
 
-Siguiente entrega: fase 3 del configurador, medios de pago y parámetros financieros sin valores predeterminados. Después, capacidades/horarios/entregas, simulación y activación; luego recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: capacidades y recursos manuales por sucursal. Después, horarios/entregas, simulación integral y activación; luego recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
 
 Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
@@ -203,7 +203,7 @@ Migración comprobada sobre V7 poblada: al aplicar V8 se conservaron revisión v
 
 Desde Administración → Configurar la imprenta se puede crear un único borrador vacío, retomar su edición y elegir Control manual o Control condicional. El manual no lleva criterio automático; el condicional exige elegir Pago previo total, Pago de seña o Monto total del pedido. Al crear, modelo y criterio están sin seleccionar; no se asignan importes, porcentajes ni políticas predeterminadas.
 
-Guardar esta selección **no activa reglas ni habilita pedidos**. Los parámetros financieros de fase 3, recursos/capacidades, horarios, entregas, simulación, activación segura e historial operativo siguen En construcción. La entrega 10 habilita cancelar el borrador con contraseña y código por correo, como exige el mock; también se puede seguir editando el existente.
+Guardar esta selección **no activa reglas ni habilita pedidos**. La entrega 11 implementa parámetros financieros y ejemplos calculados de fase 3. Recursos/capacidades, horarios, entregas, simulación integral, activación segura e historial operativo siguen En construcción. La entrega 10 habilita cancelar el borrador con contraseña y código por correo, como exige el mock; también se puede seguir editando el existente.
 
 V9 incorpora el subconjunto inicial de `configuracion_version`, separado de `catalogo_revision`: número de configuración, versión de edición, creador, fechas y selección del modelo. V9 admite EN_PREPARACION; V10 agrega CANCELADA. Los demás estados y relaciones se agregarán con sus recorridos. Comprobantes y eventos conservan actor, destino, tipo y versión. El backend exige propietario activo, rol y CSRF. Un reintento devuelve el estado actual del mismo borrador y no vuelve a aplicar cambios antiguos.
 
@@ -223,3 +223,29 @@ V10 incorpora autorizaciones ligadas a propósito, propietario, correo, generaci
 Las respuestas perdidas se recuperan reenviando el mismo comando: solicitar otra vez no duplica el correo y confirmar otra vez recupera la cancelación registrada sin repetirla ni afectar un borrador posterior. Confirmar y guardar estado, consumo, comprobante y auditoría forman una transacción. Un fallo SQL conserva el borrador; un fallo SMTP conserva también la autorización anterior y no consume el intervalo de reenvío. El historial muestra los últimos 50 borradores cancelados; activación, comparación y rollback de versiones operativas siguen En construcción.
 
 Validación: cinco pruebas nuevas con PostgreSQL real/HTTP/SMTP y doce regresiones de configuración y correo pasaron, sin fallos ni omitidos. Cubren permisos/CSRF/actor, separación de propósitos, contraseña, límite de intentos, expiración, revocación, concurrencia, reinicio, reintentos y fallos SQL/SMTP. Build/typecheck Next correctos. El recorrido real Next → Spring → PostgreSQL → Mailpit verificó errores corregibles, respuestas perdidas al solicitar y confirmar, historial persistente, nuevo borrador vacío y cliente rechazado. Capturas de escritorio/móvil revisadas sin desbordes, errores JavaScript ni 5xx. El piloto E2E completo y el arranque de Compose permanecen pendientes.
+
+
+## Pagos y reglas de seña · entrega 11
+
+La fase 3 permite guardar medios generales, instrucciones de transferencia, vigencia de cotización en minutos y reglas financieras. Todos los datos comienzan vacíos; guardar el modelo no asigna medios ni parámetros comerciales. Las transferencias se acreditarán manualmente por un usuario autorizado en el módulo de pagos. Las pasarelas permanecen En construcción.
+
+| Modelo | Regla financiera configurable | Medios del requisito |
+|---|---|---|
+| Manual | Elegir sin seña o seña fija/porcentual, siempre, desde carillas o desde importe. La revisión es humana y la seña aplicable se exige antes de producir. | Medios generales habilitados. |
+| Pago previo total | Total acreditado antes de cargar PDF; no admite seña adicional. | Transferencia; efectivo deshabilitado. |
+| Seña previa | Seña fija/porcentual para todos los pedidos, antes de cargar PDF. | Transferencia; efectivo puede habilitarse sólo para el saldo. |
+| Por monto, D1 | Hasta el umbral inclusive, sin seña por esa regla. Al superarlo, revisar/corregir PDF y aprobar; después acreditar seña antes de producir. | Transferencia para la seña; medios generales para el saldo. |
+
+Los campos heredados del modelo no pueden sustituirse. La API rechaza combinaciones incompatibles, importes no positivos, porcentajes superiores a 100 y fracciones en campos enteros. Cambiar realmente el modelo o criterio elimina sólo los parámetros financieros del borrador para que se configuren de nuevo; guardar la misma selección los conserva. Guardar pagos incrementa la versión, deja auditoría e invalida códigos de autorización pendientes. Los reintentos conservan operación/contenido y devuelven el estado actual sin reaplicar reglas viejas.
+
+**Calcular ejemplo** recibe total y carillas introducidos por el administrador y evalúa la edición financiera guardada en el backend. Muestra pago previo, seña, saldo, necesidad de revisión, bloqueo de carga y momento de exigencia, sin crear pedido ni acreditar dinero. Cambiar campos exige guardar antes de simular. Dos editores reciben conflictos con recuperación explícita de versión y conservación del formulario. Esta simulación financiera todavía no valida disponibilidad, archivos, producción ni entregas.
+
+Adaptaciones del DER: V11 implementa una guía financiera por versión en `configuracion_financiera`, con `configuracion_medio_pago` para medios generales; el evaluador deriva los medios del anticipo y su momento según el modelo. Sustituye para este piloto el editor libre de condiciones/acciones por las opciones certificadas. La regla se aplica al pedido y las carillas cuentan todas sus copias. La vigencia proviene de `politica_operativa` del DER; se incorpora junto a esta guía para completar el futuro cotizador. Las instrucciones de transferencia son texto configurable; no se precargan datos bancarios ni se supone un plazo bancario.
+
+Los importes usan BigDecimal y se expresan como cadenas decimales en la API. Importes monetarios admiten hasta dos decimales y porcentajes hasta cuatro; el importe de seña se redondea a centavos con HALF_UP. La seña fija se limita al total del pedido para evitar exigir un sobrepago. Estas precisiones son comunes al evaluador que se reutilizará al cotizar y validar pedidos.
+
+Si un porcentaje positivo aplicado a un importe pequeño redondea a0,00, no se inventa un cargo mínimo: el ejemplo explica que no hay anticipo monetario exigible. Ese borde no elimina la revisión humana de manual/D1 ni los controles técnicos.
+
+Validación de entrega11: tres pruebas nuevas PG/HTTP y siete regresiones de configuración/cancelación pasaron (10 en total, sin fallos ni omitidos). Se comprobaron matriz completa, umbrales inclusivos/estrictos, decimales/redondeo, ejemplo sin escrituras, entradas inválidas, reintentos y concurrencia, rollback SQL, revocación de autorización pendiente, permisos/CSRF y reinicio. Build/typecheck Next correctos. En navegador se recorrieron las cuatro variantes, un guardado con respuesta perdida, conflicto entre editores y recuperación sin perder el formulario, cambio de modelo, persistencia al recargar y rechazo del cliente. Cinco capturas escritorio/móvil comparadas con CFG004005 A-D, sin desbordes de página, errores JS ni5xx. Todavía faltan la activación operativa y el recorrido E2E de pedidos y dinero.
+
+La revisión detectó y corrigió que cambiar de fase podía desmontar un formulario con guardado o cancelación pendientes. La navegación interna y salida al dashboard ahora permanecen bloqueadas mientras se procesa o se recupera una respuesta incierta; se conserva el comando original hasta resolverlo.

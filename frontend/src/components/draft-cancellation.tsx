@@ -1,5 +1,5 @@
 "use client";
-import {useRef,useState,type FormEvent} from "react";
+import {useEffect,useRef,useState,type FormEvent} from "react";
 import {MutationError,secureMutation} from "@/lib/secure-mutation";
 import {catalogDate} from "@/lib/catalog-types";
 import {isConfigurationDraft,type ConfigurationDraft} from "@/lib/configuration-types";
@@ -7,11 +7,12 @@ type Receipt={mensaje:string;operacion:string;vencimiento:string};
 type Pending={kind:"solicitar"|"confirmar";body:string};
 function isReceipt(value:unknown):value is Receipt{return !!value&&typeof value==="object"&&["mensaje","operacion","vencimiento"].every(key=>typeof(value as Record<string,unknown>)[key]==="string");}
 
-export function DraftCancellation({draft,onCancelled,onRefresh}:{draft:ConfigurationDraft;onCancelled:(value:ConfigurationDraft)=>Promise<void>;onRefresh:()=>Promise<void>}){
+export function DraftCancellation({draft,onCancelled,onRefresh,onLockChange}:{draft:ConfigurationDraft;onCancelled:(value:ConfigurationDraft)=>Promise<void>;onRefresh:()=>Promise<void>;onLockChange:(locked:boolean)=>void}){
   const[open,setOpen]=useState(false),[reason,setReason]=useState(""),[password,setPassword]=useState(""),[code,setCode]=useState(""),[receipt,setReceipt]=useState<Receipt|null>(null);
   const[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(""),[conflict,setConflict]=useState(false);
   const pending=useRef<Pending|null>(null),operation=useRef<string|null>(null);
   const locked=busy||uncertain;
+  useEffect(()=>{onLockChange(locked);return()=>onLockChange(false);},[locked,onLockChange]);
   async function send(kind?:"solicitar"|"confirmar",event?:FormEvent<HTMLFormElement>){
     event?.preventDefault();if(busy)return;setBusy(true);setError("");
     try{

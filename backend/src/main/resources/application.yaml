@@ -1,6 +1,9 @@
 spring:
   application:
     name: lamontana
+  jackson:
+    deserialization:
+      accept-float-as-int: false
   mail:
     host: ${SMTP_HOST:127.0.0.1}
     port: ${SMTP_PORT:1025}

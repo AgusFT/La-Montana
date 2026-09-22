@@ -2,6 +2,7 @@ package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ConfiguracionController.*;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,7 +22,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ConfiguracionService {
     private static final String CREAR="CREAR_BORRADOR",SELECCIONAR="GUARDAR_MODELO";
     private static final String BORRADOR_SQL="""
-            SELECT c.codigo_publico,c.numero_version,c.version,c.estado,c.modelo,c.criterio,c.fecha_creacion,c.fecha_actualizacion,
+            SELECT c.id_configuracion_version,c.codigo_publico,c.numero_version,c.version,c.estado,c.modelo,c.criterio,c.fecha_creacion,c.fecha_actualizacion,
                    u.nombre||' '||u.apellido AS actor,c.fecha_cancelacion,c.motivo_cancelacion,
                    cancelador.nombre||' '||cancelador.apellido AS cancelador
             FROM lamontana.configuracion_version c JOIN lamontana.usuario u ON u.id_usuario=c.id_usuario_creador
@@ -32,7 +33,7 @@ public class ConfiguracionService {
     public ConfiguracionService(JdbcTemplate jdbc) { this.jdbc=jdbc; }
 
     public record Borrador(UUID codigoPublico,long numero,long version,String estado,Modelo modelo,Criterio criterio,
-                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador) {}
+                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos) {}
     public record Estado(Borrador borrador,List<Borrador> historial) {}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -77,13 +78,15 @@ public class ConfiguracionService {
                 UPDATE lamontana.configuracion_version SET modelo=?,criterio=?,version=version+1,fecha_actualizacion=clock_timestamp()
                 WHERE codigo_publico=? RETURNING id_configuracion_version
                 """,Long.class,input.modelo().name(),input.criterio()==null?null:input.criterio().name(),codigo);
+        if(actual.modelo()!=input.modelo()||actual.criterio()!=input.criterio())
+            jdbc.update("DELETE FROM lamontana.configuracion_financiera WHERE id_configuracion_version=?",id);
         registrar(input.operacion(),SELECCIONAR,id,actor,huella,"MODELO_SELECCIONADO",actual.version()+1);
         jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_revocacion=clock_timestamp() WHERE id_configuracion_version=? AND fecha_consumo IS NULL AND fecha_revocacion IS NULL",id);
         return cargar(codigo);
     }
 
     void bloquear() { jdbc.execute("SELECT pg_advisory_xact_lock(764003)"); }
-    private long propietario(String correo) {
+    long propietario(String correo) {
         var actores=jdbc.query("""
                 SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
                 WHERE u.correo=? AND u.estado='ACTIVO' AND u.es_administrador_propietario AND r.codigo='ADMIN_ADMIN' AND r.activo
@@ -92,7 +95,7 @@ public class ConfiguracionService {
         return actores.get(0);
     }
     // Los comprobantes impiden reaplicar una operación; el replay devuelve la versión actual del mismo borrador.
-    private Borrador reintento(UUID operacion,String tipo,UUID destino,long actor,String huella) {
+    Borrador reintento(UUID operacion,String tipo,UUID destino,long actor,String huella) {
         var encontrados=jdbc.query("""
                 SELECT p.tipo,c.codigo_publico,p.id_actor,p.hash_solicitud
                 FROM lamontana.comprobante_configuracion p JOIN lamontana.configuracion_version c USING(id_configuracion_version)
@@ -124,9 +127,21 @@ public class ConfiguracionService {
         return new Borrador(rs.getObject("codigo_publico",UUID.class),rs.getLong("numero_version"),rs.getLong("version"),rs.getString("estado"),
                 modelo==null?null:Modelo.valueOf(modelo),criterio==null?null:Criterio.valueOf(criterio),
                 rs.getTimestamp("fecha_creacion").toInstant(),rs.getTimestamp("fecha_actualizacion").toInstant(),rs.getString("actor"),
-                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"));
+                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")));
     }
-    private String huella(Object input) {
+    private Pagos pagos(long id) {
+        var result=jdbc.query("SELECT * FROM lamontana.configuracion_financiera WHERE id_configuracion_version=?",(rs,row)->{
+            String condicion=rs.getString("condicion_sena"),tipo=rs.getString("tipo_sena");
+            BigDecimal umbral=rs.getBigDecimal("umbral_sena"),valor=rs.getBigDecimal("valor_sena");
+            var medios=jdbc.query("SELECT medio_pago FROM lamontana.configuracion_medio_pago WHERE id_configuracion_version=? ORDER BY medio_pago",(m,n)->MedioPago.valueOf(m.getString(1)),id);
+            return new Pagos(medios,rs.getString("instrucciones_transferencia"),rs.getInt("vigencia_cotizacion_minutos"),rs.getBoolean("exigir_sena"),
+                    condicion==null?null:CondicionSena.valueOf(condicion),umbral==null?null:condicion.equals("DESDE_CARILLAS")?umbral.toBigIntegerExact().toString():dinero(umbral),
+                    tipo==null?null:TipoSena.valueOf(tipo),valor==null?null:tipo.equals("PORCENTAJE")?valor.stripTrailingZeros().toPlainString():dinero(valor),dinero(rs.getBigDecimal("umbral_aprobacion")));
+        },id);
+        return result.isEmpty()?null:result.get(0);
+    }
+    private String dinero(BigDecimal valor) { return valor==null?null:valor.setScale(2).toPlainString(); }
+    String huella(Object input) {
         try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.writeValueAsString(input).getBytes(StandardCharsets.UTF_8))); }
         catch(java.security.NoSuchAlgorithmException ex) { throw new IllegalStateException(ex); }
     }
