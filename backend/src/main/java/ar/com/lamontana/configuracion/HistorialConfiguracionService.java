@@ -81,10 +81,10 @@ public class HistorialConfiguracionService {
  NULL::text AS origen,NULL::timestamptz AS inicio,NULL::timestamptz AS fin,NULL::timestamptz AS atraso
  FROM lamontana.evento_configuracion e LEFT JOIN lamontana.usuario u ON u.id_usuario=e.id_actor JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE c.codigo_publico=?
  UNION ALL
- SELECT 'intento-'||i.id_intento,coalesce(i.fecha_fin,i.fecha_inicio),'INTENTO_'||i.estado,i.detalle_sanitizado,
+ SELECT 'intento-'||i.id_intento,coalesce(i.fecha_fin,i.fecha_inicio),CASE WHEN i.operacion='ROLLBACK' THEN 'ROLLBACK_' ELSE 'INTENTO_' END||i.estado,i.detalle_sanitizado,
  coalesce(i.nombre_actor,u.nombre||' '||u.apellido,'Sistema automático'),i.rol_actor,i.nombre_actor IS NOT NULL,
  NULL::bigint,i.id_intento::text,NULL::text,NULL::text,i.origen,i.fecha_inicio,i.fecha_fin,i.fecha_atraso_detectado
- FROM lamontana.intento_activacion_configuracion i LEFT JOIN lamontana.usuario u ON u.id_usuario=i.id_usuario_actor JOIN lamontana.configuracion_version c ON c.id_configuracion_version=i.id_version_objetivo WHERE c.codigo_publico=?
+ FROM lamontana.intento_activacion_configuracion i LEFT JOIN lamontana.usuario u ON u.id_usuario=i.id_usuario_actor JOIN lamontana.configuracion_version c ON c.id_configuracion_version=i.id_version_objetivo OR (i.operacion='ROLLBACK' AND c.id_configuracion_version IN (i.id_version_anterior,i.id_version_resultante)) WHERE c.codigo_publico=?
  """;
  public Pagina<Evento> auditoria(UUID id,int pagina,String correo){permiso(correo);pagina(pagina);fila(id);long total=jdbc.queryForObject("SELECT count(*) FROM ("+AUDITORIA+") eventos",Long.class,id,id);var items=jdbc.query("SELECT * FROM ("+AUDITORIA+") eventos ORDER BY fecha,clave LIMIT ? OFFSET ?",(r,n)->new Evento(r.getString("clave"),fecha(r,"fecha"),r.getString("tipo"),r.getString("descripcion"),new Actor(r.getString("actor"),r.getString("rol_actor"),r.getBoolean("capturado")),r.getObject("edicion",Long.class),r.getString("recurso"),r.getString("estado_anterior"),r.getString("estado_nuevo"),r.getString("origen"),fecha(r,"inicio"),fecha(r,"fin"),fecha(r,"atraso")),id,id,TAMANO,(long)pagina*TAMANO);return new Pagina<>(items,total,pagina,TAMANO);}
  private Instant fecha(ResultSet r,String campo)throws SQLException{var t=r.getTimestamp(campo);return t==null?null:t.toInstant();}

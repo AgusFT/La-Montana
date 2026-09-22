@@ -46,6 +46,8 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores/*/programacion/activacion/solicitar", "/api/admin/configuracion/borradores/*/programacion/activacion/confirmar", "/api/admin/configuracion/borradores/*/programacion/activacion/revocar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/historial/*/base", "/api/admin/configuracion/borradores/*/revision/confirmar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion/historial", "/api/admin/configuracion/historial/*", "/api/admin/configuracion/historial/*/auditoria", "/api/admin/configuracion/historial/*/comparacion/*").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/configuracion/rollback/revision").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/rollback/solicitar", "/api/admin/configuracion/rollback/confirmar", "/api/admin/configuracion/rollback/revocar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/configuracion").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/configuracion/borradores").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/configuracion/borradores/*/modelo").hasRole("ADMIN_ADMIN")

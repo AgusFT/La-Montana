@@ -36,9 +36,9 @@ public class ConfiguracionService {
 
     public record Borrador(UUID codigoPublico,long numero,long version,String estado,Modelo modelo,Criterio criterio,
                            Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos,EntregaRepositorio.Entrega entrega,Copia copia) {}
-    public record Copia(UUID origen,long numeroOrigen,Instant creadaEn,List<Integer> fasesConfirmadas,List<RevisionConfiguracionService.Hallazgo> barridoInicial) {}
+    public record Copia(UUID origen,long numeroOrigen,Instant creadaEn,String tipo,List<Integer> fasesConfirmadas,List<RevisionConfiguracionService.Hallazgo> barridoInicial) {}
     public record Version(Borrador configuracion,Instant activadaEn,Instant finVigencia,String activador,String motivo,UUID predecesora,UUID revisionComercial) {}
-    public record Intento(UUID codigo,UUID configuracion,long numero,String origen,String estado,Instant iniciadoEn,Instant terminadoEn,Instant atrasoDetectadoEn,String resultado,String detalle) {}
+    public record Intento(UUID codigo,UUID configuracion,long numero,String origen,String estado,Instant iniciadoEn,Instant terminadoEn,Instant atrasoDetectadoEn,String resultado,String detalle,String operacion,UUID resultante,Long numeroResultante) {}
     public record Programacion(Borrador configuracion,Instant confirmadaEn,Instant previstaEn,String zonaHoraria,String programador,String motivo,Instant proximoIntentoEn,List<Intento> intentos) {}
     public record Estado(Borrador borrador,List<Borrador> historial,Version activa,Programacion programada,List<Intento> intentos) {}
 
@@ -50,10 +50,10 @@ public class ConfiguracionService {
                 jdbc.query(BORRADOR_SQL+" WHERE c.estado='CANCELADA' ORDER BY c.fecha_cancelacion DESC,c.numero_version DESC LIMIT 50",this::mapear),activa(),programada(),intentos(null));
     }
 
-    private static final String INTENTO_SQL="SELECT i.*,c.codigo_publico,c.numero_version FROM lamontana.intento_activacion_configuracion i JOIN lamontana.configuracion_version c ON c.id_configuracion_version=i.id_version_objetivo ";
+    private static final String INTENTO_SQL="SELECT i.*,c.codigo_publico,c.numero_version,v.codigo_publico AS resultante,v.numero_version AS numero_resultante FROM lamontana.intento_activacion_configuracion i JOIN lamontana.configuracion_version c ON c.id_configuracion_version=i.id_version_objetivo LEFT JOIN lamontana.configuracion_version v ON v.id_configuracion_version=i.id_version_resultante ";
     List<Intento> intentos(UUID codigo){return jdbc.query(INTENTO_SQL+"WHERE (?::uuid IS NULL OR c.codigo_publico=?) ORDER BY i.fecha_inicio DESC LIMIT 50",this::mapearIntento,codigo,codigo);}
     Intento intentoPorOperacion(UUID operacion){var rows=jdbc.query(INTENTO_SQL+"WHERE i.id_operacion=?",this::mapearIntento,operacion);return rows.isEmpty()?null:rows.get(0);}
-    private Intento mapearIntento(ResultSet r,int fila)throws SQLException{return new Intento(r.getObject("id_intento",UUID.class),r.getObject("codigo_publico",UUID.class),r.getLong("numero_version"),r.getString("origen"),r.getString("estado"),r.getTimestamp("fecha_inicio").toInstant(),r.getTimestamp("fecha_fin")==null?null:r.getTimestamp("fecha_fin").toInstant(),r.getTimestamp("fecha_atraso_detectado")==null?null:r.getTimestamp("fecha_atraso_detectado").toInstant(),r.getString("codigo_resultado"),r.getString("detalle_sanitizado"));}
+    private Intento mapearIntento(ResultSet r,int fila)throws SQLException{return new Intento(r.getObject("id_intento",UUID.class),r.getObject("codigo_publico",UUID.class),r.getLong("numero_version"),r.getString("origen"),r.getString("estado"),r.getTimestamp("fecha_inicio").toInstant(),r.getTimestamp("fecha_fin")==null?null:r.getTimestamp("fecha_fin").toInstant(),r.getTimestamp("fecha_atraso_detectado")==null?null:r.getTimestamp("fecha_atraso_detectado").toInstant(),r.getString("codigo_resultado"),r.getString("detalle_sanitizado"),r.getString("operacion"),r.getObject("resultante",UUID.class),r.getObject("numero_resultante",Long.class));}
     Programacion programada(){var ids=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='PROGRAMADA'",(r,n)->r.getObject(1,UUID.class));return ids.isEmpty()?null:programacion(ids.get(0));}
     Programacion programacion(UUID codigo){
         var b=cargar(codigo);var intentos=intentos(codigo);
@@ -173,7 +173,7 @@ public class ConfiguracionService {
                 rs.getTimestamp("fecha_creacion").toInstant(),rs.getTimestamp("fecha_actualizacion").toInstant(),rs.getString("actor"),
                 rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")),recursos.leer(rs.getLong("id_configuracion_version")),entrega.leer(rs.getLong("id_configuracion_version")),copia(rs.getLong("id_configuracion_version")));
     }
-    Copia copia(long id){var rows=jdbc.query("SELECT v.codigo_publico,v.numero_version,o.creada_en,o.barrido_inicial::text FROM lamontana.origen_configuracion o JOIN lamontana.configuracion_version v ON v.id_configuracion_version=o.id_version_origen WHERE o.id_configuracion_version=?",(r,n)->new Copia(r.getObject(1,UUID.class),r.getLong(2),r.getTimestamp(3).toInstant(),jdbc.query("SELECT fase FROM lamontana.reconfirmacion_configuracion WHERE id_configuracion_version=? ORDER BY fase",(f,k)->f.getInt(1),id),java.util.Arrays.asList(json.readValue(r.getString(4),RevisionConfiguracionService.Hallazgo[].class))),id);return rows.isEmpty()?null:rows.get(0);}
+    Copia copia(long id){var rows=jdbc.query("SELECT v.codigo_publico,v.numero_version,o.creada_en,o.barrido_inicial::text,o.tipo FROM lamontana.origen_configuracion o JOIN lamontana.configuracion_version v ON v.id_configuracion_version=o.id_version_origen WHERE o.id_configuracion_version=?",(r,n)->new Copia(r.getObject(1,UUID.class),r.getLong(2),r.getTimestamp(3).toInstant(),r.getString(5),jdbc.query("SELECT fase FROM lamontana.reconfirmacion_configuracion WHERE id_configuracion_version=? ORDER BY fase",(f,k)->f.getInt(1),id),java.util.Arrays.asList(json.readValue(r.getString(4),RevisionConfiguracionService.Hallazgo[].class))),id);return rows.isEmpty()?null:rows.get(0);}
     private void reconfirmarGuardado(long id,String evento,long actor,long version){
         if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.origen_configuracion WHERE id_configuracion_version=?)",Boolean.class,id)))return;
         int fase=switch(evento){case "MODELO_SELECCIONADO"->2;case "PAGOS_CONFIGURADOS"->3;case "RECURSOS_CONFIGURADOS","IMPRESORA_CREADA","IMPRESORA_EDITADA","IMPRESORA_ESTADO_CAMBIADO","IMPRESORA_RETIRADA"->4;case "ENTREGA_CONFIGURADA","PUNTO_CREADO","PUNTO_EDITADO","ZONA_CREADA","ZONA_EDITADA"->5;default->0;};
@@ -182,7 +182,7 @@ public class ConfiguracionService {
         if(java.util.Set.of("MODELO_SELECCIONADO","PAGOS_CONFIGURADOS","RECURSOS_CONFIGURADOS","ENTREGA_CONFIGURADA").contains(evento))jdbc.update("INSERT INTO lamontana.reconfirmacion_configuracion(id_configuracion_version,fase,id_actor,version) VALUES (?,?,?,?)",id,fase,actor,version);
     }
     void exigirRevisionCopia(Borrador b,String huella,boolean programada){
-        if(b.copia()==null)return;
+        if(b.copia()==null||!b.copia().tipo().equals("USO_COMO_BASE"))return;
         if(!b.copia().fasesConfirmadas().containsAll(List.of(2,3,4,5,6)))throw error(HttpStatus.CONFLICT,"La copia requiere revisar y confirmar nuevamente las fases 2 a 6.");
         if(!programada&&!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.reconfirmacion_configuracion f JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE c.codigo_publico=? AND f.fase=6 AND f.version=c.version AND f.huella_revision=?)",Boolean.class,b.codigoPublico(),huella)))throw error(HttpStatus.CONFLICT,"La revisión confirmada de la copia cambió. Volvé a fase 6 y confirmá las condiciones actuales.");
     }

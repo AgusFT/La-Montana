@@ -54,3 +54,5 @@
 .history-module-description{flex:1}.history-module-description small{display:block;color:#607b9f;font-weight:400;line-height:1.6;margin-top:8px}.history-modules summary{align-items:flex-start}.history-comparison td>p{margin:0 0 10px}
 
 .configuration-copy-info{margin-bottom:20px;overflow-wrap:anywhere}.configuration-copy-info details{margin-top:12px}.configuration-copy-info summary{cursor:pointer;font-weight:600}
+
+.rollback-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.rollback-review details{margin-block:16px}.rollback-review summary{cursor:pointer;color:var(--admin-primary,#0057ff);font-weight:600}.admin-form .rollback-confirm{white-space:normal;align-items:flex-start;font-size:13px;line-height:1.6;gap:9px;margin:12px 0}.admin-form .rollback-confirm span{min-width:0;font-size:13px;color:inherit}.rollback-confirm input{flex-shrink:0;margin-top:3px}@media(max-width:700px){.rollback-summary{grid-template-columns:1fr}}
