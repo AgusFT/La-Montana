@@ -2,11 +2,11 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 4
+## Estado actual · entrega 5
 
-Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa y de cliente con sesiones reales, registro de particulares y redirección según rol. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. Compose incluye base, backend, frontend y buzón local Mailpit.
 
-**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar ambas sesiones y crear/listar sucursales desde administración.** Empleados, horarios, edición/desactivación de sucursales, configuración comercial, pedidos, pagos, PDF y operación siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
+**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Horarios/capacidades, configuración comercial, pedidos, pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
 ## Arranque local
 
@@ -79,9 +79,9 @@ Las contraseñas se guardan con PBKDF2 y sal aleatoria; el correo se compara sin
 
 El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 intentos de alta/login/registro por minuto y proceso; ese contador se reinicia con el backend. No existe todavía recuperación de contraseña: conservar las credenciales elegidas.
 
-El proxy Next admite solo las rutas de identidad declaradas, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
+El proxy Next admite solo las rutas declaradas de identidad y organización, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
 
-Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de Spring Session; no implementa un circuito paralelo de refresh tokens. La migración contiene únicamente el subconjunto de usuario/rol necesario para el propietario. Permisos de empleados, sucursales y demás atributos se incorporarán en las siguientes migraciones. Configuración y datos comerciales permanecen vacíos.
+Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de Spring Session; no implementa un circuito paralelo de refresh tokens. El rol técnico de administrador conserva el código ADMIN_ADMIN utilizado desde la entrega 2; el empleado usa EMPLEADO. Las migraciones V3–V5 extienden usuarios, sucursales y permisos. Configuración y datos comerciales permanecen vacíos.
 
 ## Decisiones que se mantienen para completar la demo
 
@@ -100,7 +100,7 @@ Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/syst
 
 ## Continuación
 
-Siguiente entrega: empleados y asignaciones a sucursales, edición/desactivación de sucursales y verificación/recuperación por correo. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: verificación/recuperación por correo y cambio seguro de contraseña; después horarios/capacidades dentro del configurador. Luego configurador/catálogo, recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
 
 Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
@@ -118,8 +118,25 @@ Validación de entrega 3: Maven verify, build/typecheck y circuito HTTP real de 
 
 En `/administracion/sucursales`, el administrador puede crear varias sucursales con código, nombre, dirección completa y zona horaria IANA. Correo y teléfono son opcionales. El formulario comienza vacío; no hay sucursales precargadas. Los códigos se normalizan a mayúsculas, son únicos y las zonas horarias se validan en el servidor. La migración V4 registra también al usuario que dio el alta.
 
-Crear una sucursal conserva sus datos en PostgreSQL; todavía no habilita recepción de pedidos. Empleados/asignaciones, horarios/capacidades, edición/desactivación y operación siguen en construcción. Clientes y usuarios anónimos no pueden acceder a esta API administrativa.
+Crear una sucursal conserva sus datos en PostgreSQL; todavía no habilita recepción de pedidos. La entrega 5 agrega edición/desactivación y empleados/asignaciones. Horarios/capacidades y operación siguen en construcción. Clientes y usuarios anónimos no pueden acceder a esta API administrativa.
 
 Pruebas backend de entrega 4: se crean dos sucursales, se rechaza código duplicado y zona inválida, se controla CSRF, se niega GET/POST al cliente y se conserva el listado al reiniciar. Build y typecheck del frontend también pasaron.
 
 Comprobación integrada entrega 4: Next → Spring → PostgreSQL real permitió crear y ver ambas sucursales. El duplicado devolvió 409; un cliente recibió 403 tanto al listar como al crear y su pantalla redirigió a su propio espacio. Servidores temporales detenidos al finalizar.
+
+
+## Organización y acceso de empleados · entrega 5
+
+En `/administracion/sucursales` se pueden editar los datos y desactivar/reactivar sucursales. El código permanece fijo; cada edición exige la versión consultada para evitar sobrescribir cambios simultáneos. La baja es lógica y no borra datos. Se rechaza si deja a algún empleado activo sin una sucursal activa: primero reasignarlo o desactivarlo.
+
+En `/administracion/empleados` el administrador crea cuentas de empleados con nombre, apellido, correo, contraseña inicial y una o varias sucursales activas elegidas expresamente. Puede editar datos, asignaciones, permisos y estado; no convierte clientes ni al propietario en empleados. La contraseña inicial la define el administrador: no se genera una cuenta ni clave de muestra. El cambio de contraseña y el circuito de correo siguen pendientes del siguiente bloque.
+
+Los permisos adicionales son **Registrar cobros**, **Acreditar pagos** y **Registrar devoluciones**, inicialmente sin seleccionar. La migración V5 crea estas constantes técnicas y el rol EMPLEADO; no concede permisos ni crea personas. Las asignaciones y concesiones conservan fechas de alta/revocación; los cambios registran actor, objeto y versión. La edición de una organización se serializa en transacciones para impedir bajas concurrentes que dejen empleados sin sucursal activa.
+
+Un empleado ingresa por `/acceso` y se dirige a `/operacion`. Consulta sólo sucursales asignadas y activas y sus permisos actuales; puede abrir el detalle autorizado. Administración no está disponible para él, tampoco por API. Cambiar asignaciones o revocar permisos afecta a la sesión ya iniciada. Desactivar la cuenta o cambiar su correo revoca sus sesiones. No se muestran bandejas de pedidos ni acciones financieras como terminadas: la operación comercial sigue En construcción.
+
+La baja de una sucursal no borra la asignación existente; ésta puede conservarse si el empleado tiene otra sucursal activa, y no otorga acceso mientras la sucursal siga desactivada. Las nuevas asignaciones exigen sucursales activas. Reactivar un empleado también exige al menos una activa.
+
+Validación backend: `mvn verify` pasó cuatro pruebas con PostgreSQL real, incluyendo la nueva integración de organización. Se verificaron dos empleados aislados, permisos explícitos y revocación con la misma sesión, bloqueo de API administrativa, datos inválidos, bajas/reasignaciones, preservación de históricos, control de versiones y bajas simultáneas (una aceptada y la otra rechazada para preservar una sucursal activa). Se mantuvieron correctas las pruebas previas de identidad y persistencia. Build/typecheck de Next correctos. Comprobación integrada en navegador: alta del propietario, dos sucursales, creación/edición de empleado y permisos, acceso de empleado a una sola sucursal, rechazo de otra sucursal y API administrativa, reasignación efectiva sin volver a ingresar, y registro/acceso de cliente correctos. Vistas de escritorio/móvil y acceso denegado inspeccionadas sin desbordes, errores de JavaScript ni fallos de hidratación. Las capturas y los datos usados corresponden exclusivamente a la base temporal de pruebas.
+
+La vista de sucursal distingue el acceso denegado (403) de un problema de conexión; el mensaje se comprobó contra el backend real. Los servidores temporales se detienen al cerrar la entrega.

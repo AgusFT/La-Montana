@@ -1,8 +1,9 @@
 import "server-only";
+import { isRole, type Role } from "@/lib/roles";
 import { cookies } from "next/headers";
 
 export type SetupState = { requierePropietario: boolean; altaHabilitada: boolean };
-export type Profile = { codigoPublico: string; nombre: string; apellido: string; correo: string; rol: "ADMIN_ADMIN" | "CLIENTE" };
+export type Profile = { codigoPublico: string; nombre: string; apellido: string; correo: string; rol: Role };
 
 async function getIdentityResource(path: "setup/estado" | "auth/me", cookie?: string) {
   const base = process.env.BACKEND_INTERNAL_URL;
@@ -32,7 +33,7 @@ export async function getSession(): Promise<{ state: "authenticated"; profile: P
     if (response?.status === 401) return { state: "anonymous" };
     if (!response?.ok) return { state: "unavailable" };
     const data = await response.json();
-    if (!["ADMIN_ADMIN", "CLIENTE"].includes(data?.rol) || ![data.codigoPublico, data.nombre, data.apellido, data.correo].every(v => typeof v === "string")) {
+    if (!isRole(data?.rol) || ![data.codigoPublico, data.nombre, data.apellido, data.correo].every(v => typeof v === "string")) {
       return { state: "unavailable" };
     }
     return { state: "authenticated", profile: data as Profile };

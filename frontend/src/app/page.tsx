@@ -1,10 +1,13 @@
 import { getSystemStatus } from "@/lib/system-status";
-import { getSetupState } from "@/lib/identity-server";
+import { redirect } from "next/navigation";
+import { roleHome } from "@/lib/roles";
+import { getSession, getSetupState } from "@/lib/identity-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [status, setup] = await Promise.all([getSystemStatus(), getSetupState()]);
+  const [status, setup, session] = await Promise.all([getSystemStatus(), getSetupState(), getSession()]);
+  if (session.state === "authenticated") redirect(roleHome(session.profile.rol));
   const errorMessage = !status.ok && status.reason === "not-configured"
     ? "La conexión con el backend todavía no está configurada."
     : !status.ok && status.reason === "invalid-response"
@@ -33,7 +36,7 @@ export default async function HomePage() {
         <dl className="capabilities">
           <div><dt>Acceso del propietario</dt><dd>{setup ? setup.requierePropietario ? "Alta pendiente" : "Habilitado" : "Sin verificar"}</dd></div>
           <div><dt>Registro y acceso de clientes</dt><dd>{setup && !setup.requierePropietario ? "Habilitado" : "Pendiente de instalación"}</dd></div>
-          <div><dt>Gestión de usuarios y sucursales</dt><dd>En construcción</dd></div>
+          <div><dt>Gestión de empleados y sucursales</dt><dd>Disponible para el propietario</dd></div>
           <div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div>
           <div><dt>Pedidos y operación</dt><dd>En construcción</dd></div>
         </dl>

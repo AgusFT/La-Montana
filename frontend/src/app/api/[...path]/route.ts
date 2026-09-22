@@ -1,7 +1,10 @@
+import { uuidPattern } from "@/lib/organization-types";
+
 const allowed: Record<string, readonly string[]> = {
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
-  "admin/sucursales": ["GET", "POST"],
+  "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
+  "operacion/contexto": ["GET"],
 };
 export const dynamic = "force-dynamic";
 
@@ -15,8 +18,11 @@ function error(status: number, mensaje: string, headers?: Headers) {
 async function proxy(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const route = path.join("/");
-  if (path.length !== 2 || !Object.hasOwn(allowed, route)) return error(404, "Ruta no disponible.");
-  if (!allowed[route].includes(request.method)) return error(405, "Método no permitido.");
+  const methods = path.length === 2 && Object.hasOwn(allowed, route) ? allowed[route]
+    : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
+      : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"] : null;
+  if (!methods) return error(404, "Ruta no disponible.");
+  if (!methods.includes(request.method)) return error(405, "Método no permitido.");
   const base = process.env.BACKEND_INTERNAL_URL;
   if (!base) return error(503, "La conexión con el sistema no está configurada.");
   let responseHeaders: Headers | undefined;
@@ -26,7 +32,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       const value = request.headers.get(name);
       if (value) headers.set(name, value);
     }
-    const body = request.method === "POST" ? await request.text() : undefined;
+    const body = ["POST", "PUT"].includes(request.method) ? await request.text() : undefined;
     if (body && new TextEncoder().encode(body).length > 16384) return error(413, "Los datos enviados son demasiado extensos.");
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}`, {
       method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(8000),
@@ -58,3 +64,5 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
 
 export const GET = proxy;
 export const POST = proxy;
+
+export const PUT = proxy;

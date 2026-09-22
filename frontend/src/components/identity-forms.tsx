@@ -3,20 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-async function post(path: string, body?: BodyInit, contentType?: string) {
-  const csrfResponse = await fetch("/api/auth/csrf", { cache: "no-store", credentials: "same-origin" });
-  if (!csrfResponse.ok) throw new Error("No pudimos preparar una operación segura. Intentá nuevamente.");
-  const csrf = await csrfResponse.json();
-  if (typeof csrf.token !== "string" || csrf.headerName?.toUpperCase() !== "X-CSRF-TOKEN") throw new Error("La protección de sesión no está disponible.");
-  const response = await fetch(path, {
-    method: "POST", credentials: "same-origin", cache: "no-store",
-    headers: { "X-CSRF-TOKEN": csrf.token, ...(contentType ? { "Content-Type": contentType } : {}) }, body,
-  });
-  if (!response.ok) {
-    const data = await response.json().catch(() => null);
-    throw new Error(typeof data?.mensaje === "string" ? data.mensaje : "No fue posible completar la operación.");
-  }
-}
+import { secureMutation as post } from "@/lib/secure-mutation";
+import { isRole, roleHome } from "@/lib/roles";
 
 export function LoginForm() {
   const [busy, setBusy] = useState(false);
@@ -32,8 +20,8 @@ export function LoginForm() {
       const response = await fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" });
       if (!response.ok) throw new Error("No pudimos verificar tu sesión. Intentá ingresar nuevamente.");
       const profile = await response.json();
-      if (!["ADMIN_ADMIN", "CLIENTE"].includes(profile?.rol)) throw new Error("Esta cuenta no tiene un acceso habilitado.");
-      router.replace(profile.rol === "ADMIN_ADMIN" ? "/administracion" : "/cliente"); router.refresh();
+      if (!isRole(profile?.rol)) throw new Error("Esta cuenta no tiene un acceso habilitado.");
+      router.replace(roleHome(profile.rol)); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos iniciar sesión."); }
     finally { setBusy(false); }
   }
@@ -121,37 +109,4 @@ export function LogoutButton() {
     finally { setBusy(false); }
   }
   return <div><button className="refresh" onClick={logout} disabled={busy}>{busy ? "Cerrando sesión…" : "Cerrar sesión"}</button>{message && <p className="form-message error-message" role="alert">{message}</p>}</div>;
-}
-
-export function BranchForm() {
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [created, setCreated] = useState(false);
-  const router = useRouter();
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    const fields = ["codigo", "nombre", "calle", "numero", "localidad", "provincia", "codigoPostal", "correo", "telefono", "zonaHoraria"];
-    const payload = Object.fromEntries(fields.map(key => [key, String(data.get(key) ?? "").trim()]));
-    setBusy(true); setMessage(""); setCreated(false);
-    try {
-      await post("/api/admin/sucursales", JSON.stringify(payload), "application/json");
-      form.reset(); setCreated(true); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos crear la sucursal."); }
-    finally { setBusy(false); }
-  }
-  return <form className="identity-form" onSubmit={submit}>
-    <h2>Nueva sucursal</h2>
-    <div className="form-columns"><label>Código<input name="codigo" required maxLength={40} pattern={"[A-Za-z0-9_\\-]+"} title="Letras, números, guion o guion bajo; hasta 40 caracteres." /></label><label>Nombre<input name="nombre" required maxLength={140} /></label></div>
-    <div className="form-columns"><label>Calle<input name="calle" required maxLength={160} /></label><label>Número<input name="numero" required maxLength={20} /></label></div>
-    <div className="form-columns"><label>Localidad<input name="localidad" required maxLength={120} /></label><label>Provincia<input name="provincia" required maxLength={120} /></label></div>
-    <div className="form-columns"><label>Código postal<input name="codigoPostal" required maxLength={12} /></label><label>Zona horaria IANA<input name="zonaHoraria" required maxLength={64} placeholder="America/Argentina/Buenos_Aires" aria-describedby="timezone-help" /></label></div>
-    <p id="timezone-help" className="field-help">Ingresá la zona horaria correspondiente a la sucursal.</p>
-    <div className="form-columns"><label>Correo (opcional)<input name="correo" type="email" maxLength={254} /></label><label>Teléfono (opcional)<input name="telefono" type="tel" maxLength={40} /></label></div>
-    {message && <p className="form-message error-message" role="alert">{message}</p>}
-    {created && <p className="form-message" role="status">Sucursal creada. El listado se actualiza con los datos guardados.</p>}
-    <button className="refresh" disabled={busy}>{busy ? "Guardando…" : "Crear sucursal"}</button>
-  </form>;
 }

@@ -22,7 +22,7 @@ public class SeguridadConfiguration {
     }
 
     @Bean
-    SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad) throws Exception {
+    SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad, org.springframework.jdbc.core.JdbcTemplate jdbc) throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
@@ -31,8 +31,13 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/admin/estado").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/sucursales/*", "/api/admin/empleados/*").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/empleados").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/empleados").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/operacion/contexto", "/api/operacion/sucursales/*").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/estado").hasRole("CLIENTE")
                         .anyRequest().denyAll())
+                .addFilterBefore(new SesionVigenteFilter(jdbc), UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(new LimiteAccesoFilter(), UsernamePasswordAuthenticationFilter.class)
                 .formLogin(form -> form.loginPage("/acceso").loginProcessingUrl("/api/auth/login")
                         .successHandler((req, res, auth) -> {

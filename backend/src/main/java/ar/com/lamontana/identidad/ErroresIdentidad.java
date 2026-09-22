@@ -9,6 +9,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ErroresIdentidad {
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    ResponseEntity<Map<String, String>> conflicto(org.springframework.dao.DataIntegrityViolationException ex) {
+        return ResponseEntity.status(409).body(Map.of("mensaje", "Los datos entran en conflicto con un registro existente. Revisá el correo o el código."));
+    }
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<Map<String, String>> estado(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode()).body(Map.of("mensaje", ex.getReason() == null ? "No se pudo completar la operación." : ex.getReason()));
