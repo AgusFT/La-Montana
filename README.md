@@ -2,11 +2,11 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 6
+## Estado actual · entrega 7
 
-Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso y cambio de contraseña. Compose incluye base, backend, frontend y buzón local Mailpit.
+Implementado: base técnica de la entrega 1 más alta única del propietario, credenciales persistentes, login/logout y áreas administrativa, de cliente y de operación con sesiones reales, registro de particulares y redirección según rol. También funcionan la verificación por correo local, recuperación de acceso, cambio de contraseña y catálogo global con revisión comercial propia. Compose incluye base, backend, frontend y buzón local Mailpit.
 
-**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Horarios/capacidades, configuración comercial, pedidos, pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
+**Ya se puede crear al propietario, registrar particulares, iniciar/cerrar sesiones y gestionar sucursales y empleados desde administración.** El empleado ingresa a su espacio y consulta únicamente sus sucursales habilitadas. Las tarifas y los servicios globales ya se pueden configurar. Horarios/capacidades, reglas operativas, programación de precios, pedidos, pagos, PDF y producción/entrega siguen **En construcción**. No hay cuentas ni datos comerciales precargados. V1 prepara el esquema; V2 agrega identidad, el rol técnico de administrador, el registro único de inicialización, eventos de acceso y tablas técnicas de sesiones. V3 incorpora el rol técnico CLIENTE para particulares, sin crear cuentas.
 
 ## Arranque local
 
@@ -66,7 +66,7 @@ Las pruebas del backend usan binarios de PostgreSQL reales mediante una dependen
 
 Validación histórica de la entrega 1: Maven `verify` pasó 2 pruebas integradas contra PostgreSQL 18.6; `pnpm typecheck` y `pnpm build` pasaron con Node 24.19; el servidor standalone respondió HTTP 200 en `/health` y mostró el aviso correcto en `/` sin backend. Compose pasó `config --quiet` y el script pasó validación de sintaxis. En esa entrega no se verificaron las imágenes Docker, el arranque conjunto, la persistencia de volúmenes ni las vistas en navegador; los checkpoints siguientes registran lo comprobado después. El build usa la API de TypeScript 5 mediante una opción soportada de Next; no se omitió la comprobación de tipos.
 
-Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWORD` y opcionalmente `FILES_DIR` al backend, apuntando a un PostgreSQL propio. El frontend requiere `BACKEND_INTERNAL_URL` y se inicia con `pnpm dev`. Los directorios de archivos no se publican como recursos web. Son públicos el estado, el token CSRF y el recorrido inicial de alta/login; `/api/auth/me` exige sesión y `/api/admin/estado` exige rol administrativo. Las demás rutas de negocio permanecen cerradas. No existe usuario automático de Spring.
+Para desarrollar sin contenedores, proporcionar `DB_URL`, `DB_USER`, `DB_PASSWORD` y opcionalmente `FILES_DIR` al backend, apuntando a un PostgreSQL propio. El frontend requiere `BACKEND_INTERNAL_URL` y se inicia con `pnpm dev`. Los directorios de archivos no se publican como recursos web. Son públicos el estado, el token CSRF y el recorrido inicial de alta/login; `/api/auth/me` exige sesión y `/api/admin/estado` exige rol administrativo. Las rutas administrativas de organización y catálogo exigen propietario; los módulos todavía no implementados permanecen cerrados. No existe usuario automático de Spring.
 
 ## Primer acceso y comprobación manual
 
@@ -79,9 +79,9 @@ Las contraseñas se guardan con PBKDF2 y sal aleatoria; el correo se compara sin
 
 El token de instalación habilita una única alta, bloqueada transaccionalmente ante concurrencia. No habilita un segundo propietario si luego se desactiva la cuenta. Se registran alta, login correcto/fallido y logout sin guardar contraseñas ni tokens en esos eventos. El piloto aplica un máximo global de 30 solicitudes de alta/login/registro/correo/cambio de contraseña por minuto y proceso; ese contador se reinicia con el backend. Los códigos tienen además límites persistentes de reenvío e intentos.
 
-El proxy Next admite solo las rutas declaradas de identidad y organización, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
+El proxy Next admite solo las rutas declaradas de identidad, organización y catálogo, conserva las cookies y no almacena credenciales en el navegador. `SETUP_TOKEN` es configuración privada del backend y no se envía al frontend automáticamente. En ejecución manual del backend, definir también esa variable para habilitar el primer acceso.
 
-Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de Spring Session; no implementa un circuito paralelo de refresh tokens. El rol técnico de administrador conserva el código ADMIN_ADMIN utilizado desde la entrega 2; el empleado usa EMPLEADO. Las migraciones V3–V6 extienden usuarios, sucursales, permisos y credenciales temporales. Configuración y datos comerciales permanecen vacíos.
+Como adaptación técnica del DER, esta etapa usa sesiones HTTP persistentes de Spring Session; no implementa un circuito paralelo de refresh tokens. El rol técnico de administrador conserva el código ADMIN_ADMIN utilizado desde la entrega 2; el empleado usa EMPLEADO. Las migraciones V3–V6 extienden usuarios, sucursales, permisos y credenciales temporales. La instalación inicia sin configuración ni datos comerciales.
 
 ## Decisiones que se mantienen para completar la demo
 
@@ -100,7 +100,7 @@ Compatibilidad consultada: [Spring Boot](https://docs.spring.io/spring-boot/syst
 
 ## Continuación
 
-Siguiente entrega: catálogo y tarifas, seguidos del configurador con horarios/capacidades. Luego recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
+Siguiente entrega: programación comercial persistente; después configurador con horarios/capacidades. Luego recorrido PDF/pagos y operación/entrega. Resolver el acceso local a Docker antes de certificar el arranque conjunto y la persistencia de sus volúmenes.
 
 Validación de la entrega 2 (22/09/2026): 3 pruebas integradas pasaron con PostgreSQL real. El recorrido de identidad verifica CSRF, contraseña hasheada, alta concurrente única, renovación del identificador al ingresar, sesión conservada al reiniciar Spring, logout/rechazo de cookie anterior y límite de intentos. Build y typecheck de Next pasaron. Se comprobó además el recorrido HTTP real a través de Next → Spring → PostgreSQL temporal: alta, login, perfil, administración y logout; y se inspeccionaron vistas de escritorio/móvil sin desbordes. Esos usuarios fueron exclusivamente de prueba en una base temporal, no datos precargados de la demo. Docker y sus volúmenes siguen pendientes de comprobación.
 
@@ -159,3 +159,24 @@ Comprobación integrada de correo: recorrido real Next → Spring → PostgreSQL
 Pruebas nuevas: diez ejecuciones de integración con PostgreSQL real y SMTP de captura comprobaron entrega y hash privado, separación de propósitos, cinco intentos persistentes, vencimiento/reenvío, uso único concurrente, respuesta pública uniforme, rollback ante fallo SMTP, revocación por cambio de correo/baja, rechazo de principal anterior y configuración de cookies.
 
 Regresión posterior: las cuatro pruebas previas de base, identidad y organización también pasaron con el principal de sesión actualizado, incluida persistencia tras reinicio. Build/typecheck del frontend y validación sintáctica de Compose correctos; arranque de contenedores aún pendiente por permisos del servicio Docker del equipo.
+
+
+## Servicios y precios · entrega 7
+
+`/administracion/catalogo` permite crear formatos, papeles y servicios sin valores de muestra; editar tarifas y terminaciones; publicar una revisión comercial inmediata y consultar revisiones anteriores. El acceso se ofrece desde administración; la integración de retorno a Fase 6 se agregará con el configurador. Los precios son globales para la imprenta. Las capacidades y servicios por sucursal se configuran en el módulo operativo pendiente.
+
+Los formatos guardan código, nombre y dimensiones; los papeles, código, nombre, gramaje y terminación/material. Estos datos estables no se reescriben: una variante se agrega con otro código. El administrador crea el servicio de impresión y las terminaciones que ofrecerá. Habilitación comercial, nombre visible, precio, base de cobro, preparación y compatibilidades quedan congelados en cada revisión. Deshabilitar o retirar una opción de una nueva revisión conserva las anteriores.
+
+Cada tarifa se identifica por formato, papel y modo B/N o color; incluye precio por carilla y recargo de doble faz. Las terminaciones usan la base elegida: por copia, hoja, carilla o importe fijo por ítem. Se deben indicar expresamente las combinaciones de formato/papel admitidas. Al guardar debe haber al menos una tarifa habilitada y al menos un servicio de impresión habilitado. Cada ítem elegirá un único servicio de impresión cuando se implemente el cotizador. Una terminación habilitada exige tarifa para sus combinaciones. Importes negativos, precisión mayor a dos decimales, referencias inexistentes y duplicados se rechazan.
+
+Decisiones técnicas para evitar ambigüedad en el futuro cotizador: el recargo doble faz se expresa **por carilla impresa**; el servicio IMPRESION toma el precio de la tarifa, con base POR_CARILLA y sin sumar otro precio base. Esta precisión no estaba definida en el DER y se explicita en la vista. Los cálculos usarán BigDecimal; el cotizador todavía no está implementado.
+
+Guardar crea una revisión inmutable con motivo, actor, fecha y referencia a la anterior. La actualización completa es una transacción: un fallo conserva la vigente y revierte todas las filas nuevas. Una confirmación repetida no duplica revisiones; una edición basada en una versión que cambió recibe conflicto para revisión del administrador. El historial y los precios previos se conservan. El alcance restante debe enlazar las cotizaciones a estas revisiones para comprobar la no retroactividad E2E.
+
+La migración V7 separa `catalogo_revision` de la futura versión operativa y vincula a ella `tarifa_impresion`, `configuracion_servicio` y sus compatibilidades. Es la adaptación pedida por el contrato comercial posterior al DER. Las tablas estables no llevan habilitación comercial propia; esa condición pertenece a cada revisión. Programar precios y su recuperación al reiniciar siguen pendientes del siguiente bloque y se muestran En construcción.
+
+Prueba integrada nueva con PostgreSQL real: instalación vacía; altas y duplicados; validación decimal/referencial; CSRF y cliente sin acceso; historial inmutable; reintento idempotente; confirmaciones simultáneas y editores con base obsoleta; fallo inyectado de almacenamiento sin publicación parcial; estado y sesión conservados tras reiniciar. Resultado correcto.
+
+Prueba de navegador del catálogo: altas desde formularios vacíos, edición/publicación, dos editores con conflicto y valores conservados, consulta de vigente/base, historial con precio original y cliente rechazado. El reintento tras cortar la respuesta después del guardado usa el mismo contenido y UUID y recupera una sola revisión. Se corrigió la validación para admitir varios servicios de impresión en el catálogo, respetando que la selección única corresponde al ítem.
+
+Comparación de esta vista con `MC-ADM-COM-001-servicios-precios.png`: conserva navegación lateral azul oscura, cabecera de usuario, ruta de navegación, acciones azules, aviso comercial, paneles de tarifas/servicios e historial. Se agregaron formularios vacíos para la primera instalación y campos explícitos de recargo y compatibilidades; no se copiaron los precios/personas del mock. La marca aún usa el símbolo geométrico provisional de las entregas anteriores; la unificación visual de todas las áreas y la revisión final de la identidad gráfica siguen pendientes. En pantallas angostas los paneles se apilan y las tablas tienen desplazamiento interno.

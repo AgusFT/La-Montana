@@ -4,6 +4,7 @@ const allowed: Record<string, readonly string[]> = {
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
+  "admin/catalogo": ["GET"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
   "auth/recuperacion/solicitar": ["POST"], "auth/recuperacion/confirmar": ["POST"],
@@ -22,7 +23,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const route = path.join("/");
   const methods = (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
-      : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"] : null;
+      : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
+        : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : null;
   if (!methods) return error(404, "Ruta no disponible.");
   if (!methods.includes(request.method)) return error(405, "Método no permitido.");
   const base = process.env.BACKEND_INTERNAL_URL;
@@ -35,7 +37,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       if (value) headers.set(name, value);
     }
     const body = ["POST", "PUT"].includes(request.method) ? await request.text() : undefined;
-    if (body && new TextEncoder().encode(body).length > 16384) return error(413, "Los datos enviados son demasiado extensos.");
+    const maxBytes = route === "admin/catalogo/revisiones" ? 131072 : 16384;
+    if (body && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}`, {
       method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(8000),
     });
