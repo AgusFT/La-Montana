@@ -16,12 +16,16 @@ export type ResourceConfiguration = {
   metodoAsignacion: "MANUAL" | null; impresoras: ConfiguredPrinter[];
   serviciosPorSucursal: {sucursal: string; servicios: string[]}[];
 };
+export type DeliveryMode = "RETIRO_SUCURSAL" | "RETIRO_PUNTO_ENTREGA" | "ENVIO_DOMICILIO";
+export type OperatingDay = {dia:number;habilitado:boolean|null;apertura:string|null;cierre:string|null};
+export type BranchSchedule = {sucursal:string;zonaHoraria:string;dias:OperatingDay[]};
+export type DeliveryConfiguration = {preparacionHoras:string|null;trasladoHoras:string|null;modalidades:DeliveryMode[];horariosPorSucursal:BranchSchedule[]};
 export type ConfigurationDraft = {
   codigoPublico: string; numero: number; version: number; estado: "EN_PREPARACION" | "CANCELADA";
   modelo: OperatingModel | null; criterio: ApprovalCriterion | null;
   creadaEn: string; actualizadaEn: string; actor: string;
   canceladaEn: string | null; motivoCancelacion: string | null; cancelador: string | null;
-  pagos: PaymentConfiguration | null; recursos: ResourceConfiguration;
+  pagos: PaymentConfiguration | null; recursos: ResourceConfiguration; entrega: DeliveryConfiguration;
 };
 export type ConfigurationState = { borrador: ConfigurationDraft | null; historial: ConfigurationDraft[] };
 export const modelLabels: Record<OperatingModel,string> = {MANUAL:"Control manual",CONDICIONAL:"Control condicional"};
@@ -45,10 +49,15 @@ export function isResourceConfiguration(value: unknown): value is ResourceConfig
     Array.isArray(value.serviciosPorSucursal) && value.serviciosPorSucursal.every(s => record(s) &&
       typeof s.sucursal === "string" && Array.isArray(s.servicios) && s.servicios.every(id => typeof id === "string"));
 }
+export function isDeliveryConfiguration(value:unknown):value is DeliveryConfiguration {
+  return record(value) && ["preparacionHoras","trasladoHoras"].every(k=>value[k]===null||typeof value[k]==="string") &&
+    Array.isArray(value.modalidades) && value.modalidades.every(m=>["RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"].includes(String(m))) &&
+    Array.isArray(value.horariosPorSucursal) && value.horariosPorSucursal.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.zonaHoraria==="string"&&Array.isArray(s.dias)&&s.dias.every(d=>record(d)&&Number.isInteger(d.dia)&&Number(d.dia)>=1&&Number(d.dia)<=7&&(d.habilitado===null||typeof d.habilitado==="boolean")&&["apertura","cierre"].every(k=>d[k]===null||typeof d[k]==="string")));
+}
 export function isConfigurationDraft(value:unknown):value is ConfigurationDraft {
   return record(value)&&["codigoPublico","creadaEn","actualizadaEn","actor"].every(key=>typeof value[key]==="string")&&
     Number.isSafeInteger(value.numero)&&Number.isSafeInteger(value.version)&&Number(value.numero)>0&&Number(value.version)>0&&["EN_PREPARACION","CANCELADA"].includes(String(value.estado))&&
     ["canceladaEn","motivoCancelacion","cancelador"].every(key=>value[key]===null||typeof value[key]==="string")&&
-    (value.modelo===null||Object.hasOwn(modelLabels,String(value.modelo)))&&(value.criterio===null||Object.hasOwn(criterionLabels,String(value.criterio)))&&(value.pagos===null||isPaymentConfiguration(value.pagos))&&isResourceConfiguration(value.recursos);
+    (value.modelo===null||Object.hasOwn(modelLabels,String(value.modelo)))&&(value.criterio===null||Object.hasOwn(criterionLabels,String(value.criterio)))&&(value.pagos===null||isPaymentConfiguration(value.pagos))&&isResourceConfiguration(value.recursos)&&isDeliveryConfiguration(value.entrega);
 }
 export function isConfigurationState(value:unknown):value is ConfigurationState{return record(value)&&(value.borrador===null||(isConfigurationDraft(value.borrador)&&value.borrador.estado==="EN_PREPARACION"))&&Array.isArray(value.historial)&&value.historial.every(item=>isConfigurationDraft(item)&&item.estado==="CANCELADA");}

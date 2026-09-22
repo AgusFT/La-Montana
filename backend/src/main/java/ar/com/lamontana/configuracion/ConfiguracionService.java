@@ -30,11 +30,12 @@ public class ConfiguracionService {
             """;
     private final JdbcTemplate jdbc;
     private final RecursosRepositorio recursos;
+    private final EntregaRepositorio entrega;
     private final JsonMapper json=JsonMapper.builder().build();
-    public ConfiguracionService(JdbcTemplate jdbc,RecursosRepositorio recursos) { this.jdbc=jdbc;this.recursos=recursos; }
+    public ConfiguracionService(JdbcTemplate jdbc,RecursosRepositorio recursos,EntregaRepositorio entrega) { this.jdbc=jdbc;this.recursos=recursos;this.entrega=entrega; }
 
     public record Borrador(UUID codigoPublico,long numero,long version,String estado,Modelo modelo,Criterio criterio,
-                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos) {}
+                           Instant creadaEn,Instant actualizadaEn,String actor,Instant canceladaEn,String motivoCancelacion,String cancelador,Pagos pagos,RecursosRepositorio.Recursos recursos,EntregaRepositorio.Entrega entrega) {}
     public record Estado(Borrador borrador,List<Borrador> historial) {}
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -131,7 +132,7 @@ public class ConfiguracionService {
         return new Borrador(rs.getObject("codigo_publico",UUID.class),rs.getLong("numero_version"),rs.getLong("version"),rs.getString("estado"),
                 modelo==null?null:Modelo.valueOf(modelo),criterio==null?null:Criterio.valueOf(criterio),
                 rs.getTimestamp("fecha_creacion").toInstant(),rs.getTimestamp("fecha_actualizacion").toInstant(),rs.getString("actor"),
-                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")),recursos.leer(rs.getLong("id_configuracion_version")));
+                rs.getTimestamp("fecha_cancelacion")==null?null:rs.getTimestamp("fecha_cancelacion").toInstant(),rs.getString("motivo_cancelacion"),rs.getString("cancelador"),pagos(rs.getLong("id_configuracion_version")),recursos.leer(rs.getLong("id_configuracion_version")),entrega.leer(rs.getLong("id_configuracion_version")));
     }
     private Pagos pagos(long id) {
         var result=jdbc.query("SELECT * FROM lamontana.configuracion_financiera WHERE id_configuracion_version=?",(rs,row)->{
