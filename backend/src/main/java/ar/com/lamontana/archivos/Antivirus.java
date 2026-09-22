@@ -35,6 +35,6 @@ public class Antivirus {
     private String reply(InputStream in)throws IOException{var b=new ByteArrayOutputStream();for(int n;(n=in.read())!=-1;){if(n==0)return b.toString(StandardCharsets.UTF_8);if(b.size()>=1024)throw new IOException();b.write(n);}throw new EOFException();}
     public static class Deteccion extends InspectorPdf.Rechazado {
         public final String version;
-        Deteccion(String version){super("SEGURIDAD_RECHAZADA","El análisis de seguridad rechazó el archivo. No puede utilizarse para un pedido.");this.version=version;}
+        Deteccion(String version){super("SEGURIDAD_RECHAZADA","El análisis de seguridad rechazó el archivo. No se habilitó su contenido.");this.version=version;}
     }
 }

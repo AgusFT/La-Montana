@@ -65,6 +65,7 @@ public class ArchivoService {
             if((long)prev.get(0)[1]!=idItem)throw conflicto("La operación ya se usó con otro archivo.");
             return archivo(quote,(UUID)prev.get(0)[0]);
         }
+        if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.archivo_almacenado WHERE id_operacion=?)",Boolean.class,operation))throw conflicto("La operación ya se usó con un archivo de otra finalidad.");
         if(c.cotizacion().version()!=version)throw conflicto("La cotización cambió. Actualizá su estado.");
         exigirCarga(c.cotizacion());
         jdbc.update("UPDATE lamontana.archivo_almacenado a SET estado='FALLIDO',fecha_fin=now(),codigo_resultado='CARGA_VENCIDA',mensaje='El plazo para enviar este archivo venció. Iniciá otra carga.' FROM lamontana.archivo_trabajo t WHERE t.id_archivo_almacenado=a.id_archivo_almacenado AND t.id_cotizacion_item=? AND a.estado='PENDIENTE' AND a.cargar_hasta<=now()",idItem);

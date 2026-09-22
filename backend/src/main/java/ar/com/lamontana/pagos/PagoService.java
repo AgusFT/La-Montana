@@ -41,6 +41,18 @@ public class PagoService {
     public record Fila(UUID cotizacion,long numero,String cliente,String estado,String total,String aplicado,long pendientes){}
     public record Bandeja(List<Fila> elementos,long total,int pagina){}
 
+    public record AccesoComprobante(long cotizacion,long usuario,String actor,String rol,Long intento,Long pago,Long intentoVinculado,String tipo,boolean puedeCargar){}
+    /** Acceso financiero al padre del documento; no aplica reglas de carga de trabajos. */
+    @Transactional(readOnly=true)
+    public AccesoComprobante accesoComprobante(UUID quote,UUID intento,UUID pago,String correo,boolean interno){
+        exigir((intento==null)!=(pago==null),"Seleccioná un intento o un pago, nunca ambos.");
+        var a=actor(correo,interno);var q=autorizar(quote,a,correo);Long idIntento=null,idPago=null,vinculado=null;MedioPago medio=MedioPago.TRANSFERENCIA;
+        if(intento!=null){var ids=jdbc.query("SELECT id_intento_pago FROM lamontana.intento_pago WHERE codigo_publico=? AND id_cotizacion=?",(r,n)->r.getLong(1),intento,q.id());if(ids.isEmpty())throw error(HttpStatus.NOT_FOUND,"La transferencia informada no está disponible.");idIntento=ids.get(0);}
+        else{var ids=jdbc.query("SELECT id_pago,medio,id_intento_pago FROM lamontana.pago WHERE codigo_publico=? AND id_cotizacion=?",(r,n)->new Object[]{r.getLong(1),r.getString(2),r.getObject(3,Long.class)},pago,q.id());if(ids.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pago no está disponible.");idPago=(Long)ids.get(0)[0];medio=MedioPago.valueOf((String)ids.get(0)[1]);vinculado=(Long)ids.get(0)[2];}
+        boolean cargar=interno?organizacion.contexto(correo).permisos().contains(permiso(medio)):medio==MedioPago.TRANSFERENCIA;
+        return new AccesoComprobante(q.id(),a.id(),a.nombre(),a.rol(),idIntento,idPago,vinculado,medio==MedioPago.TRANSFERENCIA?"EVIDENCIA_TRANSFERENCIA":"RECIBO_INTERNO",cargar);
+    }
+
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Vista vista(UUID quote,String correo,boolean interno){var a=actor(correo,interno);var q=autorizar(quote,a,correo);return leer(q,a,correo,interno);}
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
