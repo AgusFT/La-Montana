@@ -19,7 +19,7 @@ final class LimiteAccesoFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !"POST".equals(request.getMethod()) ||
-                !("/api/auth/login".equals(request.getServletPath()) || "/api/auth/registro".equals(request.getServletPath()) || "/api/setup/propietario".equals(request.getServletPath()));
+                !("/api/auth/login".equals(request.getServletPath()) || "/api/auth/registro".equals(request.getServletPath()) || "/api/setup/propietario".equals(request.getServletPath()) || request.getServletPath().startsWith("/api/auth/recuperacion/") || request.getServletPath().startsWith("/api/auth/correo/") || "/api/auth/contrasena".equals(request.getServletPath()));
     }
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws ServletException, IOException {

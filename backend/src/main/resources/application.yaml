@@ -1,6 +1,13 @@
 spring:
   application:
     name: lamontana
+  mail:
+    host: ${SMTP_HOST:127.0.0.1}
+    port: ${SMTP_PORT:1025}
+    properties:
+      "[mail.smtp.connectiontimeout]": 3000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 3000
   session:
     timeout: 30m
     jdbc:
@@ -50,6 +57,8 @@ management:
         readiness:
           include: readinessState,db
 lamontana:
+  correo:
+    remitente: ${SMTP_FROM:noreply@lamontana.local}
   instalacion:
     token: ${SETUP_TOKEN:}
   archivos:

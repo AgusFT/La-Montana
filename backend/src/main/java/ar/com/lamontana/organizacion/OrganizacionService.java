@@ -20,7 +20,8 @@ import ar.com.lamontana.organizacion.SucursalController.*;
 public class OrganizacionService {
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
-    public OrganizacionService(JdbcTemplate jdbc, PasswordEncoder encoder) { this.jdbc = jdbc; this.encoder = encoder; }
+    private final ar.com.lamontana.identidad.CredencialService credenciales;
+    public OrganizacionService(JdbcTemplate jdbc, PasswordEncoder encoder, ar.com.lamontana.identidad.CredencialService credenciales) { this.jdbc = jdbc; this.encoder = encoder; this.credenciales=credenciales; }
 
     // Ordena cambios de asignaciones y bajas para conservar al menos una sucursal activa por empleado.
     private void bloquearOrganizacion() { jdbc.execute("SELECT pg_advisory_xact_lock(764001)"); }
@@ -83,8 +84,8 @@ public class OrganizacionService {
         bloquearOrganizacion(); validarAsignaciones(in.sucursales(), in.permisos(), "ACTIVO", List.of());
         UUID codigo = UUID.randomUUID();
         var ids = jdbc.query("""
-                INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado)
-                VALUES (?,(SELECT id_rol FROM lamontana.rol WHERE codigo='EMPLEADO'),?,?,?,?,'ACTIVO')
+                INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado,debe_cambiar_contrasena)
+                VALUES (?,(SELECT id_rol FROM lamontana.rol WHERE codigo='EMPLEADO'),?,?,?,?,'ACTIVO',true)
                 ON CONFLICT DO NOTHING RETURNING id_usuario
                 """, (rs,row)->rs.getLong(1), codigo, correo(in.correo()), encoder.encode(in.contrasena()), in.nombre().strip(), in.apellido().strip());
         if (ids.isEmpty()) throw error(HttpStatus.CONFLICT, "Ya existe una cuenta con ese correo.");
@@ -108,6 +109,7 @@ public class OrganizacionService {
                 """, in.nombre().strip(), in.apellido().strip(), correo(in.correo()), in.estado(), correo(in.correo()), in.estado(), id);
         asignar(id, in.sucursales(), in.permisos(), actor);
         if ("DESACTIVADO".equals(in.estado()) || !actual.correo().equals(correo(in.correo()))) {
+            credenciales.revocar(id);
             jdbc.update("DELETE FROM lamontana.sesion_http WHERE principal_name=?", actual.correo());
         }
         auditar(actor, "EDICION_EMPLEADO", codigo, actual.version()+1);

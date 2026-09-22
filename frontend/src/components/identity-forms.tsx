@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
 import { secureMutation as post } from "@/lib/secure-mutation";
-import { isRole, roleHome } from "@/lib/roles";
+import { isRole, sessionHome } from "@/lib/roles";
 
 export function LoginForm() {
   const [busy, setBusy] = useState(false);
@@ -20,8 +20,8 @@ export function LoginForm() {
       const response = await fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" });
       if (!response.ok) throw new Error("No pudimos verificar tu sesión. Intentá ingresar nuevamente.");
       const profile = await response.json();
-      if (!isRole(profile?.rol)) throw new Error("Esta cuenta no tiene un acceso habilitado.");
-      router.replace(roleHome(profile.rol)); router.refresh();
+      if (!isRole(profile?.rol) || typeof profile.debeCambiarContrasena !== "boolean" || typeof profile.correoVerificado !== "boolean") throw new Error("Esta cuenta no tiene un acceso habilitado.");
+      router.replace(sessionHome(profile)); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos iniciar sesión."); }
     finally { setBusy(false); }
   }
@@ -31,7 +31,7 @@ export function LoginForm() {
     {message && <p className="form-message error-message" role="alert">{message}</p>}
     <button className="refresh" disabled={busy}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>
     <a className="secondary-link" href="/registro">Crear una cuenta de cliente</a>
-    <p className="empty-note">Recuperación de contraseña: en construcción.</p>
+    <a className="secondary-link" href="/recuperar">Olvidé mi contraseña</a>
   </form>;
 }
 
@@ -52,9 +52,9 @@ export function RegistrationForm() {
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos crear la cuenta."); }
     finally { setBusy(false); }
   }
-  if (created) return <div role="status"><h2>Cuenta de cliente creada</h2><p className="empty-note">Ya podés iniciar sesión. Tu correo todavía no fue verificado: la verificación de correo y la recuperación de contraseña están en construcción.</p><a className="refresh" href="/acceso">Iniciar sesión</a></div>;
+  if (created) return <div role="status"><h2>Cuenta de cliente creada</h2><p className="empty-note">Ya podés iniciar sesión. Después verificá tu correo desde Seguridad de la cuenta.</p><a className="refresh" href="/acceso">Iniciar sesión</a></div>;
   return <form className="identity-form" onSubmit={submit}>
-    <p className="empty-note">Registro de clientes particulares. Verificación de correo y recuperación de contraseña: en construcción.</p>
+    <p className="empty-note">Registro de clientes particulares. Podrás verificar tu correo después de iniciar sesión.</p>
     <div className="form-columns"><label>Nombre<input name="nombre" autoComplete="given-name" required maxLength={100} /></label><label>Apellido<input name="apellido" autoComplete="family-name" required maxLength={100} /></label></div>
     <label>Correo electrónico<input name="correo" type="email" autoComplete="username" required maxLength={254} /></label>
     <label>Contraseña<input name="contrasena" type="password" autoComplete="new-password" required minLength={12} maxLength={128} aria-describedby="registration-password-help" /></label>

@@ -1,13 +1,13 @@
 import { getSystemStatus } from "@/lib/system-status";
 import { redirect } from "next/navigation";
-import { roleHome } from "@/lib/roles";
+import { sessionHome } from "@/lib/roles";
 import { getSession, getSetupState } from "@/lib/identity-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [status, setup, session] = await Promise.all([getSystemStatus(), getSetupState(), getSession()]);
-  if (session.state === "authenticated") redirect(roleHome(session.profile.rol));
+  if (session.state === "authenticated") redirect(sessionHome(session.profile));
   const errorMessage = !status.ok && status.reason === "not-configured"
     ? "La conexión con el backend todavía no está configurada."
     : !status.ok && status.reason === "invalid-response"

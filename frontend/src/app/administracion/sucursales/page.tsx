@@ -11,6 +11,7 @@ export default async function BranchesPage() {
   if (session.state === "anonymous") redirect("/acceso");
   if (session.state === "unavailable") return <IdentityShell title="Sucursales" description="Verificación de tu sesión."><p className="form-message error-message" role="alert">No pudimos verificar la sesión. Intentá nuevamente cuando el sistema esté disponible.</p><a className="refresh" href="/administracion/sucursales">Volver a comprobar</a></IdentityShell>;
   if (session.state !== "authenticated") return null;
+  if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const branches = await getBranches();
   return <IdentityShell title="Sucursales" description="Alta, edición y desactivación disponibles. Horarios y operación de pedidos: En construcción.">

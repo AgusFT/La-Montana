@@ -7,7 +7,6 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -57,11 +56,11 @@ public class IdentidadService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) {
         return jdbc.query("""
-                SELECT u.correo,u.hash_contrasena,u.estado,r.codigo,r.activo
+                SELECT u.correo,u.hash_contrasena,u.estado,r.codigo,r.activo,u.version_acceso
                 FROM lamontana.usuario u JOIN lamontana.rol r USING (id_rol) WHERE lower(u.correo)=?
-                """, (rs, row) -> User.withUsername(rs.getString("correo"))
-                .password(rs.getString("hash_contrasena")).roles(rs.getString("codigo"))
-                .disabled(!"ACTIVO".equals(rs.getString("estado")) || !rs.getBoolean("activo")).build(), normalizar(username))
+                """, (rs, row) -> new UsuarioSesion(rs.getString("correo"), rs.getString("hash_contrasena"),
+                rs.getString("codigo"), "ACTIVO".equals(rs.getString("estado")) && rs.getBoolean("activo"),
+                rs.getLong("version_acceso")), normalizar(username))
                 .stream().findFirst().orElseThrow(() -> new UsernameNotFoundException("Credenciales incorrectas"));
     }
 
@@ -83,11 +82,11 @@ public class IdentidadService implements UserDetailsService {
 
     public Perfil perfil(String correo) {
         return jdbc.queryForObject("""
-                SELECT u.codigo_publico,u.nombre,u.apellido,u.correo,r.codigo
+                SELECT u.codigo_publico,u.nombre,u.apellido,u.correo,r.codigo,u.correo_verificado_en IS NOT NULL AS verificado,u.debe_cambiar_contrasena
                 FROM lamontana.usuario u JOIN lamontana.rol r USING (id_rol)
                 WHERE lower(u.correo)=? AND u.estado='ACTIVO' AND r.activo
                 """, (rs, row) -> new Perfil(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"),
-                rs.getString("apellido"), rs.getString("correo"), rs.getString("codigo")), normalizar(correo));
+                rs.getString("apellido"), rs.getString("correo"), rs.getString("codigo"),rs.getBoolean("verificado"),rs.getBoolean("debe_cambiar_contrasena")), normalizar(correo));
     }
 
     public void registrarAcceso(String tipo, String correo) {
@@ -96,5 +95,5 @@ public class IdentidadService implements UserDetailsService {
 
     private String normalizar(String correo) { return correo == null ? "" : correo.strip().toLowerCase(Locale.ROOT); }
     public record EstadoInstalacion(boolean requierePropietario, boolean altaHabilitada) {}
-    public record Perfil(UUID codigoPublico, String nombre, String apellido, String correo, String rol) {}
+    public record Perfil(UUID codigoPublico, String nombre, String apellido, String correo, String rol, boolean correoVerificado, boolean debeCambiarContrasena) {}
 }

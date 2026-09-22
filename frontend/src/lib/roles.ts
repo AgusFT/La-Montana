@@ -4,3 +4,7 @@ export function isRole(value: unknown): value is Role { return roles.some(role =
 export function roleHome(role: Role): string {
   return { ADMIN_ADMIN: "/administracion", CLIENTE: "/cliente", EMPLEADO: "/operacion" }[role];
 }
+
+export function sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean }): string {
+  return profile.debeCambiarContrasena ? "/cuenta/seguridad" : roleHome(profile.rol);
+}

@@ -44,7 +44,7 @@ class OrganizacionIntegrationTest {
             String bobId = creado(enviar(admin,"POST","/api/admin/empleados",alta("bob",List.of(b),List.of())));
             assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("ALICE",List.of(b),List.of())),409);
             var alice = cliente(); var bob = cliente();
-            login(alice,"ALICE@example.test",200); login(bob,"bob@example.test",200);
+            loginEmpleado(alice,"ALICE@example.test"); loginEmpleado(bob,"bob@example.test");
             assertThat(get(alice,"/api/auth/me").body()).contains("EMPLEADO").doesNotContain(CLAVE,"hash_contrasena");
             assertThat(get(alice,"/api/operacion/contexto").body()).contains(a,"ACREDITAR_PAGO").doesNotContain(b);
             assertThat(get(bob,"/api/operacion/contexto").body()).contains(b).doesNotContain(a,"ACREDITAR_PAGO");
@@ -133,10 +133,17 @@ class OrganizacionIntegrationTest {
         }
         throw new AssertionError("Objeto no encontrado");
     }
-    private void login(HttpClient client,String correo,int expected) throws Exception {
+    private void loginEmpleado(HttpClient client,String correo) throws Exception {
+        login(client,correo,200);
+        assertStatus(get(client,"/api/operacion/contexto"),403);
+        assertStatus(enviar(client,"POST","/api/auth/contrasena",Map.of("contrasenaActual",CLAVE,"nuevaContrasena",CLAVE+"Nueva")),200);
+        login(client,correo,200,CLAVE+"Nueva");
+    }
+    private void login(HttpClient client,String correo,int expected) throws Exception { login(client,correo,expected,CLAVE); }
+    private void login(HttpClient client,String correo,int expected,String clave) throws Exception {
         String csrf=csrf(client);
         var req=HttpRequest.newBuilder(uri("/api/auth/login")).timeout(Duration.ofSeconds(15)).header("Content-Type","application/x-www-form-urlencoded").header("X-CSRF-TOKEN",csrf)
-                .POST(HttpRequest.BodyPublishers.ofString("username="+java.net.URLEncoder.encode(correo,java.nio.charset.StandardCharsets.UTF_8)+"&password="+java.net.URLEncoder.encode(CLAVE,java.nio.charset.StandardCharsets.UTF_8))).build();
+                .POST(HttpRequest.BodyPublishers.ofString("username="+java.net.URLEncoder.encode(correo,java.nio.charset.StandardCharsets.UTF_8)+"&password="+java.net.URLEncoder.encode(clave,java.nio.charset.StandardCharsets.UTF_8))).build();
         assertStatus(client.send(req,HttpResponse.BodyHandlers.ofString()),expected);
     }
     private URI uri(String path) { return URI.create("http://127.0.0.1:"+port+path); }

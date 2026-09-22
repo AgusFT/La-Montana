@@ -27,6 +27,9 @@ services:
       FILES_DIR: /app/archivos
       SETUP_TOKEN: ${SETUP_TOKEN:-}
       SESSION_COOKIE_SECURE: "false"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: ${SMTP_FROM:-noreply@lamontana.local}
     ports:
       - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
@@ -34,6 +37,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     restart: unless-stopped
 
   frontend:

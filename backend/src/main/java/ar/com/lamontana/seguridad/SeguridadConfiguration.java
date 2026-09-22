@@ -26,8 +26,9 @@ public class SeguridadConfiguration {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/contrasena", "/api/auth/correo/solicitar", "/api/auth/correo/confirmar").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/admin/estado").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")

@@ -11,6 +11,7 @@ export default async function OperationPage() {
   if (session.state === "anonymous") redirect("/acceso");
   if (session.state === "unavailable") return <IdentityShell title="Operación" description="Verificación de tu sesión."><p className="form-message error-message" role="alert">No pudimos verificar la sesión. <a href="/operacion">Volver a comprobar</a></p></IdentityShell>;
   if (session.state !== "authenticated") return null;
+  if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol === "CLIENTE") redirect("/cliente");
   const context = await getOperationContext();
   return <IdentityShell title={`Hola, ${session.profile.nombre}`} description="Consultá tus sucursales habilitadas y permisos. La operación de pedidos está En construcción.">
@@ -22,6 +23,6 @@ export default async function OperationPage() {
       <h2>Permisos asignados</h2>{context.permisos.length ? <ul className="permission-list">{context.permisos.map(permission => <li key={permission}>{permissionLabels[permission]}</li>)}</ul> : <p className="empty-note">Sin permisos de pagos y cobros asignados.</p>}
       <p className="empty-note">Pagos, cobros, devoluciones y pedidos: En construcción.</p>
     </>}
-    <div className="page-actions">{session.profile.rol === "ADMIN_ADMIN" && <a className="secondary-link" href="/administracion">Volver a administración</a>}<LogoutButton /></div>
+    <div className="page-actions">{session.profile.rol === "ADMIN_ADMIN" && <a className="secondary-link" href="/administracion">Volver a administración</a>}<a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a><LogoutButton /></div>
   </IdentityShell>;
 }

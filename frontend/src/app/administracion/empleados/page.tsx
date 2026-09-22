@@ -12,6 +12,7 @@ export default async function EmployeesPage() {
   if (session.state === "anonymous") redirect("/acceso");
   if (session.state === "unavailable") return <IdentityShell title="Empleados" description="Verificación de tu sesión."><p className="form-message error-message" role="alert">No pudimos verificar la sesión. <a href="/administracion/empleados">Volver a comprobar</a></p></IdentityShell>;
   if (session.state !== "authenticated") return null;
+  if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const [employees, branches] = await Promise.all([getEmployees(), getBranches()]);
   return <IdentityShell title="Empleados" description="Administrá sus datos, sucursales asignadas, permisos y estado. La operación de pagos y pedidos está En construcción.">

@@ -10,6 +10,7 @@ export default async function OperationBranchPage({ params }: { params: Promise<
   if (session.state === "anonymous") redirect("/acceso");
   if (session.state === "unavailable") return <IdentityShell title="Sucursal" description="Verificación de tu sesión."><p className="form-message error-message" role="alert">No pudimos verificar la sesión.</p><a className="secondary-link" href="/operacion">Volver a operación</a></IdentityShell>;
   if (session.state !== "authenticated") return null;
+  if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol === "CLIENTE") redirect("/cliente");
   const { codigoPublico } = await params;
   if (!uuidPattern.test(codigoPublico)) notFound();

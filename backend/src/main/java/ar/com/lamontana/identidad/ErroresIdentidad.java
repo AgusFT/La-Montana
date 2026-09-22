@@ -13,6 +13,10 @@ public class ErroresIdentidad {
     ResponseEntity<Map<String, String>> conflicto(org.springframework.dao.DataIntegrityViolationException ex) {
         return ResponseEntity.status(409).body(Map.of("mensaje", "Los datos entran en conflicto con un registro existente. Revisá el correo o el código."));
     }
+    @ExceptionHandler(CorreoService.CorreoNoDisponible.class)
+    ResponseEntity<Map<String,String>> correo(CorreoService.CorreoNoDisponible ex) {
+        return ResponseEntity.status(503).body(Map.of("mensaje", "No pudimos enviar el correo. Volvé a intentar cuando el servicio de correo esté disponible."));
+    }
     @ExceptionHandler(ResponseStatusException.class)
     ResponseEntity<Map<String, String>> estado(ResponseStatusException ex) {
         return ResponseEntity.status(ex.getStatusCode()).body(Map.of("mensaje", ex.getReason() == null ? "No se pudo completar la operación." : ex.getReason()));

@@ -4,7 +4,9 @@ const allowed: Record<string, readonly string[]> = {
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
-  "operacion/contexto": ["GET"],
+  "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
+  "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
+  "auth/recuperacion/solicitar": ["POST"], "auth/recuperacion/confirmar": ["POST"],
 };
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,7 @@ function error(status: number, mensaje: string, headers?: Headers) {
 async function proxy(request: Request, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
   const route = path.join("/");
-  const methods = path.length === 2 && Object.hasOwn(allowed, route) ? allowed[route]
+  const methods = (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"] : null;
   if (!methods) return error(404, "Ruta no disponible.");
