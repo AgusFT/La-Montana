@@ -3,7 +3,7 @@ import {getSession} from "@/lib/identity-server";
 import {roleHome} from "@/lib/roles";
 import {IdentityShell} from "./identity-shell";
 import {ClientShell} from "./client-shell";
-export async function ClientPageFrame({title,description,active,children}:{title:string;description:string;active:"home"|"quotes"|"new";children:React.ReactNode}){
+export async function ClientPageFrame({title,description,active,children}:{title:string;description:string;active:"home"|"quotes"|"new"|"orders";children:React.ReactNode}){
  const session=await getSession();
  if(session.state==="anonymous")redirect("/acceso");
  if(session.state==="unavailable")return <IdentityShell title="Mi cuenta" description="Verificación de tu sesión."><p role="alert" className="form-message error-message">No pudimos verificar la sesión. Volvé a intentar cuando el sistema esté disponible.</p><a href="/cliente">Volver a comprobar</a></IdentityShell>;

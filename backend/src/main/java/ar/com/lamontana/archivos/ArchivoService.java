@@ -156,6 +156,7 @@ public class ArchivoService {
         if(interno&&!role.equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,c.oferta().sucursal().codigoPublico());return new Contexto(c,user,role);
     }
     private Acceso gate(Cotizacion c){
+        if(c.estado().equals("CONFIRMADA"))return new Acceso(false,"Los PDF ya están vinculados al pedido confirmado. Las correcciones se gestionan desde su recorrido operativo.");
         if(!c.estado().equals("VIGENTE")||!clock.instant().isBefore(c.vence()))return new Acceso(false,"La cotización dejó de estar vigente. Solicitá una nueva oferta para continuar.");
         if(c.aceptada()==null)return new Acceso(false,"Aceptá la cotización antes de enviar los PDF.");
         var current=operativa.leer();var b=current.configuracion();

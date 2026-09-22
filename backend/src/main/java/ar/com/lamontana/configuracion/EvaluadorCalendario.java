@@ -35,7 +35,7 @@ public class EvaluadorCalendario {
         else throw error("Modalidad de entrega no admitida.");
         return new Simulacion(version,zona.getId(),recibidoEn,comienzo,fin,llegada,disponible,comienzo.isAfter(recibidoEn),List.copyOf(notas),null,null);
     }
-    static Instant limite(Instant recibidoEn,String zonaHoraria){
+    public static Instant limite(Instant recibidoEn,String zonaHoraria){
         try{var inicio=recibidoEn.atZone(ZoneId.of(zonaHoraria));if(inicio.getYear()<1||inicio.getYear()>9994)throw new DateTimeException("Fuera del rango soportado");return inicio.plusYears(5).toInstant();}
         catch(DateTimeException ex){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Ingresá una fecha válida entre los años 1 y 9994.");}
     }

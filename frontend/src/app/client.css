@@ -7,3 +7,6 @@
 .client-form .client-grid>label{margin-top:0}
 
 .private-file-item{border-top:1px solid #dbe4ef;padding:1.2rem 0}.private-file-history{list-style:none;padding:0}.private-file-history li{border:1px solid #dbe4ef;border-radius:8px;padding:1rem;margin:1rem 0}.private-file-history li>span{display:block;color:#61758d;font-size:.85rem;margin-top:.3rem}.private-preview{background:#edf3fb;border-radius:8px;padding:1rem;margin:1rem 0}.private-preview .client-actions label{display:flex;align-items:center;gap:.5rem}.private-preview input[type=number]{width:5rem;padding:.5rem;border:1px solid #c9d7e8;border-radius:6px}.private-preview-sheet{background:#dce4ee;padding:1rem;margin:1rem 0;text-align:center}.private-preview-sheet img{max-width:100%;height:auto;max-height:80vh;object-fit:contain;box-shadow:0 2px 8px #0002}.private-files h3,.private-file-history p{overflow-wrap:anywhere}
+
+.order-timeline{list-style:none;padding:0;margin:1.4rem 0}.order-timeline li{border-left:3px solid #ff7215;padding:0 0 1rem 1rem}.order-timeline span{display:block;color:#55657a;margin:.5rem 0}.order-confirmation .client-grid>div{min-width:0}.order-confirmation fieldset{min-width:0}.order-confirmation .client-warning ul{padding-left:1.2rem}
+.order-confirmation>button{margin-top:.8rem}

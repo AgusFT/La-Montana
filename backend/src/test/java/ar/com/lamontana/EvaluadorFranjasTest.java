@@ -31,6 +31,11 @@ class EvaluadorFranjasTest {
         var origen=new EntregaRepositorio.Horario(UUID.randomUUID(),zona,List.of(new EntregaConfiguracionController.Dia(7,true,"01:00","01:30")));
         var r=new EvaluadorCalendario().evaluar(1,origen,"0.75",null,EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL,Instant.parse("2026-11-01T05:00:00Z"));assertThat(r.finPreparacion()).isEqualTo(Instant.parse("2026-11-01T06:15:00Z"));
     }
+    @Test void cupoCivilOcupadoOmiteAmbasOcurrenciasDst(){
+        var vistas=new ArrayList<Instant>();var fecha=LocalDate.of(2026,11,1);
+        var result=evaluador.siguiente(Instant.parse("2026-11-01T05:00:00Z"),"America/New_York",List.of(franja(7,"01:00","01:30",1,true)),Instant.parse("2026-11-09T00:00:00Z"),v->{vistas.add(v.desde());return !v.fecha().equals(fecha);});
+        assertThat(vistas).contains(Instant.parse("2026-11-01T05:00:00Z"),Instant.parse("2026-11-01T06:00:00Z"));assertThat(result.fecha()).isEqualTo(LocalDate.of(2026,11,8));
+    }
     @Test void destinoConOtroDiaCivilYFechaSaltadaPorCambioDeZona(){
         var v=calcular("2026-09-28T12:00:00Z","Pacific/Auckland",List.of(franja(2,"09:00","10:00",1,true)));assertThat(v.fecha()).isEqualTo(LocalDate.of(2026,9,29));assertThat(v.desde()).isEqualTo(Instant.parse("2026-09-28T20:00:00Z"));
         v=calcular("2011-12-30T09:00:00Z","Pacific/Apia",List.of(franja(5,"09:00","10:00",1,true)));assertThat(v.fecha()).isEqualTo(LocalDate.of(2012,1,6));
