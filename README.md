@@ -38,7 +38,9 @@ docker compose up --detach --wait
 
 Base, originales/vistas previas, correo y firmas antivirus utilizan los volúmenes `postgres_data`, `archivos_data`, `mail_data` y `antivirus_data`. `docker compose down` los conserva; `docker compose down --volumes` elimina sus datos y no forma parte del arranque habitual. Para una copia recuperable hay que conservar la base y los archivos privados conjuntamente.
 
-En la sesión de implementación el socket de Docker no es accesible. No se afirma que este arranque esté certificado ni que haya contenedores funcionando. No se alteraron permisos, grupos o servicios del equipo para sortear ese bloqueo.
+El acceso a Docker se verificó el 23/09/2026 después de agregar `agus` al grupo `docker` con autorización del usuario. Docker Engine 29.8.1 y Docker Compose 5.5.1 responden correctamente. Las sesiones que todavía conservan los grupos anteriores pueden ejecutar los comandos con `sg docker -c '…'`; desde este directorio, el arranque se puede invocar con `sg docker -c './infra/iniciar-local.sh'`. Cerrar la sesión de Linux y volver a entrar permite reconocer el grupo directamente.
+
+El acceso al servicio está resuelto; la construcción de imágenes, el arranque conjunto y la persistencia de los volúmenes de la demo con Compose siguen pendientes de certificación. La comprobación de acceso no inició contenedores ni sustituye esas pruebas.
 
 ## Primera instalación y acceso
 
