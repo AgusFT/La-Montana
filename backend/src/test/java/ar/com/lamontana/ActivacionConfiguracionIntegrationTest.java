@@ -14,6 +14,7 @@
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
+ * - void activarSinSenaMantieneRevisionHumanaSobreUmbralEnCotizacion() throws Exception
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
  * - [paquete] void iniciar() throws Exception
@@ -1121,6 +1122,16 @@ class ActivacionConfiguracionIntegrationTest {
         input=ofertaCliente();input.put("sucursal",b);status(post(c,"/api/cliente/cotizaciones",input),409);
         input=ofertaCliente();var invalidItems=JSON.readTree(JSON.writeValueAsString(input));((tools.jackson.databind.node.ObjectNode)invalidItems.get("items").get(0).get("documento")).put("nombre","a\nb\n.pdf");status(post(c,"/api/cliente/cotizaciones",invalidItems),400);
         input=ofertaCliente();var item=((List<?>)input.get("items")).get(0);input.put("items",List.of(item,item));status(post(c,"/api/cliente/cotizaciones",input),400);assertThat(contar("cotizacion")).isZero();assertThat(contar("cotizacion_item")).isZero();
+    }
+    @Test void activarSinSenaMantieneRevisionHumanaSobreUmbralEnCotizacion()throws Exception{
+        preparar();var p=comando();p.put("pagos",Map.of("medios",List.of("EFECTIVO"),"vigenciaCotizacionMinutos",90,"exigirSena",false,"umbralAprobacion","30"));aceptar(put(admin,base()+"/pagos",p));
+        activar();var cliente=particularCotizacion("sin-sena");var q=cotizar(cliente,ofertaCliente());var condiciones=q.get("oferta").get("condiciones");
+        assertThat(q.get("oferta").get("total").asString()).isEqualTo("32.00");
+        assertThat(condiciones.get("revisionHumana").asBoolean()).isTrue();
+        assertThat(condiciones.get("cargaRequiereAcreditacion").asBoolean()).isFalse();
+        assertThat(condiciones.get("senaRequerida").asString()).isEqualTo("0.00");
+        assertThat(condiciones.get("saldo").asString()).isEqualTo("32.00");
+        status(post(cliente,"/api/cliente/cotizaciones/"+q.get("codigoPublico").asString()+"/aceptar",decisionCotizacion(q)),200);
     }
     @Test void cotizacionesPorHojaGuardanUnServicioYCongelanElDesglose()throws Exception{
         preparar();activar();var cliente=particularCotizacion("hojas");var anterior=cotizar(cliente,ofertaCliente());

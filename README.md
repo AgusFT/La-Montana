@@ -93,7 +93,7 @@ El configurador presenta ocho fases: configuración actual, modelo, pagos, recur
 | Manual | Revisión humana; elegir sin seña o seña fija/porcentual, siempre o desde carillas/importe. La seña aplicable se exige antes de producir. |
 | Pago previo total | Total acreditado y aplicado por transferencia antes de cargar el PDF. |
 | Seña previa | Seña fija/porcentual acreditada y aplicada por transferencia antes de cargar; efectivo puede habilitarse para el saldo. |
-| Condicional por monto, D1 | Hasta el umbral inclusive no se exige seña por esa regla. Por encima se revisa/corrige el PDF y se aprueba; después se exige la seña configurada para producir. |
+| Condicional por monto, D1 | Hasta el umbral inclusive no se exige seña por esa regla. Por encima se revisa/corrige el PDF y se aprueba; después se exige seña para producir sólo si fue habilitada. Sin seña conserva revisión humana y cobra el saldo antes de entregar. |
 
 Medios generales, instrucciones de transferencia, vigencia de cotización, umbrales, porcentajes y montos se ingresan expresamente. No existe la antigua regla fija de 200 carillas/30%. La seña fija se limita al total; porcentajes se redondean a centavos con HALF_UP, sin inventar un cargo mínimo si el resultado es cero.
 
@@ -295,3 +295,14 @@ La interfaz llama **configuración comercial** al conjunto guardado de tarifas y
 Plan revisión 11. Selección por color y tarjetas de hojas/variantes, selección total, nombres editables con lápiz y tres formas de definir doble faz: precio final, adicional fijo o porcentaje sobre simple faz. Cotizaciones por pares de páginas, con la última hoja impar a simple faz en cada copia. El desglose explica las hojas y conserva un único servicio de impresión por ítem. V38 conserva los datos anteriores y su cálculo por carilla hasta conversión explícita.
 
 Verificación: 16 pruebas backend pertinentes de catálogo, programación, migración, precios y cotizaciones reales; once casos monetarios frontend y controles de agrupación/duplicados. Build y tipos correctos. Diez casos funcionales de navegador y doce comprobaciones de presentación a 320/390/768/1440 px, teclado y toque emulados, sin errores JavaScript ni desbordamientos del formulario. Demo local migrada a V38, cinco servicios saludables y huellas conservadas en doce tablas de negocio.
+
+
+### Ajustes de configuración · revisión 12
+
+- En pagos se elige explícitamente usar o no seña. El modelo por monto mantiene su umbral de revisión humana aunque no haya anticipo y permite efectivo sin transferencia en ese caso. Si se desactiva «Seña previa», se avisa y al guardar cambia atómicamente a control manual; pago total previo mantiene su requisito.
+- Los importes financieros muestran $ / ARS y usan formato argentino: `1.500,50` o `1500,50`, con punto para miles y coma para centavos. Se transforman a decimales exactos para el backend. Los porcentajes indican `%` y las cantidades de carillas conservan su unidad.
+- El alta/edición de impresoras permite seleccionar todos los formatos o quitar la selección, además de marcar cada uno. La asignación automática sigue deshabilitada con un distintivo amarillo «En construcción».
+- En fase 5, el selector muestra tanto sucursales pendientes como calendarios agregados. Cambiar de sucursal conserva los datos que se están editando. Los botones de puntos y zonas guardan primero los cambios pendientes y navegan sólo después de confirmar el guardado; los reintentos conservan operación y destino sin duplicar cambios. Los errores mantienen el formulario.
+- El calendario se adapta al ancho disponible con fichas por día cuando no cabe la tabla. Guardar permite continuar el borrador: la activación sigue siendo explícita. No se modifica ninguna configuración existente al actualizar la aplicación ni se agregan migraciones.
+
+Verificación de revisión 12: nueve pruebas backend de pagos, entrega y activación/cotización; 18 casos de formato monetario; diez escenarios de navegador y trece comprobaciones de presentación a 320/390/768/1440 px. Flujo por toque móvil, dos sucursales, puntos, zonas, retiro, guardado fallido y reintento idempotente comprobados. Sin errores JavaScript; build y tipos correctos. Instalación normal con cinco servicios saludables y huellas conservadas en dieciséis tablas; sin migraciones nuevas.

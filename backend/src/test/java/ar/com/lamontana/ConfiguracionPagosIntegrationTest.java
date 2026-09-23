@@ -9,6 +9,7 @@
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
+ * - void senaOpcionalConservaUmbralYDesactivarSenaPreviaPasaAManualAtomicamente() throws Exception
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
  * - [paquete] void iniciar() throws Exception
@@ -164,7 +165,6 @@ class ConfiguracionPagosIntegrationTest {
         status(post(admin,ruta()+"/simular",Map.of("version",version(),"total","10.00","carillas",1.5)),400);
         status(post(admin,ruta()+"/simular",Map.of("version",version()-1,"total","10.00","carillas",1)),409);
         modelo("CONDICIONAL","SENA");
-        status(put(admin,ruta(),comando(pagos(false,null,null,null,null,null,true))),400);
         status(put(admin,ruta(),comando(pagos(true,"DESDE_CARILLAS","200","FIJA","10",null,true))),400);
         status(put(admin,ruta(),comando(pagos(true,"SIEMPRE",null,"FIJA","10",null,false))),400);
         modelo("CONDICIONAL","MONTO_TOTAL");
@@ -209,6 +209,32 @@ class ConfiguracionPagosIntegrationTest {
         String antes=estado().toString();app.close();arrancar();assertThat(estado().toString()).isEqualTo(antes);
         modelo("CONDICIONAL","SENA");assertThat(borrador.get("pagos").isNull()).isTrue();assertThat(contar("configuracion_financiera")).isZero();assertThat(contar("configuracion_medio_pago")).isZero();
         assertThat(JSON.readTree(put(admin,ruta(),primero).body())).isEqualTo(borrador);assertThat(contar("configuracion_financiera")).isZero();
+    }
+
+    @Test void senaOpcionalConservaUmbralYDesactivarSenaPreviaPasaAManualAtomicamente() throws Exception {
+        modelo("CONDICIONAL","MONTO_TOTAL");
+        guardar(pagos(false,null,null,null,null,"1500.50",false));
+        assertSim(simular("1500.50",2),false,false,"0.00","0.00","1500.50","ANTES_ENTREGA");
+        var superior=simular("1500.51",2);
+        assertSim(superior,true,false,"0.00","0.00","1500.51","ANTES_ENTREGA");
+        assertThat(superior.get("instrucciones").toString()).contains("revisión humana","sin anticipo");
+        assertThat(superior.get("mediosGenerales").get(0).asString()).isEqualTo("EFECTIVO");
+        assertThat(superior.get("mediosAcreditacion").size()).isZero();
+        guardar(pagos(true,"SUPERAR_UMBRAL_APROBACION",null,"PORCENTAJE","25","1500.50",true));
+        assertSim(simular("1500.51",2),true,false,"0.00","375.13","1125.38","DESPUES_APROBACION_ANTES_PRODUCCION");
+        guardar(pagos(false,null,null,null,null,"1500.50",false));
+        assertThat(borrador.get("pagos").get("valorSena").isNull()).isTrue();
+        modelo("CONDICIONAL","SENA");guardar(pagos(true,"SIEMPRE",null,"FIJA","100",null,true));
+        var invalido=pagos(false,null,null,null,null,null,false);invalido.put("valorSena","100");
+        String antes=estado().toString();status(put(admin,ruta(),comando(invalido)),400);
+        assertThat(estado().toString()).isEqualTo(antes);
+        var sinSena=comando(pagos(false,null,null,null,null,null,false));long versionAntes=version();
+        var guardado=put(admin,ruta(),sinSena);status(guardado,200);borrador=JSON.readTree(guardado.body());
+        assertThat(borrador.get("modelo").asString()).isEqualTo("MANUAL");assertThat(borrador.get("criterio").isNull()).isTrue();
+        assertThat(version()).isEqualTo(versionAntes+1);
+        assertSim(simular("1500.51",2),true,false,"0.00","0.00","1500.51","ANTES_ENTREGA");
+        var repetido=put(admin,ruta(),sinSena);status(repetido,200);assertThat(repetido.body()).isEqualTo(guardado.body());
+        String persistido=estado().toString();app.close();arrancar();assertThat(estado().toString()).isEqualTo(persistido);
     }
 
     private Map<String,Object> pagos(boolean sena,String condicion,String umbral,String tipo,String valor,String aprobacion,boolean transferencia){

@@ -42,7 +42,8 @@ public class EvaluadorFinanciero {
                              List<MedioPago> mediosGenerales,List<MedioPago> mediosAcreditacion,List<String> instrucciones) {}
     public Simulacion evaluar(Modelo modelo,Criterio criterio,Pagos pagos,long version,BigDecimal total,int carillas) {
         BigDecimal previo=BigDecimal.ZERO,sena=BigDecimal.ZERO;
-        boolean revision=modelo==Modelo.MANUAL,carga=false;
+        boolean superaUmbral=modelo==Modelo.CONDICIONAL&&criterio==Criterio.MONTO_TOTAL&&total.compareTo(new BigDecimal(pagos.umbralAprobacion()))>0;
+        boolean revision=modelo==Modelo.MANUAL||superaUmbral,carga=false;
         Momento momento=Momento.ANTES_ENTREGA;
         var instrucciones=new ArrayList<String>();
         if(modelo==Modelo.CONDICIONAL&&criterio==Criterio.PAGO_PREVIO) {
@@ -69,7 +70,7 @@ public class EvaluadorFinanciero {
                     instrucciones.add(sena.signum()>0?"La seña configurada debe acreditarse antes de producir; se conserva la decisión humana del modelo manual.":"Se conserva la revisión humana; la seña calculada redondea a 0.00 y no agrega una acreditación pendiente para producir.");
                 }
                 if(pagos.tipoSena()==TipoSena.FIJA&&valor.compareTo(total)>0)instrucciones.add("La seña fija se limita al total: no se cobra un excedente.");
-            } else instrucciones.add(modelo==Modelo.MANUAL?"El pedido requiere revisión humana. Este ejemplo no exige seña.":"El total no supera el umbral: este ejemplo no exige seña ni revisión humana por monto.");
+            } else instrucciones.add(revision?"El pedido requiere revisión humana. Este ejemplo no exige seña; después de aprobar se puede producir sin anticipo.":"El total no supera el umbral: este ejemplo no exige seña ni revisión humana por monto.");
         }
         BigDecimal anticipo=previo.add(sena);
         var mediosAcreditacion=anticipo.signum()==0?List.<MedioPago>of():modelo==Modelo.MANUAL?pagos.medios():List.of(MedioPago.TRANSFERENCIA);

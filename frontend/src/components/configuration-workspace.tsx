@@ -17,7 +17,7 @@
  *   Componente de interfaz.
  * - ConfigurationWorkspace :: paymentsSaved(data: ConfigurationDraft)
  * - ConfigurationWorkspace :: resourcesSaved(data: ConfigurationDraft)
- * - ConfigurationWorkspace :: deliverySaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: deliverySaved(data: ConfigurationDraft, destination?: "POINTS" | "ZONES")
  * - ConfigurationWorkspace :: pointsSaved(data: ConfigurationDraft)
  * - ConfigurationWorkspace :: zonesSaved(data: ConfigurationDraft)
  * - ConfigurationWorkspace :: loadDraft(data: ConfigurationDraft)
@@ -85,7 +85,7 @@ export function ConfigurationWorkspace({initial,initialPhase=1}:{initial:Configu
   const confirmNavigation=useConfirmNavigation();
   function paymentsSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(data.modelo?3:2);setMessage("");setSuccess("Pagos y reglas guardados en el borrador. Todavía no están activos.");}
   function resourcesSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(4);setMessage("");setSuccess("Recursos guardados en el borrador. Todavía no están activos.");}
-  function deliverySaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setMessage("");setSuccess("Horarios y modalidades guardados en el borrador. Todavía no están activos.");}
+  function deliverySaved(data:ConfigurationDraft,destination?:"POINTS"|"ZONES"){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setPointsView(destination==="POINTS");setZonesView(destination==="ZONES");setMessage("");setSuccess("Horarios y modalidades guardados en el borrador. Todavía no están activos.");}
   function pointsSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setPointsView(true);setMessage("");setSuccess("Punto guardado en el borrador. La disponibilidad temporal se gestiona por separado.");}
   function zonesSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setZonesView(true);setPointsView(false);setMessage("");setSuccess("Zona guardada en el borrador. Sus condiciones todavía no están activas.");}
   function loadDraft(data:ConfigurationDraft){setDraft(data);setBaseVersion(data.version);setModel(data.modelo??"");setCriterion(data.criterio??"");}
@@ -138,7 +138,7 @@ export function ConfigurationWorkspace({initial,initialPhase=1}:{initial:Configu
             <div className="configuration-option is-future"><strong>Automatización certificada</strong><span className="configuration-badge">En construcción</span><p>Evolución futura. No se puede seleccionar en esta versión.</p></div>
           </div>
           {model==="CONDICIONAL"&&<section className="admin-card configuration-conditions"><h3>Condición de aprobación</h3><p>Elegí una condición. Los importes, porcentajes y medios se configurarán en la fase 3.</p>{Object.entries(criterionLabels).map(([value,label])=><label key={value} className="admin-check"><input type="radio" name="criterio" required value={value} checked={criterion===value} onChange={()=>{setCriterion(value as ApprovalCriterion);setSuccess("");}}/>{label}</label>)}
-            {criterion&&<p className="admin-info">{criterion==="PAGO_PREVIO"?"El total se acredita antes de habilitar la carga del PDF. Las validaciones técnicas siguen siendo obligatorias.":criterion==="SENA"?"La seña configurada se acredita antes de habilitar la carga del PDF. No se asigna un importe ni porcentaje predeterminado.":"El umbral será configurable. La variante con revisión humana permite revisar y corregir el PDF; después de aprobar, exige la seña configurada antes de habilitar producción."}</p>}
+            {criterion&&<p className="admin-info">{criterion==="PAGO_PREVIO"?"El total se acredita antes de habilitar la carga del PDF. Las validaciones técnicas siguen siendo obligatorias.":criterion==="SENA"?"La seña configurada se acredita antes de habilitar la carga del PDF. No se asigna un importe ni porcentaje predeterminado.":"El umbral será configurable. La variante con revisión humana permite revisar y corregir el PDF; después de aprobar, sólo exige seña antes de producir si la habilitaste en la fase 3."}</p>}
           </section>}
           </fieldset>
           <div className="configuration-actions"><button type="button" className="admin-button secondary" disabled={locked} onClick={()=>navigate(1)}>Volver al estado actual</button><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":"Guardar selección"}</button><button type="button" className="admin-button secondary" disabled={locked||!draft.modelo||modelDirty||conflict} onClick={()=>navigate(3)}>Continuar a pagos y reglas</button></div>
