@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "La Montaña · Identidad inicial",
-  description: "Instalación, registro de clientes y acceso a La Montaña 0.1.",
+  title: "La Montaña · Impresiones",
+  description: "Cotización, producción y entrega de pedidos de impresión.",
   robots: { index: false, follow: false },
 };
 

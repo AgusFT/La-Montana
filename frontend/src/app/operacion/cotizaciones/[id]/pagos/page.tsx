@@ -12,6 +12,5 @@ export default async function QuotePaymentsPage({params}:{params:Promise<{id:str
  if(session.profile.debeCambiarContrasena)redirect("/cuenta/seguridad");if(session.profile.rol==="CLIENTE")redirect("/cliente");
  const{id}=await params;if(!uuidPattern.test(id))notFound();
  const content=<><PaymentPanel quote={id} internal/><a href="/operacion">Volver a mis sucursales</a></>;
- if(session.profile.rol==="ADMIN_ADMIN")return <AdminShell title="Pagos de la cotización" description="Recepción, aplicación y devolución de dinero por personal autorizado." name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion">{content}</AdminShell>;
- return <IdentityShell title="Pagos de la cotización" description="Recepción, aplicación y devolución de dinero por personal autorizado.">{content}</IdentityShell>;
+ return <AdminShell title="Pagos de la cotización" description="Recepción, aplicación y devolución de dinero por personal autorizado." name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={session.profile.rol === "ADMIN_ADMIN"} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"}>{content}</AdminShell>;
 }

@@ -22,7 +22,7 @@ export default async function HomePage() {
       </header>
 
       <section className="intro" aria-labelledby="page-title">
-        <span className="eyebrow">IDENTIDAD INICIAL</span>
+        <span className="eyebrow">PILOTO LOCAL · v0.1</span>
         <h1 id="page-title">La Montaña.<br />Impresiones a tu medida.</h1>
         <p>Configurá tu imprenta o ingresá como cliente para cotizar PDF y seguir tus pedidos. Este piloto funciona con pagos registrados manualmente.</p>
       </section>
