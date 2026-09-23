@@ -30,6 +30,19 @@ public class CatalogoController {
         return catalogo.cancelar(codigo, data, actor.getName());
     }
 
+    @PostMapping("/papeles-predefinidos")
+    public Map<String,String> predefinido(@Valid @RequestBody HabilitarPredefinido data,Principal actor) { catalogo.predefinido(data.codigo(),actor.getName());return Map.of("mensaje","Papel habilitado en el catálogo base."); }
+    @PostMapping("/papeles-personalizados")
+    public Map<String,String> personalizado(@Valid @RequestBody PapelPersonalizado data,Principal actor) { catalogo.personalizado(data,actor.getName());return Map.of("mensaje","Papel personalizado guardado."); }
+    @PutMapping("/papeles-habilitados")
+    public Map<String,String> seleccion(@Valid @RequestBody SeleccionPapel data,Principal actor) { catalogo.seleccion(data,actor.getName());return Map.of("mensaje","Selección de papel guardada."); }
+    public record HabilitarPredefinido(@NotBlank @Size(max=40) String codigo) {}
+    public record SeleccionPapel(@NotNull UUID formato,@NotNull UUID papel,@NotNull Boolean habilitado) {}
+    public record PapelPersonalizado(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,40}") String codigo,
+        @NotBlank @Size(max=120) String nombre,@NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal anchoMm,
+        @NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal altoMm,@NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal gramaje,
+        @NotBlank @Size(max=100) String terminacion) {}
+
     public record AltaFormato(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,40}") String codigo, @NotBlank @Size(max=100) String nombre,
                               @NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal anchoMm, @NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal altoMm) {}
     public record AltaPapel(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,40}") String codigo, @NotBlank @Size(max=120) String nombre,

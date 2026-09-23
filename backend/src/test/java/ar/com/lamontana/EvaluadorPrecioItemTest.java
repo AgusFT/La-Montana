@@ -17,7 +17,7 @@ class EvaluadorPrecioItemTest {
   var ofertas=new ArrayList<OfertaServicio>();ofertas.add(new OfertaServicio(imp,"Impresión",BasePrecio.POR_CARILLA,BigDecimal.ZERO,15,true,List.of()));
   for(var e:extras){tipos.add(new CatalogoService.Servicio(e.servicio(),e.nombreVisible(),e.nombreVisible(),TipoServicio.TERMINACION,null));ofertas.add(e);}
   var r=new CatalogoService.Revision(UUID.randomUUID(),1,"Prueba",Instant.EPOCH,"Prueba",List.of(new Tarifa(f,p,ModoColor.BLANCO_NEGRO,new BigDecimal(precio),new BigDecimal(recargo),true)),ofertas,CatalogoService.EstadoRevision.VIGENTE,null,Instant.EPOCH);
-  return new CatalogoService.Estado(List.of(),List.of(),tipos,r,List.of(),null);
+  return new CatalogoService.Estado(List.of(),List.of(),tipos,r,List.of(),null,List.of(),List.of());
  }
  private EvaluadorPrecioItem.Item item(int paginas,int copias,boolean doble,List<UUID> extras){return new EvaluadorPrecioItem.Item(imp,f,p,ModoColor.BLANCO_NEGRO,paginas,copias,doble,extras);}
  @Test void basesExactasHojasSeparadasPorCopiaYMinimoMayor(){

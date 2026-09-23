@@ -30,7 +30,7 @@ public class CatalogoService {
                           EstadoRevision estado,Instant programadaPara,Instant activadaEn) {}
     public record Revision(UUID codigoPublico,long numero,String motivo,Instant creadaEn,String actor,List<Tarifa> tarifas,List<OfertaServicio> servicios,
                            EstadoRevision estado,Instant programadaPara,Instant activadaEn) {}
-    public record Estado(List<Formato> formatos,List<Papel> papeles,List<Servicio> servicios,Revision actual,List<Resumen> historial,Revision programada) {}
+    public record Estado(List<Formato> formatos,List<Papel> papeles,List<Servicio> servicios,Revision actual,List<Resumen> historial,Revision programada,List<PapelesCatalogo.Seleccion> papelesHabilitados,List<PapelesCatalogo.Predefinido> papelesPredefinidos) {}
     private static final String RESUMEN_SQL="SELECT r.codigo_publico,r.id_catalogo_revision,r.motivo,r.creada_en,u.nombre||' '||u.apellido AS actor,r.estado,r.programada_para,r.activada_en FROM lamontana.catalogo_revision r JOIN lamontana.usuario u ON u.id_usuario=r.id_actor";
 
     @Transactional
@@ -43,21 +43,29 @@ public class CatalogoService {
         var programadas=jdbc.query("SELECT codigo_publico FROM lamontana.catalogo_revision WHERE estado='PROGRAMADA'",(rs,row)->rs.getObject(1,UUID.class));
         return new Estado(formatos(),papeles(),servicios(),actuales.isEmpty()?null:cargarRevision(actuales.get(0)),
                 jdbc.query(RESUMEN_SQL+" ORDER BY r.id_catalogo_revision DESC LIMIT 50",this::resumen),
-                programadas.isEmpty()?null:cargarRevision(programadas.get(0)));
+                programadas.isEmpty()?null:cargarRevision(programadas.get(0)),new PapelesCatalogo(jdbc).seleccion(),PapelesCatalogo.PREDEFINIDOS);
     }
     private List<Formato> formatos() { return jdbc.query("SELECT codigo_publico,codigo,nombre,ancho_mm,alto_mm FROM lamontana.formato ORDER BY codigo",(r,n)->new Formato(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getBigDecimal(5))); }
     private List<Papel> papeles() { return jdbc.query("SELECT codigo_publico,codigo,nombre,gramaje_g_m2,terminacion_tipo FROM lamontana.papel ORDER BY codigo",(r,n)->new Papel(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getString(5))); }
     private List<Servicio> servicios() { return jdbc.query("SELECT codigo_publico,codigo,nombre,tipo,descripcion FROM lamontana.servicio ORDER BY codigo",(r,n)->new Servicio(r.getObject(1,UUID.class),r.getString(2),r.getString(3),TipoServicio.valueOf(r.getString(4)),r.getString(5))); }
 
+    @Transactional public void predefinido(String codigo,String actor) { bloquear();new PapelesCatalogo(jdbc).predefinido(codigo,actor); }
+    @Transactional public void personalizado(PapelPersonalizado in,String actor) { bloquear();new PapelesCatalogo(jdbc).personalizado(in,actor); }
+    @Transactional public void seleccion(SeleccionPapel in,String actor) { bloquear();new PapelesCatalogo(jdbc).cambiar(in,actor); }
+
     @Transactional public void formato(AltaFormato in,String actor) {
-        UUID id=UUID.randomUUID();
+        bloquear();UUID id=UUID.randomUUID();
         int n=jdbc.update("INSERT INTO lamontana.formato(codigo_publico,codigo,nombre,ancho_mm,alto_mm) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING",id,codigo(in.codigo()),in.nombre().strip(),in.anchoMm(),in.altoMm());
-        creado(n,"formato");evento(actor,"ALTA_FORMATO",id);
+        creado(n,"formato");
+        jdbc.update("INSERT INTO lamontana.catalogo_papel(id_formato,id_papel) SELECT id_formato,id_papel FROM lamontana.formato CROSS JOIN lamontana.papel WHERE formato.codigo_publico=?",id);
+        evento(actor,"ALTA_FORMATO",id);
     }
     @Transactional public void papel(AltaPapel in,String actor) {
-        UUID id=UUID.randomUUID();
+        bloquear();UUID id=UUID.randomUUID();
         int n=jdbc.update("INSERT INTO lamontana.papel(codigo_publico,codigo,nombre,gramaje_g_m2,terminacion_tipo) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING",id,codigo(in.codigo()),in.nombre().strip(),in.gramaje(),in.terminacion().strip());
-        creado(n,"papel");evento(actor,"ALTA_PAPEL",id);
+        creado(n,"papel");
+        jdbc.update("INSERT INTO lamontana.catalogo_papel(id_formato,id_papel) SELECT id_formato,id_papel FROM lamontana.formato CROSS JOIN lamontana.papel WHERE papel.codigo_publico=?",id);
+        evento(actor,"ALTA_PAPEL",id);
     }
     @Transactional public void servicio(AltaServicio in,String actor) {
         UUID id=UUID.randomUUID();
@@ -174,11 +182,16 @@ public class CatalogoService {
     private void validar(NuevaRevision in) {
         Set<UUID> formatos=new HashSet<>(),papeles=new HashSet<>();Map<UUID,TipoServicio> servicios=new HashMap<>();
         formatos().forEach(f->formatos.add(f.codigoPublico()));papeles().forEach(p->papeles.add(p.codigoPublico()));servicios().forEach(s->servicios.put(s.codigoPublico(),s.tipo()));
+        var seleccionados=new HashSet<Compatibilidad>();
+        new PapelesCatalogo(jdbc).seleccion().stream().filter(PapelesCatalogo.Seleccion::habilitado).forEach(p->seleccionados.add(new Compatibilidad(p.formato(),p.papel())));
         var combinaciones=new HashSet<String>();var disponibles=new HashSet<Compatibilidad>();
         for(Tarifa t:in.tarifas()) {
             existe(combinacionExiste(formatos,papeles,t.formato(),t.papel()),"La tarifa debe referir a un formato y papel existentes.");
             existe(combinaciones.add(t.formato()+"/"+t.papel()+"/"+t.color()),"Hay tarifas duplicadas para la misma combinación.");
-            if(t.habilitada()) disponibles.add(new Compatibilidad(t.formato(),t.papel()));
+            if(t.habilitada()) {
+                existe(seleccionados.contains(new Compatibilidad(t.formato(),t.papel())),"Una tarifa habilitada usa un papel retirado del catálogo base. Volvé a habilitarlo o desmarcá esa tarifa antes de guardar.");
+                disponibles.add(new Compatibilidad(t.formato(),t.papel()));
+            }
         }
         existe(!disponibles.isEmpty(),"Configurá al menos una tarifa de impresión habilitada.");
         var usados=new HashSet<UUID>();int impresiones=0;

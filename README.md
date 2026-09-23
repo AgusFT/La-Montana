@@ -58,7 +58,13 @@ El registro público `/registro` crea únicamente particulares. No inicia sesió
 
 ## Configuración, catálogo y sucursales
 
-**Servicios y precios** mantiene formatos, papeles, servicios de impresión y terminaciones, tarifas por formato/papel/color, compatibilidades y bases de cobro. El recargo doble faz es por carilla impresa; impresión toma la tarifa sin sumar un precio base duplicado. Las terminaciones pueden cobrarse por copia, hoja, carilla o importe fijo por ítem. Los importes ARS se calculan con decimales exactos y hasta dos decimales; no se admiten precios negativos ni duplicados.
+**Servicios y precios** abre primero **Catálogo base**. Habilitá papeles habituales con tamaño incluido: A4, A3, A5, A6, Carta, Oficio/Folio (8½ × 13) y Legal (8½ × 14), en papel común blanco sin estucar de 75, 80 o 90 g/m². Las opciones están precargadas localmente, pero ninguna se habilita sola en una instalación nueva. Seleccioná el gramaje que figura en la resma y comprobá que tu equipo admita ese papel. Para otros materiales o medidas, usá **Agregar papel personalizado** e ingresá código, nombre, ancho, alto, gramaje y terminación; el sistema guarda juntos el papel y su tamaño. Los íconos dentro de Código explican su uso y formato por mouse, teclado y toque, tanto en papel personalizado como en servicio.
+
+Después agregá servicios y continuá a **Tarifas y servicios**. Las tarifas y compatibilidades eligen el papel con su tamaño en un único selector. Cambiar entre pestañas conserva los formularios abiertos. Habilitar/deshabilitar en el catálogo base controla qué papeles se pueden usar en nuevas revisiones; no cambia por sí solo los precios vigentes, las revisiones programadas ni los pedidos. Para retirar un papel ofrecido, deshabilitá sus tarifas y guardá una nueva revisión comercial. La migración V37 conserva las combinaciones anteriores y sus identificadores.
+
+Dimensiones de referencia: [documentación oficial Brother](https://support.brother.com/g/s/id/htmldoc/mfc/cv_mfc3940dw/chne/html/GUID-746E196D-FA75-481C-9A1D-3C471CD90A96_1.html). Las opciones de gramaje son elecciones iniciales de la demo; no certifican compatibilidad universal de impresoras.
+
+El catálogo mantiene servicios de impresión y terminaciones, tarifas por papel/color, compatibilidades y bases de cobro. El recargo doble faz es por carilla impresa; impresión toma la tarifa sin sumar un precio base duplicado. Las terminaciones pueden cobrarse por copia, hoja, carilla o importe fijo por ítem. Los importes ARS se calculan con decimales exactos y hasta dos decimales; no se admiten precios negativos ni duplicados.
 
 Los precios son globales y sus revisiones comerciales son independientes de las versiones operativas. Se puede publicar de inmediato o programar una fecha UTC, consultar el historial y cancelar una programación con motivo. Hay como máximo una programación comercial pendiente; el servidor reconcilia las fechas al consultar y periódicamente, también después de reiniciar. No se reescribe una revisión anterior.
 
@@ -178,7 +184,7 @@ El PDF usa un visor privado compartido; las etapas del pedido se navegan por sec
 
 ## Desarrollo, datos y pruebas
 
-- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. El esquema se modifica mediante migraciones V1–V36; Hibernate sólo valida.
+- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. El esquema se modifica mediante migraciones V1–V37; Hibernate sólo valida.
 - `frontend/`: Next.js 16.3.5, React 19.3.0, TypeScript, pnpm 11.19.0 y Node 22/24. App Router, proxy de rutas permitidas y salida standalone.
 - `infra/`, Dockerfiles y `compose.yaml`: servicios, puertos de loopback, salud y volúmenes. Backend/frontend ejecutan como usuarios sin privilegios.
 
@@ -226,3 +232,10 @@ Revisión responsive final: 53 vistas/estados generales más los seis pasos del 
 La demo contempla Argentina: 23 provincias y CABA, con catálogo local basado en [IANA tzdb](https://data.iana.org/time-zones/tzdb/zone1970.tab), sin geocodificación ni conexión externa. El servidor resuelve la zona a partir de la provincia, suficiente para las localidades argentinas cubiertas; no toma como autoridad una zona horaria enviada desde el formulario. Los alias CABA, Capital Federal y nombres sin acentos se reconocen. Para compatibilidad con integraciones v6, la API anterior sin horario de alta puede conservar su zona IANA explícita; el formulario nuevo exige provincia reconocida y horario completo.
 
 V36 agrega `sucursal_horario_atencion` y sólo copia los calendarios activos completos existentes, sin modificar sucursales, borradores ni versiones publicadas. Pruebas de esta revisión: 9 pruebas backend de organización, calendarios, detección y migración V35→V36; compilación/tipado de frontend; alta/edición por navegador, validaciones, recarga y copia explícita al borrador; 14 comprobaciones responsive entre 320 y 1440 px. Las cifras de certificación v6 anteriores corresponden a esa entrega, no a una repetición íntegra en esta revisión.
+
+
+### Revisión posterior: catálogo base guiado (23/09/2026)
+
+Plan revisión 9. Pestañas reales en orden Catálogo base, Tarifas y servicios, Historial; formularios conservados al cambiar de pestaña. Selección local de 21 opciones de papel común con tamaño y gramaje incluidos; alta personalizada atómica y selección del papel completo en tarifas y compatibilidades. Los códigos tienen ayuda accesible. V37 conserva los pares existentes sin alterar revisiones publicadas ni pedidos; deshabilitar una selección afecta a las próximas revisiones.
+
+Verificación: 12 pruebas backend en cinco clases (catálogo, programación, migraciones y cálculo); build de producción y tipado frontend; 11 casos funcionales y 16 comprobaciones responsive del catálogo entre 320 y 1440 px, sin errores JavaScript. Regresión adicional de la ayuda de sucursales: 11 interacciones y cuatro anchos. Chromium con emulación de tamaño/toque. Instalación normal migrada a V37, cinco servicios saludables y huellas de nueve tablas anteriores conservadas; sin datos de prueba incorporados.
