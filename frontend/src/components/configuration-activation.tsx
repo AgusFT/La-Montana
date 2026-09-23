@@ -1,4 +1,5 @@
 "use client";
+import {useNavigationGuard} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";
 import {catalogDate} from "@/lib/catalog-types";
@@ -12,6 +13,7 @@ export function ConfigurationActivation({review,active,onApplied,onFailed,onBack
  const[ack,setAck]=useState(!programmed),[failure,setFailure]=useState<ActivationOutcome|null>(null);
  const[step,setStep]=useState<"decision"|"security">("decision"),[mode,setMode]=useState(""),[date,setDate]=useState(""),[zone,setZone]=useState(""),[reason,setReason]=useState(""),[password,setPassword]=useState(""),[code,setCode]=useState(""),[receipt,setReceipt]=useState<Receipt|null>(null),[result,setResult]=useState<Applied|null>(null),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(""),[conflict,setConflict]=useState(false);
  const operation=useRef<string|null>(null),pending=useRef<Command|null>(null),afterRevoke=useRef<"review"|"decision"|"security">("review"),draft=review.borrador,path=`/api/admin/configuracion/borradores/${draft.codigoPublico}/${mode==="PROGRAMAR"?"programacion":programmed?"programacion/activacion":"activacion"}`,locked=busy||uncertain;
+ useNavigationGuard({dirty:!result&&!failure&&!!(mode||date||zone||reason),blocked:locked||(!result&&!failure&&step==="security")});
  useEffect(()=>{onLockChange(locked||(!result&&!failure&&step==="security"));return()=>onLockChange(false);},[locked,step,result,failure,onLockChange]);
  async function send(kind?:Command["kind"],event?:FormEvent){event?.preventDefault();if(busy)return;setBusy(true);setError("");try{
   if(kind){if(!operation.current)operation.current=crypto.randomUUID();const revision={version:draft.version,revisionComercial:review.catalogo.actual!.codigoPublico,huellaRevision:review.huella,advertenciasRevisadas:true,motivo:reason.trim()},decision=mode==="PROGRAMAR"?{revision,fechaLocal:date,zonaHoraria:zone}:revision;pending.current={kind,body:JSON.stringify(kind==="revocar"?{operacion:operation.current}:{operacion:operation.current,decision,contrasena:password,...(kind==="confirmar"?{codigo:code.trim()}:{})})};}

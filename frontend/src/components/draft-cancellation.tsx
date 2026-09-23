@@ -1,4 +1,5 @@
 "use client";
+import {useNavigationGuard} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {MutationError,secureMutation} from "@/lib/secure-mutation";
 import {catalogDate} from "@/lib/catalog-types";
@@ -12,6 +13,7 @@ export function DraftCancellation({draft,onCancelled,onRefresh,onLockChange}:{dr
   const[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(""),[conflict,setConflict]=useState(false);
   const pending=useRef<Pending|null>(null),operation=useRef<string|null>(null),closeAfterRevoke=useRef(false);
   const locked=busy||uncertain,programada=draft.estado==="PROGRAMADA",nombre=programada?"programación":"borrador";
+  useNavigationGuard({dirty:open&&!!(reason||password),blocked:locked||receipt!==null});
   useEffect(()=>{onLockChange(locked||receipt!==null);return()=>onLockChange(false);},[locked,receipt,onLockChange]);
   async function send(kind?:"solicitar"|"confirmar"|"revocar",event?:FormEvent<HTMLFormElement>){
     event?.preventDefault();if(busy)return;setBusy(true);setError("");

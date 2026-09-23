@@ -1,4 +1,5 @@
 "use client";
+import {useNavigationGuard} from "@/components/navigation-boundary";
 
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {MutationError,secureMutation} from "@/lib/secure-mutation";
@@ -26,6 +27,7 @@ export function ConfigurationPayments({draft,onSaved,onBack,onLockChange,onNext}
   const needsDeposit=!prepaid&&(!manual||form.deposit==="SI");
   const condition:DepositCondition|""=manual?form.condition:byAmount?"SUPERAR_UMBRAL_APROBACION":"SIEMPRE";
   const dirty=JSON.stringify(form)!==JSON.stringify(initialValues(draft))||baseVersion!==draft.version;
+  useNavigationGuard({dirty,blocked:locked});
   function change<K extends keyof FormValues>(key:K,value:FormValues[K]){setForm(current=>({...current,[key]:value}));setSimulation(null);setSimulationError("");}
   function payload():PaymentConfiguration{
     return{medios:[...(form.transfer?["TRANSFERENCIA" as const]:[]),...(form.cash?["EFECTIVO" as const]:[])],instruccionesTransferencia:form.transfer?form.instructions.trim():null,vigenciaCotizacionMinutos:Number(form.minutes),exigirSena:needsDeposit,condicionSena:needsDeposit?condition as DepositCondition:null,umbralSena:needsDeposit&&manual&&["DESDE_CARILLAS","DESDE_MONTO"].includes(condition)?form.threshold:null,tipoSena:needsDeposit?form.kind as "PORCENTAJE"|"FIJA":null,valorSena:needsDeposit?form.value:null,umbralAprobacion:byAmount?form.approval:null};

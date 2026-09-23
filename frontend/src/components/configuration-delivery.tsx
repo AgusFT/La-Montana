@@ -1,4 +1,5 @@
 "use client";
+import {useNavigationGuard} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {MutationError,secureMutation} from "@/lib/secure-mutation";
 import {isConfigurationDraft,isConfigurationState,type ConfigurationDraft,type DeliveryMode,type OperatingDay,type BranchSchedule} from "@/lib/configuration-types";
@@ -33,6 +34,7 @@ export function ConfigurationDelivery({draft,onSaved,onBack,onLockChange,onPoint
   async function load(){setLoading(true);setLoadError("");clearEstimate();try{const [rb,rv]=await Promise.all([fetch("/api/admin/sucursales",{cache:"no-store"}),fetch(base+"/validacion",{cache:"no-store"})]);const [b,v]:unknown[]=await Promise.all([rb.json(),rv.json()]);if(!rb.ok||!rv.ok||!Array.isArray(b)||!b.every(isBranch)||!isDeliveryValidation(v))throw new Error("No pudimos consultar las sucursales y la validación guardada.");setBranches(b);setValidation(v);setSimulationPoint(point=>v.puntosDisponibles.some(p=>p.punto===point&&p.sucursal===simulationBranch)?point:"");if(v.version!==current.version)setConflict(true);}catch(cause){setLoadError(cause instanceof Error?cause.message:"No pudimos consultar los horarios.");}finally{setLoading(false);}}
   useEffect(()=>{void load();},[]); // Initial state belongs to this draft edition; later refresh is explicit.
   const dirty=preparation!==(current.entrega.preparacionHoras??"")||transfer!==(current.entrega.trasladoHoras??"")||JSON.stringify(selectedModes)!==JSON.stringify(current.entrega.modalidades)||JSON.stringify(schedules)!==JSON.stringify(initialSchedules(current));
+  useNavigationGuard({dirty,blocked:locked});
   const destination=estimate?.destinoPunto??estimate?.destinoZona??estimate?.destinoSucursal;
   const pointOptions=validation?.puntosDisponibles.filter(p=>p.sucursal===simulationBranch)??[];
   function name(id:string){return branches.find(b=>b.codigoPublico===id)?.nombre??id;}

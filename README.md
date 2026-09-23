@@ -2,9 +2,11 @@
 
 Aplicación local con Spring Boot, Next.js y PostgreSQL para una imprenta con varias sucursales. El administrador configura el sistema desde cero; los clientes particulares cotizan PDF y el personal completa revisión, producción manual, calidad, entrega y cierre. No hay cuentas, sucursales, precios, reglas comerciales ni pedidos de muestra precargados. La implementación de Supabase quedó sustituida y permanece solamente en el historial Git.
 
-## Estado actual · v0.1 verificada
+## Estado actual · base v5 verificada y ampliación v6 en implementación
 
 Los once criterios de aceptación del plan v5 están verificados para el piloto local. La suite vigente aprobó 154 pruebas con PostgreSQL real; el frontend compiló y pasó el tipado. Los recorridos de navegador cubren empleados de dos sucursales, modelos manual/condicionales, corrección D1, recuperación D2, producción/calidad y las tres modalidades hasta cierre. Docker Compose se construyó desde una instalación vacía y conservó datos, archivos y sesiones al recrear los cinco contenedores. La revisión visual incluye escritorio de1536px y móvil de390px frente a los mocks, con las adaptaciones de alcance detalladas abajo.
+
+La ampliación v6 está en implementación. El configurador operativo ya conserva el menú general en escritorio y móvil e incluye una guía en cada fase. Un borrador guarda el avance sin activar reglas: la activación se autoriza en el paso 7. Al salir de un formulario con cambios sin guardar se puede seguir editando o descartarlos; las solicitudes y autorizaciones pendientes se resuelven o revocan desde el formulario. Al recargar o cerrar la pestaña, el navegador advierte antes de abandonar cambios pendientes.
 
 Este README es el único manual de producto. Describe el comportamiento vigente; los checkpoints históricos de cada entrega están en Git y en el plan de coordinación, fuera del producto.
 

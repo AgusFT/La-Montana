@@ -1,4 +1,5 @@
 "use client";
+import {useNavigationGuard} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";
 import {catalogDate} from "@/lib/catalog-types";
@@ -15,6 +16,7 @@ export function ConfigurationRollback(){
  const[step,setStep]=useState<"review"|"security">("review"),[ack,setAck]=useState(false),[cancelAck,setCancelAck]=useState(false),[reason,setReason]=useState(""),[password,setPassword]=useState(""),[code,setCode]=useState(""),[receipt,setReceipt]=useState<Receipt|null>(null),[decision,setDecision]=useState<Decision|null>(null),[result,setResult]=useState<RollbackResult|null>(null);
  const operation=useRef<string|null>(null),command=useRef<{path:string;body:string;action:"solicitar"|"confirmar"|"revocar";next?:"review"|"home"}|null>(null);
  const locked=loading||busy||uncertain,navigationLocked=locked||step==="security"&&!result;
+ useNavigationGuard({blocked:navigationLocked,dirty:!result&&!!reason});
  async function refresh(){setLoading(true);setError("");setAck(false);setCancelAck(false);try{const r=await fetch(root+"/revision",{cache:"no-store"}),data:unknown=await r.json();if(!r.ok||!isRollbackReview(data))throw new Error(r.status===403?"La reversión requiere al propietario activo de la imprenta.":"No pudimos consultar las condiciones de reversión. Volvé a intentarlo.");setReview(data);setConflict(false);}catch(e){setError(e instanceof Error?e.message:"No pudimos consultar.");setConflict(true);}finally{setLoading(false);}}
  useEffect(()=>{void refresh();},[]);
  function continueReview(e:FormEvent){e.preventDefault();if(!review?.permitida||!review.activa||!review.objetivo||!review.condiciones?.catalogo.actual||!ack||review.programada&&!cancelAck||!reason.trim()||locked||conflict)return;setDecision({activa:review.activa.configuracion.codigoPublico,objetivo:review.objetivo.configuracion.codigoPublico,versionObjetivo:review.objetivo.configuracion.version,programada:review.programada?.configuracion.codigoPublico??null,revisionComercial:review.condiciones.catalogo.actual.codigoPublico,huellaRevision:review.huella,advertenciasRevisadas:ack,cancelarProgramacion:!!review.programada&&cancelAck,motivo:reason.trim()});setStep("security");setError("");}

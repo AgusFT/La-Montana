@@ -1,4 +1,5 @@
 "use client";
+import {useConfirmNavigation} from "@/components/navigation-boundary";
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -98,11 +99,12 @@ export function InstallationForm() {
 }
 
 export function LogoutButton() {
+  const confirmNavigation=useConfirmNavigation();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
   async function logout() {
-    if (busy) return;
+    if (busy || !confirmNavigation()) return;
     setBusy(true); setMessage("");
     try { await post("/api/auth/logout"); router.replace("/acceso"); router.refresh(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cerrar sesión."); }
