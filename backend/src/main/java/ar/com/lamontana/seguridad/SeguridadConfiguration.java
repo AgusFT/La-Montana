@@ -27,10 +27,13 @@ public class SeguridadConfiguration {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/publico/pagina-web", "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/contrasena", "/api/auth/correo/solicitar", "/api/auth/correo/confirmar").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/admin/pagina-web", "/api/admin/pagina-web/revision").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/pagina-web/borrador").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/pagina-web/publicar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/estado", "/api/admin/preparacion").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
