@@ -1,3 +1,4 @@
+import {MountainMark} from "@/components/mountain-brand";
 import { getSystemStatus } from "@/lib/system-status";
 import { redirect } from "next/navigation";
 import { sessionHome } from "@/lib/roles";
@@ -17,7 +18,7 @@ export default async function HomePage() {
   return (
     <main className="shell">
       <header className="brand-row">
-        <div className="brand"><span className="brand-mark" aria-hidden="true">△</span><span>La Montaña<small>IMPRESIONES</small></span></div>
+        <div className="brand"><MountainMark/><span>La Montaña<small>IMPRESIONES</small></span></div>
         <span className="version">Versión 0.1.0</span>
       </header>
 

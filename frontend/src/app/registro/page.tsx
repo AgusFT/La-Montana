@@ -8,5 +8,5 @@ export const dynamic = "force-dynamic";
 export default async function RegistrationPage() {
   const session = await getSession();
   if (session.state === "authenticated") redirect(sessionHome(session.profile));
-  return <IdentityShell title="Creá tu cuenta" description="Registrate como cliente particular de La Montaña."><RegistrationForm /></IdentityShell>;
+  return <IdentityShell access title="Creá tu cuenta" description="Registrate como cliente particular de La Montaña."><RegistrationForm /></IdentityShell>;
 }

@@ -1,3 +1,4 @@
+import {MountainMark} from "./mountain-brand";
 import { LogoutButton } from "@/components/identity-forms";
 import "@/app/admin.css";
 
@@ -6,7 +7,7 @@ function AdminIcon({ kind }: { kind: "home" | "catalog" | "people" | "branch" | 
 }
 export function AdminShell({ title, description, name, children, active="catalogo", userRole="Propietario", administration=true }: { title:string; description:string; name:string; userRole?:string; administration?:boolean; children:React.ReactNode; active?:"dashboard"|"catalogo"|"configuracion"|"puntos"|"operacion"|"sucursales"|"empleados" }) {
   return <div className={`admin-layout${active==="configuracion"?" configuration-mode":""}`}>
-    <aside className="admin-sidebar"><a href={administration?"/administracion":"/operacion"} className="admin-brand"><span aria-hidden="true">△</span><span>La Montaña<small>IMPRESIONES</small></span></a><p className="admin-nav-label">{administration?"ADMINISTRACIÓN":"OPERACIÓN"}</p>
+    <aside className="admin-sidebar"><a href={administration?"/administracion":"/operacion"} className="admin-brand"><MountainMark sun/><span>La Montaña<small>IMPRESIONES</small></span></a><p className="admin-nav-label">{administration?"ADMINISTRACIÓN":"OPERACIÓN"}</p>
       <nav aria-label={administration?"Navegación administrativa":"Navegación operativa"}>{administration&&<><a href="/administracion" aria-current={active==="dashboard"?"page":undefined}><AdminIcon kind="home"/>Dashboard</a><a href="/administracion/catalogo" aria-current={active==="catalogo"?"page":undefined}><AdminIcon kind="catalog"/>Servicios y precios</a><a href="/administracion/configuracion" aria-current={active==="configuracion"?"page":undefined}><AdminIcon kind="lock"/>Configurador</a><a href="/administracion/puntos-entrega" aria-current={active==="puntos"?"page":undefined}><AdminIcon kind="branch"/>Puntos de entrega</a><a href="/administracion/sucursales" aria-current={active==="sucursales"?"page":undefined}><AdminIcon kind="branch"/>Sucursales</a><a href="/administracion/empleados" aria-current={active==="empleados"?"page":undefined}><AdminIcon kind="people"/>Empleados</a></>}<a href="/operacion" aria-current={active==="operacion"?"page":undefined}><AdminIcon kind="branch"/>Operación y cobros</a><a href="/cuenta/seguridad"><AdminIcon kind="lock"/>Seguridad de la cuenta</a></nav>
       <div className="admin-sidebar-pending"><span>CUPS, pagos en línea y reclamos</span><small>En construcción</small></div><p className="admin-sidebar-version">Versión 0.1 · Entorno local</p>
     </aside>

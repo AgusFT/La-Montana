@@ -30,8 +30,8 @@ export function LoginForm() {
     <label>Contraseña<input name="contrasena" type="password" autoComplete="current-password" required maxLength={128} /></label>
     {message && <p className="form-message error-message" role="alert">{message}</p>}
     <button className="refresh" disabled={busy}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>
-    <a className="secondary-link" href="/registro">Crear una cuenta de cliente</a>
-    <a className="secondary-link" href="/recuperar">Olvidé mi contraseña</a>
+    <a className="secondary-link access-register" href="/registro">Crear una cuenta de cliente</a>
+    <a className="secondary-link access-recovery" href="/recuperar">Olvidé mi contraseña</a>
   </form>;
 }
 
