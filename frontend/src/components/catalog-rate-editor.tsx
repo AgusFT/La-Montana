@@ -9,8 +9,8 @@
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
- * - [export] CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove}:
- *   {rate:RateDraft;index:number;rates:RateDraft[];catalog:CatalogState;onChange:(change:Partial<RateDraft>)=>void;onRemove:()=>void})
+ * - [export] CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove,onApply,onCancel,error}:
+ *   {rate:RateDraft;index:number;rates:RateDraft[];catalog:CatalogState;onChange:(change:Partial<RateDraft>)=>void;onRemove:()=>void;onApply:()=>void;onCancel:()=>void;error:string})
  * - CatalogRateEditor :: changeColor(color: ColorMode)
  *
  * ------------------------------------------------------------------------
@@ -28,7 +28,7 @@ import {amountDraft,amountPattern,ars,parseAmount,validAmount} from "@/lib/catal
 import {duplexPrice,rateName,type RateDraft} from "@/lib/catalog-rate-draft";
 import {colorLabels,type CatalogState,type ColorMode,type DuplexMode} from "@/lib/catalog-types";
 
-export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove}:{rate:RateDraft;index:number;rates:RateDraft[];catalog:CatalogState;onChange:(change:Partial<RateDraft>)=>void;onRemove:()=>void}){
+export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove,onApply,onCancel,error}:{rate:RateDraft;index:number;rates:RateDraft[];catalog:CatalogState;onChange:(change:Partial<RateDraft>)=>void;onRemove:()=>void;onApply:()=>void;onCancel:()=>void;error:string}){
   const [editingName,setEditingName]=useState(false),[oldName,setOldName]=useState(rate.nombre);
   const legacy=rate.recargoAnterior!==undefined,final=duplexPrice(rate.precio,rate.modoDobleFaz,rate.valorDobleFaz);
   const simple=validAmount(rate.precio)?parseAmount(rate.precio,"Simple faz"):null;
@@ -42,7 +42,7 @@ export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove}:{
           <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m16 3 5 5L9 20l-6 1 1-6Z M13 6l5 5"/></svg>
         </button>
       </div>
-      <span className={`pricing-state ${rate.habilitada?"enabled":""}`}>{rate.habilitada?"Habilitada al guardar":"Deshabilitada"}</span>
+      <span className="pricing-state is-editing">En edición · sin confirmar</span>
       <button type="button" className="admin-link-button" onClick={onRemove}>Quitar tarifa {index+1}</button>
     </header>
     <fieldset className="rate-step"><legend>1. Elegí el modo de impresión</legend>
@@ -76,5 +76,7 @@ export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove}:{
       </fieldset>
     </>}
     <label className="admin-check pricing-enable"><input type="checkbox" checked={rate.habilitada} onChange={e=>onChange({habilitada:e.target.checked})}/>Habilitar tarifa {index+1} al guardar esta configuración</label>
+    {error&&<p className="error-message" role="alert">{error}</p>}
+    <div className="rate-editor-actions"><button type="button" className="admin-button" onClick={onApply}>Aplicar tarifa al borrador</button><button type="button" className="admin-button secondary" onClick={onCancel}>Cancelar edición de tarifa</button><p className="admin-note">Aplicar cierra este formulario y prepara la tarifa. Para publicar los precios, guardá la configuración completa al final de la página.</p></div>
   </article>;
 }

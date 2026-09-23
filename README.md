@@ -311,3 +311,12 @@ Verificación de revisión 12: nueve pruebas backend de pagos, entrega y activac
 ### Selección completa de compatibilidades de servicios
 
 En Tarifas y servicios, cada terminación (por ejemplo, anillado) ofrece **Agregar todos los papeles**. Incluye todas las variantes habilitadas de Catálogo base en un solo clic, conserva las selecciones existentes y evita duplicados o filas vacías. Después se puede quitar o cambiar cualquier papel individualmente. El cambio afecta sólo al servicio elegido y se aplica al guardar la configuración comercial. Se conserva el máximo de 300 compatibilidades y el requisito de una tarifa habilitada para cada papel si se habilita la terminación.
+
+
+### Menú de escritorio y confirmación de tarifas
+
+El menú lateral de escritorio ocupa el alto de la ventana y ajusta espacios a la altura disponible. Las opciones de navegación permanecen accesibles sin desplazamiento vertical interno; en ventanas de poca altura se compacta la marca y se omite el aviso decorativo de funciones futuras. La navegación móvil conserva su disposición horizontal.
+
+Las tarifas guardadas se presentan cerradas, con resumen de tamaños, variantes, importes y estado vigente/programado. **Editar tarifa** abre el formulario; **Aplicar tarifa al borrador** valida y cierra esa edición. Las modificaciones quedan identificadas como **Pendiente de guardar** hasta confirmar **Guardar nueva configuración**, que publica el conjunto de tarifas y servicios o lo programa. Cancelar restaura la tarifa previa; no se puede publicar mientras haya una tarifa abierta sin confirmar. Salir con cambios pendientes muestra la advertencia de navegación.
+
+Verificación: build de producción y tipos correctos; ocho escenarios de navegador (edición, validación, cancelación, aplicación, publicación, regreso, recarga y reintento sin duplicados). Ocho tamaños de escritorio entre 761×480 y 1920×1080, incluida altura de 400 px, con todos los enlaces visibles y sin scroll propio del menú. Resúmenes y editor comprobados a 320/390/768/1440 px, sin desbordamiento horizontal ni errores JavaScript. Pruebas con datos sintéticos sólo en instancia aislada; backend, contratos y migraciones sin cambios.
