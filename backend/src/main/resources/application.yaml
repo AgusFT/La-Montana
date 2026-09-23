@@ -72,3 +72,8 @@ lamontana:
     antivirus:
       host: ${CLAMAV_HOST:127.0.0.1}
       port: ${CLAMAV_PORT:3310}
+
+  web:
+    entrada: ${WEB_SOURCE_DIR:./datos/imagenes-web/entrada}
+    ruta-host: ${WEB_SOURCE_HOST:}
+    biblioteca: ${WEB_LIBRARY_DIR:./var/imagenes-web}

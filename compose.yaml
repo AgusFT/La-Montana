@@ -24,6 +24,9 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/lamontana
       DB_USER: lamontana
       DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD}
+      WEB_SOURCE_DIR: /app/web-entrada
+      WEB_SOURCE_HOST: ${WEB_SOURCE_DIR:-${PWD}/datos/imagenes-web/entrada}
+      WEB_LIBRARY_DIR: /app/imagenes-web
       FILES_DIR: /app/archivos
       PDF_INSPECTOR_JAR: /app/app.jar
       CLAMAV_HOST: antivirus
@@ -38,6 +41,13 @@ services:
     networks: [default, analisis]
     volumes:
       - archivos_data:/app/archivos
+      - imagenes_web_data:/app/imagenes-web
+      - type: bind
+        source: ${WEB_SOURCE_DIR:-./datos/imagenes-web/entrada}
+        target: /app/web-entrada
+        read_only: true
+        bind:
+          create_host_path: false
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,6 +101,7 @@ services:
 volumes:
   postgres_data:
   archivos_data:
+  imagenes_web_data:
   mail_data:
   antivirus_data:
 

@@ -32,6 +32,18 @@ if ! grep -q '^SETUP_TOKEN=' .env; then
   echo 'Token de alta inicial creado en .env. Abrí ese archivo localmente para usarlo en /instalacion.'
 fi
 
+# Compose interpreta .env; no se ejecuta su contenido como código de shell.
+web_source_path=$(docker compose config --environment | sed -n 's/^WEB_SOURCE_DIR=//p')
+web_source_path=${web_source_path:-"$PWD/datos/imagenes-web/entrada"}
+if [[ "$web_source_path" != /* ]]; then
+  echo 'WEB_SOURCE_DIR debe ser una ruta absoluta. Corregí .env antes de iniciar.' >&2
+  exit 1
+fi
+web_source_path=$(realpath -m -- "$web_source_path")
+mkdir -p -- "$web_source_path"
+export WEB_SOURCE_DIR="$web_source_path"
+echo "Carpeta de entrada de imágenes web: $web_source_path"
+
 docker compose config --quiet
 docker compose up --build --detach --wait
 echo 'Base técnica iniciada. Consultá los puertos publicados con: docker compose ps'

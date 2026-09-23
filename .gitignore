@@ -11,3 +11,6 @@
 
 # PDF.js worker generated from the pinned dependency.
 frontend/public/pdfjs/
+
+# Entrada local de imágenes del propietario; no se versiona contenido comercial.
+datos/

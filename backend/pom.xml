@@ -26,6 +26,7 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+    <dependency><groupId>com.twelvemonkeys.imageio</groupId><artifactId>imageio-webp</artifactId><version>3.14.0</version></dependency>
     <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.8</version></dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

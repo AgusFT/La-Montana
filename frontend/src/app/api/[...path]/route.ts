@@ -62,10 +62,16 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const fileMethods = fileRoute ? path.length===4 ? (path[0]==="cliente"?["GET","POST"]:["GET"]) : uuidPattern.test(path[4]??"") ? path.length===5 ? ["GET"] : path.length===6 && path[5]==="original" ? ["GET"] : path.length===7 && path[5]==="paginas" && /^[1-9][0-9]{0,4}$/.test(path[6]) ? ["GET"] : path.length===6 && path[0]==="cliente" ? path[5]==="contenido" ? ["PUT"] : path[5]==="aceptar" ? ["POST"] : path[5]==="carga" ? ["GET"] : null : null : null : null;
   const proofRoute=["cliente","operacion"].includes(path[0])&&path[1]==="cotizaciones"&&uuidPattern.test(path[2]??"")&&path[3]==="comprobantes";
   const proofMethods=proofRoute?(path.length===4?["GET","POST"]:uuidPattern.test(path[4]??"")?(path.length===5?["GET"]:path.length===6&&["original","carga"].includes(path[5])?["GET"]:path.length===6&&path[5]==="contenido"?["PUT"]:path.length===7&&path[5]==="paginas"&&/^[1-9][0-9]{0,4}$/.test(path[6])?["GET"]:null):null):null;
+  const websiteAdmin = path[0]==="admin"&&path[1]==="pagina-web";
+  const websitePublic = path[0]==="publico"&&path[1]==="pagina-web";
+  const websiteImage = (websiteAdmin||websitePublic)&&path[2]==="imagenes"&&uuidPattern.test(path[3]??"")&&(path.length===4||path.length===5&&path[4]==="miniatura");
+  const websiteSourceThumb = websiteAdmin&&path.length===4&&path[2]==="origen"&&path[3]==="miniatura";
+  const websiteMethods = websiteImage||websiteSourceThumb?["GET"]:websiteAdmin&&path.length===3&&["imagenes","origen"].includes(path[2])?["GET"]:websiteAdmin&&path.length===4&&path[2]==="imagenes"&&path[3]==="importar"?["POST"]:null;
+  const websiteBinary = request.method==="GET"&&(websiteImage||websiteSourceThumb);
   const binaryUpload=!!(fileMethods||proofMethods)&&request.method==="PUT";
   const binaryDownload=!!(fileMethods||proofMethods)&&request.method==="GET"&&(path[5]==="original"||path[5]==="paginas");
   const receivedMethods=path.length===4&&path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2])&&path[3]==="archivos"?["GET"]:null;
-  const methods = rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
+  const methods = websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3) && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
@@ -98,9 +104,9 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     }else body=["POST", "PUT"].includes(request.method)?await request.text():undefined;
     const maxBytes = route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointMethods || quoteMethods || correctionQuote) ? 131072 : 16384;
     if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
-    const query = rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
+    const query = websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {
-      method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(binaryUpload?90000:binaryDownload?30000:8000),
+      method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(binaryUpload?90000:binaryDownload||websiteMethods?30000:8000),
     });
     const resultHeaders = new Headers({ "Cache-Control": "no-store" });
     responseHeaders = resultHeaders;
@@ -115,6 +121,10 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     if (["setup/propietario", "auth/registro"].includes(route) && response.status === 201) {
       resultHeaders.set("Content-Type", "application/json");
       return Response.json({ mensaje: route === "auth/registro" ? "Cuenta de cliente creada." : "Propietario creado." }, { status: 201, headers: resultHeaders });
+    }
+    if(websiteBinary&&response.ok&&contentType==="image/png"){
+      resultHeaders.set("X-Content-Type-Options","nosniff");resultHeaders.set("Content-Security-Policy","default-src 'none'; sandbox");
+      return new Response(response.body,{status:response.status,headers:resultHeaders});
     }
     if(binaryDownload&&response.ok&&["application/pdf","image/png"].includes(contentType??"")){
       resultHeaders.set("X-Content-Type-Options","nosniff");resultHeaders.set("Content-Security-Policy","default-src 'none'; sandbox");

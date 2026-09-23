@@ -15,8 +15,9 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class PaginaWebService {
     private final JdbcTemplate jdbc;
+    private final AlmacenImagenWeb almacen;
     private final JsonMapper json=JsonMapper.builder().build();
-    public PaginaWebService(JdbcTemplate jdbc){this.jdbc=jdbc;}
+    public PaginaWebService(JdbcTemplate jdbc,AlmacenImagenWeb almacen){this.jdbc=jdbc;this.almacen=almacen;}
     public record Borrador(long version,Contenido contenido,String carpeta,Instant actualizadaEn){}
     public record Publicacion(UUID codigo,long numero,long versionBorrador,String autor,Instant publicadaEn){}
     public record Estado(Borrador borrador,Publicacion publicada){}
@@ -59,6 +60,7 @@ public class PaginaWebService {
         if(!input.confirmado())throw error(HttpStatus.BAD_REQUEST,"Confirmá expresamente que revisaste el contenido público.");
         var b=borrador();version(b,input.version());validarEstructura(b.contenido());var revision=revisar(b);
         if(!revision.publicable())throw error(HttpStatus.CONFLICT,String.join(" ",revision.pendientes()));
+        for(UUID imagen:imagenes(visibles(b.contenido())))jdbc.query("SELECT sha256_publico,sha256_miniatura FROM lamontana.web_imagen WHERE codigo=?",(org.springframework.jdbc.core.RowCallbackHandler)r->almacen.comprobar(imagen,r.getString(1),r.getString(2)),imagen);
         var anterior=publicacionActual();if(anterior!=null&&anterior.versionBorrador()==b.version()){
             registrar(input.operacion(),"PUBLICAR",actor,huella,anterior);return anterior;
         }
@@ -75,7 +77,7 @@ public class PaginaWebService {
     public long propietario(String correo){var rows=jdbc.query("SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.correo=? AND u.estado='ACTIVO' AND u.es_administrador_propietario AND r.codigo='ADMIN_ADMIN' AND r.activo",(r,n)->r.getLong(1),correo);if(rows.isEmpty())throw error(HttpStatus.FORBIDDEN,"Sólo el propietario activo puede configurar la página web.");return rows.get(0);}
     void bloquear(){jdbc.execute("SELECT pg_advisory_xact_lock(764020)");}
     void version(Borrador b,long version){if(b.version()!=version)throw error(HttpStatus.CONFLICT,"El borrador web cambió en otra pestaña. Consultá la versión guardada antes de volver a guardar o publicar; tus datos locales se conservan.");}
-    static void validarCarpeta(String carpeta){if(carpeta==null||carpeta.startsWith("/")||carpeta.contains("\\")||carpeta.contains("\u0000")||Arrays.stream(carpeta.split("/",-1)).anyMatch(s->s.equals("..")||s.equals(".")))throw error(HttpStatus.BAD_REQUEST,"Elegí una subcarpeta dentro de la carpeta de imágenes autorizada.");}
+    static void validarCarpeta(String carpeta){if(carpeta==null||carpeta.length()>500||carpeta.startsWith("/")||carpeta.contains("\\")||carpeta.contains("\u0000")||Arrays.stream(carpeta.split("/",-1)).anyMatch(s->s.equals("..")||s.equals(".")))throw error(HttpStatus.BAD_REQUEST,"Elegí una subcarpeta dentro de la carpeta de imágenes autorizada.");}
     private void validarEstructura(Contenido c){
         if(new HashSet<>(c.secciones()).size()!=c.secciones().size()||!c.secciones().contains(Seccion.PORTADA))throw error(HttpStatus.BAD_REQUEST,"Las secciones no se repiten y deben incluir Portada.");
         var ids=new HashSet<UUID>();for(var f:c.fichas()){

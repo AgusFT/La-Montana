@@ -7,7 +7,7 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -DskipTests package
 FROM eclipse-temurin:17.0.20_8-jre-jammy
 RUN apt-get update && apt-get install -y --no-install-recommends curl fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 RUN groupadd --gid 10001 lamontana && useradd --uid 10001 --gid lamontana --no-create-home lamontana \
-    && mkdir -p /app/archivos && chown -R lamontana:lamontana /app
+    && mkdir -p /app/archivos /app/imagenes-web && chown -R lamontana:lamontana /app
 WORKDIR /app
 COPY --from=build --chown=lamontana:lamontana /build/target/lamontana.jar ./app.jar
 USER lamontana
