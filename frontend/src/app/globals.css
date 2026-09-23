@@ -8,3 +8,6 @@
 .security-section{margin:28px 0;padding-bottom:28px;border-bottom:1px solid var(--line)}.security-section>h2{margin-bottom:12px}.account-email{font-size:14px;color:var(--muted);overflow-wrap:anywhere}.security-code-form{margin-top:24px}.security-message{margin-top:18px}.security-notice{margin-top:20px;background:#fff6ed;border:1px solid #efdbc6;color:#794515}
 
 .mountain-mark{display:block;width:52px;height:50px;flex-shrink:0}.admin-brand .mountain-mark{width:49px;height:47px;color:#fff}.admin-brand .mountain-snow{fill:#081e30}.client-sidebar .mountain-mark{color:#fff}.client-sidebar .mountain-snow{fill:#1a3d59}
+
+/* Las descripciones de estado pueden ocupar varias líneas en un teléfono. */
+@media(max-width:600px){.capabilities dd{white-space:normal;max-width:100%;overflow-wrap:anywhere}}
