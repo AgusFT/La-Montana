@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { BranchCodeField } from "./branch-code-field";
 import { secureMutation } from "@/lib/secure-mutation";
 import { weekDays, type Branch, type BranchDay, type BranchLocation } from "@/lib/organization-types";
 
@@ -55,9 +56,10 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     finally { setBusy(false); }
   }
   function field([key, label, maxLength]: typeof fields[number]) {
+    if (key === "codigo") return <BranchCodeField key={key} code={branch?.codigo} />;
     return <label key={key}>{label}<input name={key} required={key !== "correo" && key !== "telefono"} maxLength={maxLength}
       type={key === "correo" ? "email" : key === "telefono" ? "tel" : "text"} defaultValue={branch?.[key] ?? ""}
-      readOnly={key === "codigo" && !!branch} pattern={key === "codigo" ? "[A-Za-z0-9_\\-]+" : undefined} /></label>;
+      /></label>;
   }
   return <form className="identity-form branch-form" onSubmit={submit}>
     <h2>{branch ? "Editar sucursal" : "Nueva sucursal"}</h2>
