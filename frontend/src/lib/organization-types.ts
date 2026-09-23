@@ -6,6 +6,7 @@ export type Branch = {
 };
 export const permissionLabels = {
   GESTIONAR_PRODUCCION: "Registrar producción manual", CONTROLAR_CALIDAD: "Controlar calidad",
+  GESTIONAR_ENTREGAS: "Gestionar entregas", CERRAR_PEDIDOS: "Cerrar pedidos",
   GESTIONAR_PEDIDOS: "Revisar y decidir pedidos",
   REGISTRAR_COBRO: "Registrar cobros", ACREDITAR_PAGO: "Acreditar pagos", REGISTRAR_DEVOLUCION: "Registrar devoluciones",
 } as const;

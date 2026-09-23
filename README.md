@@ -2,7 +2,7 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 33
+## Estado actual · entrega 34
 
 Funcionan el alta única del propietario sin credenciales predeterminadas, registro de particulares, acceso/sesiones y recuperación por correo local; sucursales, empleados y permisos; catálogo y tarifas con revisiones propias; y configurador de fases 1–8 con validación, simulación, activación inmediata/programada, cancelación, historial/comparación, uso como base y reversión auditable. Las capacidades de impresión se declaran para operación manual, sin CUPS. La Fase 5 incluye horarios y franjas de retiro con cupos explícitos por sucursal, además de puntos y zonas domiciliarias.
 
@@ -20,7 +20,9 @@ El cliente puede guardar cotizaciones de varios PDF, recuperar su historial, ace
 
 **Funcionan producción manual y calidad:** inicio con cobertura del anticipo, fin/error/cancelación del trabajo, checklist físico y reimpresión enlazada. Cada ítem conserva su PDF confirmado, operador e inspecciones. Todos los ítems deben superar calidad antes de quedar listos para entregar o despachar.
 
-**Siguen En construcción:** reprogramación y entregas/cierre; adjuntos de referencia opcionales del interno en una corrección. Las variantes manual y D1 permiten cargar según sus reglas, sin exigir la seña antes de la revisión. La aceptación de una oferta o preview no crea un pedido ni acredita dinero. No hay cuentas, precios ni reglas comerciales precargados. Compose está preparado, pero su ejecución y persistencia conjunta aún no están certificadas en este equipo.
+**Funcionan logística, entrega y cierre:** preparación, salida y llegada al punto separadas, código privado del cliente, validación por el empleado, entrega física con saldo cubierto y cierre administrativo explícito. El retiro local nunca pasa por En viaje.
+
+**Siguen En construcción:** reprogramación; adjuntos de referencia opcionales del interno en una corrección; corrección administrativa posterior al cierre. Las variantes manual y D1 permiten cargar según sus reglas, sin exigir la seña antes de la revisión. La aceptación de una oferta o preview no crea un pedido ni acredita dinero. No hay cuentas, precios ni reglas comerciales precargados. Compose está preparado, pero su ejecución y persistencia conjunta aún no están certificadas en este equipo.
 
 Las secciones por entrega conservan el historial técnico; los pendientes indicados en una entrega anterior se interpretan según este estado actual y las entregas posteriores.
 
@@ -667,3 +669,26 @@ La consulta puede recuperar una operación cuya respuesta se perdió. Reintentos
 **Adaptación del DER:** V31 agrega trabajo_impresion, historial_trabajo_impresion y control_calidad. El trabajo referencia pedido + cotizacion_item + archivo/aceptación de pedido_archivo_actual, en lugar de depender sólo del pedido_item original: así respeta las respuestas corregidas de V30. Reimpresiones e intentos tras error/cancelación apuntan a su predecesor sin borrarlo. Modo MANUAL; estados técnicos IMPRIMIENDO/COMPLETADO/ERROR/CANCELADO. Una inspección inmutable por intento, cinco controles explícitos y un evento atómico de pedido por acción. LISTO_PARA_ENTREGA es el estado técnico común; el texto visible distingue retiro de despacho, todavía sin viaje. No se crean entidades ficticias de agentes/CUPS.
 
 **Verificación de este bloque:** seis casos de integración con PostgreSQL real, HTTP, SMTP e inspector PDF (antivirus controlado por protocolo en pruebas), incluyendo D1/cobertura, dinero sin aplicar, permisos/CSRF/sucursales, revocación, carrera de inicios, rollback, versiones, PDF corregido/integridad, reimpresión/error/cancelación, varios ítems y reinicio. Dos de ellos son regresiones de revisión/corrección. Build y typecheck del frontend aprobados. Navegador con Next/Spring/PostgreSQL/Mailpit/ClamAV real desde instalación vacía: retiro/punto/domicilio hasta calidad, recurso declarado y excepción manual, reimpresión, respuesta perdida recuperada, checklist sin valores iniciales y filtros. Vistas 1536/390 comparadas con MC-ADM-006/007; calidad conserva los paneles de detalles, checklist y resultado, acciones rojas/verdes y encabezado azul. La certificación E2E completa sigue pendiente de entregas/cierre y arranque persistente.
+
+
+## Logística, entrega y cierre · entrega 34
+
+Después de aprobar calidad, abrir el pedido desde la bandeja de la sucursal. Los empleados requieren **Gestionar entregas**; el cierre tiene su propio permiso **Cerrar pedidos**. La autorización y la sucursal se vuelven a comprobar en cada operación y reintento. El propietario dispone de estos permisos.
+
+- **Retiro en sucursal:** queda Listo para entregar; no tiene preparación ni viaje.
+- **Punto de entrega:** registrar Preparar envío, Salida a reparto y Llegada al punto. La llegada sólo lo deja disponible para retirar.
+- **Domicilio:** registrar Preparar envío y Salida a reparto. La recepción física se registra después.
+
+El cliente abre su pedido y genera un código cuando va a recibirlo. Se muestra una sola vez; no se guarda en el navegador ni como texto en la base. Vence en 30 minutos, admite cinco intentos incorrectos y puede renovarse después de 30 segundos, revocando el anterior. Recargar la página pierde el texto: se informa cómo generar otro. Si se pierde la respuesta de emisión, recuperarla confirma el registro, pero no revela de nuevo el secreto. Estos plazos y el formato de ocho caracteres son controles técnicos del piloto, no reglas comerciales precargadas.
+
+El interno ingresa el código presentado y lo valida con su sesión. La validación dura hasta diez minutos, sin superar el vencimiento del código, y está ligada al actor, la reserva y la versión del pedido. Un código válido no cobra ni entrega. **Confirmar entrega física** requiere saldo y anticipos acreditados/aplicados según las condiciones aceptadas, el recorrido correspondiente, nombre de quien recibe, observación interna y confirmación expresa. Guarda una constancia inmutable y cumple la reserva; el estado queda Entregado. Las notas internas no se publican al cliente.
+
+**Cerrar pedido** es otra acción: exige entrega registrada, dinero conciliado, devolución de excedentes e informes de transferencia resueltos en la cadena de cotizaciones. No crea pagos ni comprobantes ficticios. El cierre captura responsable, fecha e importes. El circuito ordinario no devuelve ni libera el dinero aplicado a un pedido cerrado; la corrección administrativa de ese cierre está en construcción. Sí se puede registrar un cobro recibido tarde y devolver su importe disponible, conservando el cierre original y la auditoría financiera.
+
+V32 incorpora código/validación, movimientos logísticos, constancia y cierre. El estado logístico se consulta por separado del estado general; listas y detalle distinguen En viaje de Listo para entregar. Las transacciones enlazan historia, versión, uso del código, reserva cumplida y constancia. Reintentar la misma operación recupera el resultado; otra operación con versión vieja no duplica la entrega. Sólo las reservas activas consumen cupo.
+
+La vista utiliza la estructura y los estados de MC-ADM-009/011/012: cabecera azul, tarjetas de cliente/trabajo y entrega, modal para el código, validación verde y confirmación física separada. Los PDF siguen en el visor privado compartido; el saldo tiene su propia tarjeta y enlace financiero. El secreto sólo aparece al cliente que lo genera: se adapta el ejemplo visual del código visible al administrador para conservar su verificación segura. La entrega y el cierre se integran en el detalle y la bandeja por sucursal existentes. No se simulan mapa, mensajes externos, transporte conectado ni reclamos.
+
+Validación del bloque: cinco pruebas integradas aprobadas con PostgreSQL real (tres de entrega más regresiones de producción y corrección PDF), incluyendo las tres modalidades, vencimiento/intentos, regeneración, permisos/CSRF/sucursales/revocación, versión y actor, saldo/excedentes/informes, carrera, rollback de entrega, replay, reinicio e inmutabilidad del cierre. El primer pase detectó una restricción de reserva anterior que no contemplaba CUMPLIDA; se corrigió antes de integrar. Build y tipado de frontend aprobados. Navegador con Next/Spring/PostgreSQL/Mailpit/ClamAV reales desde instalación vacía: tres pedidos hasta cierre, recuperación de respuesta perdida sin duplicar, formularios obligatorios y privacidad. Se revisaron los mocks y capturas de 1536/390 px; se corrigieron contraste del diálogo y dirección repetida.
+
+**Siguiente paso:** reprogramar la reserva con aceptación del cliente, motivo, historial y cupo validado; invalidar códigos/validaciones cuando cambie la reserva. Luego certificar arranque persistente reproducible y ejecutar la pasada E2E/visual final de los once criterios. Compose todavía no está certificado en este equipo. Esta entrega no declara terminada la demo completa.
