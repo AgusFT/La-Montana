@@ -15,7 +15,7 @@ export default async function EmployeesPage() {
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const [employees, branches] = await Promise.all([getEmployees(), getBranches()]);
-  return <IdentityShell title="Empleados" description="Administrá sus datos, sucursales asignadas, permisos y estado. La operación de pagos y pedidos está En construcción.">
+  return <IdentityShell title="Empleados" description="Administrá sus datos, sucursales asignadas, permisos y estado. Los permisos se aplican a la operación de pedidos y pagos de cada sucursal.">
     <nav className="page-actions" aria-label="Administración"><a className="secondary-link" href="/administracion">Volver a administración</a><a className="secondary-link" href="/administracion/sucursales">Administrar sucursales</a></nav>
     <section className="branch-list" aria-labelledby="employees-heading"><h2 id="employees-heading">Empleados registrados</h2>
       {employees === null || branches === null ? <p className="form-message error-message" role="alert">No pudimos consultar empleados o sucursales. <a href="/administracion/empleados">Volver a intentar</a></p>

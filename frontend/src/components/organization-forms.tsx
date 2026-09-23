@@ -83,7 +83,7 @@ export function EmployeeForm({ employee, branches }: { employee?: Employee; bran
       <fieldset className="choice-fieldset"><legend>Sucursales asignadas</legend><p className="empty-note">Un empleado activo necesita al menos una sucursal activa.</p>
         {branches.length === 0 ? <p className="empty-note">Primero creá una sucursal.</p> : branches.map(branch => <label className="checkbox-label" key={branch.codigoPublico}><input type="checkbox" name="sucursales" value={branch.codigoPublico} defaultChecked={employee?.sucursales.includes(branch.codigoPublico) ?? false} disabled={branch.estado !== "ACTIVA" && !employee?.sucursales.includes(branch.codigoPublico)} /><span>{branch.nombre} ({branch.codigo}){branch.estado !== "ACTIVA" ? " · Desactivada" : ""}</span></label>)}
       </fieldset>
-      <fieldset className="choice-fieldset"><legend>Permisos</legend><p className="empty-note">Se guardan las autorizaciones. La operación de pagos y cobros está En construcción.</p>
+      <fieldset className="choice-fieldset"><legend>Permisos</legend><p className="empty-note">Estos permisos habilitan acciones sobre los pedidos, pagos y entregas de las sucursales asignadas.</p>
         {Object.entries(permissionLabels).map(([code, label]) => <label className="checkbox-label" key={code}><input type="checkbox" name="permisos" value={code} defaultChecked={employee?.permisos.some(permission => permission === code) ?? false} /><span>{label}</span></label>)}
       </fieldset>
     </fieldset>

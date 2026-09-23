@@ -14,7 +14,7 @@ export default async function BranchesPage() {
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const branches = await getBranches();
-  return <IdentityShell title="Sucursales" description="Alta, edición y desactivación disponibles. Horarios y operación de pedidos: En construcción.">
+  return <IdentityShell title="Sucursales" description="Alta, edición y desactivación disponibles. Los horarios y cupos se definen en el configurador; los pedidos se gestionan desde Operación.">
     <a className="secondary-link" href="/administracion">Volver a administración</a>
     <section className="branch-list" aria-labelledby="branches-heading"><h2 id="branches-heading">Sucursales registradas</h2>
       {branches === null ? <p className="form-message error-message" role="alert">No pudimos consultar las sucursales. <a href="/administracion/sucursales">Volver a intentar</a></p> : branches.length === 0 ? <p className="empty-note">Todavía no hay sucursales registradas.</p> : branches.map(branch => <article className="branch-card" key={branch.codigoPublico}>

@@ -23,8 +23,8 @@ export default async function HomePage() {
 
       <section className="intro" aria-labelledby="page-title">
         <span className="eyebrow">IDENTIDAD INICIAL</span>
-        <h1 id="page-title">Estamos construyendo<br />La Montaña.</h1>
-        <p>Ya podés crear tu cuenta de cliente e ingresar. La configuración de la imprenta y la operación de pedidos todavía están en construcción.</p>
+        <h1 id="page-title">La Montaña.<br />Impresiones a tu medida.</h1>
+        <p>Configurá tu imprenta o ingresá como cliente para cotizar PDF y seguir tus pedidos. Este piloto funciona con pagos registrados manualmente.</p>
       </section>
 
       <section className="status-panel" aria-labelledby="status-title">
@@ -37,8 +37,8 @@ export default async function HomePage() {
           <div><dt>Acceso del propietario</dt><dd>{setup ? setup.requierePropietario ? "Alta pendiente" : "Habilitado" : "Sin verificar"}</dd></div>
           <div><dt>Registro y acceso de clientes</dt><dd>{setup && !setup.requierePropietario ? "Habilitado" : "Pendiente de instalación"}</dd></div>
           <div><dt>Gestión de empleados y sucursales</dt><dd>Disponible para el propietario</dd></div>
-          <div><dt>Configuración de la imprenta</dt><dd>En construcción</dd></div>
-          <div><dt>Pedidos y operación</dt><dd>En construcción</dd></div>
+          <div><dt>Configuración de la imprenta</dt><dd>Disponible para el propietario</dd></div>
+          <div><dt>Pedidos y operación</dt><dd>Disponibles después de configurar y activar la imprenta</dd></div>
         </dl>
         <p className="empty-note">Esta instalación comienza sin sucursales ni configuración comercial precargadas.</p>
         {!setup && <p className="form-message error-message" role="alert">No pudimos verificar si la instalación necesita un propietario.</p>}
