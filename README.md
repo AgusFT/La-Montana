@@ -306,3 +306,8 @@ Verificación: 16 pruebas backend pertinentes de catálogo, programación, migra
 - El calendario se adapta al ancho disponible con fichas por día cuando no cabe la tabla. Guardar permite continuar el borrador: la activación sigue siendo explícita. No se modifica ninguna configuración existente al actualizar la aplicación ni se agregan migraciones.
 
 Verificación de revisión 12: nueve pruebas backend de pagos, entrega y activación/cotización; 18 casos de formato monetario; diez escenarios de navegador y trece comprobaciones de presentación a 320/390/768/1440 px. Flujo por toque móvil, dos sucursales, puntos, zonas, retiro, guardado fallido y reintento idempotente comprobados. Sin errores JavaScript; build y tipos correctos. Instalación normal con cinco servicios saludables y huellas conservadas en dieciséis tablas; sin migraciones nuevas.
+
+
+### Selección completa de compatibilidades de servicios
+
+En Tarifas y servicios, cada terminación (por ejemplo, anillado) ofrece **Agregar todos los papeles**. Incluye todas las variantes habilitadas de Catálogo base en un solo clic, conserva las selecciones existentes y evita duplicados o filas vacías. Después se puede quitar o cambiar cualquier papel individualmente. El cambio afecta sólo al servicio elegido y se aplica al guardar la configuración comercial. Se conserva el máximo de 300 compatibilidades y el requisito de una tarifa habilitada para cada papel si se habilita la terminación.

@@ -20,6 +20,7 @@
  * - CatalogEditor :: addRate()
  * - CatalogEditor :: addOffer()
  * - CatalogEditor :: pairChange(row: OfferDraft, id: string, change: Partial<PairDraft>)
+ * - CatalogEditor :: addAllCompatiblePapers(offer: OfferDraft)
  * - CatalogEditor :: payload(): NewRevision
  * - [async] CatalogEditor :: save(event?: FormEvent<HTMLFormElement>)
  * - [async] CatalogEditor :: checkLatest()
@@ -41,7 +42,7 @@ import { readCatalog } from "@/lib/catalog-client";
 import { CatalogInfo, CatalogAmount } from "@/components/catalog-pricing-fields";
 import { CatalogSearchSelect } from "@/components/catalog-search-select";
 import { amountDraft, parseAmount, priceExplanations } from "@/lib/catalog-pricing";
-import { CatalogPaperSelect } from "@/components/catalog-paper-select";
+import { CatalogPaperSelect, paperKey } from "@/components/catalog-paper-select";
 import { RevisionView } from "@/components/catalog-view";
 import { priceLabels, isCatalogRevision, type CatalogState, type CatalogRevision, type PriceBase, type NewRevision } from "@/lib/catalog-types";
 
@@ -70,6 +71,14 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
   function addRate(){const id=crypto.randomUUID();setSaved(null);setRates(current=>[...current,{id,grupo:id,nombre:rateName("",current.length),nombrePersonalizado:false,color:"",papeles:[],precio:"",modoDobleFaz:"FIJO",valorDobleFaz:"",habilitada:true}]);focusCard(id);}
   function addOffer(){const id=crypto.randomUUID();setSaved(null);setOffers(current=>[...current,{id,servicio:"",nombreVisible:"",basePrecio:"",precio:"",preparacionMinutos:"0",habilitado:false,compatibilidades:[]}]);focusCard(id);}
   function pairChange(row:OfferDraft,id:string,change:Partial<PairDraft>){changeOffer(row.id,{compatibilidades:row.compatibilidades.map(pair=>pair.id===id?{...pair,...change}:pair)});}
+  const enabledPapers=catalog.papelesHabilitados.filter(p=>p.habilitado);
+  function addAllCompatiblePapers(offer:OfferDraft){
+    if(locked)return;
+    const pairs=new Map(offer.compatibilidades.filter(p=>p.formato&&p.papel).map(p=>[paperKey(p),p]));
+    for(const paper of enabledPapers)if(!pairs.has(paperKey(paper)))pairs.set(paperKey(paper),{id:crypto.randomUUID(),formato:paper.formato,papel:paper.papel});
+    if(pairs.size>300)return;
+    changeOffer(offer.id,{compatibilidades:[...pairs.values()]});
+  }
   function payload():NewRevision{
     let date:string|null=null;
     if(scheduled){const chosen=new Date(scheduledFor+":00Z");if(!scheduledFor||Number.isNaN(chosen.valueOf())||chosen.valueOf()<=Date.now())throw new Error("Elegí una fecha y hora UTC futura.");date=chosen.toISOString();}
@@ -117,7 +126,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
         <div className="admin-section-title"><div><h2 id="pricing-offers-title">2. Servicios ofrecidos <span className="admin-count">{offers.length}</span></h2><p>Elegí servicios del Catálogo base y completá cómo se ofrecen al cliente.</p></div><button type="button" className="admin-button" disabled={offers.length>=100||!catalog.servicios.length} onClick={addOffer}>+ Agregar servicio</button></div>
         <CatalogInfo title="¿Qué es un servicio y cómo se configura?"><p>Es un trabajo que ofrece tu imprenta, como impresión o anillado. Primero se crea su identidad en Catálogo base. Aquí definís el nombre que verá el cliente, el tiempo de preparación y si está habilitado.</p><p>La impresión toma su precio de las tarifas del paso 1. Las terminaciones suman su propio cargo, según la unidad de cobro elegida, y necesitan papeles compatibles con tarifa habilitada.</p><p>Para guardar necesitás al menos una tarifa y un servicio de impresión habilitados. Crear un servicio base no lo publica automáticamente.</p></CatalogInfo>
         {offers.length===0&&<p className="admin-empty">Agregá un servicio de impresión. Después incorporá las terminaciones que ofrezcas. Si falta un servicio, crealo en Catálogo base.</p>}
-        <div className="pricing-card-list">{offers.map((offer,index)=>{const service=catalog.servicios.find(s=>s.codigoPublico===offer.servicio),printing=service?.tipo==="IMPRESION";return <article className="pricing-entry pricing-offer" key={offer.id} id={offer.id} aria-label={`Servicio ofrecido ${index+1}`}>
+        <div className="pricing-card-list">{offers.map((offer,index)=>{const service=catalog.servicios.find(s=>s.codigoPublico===offer.servicio),printing=service?.tipo==="IMPRESION";const selectedPapers=new Set(offer.compatibilidades.filter(p=>p.formato&&p.papel).map(paperKey)),missingPapers=enabledPapers.filter(p=>!selectedPapers.has(paperKey(p))),totalPapers=selectedPapers.size+missingPapers.length,allSelected=missingPapers.length===0&&offer.compatibilidades.length===selectedPapers.size;return <article className="pricing-entry pricing-offer" key={offer.id} id={offer.id} aria-label={`Servicio ofrecido ${index+1}`}>
           <header><h3>Servicio {index+1}</h3><span className={`pricing-state ${offer.habilitado?"enabled":""}`}>{offer.habilitado?"Habilitado al guardar":"Deshabilitado"}</span><button type="button" className="admin-link-button" onClick={()=>{setSaved(null);setOffers(current=>current.filter(row=>row.id!==offer.id));}}>Quitar servicio {index+1}</button></header>
           <div className="pricing-fields pricing-service-fields">
             <CatalogSearchSelect label={`Servicio base ${index+1}`} options={catalog.servicios.map(s=>({value:s.codigoPublico,label:s.nombre,detail:`${s.codigo} · ${s.tipo==="IMPRESION"?"Impresión":"Terminación"}`}))} value={offer.servicio} disabled={locked} onChange={id=>chooseService(offer,id)} placeholder="Ej.: impresión, anillado o código"/>
@@ -129,6 +138,9 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
             </>}
           </div>
           {service&&!printing&&<fieldset className="pricing-compatibilities"><legend>Papeles compatibles con servicio {index+1}</legend><CatalogInfo title={`Compatibilidades de servicio ${index+1}`}><p>Indican en qué papeles y tamaños podés realizar esta terminación. No agregan otro precio. Para habilitar el servicio necesitás al menos una compatibilidad y una tarifa de impresión habilitada para cada papel elegido.</p></CatalogInfo>
+            <div className="configuration-actions"><button type="button" className="admin-button secondary" disabled={!enabledPapers.length||allSelected||totalPapers>300} onClick={()=>addAllCompatiblePapers(offer)}>Agregar todos los papeles</button></div>
+            <p className="admin-note">Agrega todos los papeles habilitados en Catálogo base, incluidas sus variantes, sin repetir los ya elegidos. Después podés quitar o cambiar cada compatibilidad. Se aplica sólo a este servicio y se publica al guardar la configuración.</p>
+            <p className="admin-note" role="status">{selectedPapers.size} papeles seleccionados.{enabledPapers.length===0?" Habilitá papeles en Catálogo base para agregarlos aquí.":allSelected?" Ya están incluidos todos los papeles habilitados.":""}{totalPapers>300&&" El conjunto supera el máximo de 300 compatibilidades por servicio; elegí los papeles individualmente."}</p>
             {offer.compatibilidades.length===0&&<p className="admin-note">Agregá al menos un papel compatible si vas a habilitar esta terminación.</p>}
             {offer.compatibilidades.map((pair,pairIndex)=><div className="pricing-pair" key={pair.id}><CatalogPaperSelect catalog={catalog} value={pair} disabled={locked} label={`Papel compatible ${pairIndex+1} de servicio ${index+1}`} onChange={p=>pairChange(offer,pair.id,p)}/><button type="button" className="admin-link-button" onClick={()=>changeOffer(offer.id,{compatibilidades:offer.compatibilidades.filter(p=>p.id!==pair.id)})}>Quitar compatibilidad {pairIndex+1} de servicio {index+1}</button>{pair.papel&&!rates.some(r=>r.habilitada&&r.papeles.some(p=>p.formato===pair.formato&&p.papel===pair.papel))&&<p className="pricing-wide admin-note">Este papel necesita una tarifa habilitada en el paso 1 para ofrecer la terminación.</p>}</div>)}
             <button type="button" className="admin-button secondary" disabled={offer.compatibilidades.length>=300||!catalog.papelesHabilitados.some(p=>p.habilitado)} onClick={()=>changeOffer(offer.id,{compatibilidades:[...offer.compatibilidades,{id:crypto.randomUUID(),formato:"",papel:""}]})}>+ Agregar papel compatible a servicio {index+1}</button>
