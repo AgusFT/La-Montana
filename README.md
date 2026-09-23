@@ -8,6 +8,8 @@ Los once criterios de aceptación del plan v5 están verificados para el piloto 
 
 La ampliación v6 está en implementación. El configurador operativo ya conserva el menú general en escritorio y móvil e incluye una guía en cada fase. Un borrador guarda el avance sin activar reglas: la activación se autoriza en el paso 7. Al salir de un formulario con cambios sin guardar se puede seguir editando o descartarlos; las solicitudes y autorizaciones pendientes se resuelven o revocan desde el formulario. Al recargar o cerrar la pestaña, el navegador advierte antes de abandonar cambios pendientes.
 
+El panel `/` explica el orden de instalación y permanece accesible con sesión iniciada. `/web` es el espacio público local: por ahora muestra la estructura sin contenido comercial. Antes del propietario, login y registro explican el requisito; después, las cuentas de clientes se pueden crear sin activar pedidos. El dashboard muestra un recorrido calculado con datos y validadores reales: distingue borrador/versión activa, requisitos pendientes y empleados opcionales, y ofrece reintento si falla la consulta. La edición y publicación web se incorporan en la siguiente entrega de v6.
+
 Este README es el único manual de producto. Describe el comportamiento vigente; los checkpoints históricos de cada entrega están en Git y en el plan de coordinación, fuera del producto.
 
 ## Arranque local

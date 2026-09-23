@@ -99,6 +99,22 @@ class RevisionConfiguracionIntegrationTest {
         for(String rol:List.of("CLIENTE","EMPLEADO","ADMIN_ADMIN")){String correo=rol.toLowerCase()+"-review@example.test";jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Interno','Test','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo=?",UUID.randomUUID(),correo,EMAIL,rol);var c=cliente();login(c,correo);status(get(c,review),403);status(post(c,review+"/simular",e),403);}
     }
 
+    @Test void mapaPreparacionReutilizaValidacionesYNoActivaBorrador()throws Exception{
+        var incompleta=get(admin,"/api/admin/preparacion");status(incompleta,200);
+        var antes=JSON.readTree(incompleta.body());assertThat(antes.get("activa").asBoolean()).isFalse();
+        assertThat(antes.get("pasos").get(3).get("completo").asBoolean()).isFalse();
+        preparar();String configuracionAntes=estado().toString();int eventos=contar("evento_configuracion");
+        var completa=JSON.readTree(get(admin,"/api/admin/preparacion").body());
+        for(int n=0;n<6;n++)assertThat(completa.get("pasos").get(n).get("completo").asBoolean()).isTrue();
+        assertThat(completa.get("pasos").get(3).get("estado").asString()).isEqualTo("Configurada en borrador");
+        assertThat(completa.get("pasos").get(6).get("completo").asBoolean()).isFalse();
+        assertThat(estado().toString()).isEqualTo(configuracionAntes);assertThat(contar("evento_configuracion")).isEqualTo(eventos);
+        publicar(null,"2",false,false);
+        var incompatible=JSON.readTree(get(admin,"/api/admin/preparacion").body());
+        assertThat(incompatible.get("pasos").get(2).get("completo").asBoolean()).isFalse();
+        assertThat(incompatible.get("pasos").get(2).get("detalle").asString()).contains("precio vigente");
+    }
+
     private void servicios(List<String> sucursales)throws Exception{var c=comando();c.put("metodoAsignacion","MANUAL");c.put("serviciosPorSucursal",sucursales.stream().map(s->Map.of("sucursal",s,"servicios",List.of(servicio))).toList());aceptar(put(admin,base()+"/recursos",c));}
     private Map<String,Object> dia(int dia,Boolean habilitado,String apertura,String cierre){var d=new HashMap<String,Object>();d.put("dia",dia);d.put("habilitado",habilitado);d.put("apertura",apertura);d.put("cierre",cierre);return d;}
     private List<Map<String,Object>> semana(String apertura,String cierre){var dias=new ArrayList<Map<String,Object>>();for(int d=1;d<=7;d++)dias.add(dia(d,d<=5,d<=5?apertura:null,d<=5?cierre:null));return dias;}

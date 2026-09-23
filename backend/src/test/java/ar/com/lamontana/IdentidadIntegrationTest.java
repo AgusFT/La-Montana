@@ -34,6 +34,8 @@ class IdentidadIntegrationTest {
             String oldCookie;
             try (var app = iniciar(pg, files)) {
                 assertThat(get(client, "/api/setup/estado").body()).contains("\"requierePropietario\":true");
+                assertThat(get(client,"/api/sistema/estado").body()).contains("\"accesoDisponible\":false", "\"operacionDisponible\":false");
+                assertThat(get(client,"/api/admin/preparacion").statusCode()).isEqualTo(401);
                 assertThat(get(client, "/api/auth/me").statusCode()).isEqualTo(401);
                 assertThat(post(client, "/api/setup/propietario", alta(TOKEN), "application/json", null).statusCode()).isEqualTo(403);
                 String csrf = csrf(client);
@@ -59,6 +61,11 @@ class IdentidadIntegrationTest {
                 assertThat(get(client, "/api/auth/me").body()).contains("ADMIN_ADMIN", "admin@example.test").doesNotContain("hash_contrasena", PASSWORD);
                 assertThat(get(client, "/api/admin/estado").statusCode()).isEqualTo(200);
                 assertThat(get(client, "/api/admin/sucursales").body()).isEqualTo("[]");
+                assertThat(get(client,"/api/sistema/estado").body()).contains("\"accesoDisponible\":true", "\"operacionDisponible\":false", "CONFIGURACION_PENDIENTE");
+                var preparacion=JSON.readTree(get(client,"/api/admin/preparacion").body());
+                assertThat(preparacion.get("origen").asString()).isEqualTo("SIN_CONFIGURACION");
+                assertThat(preparacion.get("pasos").get(0).get("completo").asBoolean()).isTrue();
+                for(int n=1;n<7;n++)assertThat(preparacion.get("pasos").get(n).get("completo").asBoolean()).isFalse();
                 String adminCsrf = csrf(client);
                 assertThat(post(client, "/api/admin/sucursales", sucursal("CENTRO"), "application/json", null).statusCode()).isEqualTo(403);
                 assertThat(post(client, "/api/admin/sucursales", sucursal("CENTRO"), "application/json", adminCsrf).statusCode()).isEqualTo(201);
@@ -81,6 +88,7 @@ class IdentidadIntegrationTest {
                 assertThat(post(cliente, "/api/auth/login", "username=CLIENTE%40EXAMPLE.TEST&password=" + PASSWORD, "application/x-www-form-urlencoded", clienteCsrf).statusCode()).isEqualTo(200);
                 assertThat(get(cliente, "/api/auth/me").body()).contains("\"rol\":\"CLIENTE\"", "cliente@example.test").doesNotContain("admin@example.test");
                 assertThat(get(cliente, "/api/admin/estado").statusCode()).isEqualTo(403);
+                assertThat(get(cliente,"/api/admin/preparacion").statusCode()).isEqualTo(403);
                 assertThat(get(cliente, "/api/admin/sucursales").statusCode()).isEqualTo(403);
                 assertThat(post(cliente, "/api/admin/sucursales", sucursal("OTRA"), "application/json", csrf(cliente)).statusCode()).isEqualTo(403);
                 assertThat(get(cliente, "/api/cliente/estado").statusCode()).isEqualTo(200);

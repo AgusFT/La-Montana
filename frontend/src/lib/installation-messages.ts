@@ -1,0 +1,2 @@
+export const installationRequired="Todavía no se instaló ninguna imprenta: primero hay que crear al propietario. Desde Preparar instalación, el responsable puede completar ese paso. Después se habilitan el registro de clientes y el acceso de las cuentas creadas.";
+export const operationPending="Ya podés crear tu cuenta o iniciar sesión. La imprenta todavía está preparando sus servicios y condiciones; los pedidos estarán disponibles cuando active su configuración.";

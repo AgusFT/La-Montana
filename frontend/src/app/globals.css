@@ -11,3 +11,5 @@
 
 /* Las descripciones de estado pueden ocupar varias líneas en un teléfono. */
 @media(max-width:600px){.capabilities dd{white-space:normal;max-width:100%;overflow-wrap:anywhere}}
+
+.installation-order{padding-left:22px;margin:22px 0}.installation-order li{padding-left:6px;margin:16px 0;line-height:1.8;font-size:14px}.installation-order strong{display:block}

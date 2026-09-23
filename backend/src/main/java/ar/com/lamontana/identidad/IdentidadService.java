@@ -67,7 +67,7 @@ public class IdentidadService implements UserDetailsService {
     @Transactional
     public void registrarCliente(IdentidadController.RegistroCliente registro) {
         if (estado().requierePropietario()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "La imprenta todavía no habilitó el registro.");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Todavía no se instaló ninguna imprenta: primero hay que crear al propietario desde Preparar instalación. Después se habilita el registro de clientes.");
         }
         var ids = jdbc.query("""
                 INSERT INTO lamontana.usuario

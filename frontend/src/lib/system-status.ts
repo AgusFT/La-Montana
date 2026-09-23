@@ -3,10 +3,10 @@ import "server-only";
 export type SystemStatus = {
   producto: "La Montaña";
   version: "0.1.0";
-  etapa: "IDENTIDAD_INICIAL";
-  accesoDisponible: true;
-  configuracionDisponible: false;
-  operacionDisponible: false;
+  etapa: "IDENTIDAD_INICIAL" | "CONFIGURACION_PENDIENTE" | "OPERATIVA";
+  accesoDisponible: boolean;
+  configuracionDisponible: boolean;
+  operacionDisponible: boolean;
 };
 
 type StatusResult =
@@ -19,10 +19,10 @@ function isSystemStatus(value: unknown): value is SystemStatus {
   return (
     data.producto === "La Montaña" &&
     data.version === "0.1.0" &&
-    data.etapa === "IDENTIDAD_INICIAL" &&
-    data.accesoDisponible === true &&
-    data.configuracionDisponible === false &&
-    data.operacionDisponible === false
+    ["IDENTIDAD_INICIAL","CONFIGURACION_PENDIENTE","OPERATIVA"].includes(String(data.etapa)) &&
+    typeof data.accesoDisponible === "boolean" &&
+    typeof data.configuracionDisponible === "boolean" &&
+    typeof data.operacionDisponible === "boolean"
   );
 }
 

@@ -31,7 +31,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/contrasena", "/api/auth/correo/solicitar", "/api/auth/correo/confirmar").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/admin/estado").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/estado", "/api/admin/preparacion").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/sucursales/*", "/api/admin/empleados/*").hasRole("ADMIN_ADMIN")

@@ -33,11 +33,17 @@ public class RevisionConfiguracionService {
     public Revision revisarProgramada(UUID codigo,String correo){return evaluar(codigo,correo,true);}
     Revision evaluar(UUID codigo,String correo,boolean programada){return evaluar(codigo,correo,programada,false);}
     Revision evaluarHistorica(UUID codigo,String correo){return evaluar(codigo,correo,false,true);}
-    private Revision evaluar(UUID codigo,String correo,boolean programada,boolean historica){
+    private Revision evaluar(UUID codigo,String correo,boolean programada,boolean historica){return evaluar(codigo,correo,programada,historica,false);}
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Revision revisarPreparacion(UUID codigo,String correo){
+        var b=configuracion.cargar(codigo);
+        return evaluar(codigo,correo,b.estado().equals("PROGRAMADA"),false,b.estado().equals("ACTIVA"));
+    }
+    private Revision evaluar(UUID codigo,String correo,boolean programada,boolean historica,boolean vigente){
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);var comercial=catalogo.leerEstado();var h=new ArrayList<Hallazgo>();
         var sucursales=jdbc.query("SELECT codigo_publico,nombre,estado='ACTIVA' FROM lamontana.sucursal ORDER BY codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getBoolean(3)));
-        if(!b.estado().equals(historica?"HISTORICA":programada?"PROGRAMADA":"EN_PREPARACION"))bloqueo(h,"BORRADOR_NO_EDITABLE","modelo",1,"Sólo una configuración en preparación puede revisarse para activar.",null);
-        if(b.copia()!=null&&!programada&&!historica)for(int fase=2;fase<=5;fase++)if(!b.copia().fasesConfirmadas().contains(fase))bloqueo(h,"RECONFIRMAR_FASE_"+fase,switch(fase){case 2->"modelo";case 3->"pagos";case 4->"recursos";default->"horarios";},fase,"La copia requiere revisar y guardar nuevamente la fase "+fase+".",null);
+        if(!b.estado().equals(vigente?"ACTIVA":historica?"HISTORICA":programada?"PROGRAMADA":"EN_PREPARACION"))bloqueo(h,"BORRADOR_NO_EDITABLE","modelo",1,"Sólo una configuración en preparación puede revisarse para activar.",null);
+        if(b.copia()!=null&&!programada&&!historica&&!vigente)for(int fase=2;fase<=5;fase++)if(!b.copia().fasesConfirmadas().contains(fase))bloqueo(h,"RECONFIRMAR_FASE_"+fase,switch(fase){case 2->"modelo";case 3->"pagos";case 4->"recursos";default->"horarios";},fase,"La copia requiere revisar y guardar nuevamente la fase "+fase+".",null);
         if(b.modelo()==null)bloqueo(h,"MODELO_PENDIENTE","modelo",2,"Elegí el modelo operativo y su condición para definir el recorrido de aprobación.",null);
         if(b.pagos()==null)bloqueo(h,"PAGOS_PENDIENTES","pagos",3,"Completá medios, vigencia y parámetros financieros antes de cotizar.",null);
         else if(b.modelo()!=null)try{pagos.comprobar(b);}catch(ResponseStatusException ex){bloqueo(h,"PAGOS_INCOMPATIBLES","pagos",3,ex.getReason(),null);}
@@ -45,7 +51,7 @@ public class RevisionConfiguracionService {
         var activas=new HashSet<UUID>();sucursales.stream().filter(Sucursal::activa).forEach(s->activas.add(s.codigoPublico()));
         var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")&&activas.contains(p.sucursal())).toList();
         if(impresoras.isEmpty())bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar una impresora Operativa en una sucursal activa es obligatorio. No necesita conexión CUPS.",null);
-        var entregaActual=historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
+        var entregaActual=vigente?entrega.evaluarVigente(codigo,correo):historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
         for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
         for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","MODALIDAD_SIN_DESTINO","entrega",5,aviso,null));
         var opciones=OpcionesImpresion.calcular(b,comercial,activas);var revision=comercial.actual();

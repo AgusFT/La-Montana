@@ -62,6 +62,7 @@ public class EntregaConfiguracionService {
         return evaluar(codigo,correo,false);
     }
     Validacion evaluar(UUID codigo,String correo,boolean programada){return evaluarEstado(codigo,correo,programada?"PROGRAMADA":"EN_PREPARACION");}
+    Validacion evaluarVigente(UUID codigo,String correo){return evaluarEstado(codigo,correo,"ACTIVA");}
     Validacion evaluarHistorica(UUID codigo,String correo){return evaluarEstado(codigo,correo,"HISTORICA");}
     private Validacion evaluarEstado(UUID codigo,String correo,String estado){
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);var e=b.entrega();var problemas=new ArrayList<Problema>();var avisos=new ArrayList<String>();

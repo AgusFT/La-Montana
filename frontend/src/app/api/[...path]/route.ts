@@ -3,6 +3,7 @@ import { uuidPattern } from "@/lib/organization-types";
 const allowed: Record<string, readonly string[]> = {
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
+  "admin/preparacion": ["GET"], "sistema/estado": ["GET"],
   "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
   "admin/puntos-entrega/disponibilidad": ["GET"],
