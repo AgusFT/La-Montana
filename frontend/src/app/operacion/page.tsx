@@ -21,7 +21,7 @@ export default async function OperationPage() {
         {context.sucursales.length === 0 ? <p className="empty-note">No hay sucursales activas habilitadas para tu cuenta.</p> : context.sucursales.map(branch => <article className="branch-card" key={branch.codigoPublico}><h3>{branch.nombre}</h3><p>{branch.calle} {branch.numero}, {branch.localidad}</p><a className="secondary-link" href={`/operacion/sucursales/${branch.codigoPublico}`}>Ver sucursal</a></article>)}
       </section>
       <h2>Permisos asignados</h2>{context.permisos.length ? <ul className="permission-list">{context.permisos.map(permission => <li key={permission}>{permissionLabels[permission]}</li>)}</ul> : <p className="empty-note">Sin permisos de pagos y cobros asignados.</p>}
-      <p className="empty-note">La revisión operativa, producción, calidad y entrega siguen en construcción.</p>
+      <p className="empty-note">Revisión, correcciones, producción manual y calidad están disponibles desde los pedidos de cada sucursal. La logística y entrega efectiva siguen en construcción.</p>
     </>}
     <div className="page-actions">{session.profile.rol === "ADMIN_ADMIN" && <a className="secondary-link" href="/administracion">Volver a administración</a>}<a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a><LogoutButton /></div>
   </IdentityShell>;

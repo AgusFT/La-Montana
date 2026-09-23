@@ -94,7 +94,7 @@ public class RevisionPedidoService {
  }
  private String bloqueo(PedidoService.Detalle d,Estado e,Accion accion,boolean permiso){
   if(!permiso)return "Se requiere el permiso de gestión de pedidos en esta sucursal.";
-  if(!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO").contains(d.estado()))return "El pedido terminó su recorrido operativo. Se conservan el historial, los archivos y los pagos.";
+  if(!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO").contains(d.estado()))return Set.of("EN_PRODUCCION","LISTO_PARA_ENTREGA").contains(d.estado())?"La producción ya comenzó. La revisión y la cancelación directa están cerradas.":"El pedido terminó su recorrido operativo. Se conservan el historial, los archivos y los pagos.";
   if((accion==Accion.REVISAR||accion==Accion.APROBAR)&&!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,d.oferta().sucursal().codigoPublico()))return "La sucursal está desactivada. No admite revisión ni aprobación; el administrador conserva consulta, notas y cancelación.";
   if(d.estado().equals("CORRECCION_SOLICITADA")&&(accion==Accion.REVISAR||accion==Accion.APROBAR))return "Esperá la respuesta explícita del cliente a la corrección solicitada.";
   return switch(accion){

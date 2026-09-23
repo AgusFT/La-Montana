@@ -2,7 +2,7 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 32
+## Estado actual · entrega 33
 
 Funcionan el alta única del propietario sin credenciales predeterminadas, registro de particulares, acceso/sesiones y recuperación por correo local; sucursales, empleados y permisos; catálogo y tarifas con revisiones propias; y configurador de fases 1–8 con validación, simulación, activación inmediata/programada, cancelación, historial/comparación, uso como base y reversión auditable. Las capacidades de impresión se declaran para operación manual, sin CUPS. La Fase 5 incluye horarios y franjas de retiro con cupos explícitos por sucursal, además de puntos y zonas domiciliarias.
 
@@ -18,7 +18,9 @@ El cliente puede guardar cotizaciones de varios PDF, recuperar su historial, ace
 
 **También funcionan las correcciones del pedido:** solicitud interna, respuesta del cliente, nuevas versiones de PDF aceptadas, corrección de contacto y cotización sucesora aceptada para cambios materiales. El pedido y su historia se conservan; el traslado de dinero es explícito y autorizado.
 
-**Siguen En construcción:** producción/calidad, reprogramación y entregas/cierre; adjuntos de referencia opcionales del interno en una corrección. Las variantes manual y D1 permiten cargar según sus reglas, sin exigir la seña antes de la revisión. La aceptación de una oferta o preview no crea un pedido ni acredita dinero. No hay cuentas, precios ni reglas comerciales precargados. Compose está preparado, pero su ejecución y persistencia conjunta aún no están certificadas en este equipo.
+**Funcionan producción manual y calidad:** inicio con cobertura del anticipo, fin/error/cancelación del trabajo, checklist físico y reimpresión enlazada. Cada ítem conserva su PDF confirmado, operador e inspecciones. Todos los ítems deben superar calidad antes de quedar listos para entregar o despachar.
+
+**Siguen En construcción:** reprogramación y entregas/cierre; adjuntos de referencia opcionales del interno en una corrección. Las variantes manual y D1 permiten cargar según sus reglas, sin exigir la seña antes de la revisión. La aceptación de una oferta o preview no crea un pedido ni acredita dinero. No hay cuentas, precios ni reglas comerciales precargados. Compose está preparado, pero su ejecución y persistencia conjunta aún no están certificadas en este equipo.
 
 Las secciones por entrega conservan el historial técnico; los pendientes indicados en una entrega anterior se interpretan según este estado actual y las entregas posteriores.
 
@@ -648,3 +650,20 @@ Validación: doce casos distintos aprobados, cinco nuevos de correcciones y siet
 Build/typecheck final aprobado. Chrome → Next → Spring → PostgreSQL → Mailpit → ClamAV real verificó instalación vacía y tres pedidos; solicitud/reemplazo de PDF con respuesta perdida recuperada, nueva revisión y aprobación; cambio de páginas/copias con recotización aceptada y aplicación del dinero existente; y corrección de contacto domiciliario sin cambiar PDF ni precio. Los mismos pedidos se conservaron en recargas y durante la pasada final. Formularios y detalle se revisaron en 1536/390 px, sin desbordes ni errores JS/5xx; MC-ADM-003 guió las columnas de trabajo/mensaje y acciones rojas/verdes. La fidelidad integral del resto de la operación se verifica al cerrar el objetivo completo.
 
 **Siguiente paso:** producción manual con permiso y cobertura financiera antes de iniciar; finalización de trabajos, checklist de calidad y reimpresión, sin eventos ficticios de CUPS. Después reprogramación y recorridos completos de retiro, punto y domicilio, código/saldo/entrega/cierre, arranque conjunto y verificación E2E de los once criterios. La demo completa sigue en implementación.
+
+
+## Producción manual y calidad · entrega 33
+
+En **Operación → sucursal → pedido**, el personal registra los hechos físicos del taller. El administrador tiene acceso; a cada empleado se le otorgan explícitamente **Registrar producción manual** y/o **Controlar calidad**, además de sus sucursales. No hace falta darle permisos financieros para producir o inspeccionar.
+
+1. Revisar y aprobar el pedido cuando sus condiciones lo requieran. Iniciar exige aprobación y dinero acreditado **y aplicado** que cubra el anticipo por los medios admitidos, tanto al cotizar como al confirmar la última versión del trabajo. Una seña D1 se exige después de aprobar. No se incorpora ninguna regla comercial fija.
+2. Elegir un ítem completo y una impresora compatible declarada en la versión del pedido, o **Recurso manual fuera del inventario**, indicando el recurso y motivo. El PDF se verifica contra el original privado confirmado. El sistema no afirma conectividad ni envía comandos a CUPS.
+3. Registrar el trabajo terminado, un error o su cancelación. Cancelar el trabajo conserva el pedido, su reserva y el dinero recibido. Un error/cancelación permite otro intento explícito, siempre revalidando cobertura y PDF. No se dividen las copias del ítem.
+4. Inspeccionar físicamente y completar los cinco controles: impresión completa, calidad, alineación, orden y terminaciones/opcionales. Para aprobar deben estar todos marcados; la observación y la confirmación del hecho son obligatorias. Reimpresión/incidencia conservan el control fallido y habilitan un nuevo intento enlazado, sin cambiar el precio. No se marca ningún control por defecto.
+5. Cuando la última inspección de cada ítem está aprobada, retiro local muestra **Listo para entregar**; punto/domicilio muestran **Listo para despachar**. La reserva sigue activa. El código, traslado, entrega efectiva, saldo exigible y cierre se implementan en el siguiente bloque: superar calidad no los registra.
+
+La consulta puede recuperar una operación cuya respuesta se perdió. Reintentos conservan los permisos actuales; versiones y bloqueos transaccionales impiden dos trabajos activos por ítem. Las observaciones/recursos/inspectores internos no se publican al cliente; su historial muestra hechos públicos. Si se registra una devolución durante un trabajo, se conservan los hechos físicos ya realizados y un inicio/reimpresión posterior vuelve a exigir cobertura.
+
+**Adaptación del DER:** V31 agrega trabajo_impresion, historial_trabajo_impresion y control_calidad. El trabajo referencia pedido + cotizacion_item + archivo/aceptación de pedido_archivo_actual, en lugar de depender sólo del pedido_item original: así respeta las respuestas corregidas de V30. Reimpresiones e intentos tras error/cancelación apuntan a su predecesor sin borrarlo. Modo MANUAL; estados técnicos IMPRIMIENDO/COMPLETADO/ERROR/CANCELADO. Una inspección inmutable por intento, cinco controles explícitos y un evento atómico de pedido por acción. LISTO_PARA_ENTREGA es el estado técnico común; el texto visible distingue retiro de despacho, todavía sin viaje. No se crean entidades ficticias de agentes/CUPS.
+
+**Verificación de este bloque:** seis casos de integración con PostgreSQL real, HTTP, SMTP e inspector PDF (antivirus controlado por protocolo en pruebas), incluyendo D1/cobertura, dinero sin aplicar, permisos/CSRF/sucursales, revocación, carrera de inicios, rollback, versiones, PDF corregido/integridad, reimpresión/error/cancelación, varios ítems y reinicio. Dos de ellos son regresiones de revisión/corrección. Build y typecheck del frontend aprobados. Navegador con Next/Spring/PostgreSQL/Mailpit/ClamAV real desde instalación vacía: retiro/punto/domicilio hasta calidad, recurso declarado y excepción manual, reimpresión, respuesta perdida recuperada, checklist sin valores iniciales y filtros. Vistas 1536/390 comparadas con MC-ADM-006/007; calidad conserva los paneles de detalles, checklist y resultado, acciones rojas/verdes y encabezado azul. La certificación E2E completa sigue pendiente de entregas/cierre y arranque persistente.
