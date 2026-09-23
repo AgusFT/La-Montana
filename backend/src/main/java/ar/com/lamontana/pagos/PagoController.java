@@ -1,3 +1,51 @@
+//#region ENCABEZADO · PagoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: PagoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone consultas financieras y acciones para informar, descartar, recibir, aplicar y devolver
+ * pagos de cotizaciones y pedidos.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PagoController(PagoService pagos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] PagoService.Vista vista(UUID quote, Principal actor, HttpServletRequest req)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/cotizaciones/{quote}/pagos,
+ *   /api/operacion/cotizaciones/{quote}/pagos.
+ * - [paquete] PagoService.Bandeja bandeja(UUID branch, int pagina, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/sucursales/{branch}/pagos.
+ * - [paquete] PagoService.Vista informar(UUID quote, Informar in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/cotizaciones/{quote}/pagos/informar.
+ * - [paquete] PagoService.Vista descartar(UUID quote, Descartar in, Principal actor,
+ *   HttpServletRequest req)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/cotizaciones/{quote}/pagos/descartar,
+ *   /api/operacion/cotizaciones/{quote}/pagos/descartar.
+ * - [paquete] PagoService.Vista recibir(UUID quote, Recibir in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/cotizaciones/{quote}/pagos/recibir.
+ * - [paquete] PagoService.Vista aplicar(UUID quote, Aplicar in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/cotizaciones/{quote}/pagos/aplicar.
+ * - [paquete] PagoService.Vista devolver(UUID quote, Devolver in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/cotizaciones/{quote}/pagos/devolver.
+ * - [private] boolean interno(HttpServletRequest req)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PagoController (clase).
+ * - PagoController.Informar (record).
+ * - PagoController.Descartar (record).
+ * - PagoController.Recibir (record).
+ * - PagoController.Aplicar (record).
+ * - PagoController.Devolver (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pagos;
 
 import ar.com.lamontana.configuracion.ConfiguracionController.MedioPago;

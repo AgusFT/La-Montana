@@ -1,3 +1,55 @@
+//#region ENCABEZADO · HistorialConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: HistorialConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta y compara configuraciones guardadas y su auditoría, con filtros, paginación y control
+ * de acceso. Reconstruye referencias y diferencias sin modificar las versiones consultadas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] HistorialConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] void permiso(String correo)
+ * - [private] void pagina(int n)
+ * - [public] Listado listar(String buscar, String estado, String orden, int pagina, String correo)
+ * - [private] Fila fila(ResultSet r, int n) throws SQLException
+ * - [private] Fila fila(UUID id)
+ * - [public] Detalle detalle(UUID id, String correo)
+ * - [private] Detalle leerDetalle(UUID id, String correo)
+ * - [private] Base base(Fila f, String correo)
+ * - [private] Actor actor(String tabla, UUID id)
+ * - [private] Referencia referencia(String sql, Object[] args)
+ * - [private] Modulo modulo(String codigo, String titulo, Object valores)
+ * - [private] Map<String, String> referencias()
+ * - [public] Comparacion comparar(UUID origen, UUID destino, String correo)
+ * - [private] String canonico(JsonNode n)
+ * - [public] Pagina<Evento> auditoria(UUID id, int pagina, String correo)
+ * - [private] Instant fecha(ResultSet r, String campo) throws SQLException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - HistorialConfiguracionService (clase).
+ * - HistorialConfiguracionService.Actor (record).
+ * - HistorialConfiguracionService.Referencia (record).
+ * - HistorialConfiguracionService.Fila (record).
+ * - HistorialConfiguracionService.Pagina (record).
+ * - HistorialConfiguracionService.Listado (record).
+ * - HistorialConfiguracionService.Modulo (record).
+ * - HistorialConfiguracionService.Base (record).
+ * - HistorialConfiguracionService.Detalle (record).
+ * - HistorialConfiguracionService.Evento (record).
+ * - HistorialConfiguracionService.Seccion (record).
+ * - HistorialConfiguracionService.Comparacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.sql.*;

@@ -1,3 +1,64 @@
+//#region ENCABEZADO · ArchivoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ArchivoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone las operaciones HTTP de carga, consulta, aceptación, descarga y vista previa de PDF de
+ * cotizaciones, para clientes y personal autorizado.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ArchivoController(ArchivoService archivos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] ArchivoService.Bandeja bandeja(UUID branch, int pagina, Principal principal)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/sucursales/{branch}/archivos.
+ * - [paquete] ArchivoService.Vista listar(UUID quote, Principal principal, HttpServletRequest
+ *   request)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/cotizaciones/{quote}/archivos,
+ *   /api/operacion/cotizaciones/{quote}/archivos.
+ * - [paquete] ArchivoService.Archivo consultar(UUID quote, UUID file, Principal principal,
+ *   HttpServletRequest request)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/cotizaciones/{quote}/archivos/{file},
+ *   /api/operacion/cotizaciones/{quote}/archivos/{file}.
+ * - [paquete] ArchivoService.Acceso habilitada(UUID quote, UUID file, Principal principal)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/cotizaciones/{quote}/archivos/{file}/carga.
+ * - [paquete] ArchivoService.Archivo crear(UUID quote, Inicio in, Principal principal)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/cotizaciones/{quote}/archivos.
+ * - [paquete] ArchivoService.Archivo cargar(UUID quote, UUID file, Principal principal,
+ *   HttpServletRequest request) throws IOException
+ *   Entrada HTTP PUT · ruta del método:
+ *   /api/cliente/cotizaciones/{quote}/archivos/{file}/contenido.
+ * - [paquete] ArchivoService.Archivo aceptar(UUID quote, UUID file, Aceptacion in, Principal
+ *   principal)
+ *   Entrada HTTP POST · ruta del método:
+ *   /api/cliente/cotizaciones/{quote}/archivos/{file}/aceptar.
+ * - [paquete] ResponseEntity<byte[]> original(UUID quote, UUID file, Principal principal,
+ *   HttpServletRequest request)
+ *   Entrada HTTP GET · ruta del método:
+ *   /api/cliente/cotizaciones/{quote}/archivos/{file}/original,
+ *   /api/operacion/cotizaciones/{quote}/archivos/{file}/original.
+ * - [paquete] ResponseEntity<byte[]> preview(UUID quote, UUID file, int page, Principal principal,
+ *   HttpServletRequest request)
+ *   Entrada HTTP GET · ruta del método:
+ *   /api/cliente/cotizaciones/{quote}/archivos/{file}/paginas/{page},
+ *   /api/operacion/cotizaciones/{quote}/archivos/{file}/paginas/{page}.
+ * - [private] boolean interno(HttpServletRequest request)
+ * - [private] ResponseEntity<byte[]> respuesta(ArchivoService.Contenido content, boolean download)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ArchivoController (clase).
+ * - ArchivoController.Inicio (record).
+ * - ArchivoController.Aceptacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.archivos;
 
 import jakarta.servlet.http.HttpServletRequest;

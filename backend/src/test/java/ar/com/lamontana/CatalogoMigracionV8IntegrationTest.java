@@ -1,3 +1,32 @@
+//#region ENCABEZADO · CatalogoMigracionV8IntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: CatalogoMigracionV8IntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba que migrar un catálogo poblado de V7 a V8 conserva las configuraciones guardadas y los
+ * comprobantes idempotentes anteriores.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void migrarV7PobladaConservaSnapshotsYComprobantesIdempotentesAnteriores() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] void insertarRevisionV7(JdbcTemplate jdbc, UUID codigo, String comando, boolean
+ *   vigente, Instant creada, long actor) throws Exception
+ * - [private] String solicitudAnterior(UUID base, UUID operacion, String precio, String
+ *   terminacion)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogoMigracionV8IntegrationTest (clase).
+ * - CatalogoMigracionV8IntegrationTest.Transacciones (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

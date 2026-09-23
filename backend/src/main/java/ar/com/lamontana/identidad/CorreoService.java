@@ -1,3 +1,31 @@
+//#region ENCABEZADO · CorreoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CorreoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Envía códigos de verificación por SMTP usando el remitente configurado y transforma fallos de
+ * envío en una excepción controlada.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CorreoService(JavaMailSender sender, String remitente)
+ * - [public] CorreoNoDisponible :: CorreoNoDisponible()
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] void enviarCodigo(String destino, String asunto, String token)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CorreoService (clase).
+ * - CorreoService.CorreoNoDisponible (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import org.springframework.beans.factory.annotation.Value;

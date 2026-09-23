@@ -1,3 +1,44 @@
+//#region ENCABEZADO · RollbackConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: RollbackConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la revisión, solicitud, confirmación y revocación de una reversión manual hacia una
+ * configuración operativa anterior.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RollbackConfiguracionController(RollbackConfiguracionService rollback,
+ *   ConfiguracionService configuracion, CatalogoService catalogo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] void preparar(String correo)
+ * - [public] RollbackConfiguracionService.Revision revisar(Principal actor)
+ *   Entrada HTTP GET · ruta del método: /revision.
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(Solicitar in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /solicitar.
+ * - [public] RollbackConfiguracionService.Resultado confirmar(Confirmar in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /confirmar.
+ * - [public] Map<String, String> revocar(Revocar in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /revocar.
+ * - [public] Solicitar :: String toString()
+ * - [public] Confirmar :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RollbackConfiguracionController (clase).
+ * - RollbackConfiguracionController.Decision (record).
+ * - RollbackConfiguracionController.Solicitar (record).
+ * - RollbackConfiguracionController.Confirmar (record).
+ * - RollbackConfiguracionController.Revocar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.CatalogoService;

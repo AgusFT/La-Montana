@@ -1,3 +1,36 @@
+//#region ENCABEZADO · ErroresIdentidad.java
+/*
+ * ========================================================================
+ * ARCHIVO: ErroresIdentidad.java
+ * ========================================================================
+ * FUNCIÓN
+ * Traduce errores de formato, validación, conflicto, correo y estado HTTP en respuestas JSON
+ * controladas para los clientes de la API.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] ResponseEntity<Map<String, String>>
+ *   formato(org.springframework.http.converter.HttpMessageNotReadableException ex)
+ *   Convierte la excepción indicada en una respuesta HTTP controlada.
+ * - [paquete] ResponseEntity<Map<String, String>>
+ *   conflicto(org.springframework.dao.DataIntegrityViolationException ex)
+ *   Convierte la excepción indicada en una respuesta HTTP controlada.
+ * - [paquete] ResponseEntity<Map<String, String>> correo(CorreoService.CorreoNoDisponible ex)
+ *   Convierte la excepción indicada en una respuesta HTTP controlada.
+ * - [paquete] ResponseEntity<Map<String, String>> estado(ResponseStatusException ex)
+ *   Convierte la excepción indicada en una respuesta HTTP controlada.
+ * - [paquete] ResponseEntity<Map<String, String>> validacion(MethodArgumentNotValidException ex)
+ *   Convierte la excepción indicada en una respuesta HTTP controlada.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ErroresIdentidad (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import java.util.Map;

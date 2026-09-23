@@ -1,3 +1,38 @@
+//#region ENCABEZADO · EvaluadorFranjasTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: EvaluadorFranjasTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el cálculo de franjas, límites de apertura y cierre, capacidad y cambios de horario o
+ * fecha local entre zonas horarias.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] PuntoEntregaController.Franja franja(int dia, String a, String c, int cupo, boolean
+ *   habilitada)
+ * - [private] EvaluadorFranjas.Ventana calcular(String llegada, String zona,
+ *   List<PuntoEntregaController.Franja> franjas)
+ * - [paquete] void aperturaInclusivaCierreExclusivoContiguasCupoCeroYFinDeSemana()
+ *   Caso de prueba.
+ * - [paquete] void saltoDstOmiteHorasInexistentesSinDesplazarArtificialmenteLaApertura()
+ *   Caso de prueba.
+ * - [paquete] void retrocesoDstNoSuperponeFranjasNiConsumeTiempoCerradoEntreOcurrencias()
+ *   Caso de prueba.
+ * - [paquete] void cupoCivilOcupadoOmiteAmbasOcurrenciasDst()
+ *   Caso de prueba.
+ * - [paquete] void destinoConOtroDiaCivilYFechaSaltadaPorCambioDeZona()
+ *   Caso de prueba.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EvaluadorFranjasTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

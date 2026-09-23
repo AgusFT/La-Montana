@@ -1,3 +1,36 @@
+//#region ENCABEZADO · InspectorPdf.java
+/*
+ * ========================================================================
+ * ARCHIVO: InspectorPdf.java
+ * ========================================================================
+ * FUNCIÓN
+ * Ejecuta la inspección y generación de vistas previas de PDF en un proceso Java separado, con
+ * límites de recursos, tiempo y concurrencia.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] InspectorPdf(String jar)
+ * - [public] Rechazado :: Rechazado(String codigo, String message)
+ * - [public] NoDisponible :: NoDisponible(String message)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] int inspeccionar(Path input, Path result) throws IOException
+ * - [public] void preview(Path input, Path output, int page) throws IOException
+ * - [private] void ejecutar(String operation, Path input, Path output, int page, Duration limit)
+ *   throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - InspectorPdf (clase).
+ * - InspectorPdf.Rechazado (clase).
+ * - InspectorPdf.NoDisponible (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.archivos;
 
 import java.io.IOException;

@@ -1,3 +1,50 @@
+//#region ENCABEZADO · ConfiguracionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba creación y selección del borrador operativo, validaciones, idempotencia, permisos,
+ * concurrencia, fallos atómicos y persistencia.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [paquete] void borradorVacioSeleccionValidadaIdempotenciaPermisosYPersistencia() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comandosDistintosConcurrentesYFallosAtomicosNoDuplicanNiConsumenComprobantes()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] void fallarEventos()
+ * - [private] void quitarFalla()
+ * - [private] Map<String, Object> seleccion(long version, String modelo, String criterio)
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> enviar(HttpClient c, String metodo, String path, Object data)
+ *   throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

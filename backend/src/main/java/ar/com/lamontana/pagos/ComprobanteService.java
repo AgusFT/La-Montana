@@ -1,3 +1,53 @@
+//#region ENCABEZADO · ComprobanteService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ComprobanteService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Administra el ciclo de los comprobantes financieros privados: autorización, carga, inspección,
+ * antivirus, contenido y trazabilidad, sin convertir un archivo adjunto en dinero acreditado.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ComprobanteService(JdbcTemplate jdbc, PlatformTransactionManager manager, PagoService
+ *   pagos, ArchivosPrivados storage, Antivirus antivirus, InspectorPdf inspector)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Lista listar(UUID quote, UUID intento, UUID pago, int pagina, String correo, boolean
+ *   interno)
+ * - [public] Archivo consultar(UUID quote, UUID file, String correo, boolean interno)
+ * - [public] Carga puedeEnviar(UUID quote, UUID file, String correo, boolean interno)
+ * - [public] Archivo crear(UUID quote, ComprobanteController.Inicio in, String correo, boolean
+ *   interno)
+ * - [public] Archivo recibir(UUID quote, UUID file, String correo, boolean interno, InputStream
+ *   input, long declaredLength)
+ * - [public] ArchivoService.Contenido contenido(UUID quote, UUID file, Integer page, String
+ *   correo, boolean interno)
+ * - [private] Registro registro(UUID quote, UUID file, String correo, boolean interno)
+ * - [private] Carga carga(Registro r)
+ * - [private] void exigirEscritura(PagoService.AccesoComprobante c)
+ * - [private] void validacion(UUID file, String type, String result, String motor, String version,
+ *   String code)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] ResponseStatusException conflicto(String msg)
+ * - [private] ResponseStatusException error(HttpStatus status, String msg)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ComprobanteService (clase).
+ * - ComprobanteService.Archivo (record).
+ * - ComprobanteService.Lista (record).
+ * - ComprobanteService.Carga (record).
+ * - ComprobanteService.Registro (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pagos;
 
 import ar.com.lamontana.archivos.*;

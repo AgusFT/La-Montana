@@ -1,3 +1,31 @@
+//#region ENCABEZADO · ZonasRepositorio.java
+/*
+ * ========================================================================
+ * ARCHIVO: ZonasRepositorio.java
+ * ========================================================================
+ * FUNCIÓN
+ * Reconstruye las zonas de entrega de una configuración y sus territorios y franjas, e identifica
+ * las que tienen condiciones utilizables.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ZonasRepositorio(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Zona :: boolean utilizable()
+ * - [public] List<Zona> leer(long config)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ZonasRepositorio (clase).
+ * - ZonasRepositorio.Zona (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.time.format.DateTimeFormatter;

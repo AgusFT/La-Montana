@@ -1,3 +1,36 @@
+//#region ENCABEZADO · RevisionConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: RevisionConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la revisión integral y la simulación del recorrido operativo para detectar bloqueos antes
+ * de activar una configuración.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RevisionConfiguracionController(RevisionConfiguracionService revision,
+ *   ConfiguracionService configuracion, CatalogoService catalogo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] void preparar(String correo)
+ * - [public] RevisionConfiguracionService.Revision revisar(UUID borrador, Principal actor)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] RevisionConfiguracionService.Simulacion simular(UUID borrador, Ejemplo in, Principal
+ *   actor)
+ *   Entrada HTTP POST · ruta del método: /simular.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RevisionConfiguracionController (clase).
+ * - RevisionConfiguracionController.Ejemplo (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.*;

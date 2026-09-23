@@ -1,3 +1,51 @@
+//#region ENCABEZADO · AlmacenImagenWeb.java
+/*
+ * ========================================================================
+ * ARCHIVO: AlmacenImagenWeb.java
+ * ========================================================================
+ * FUNCIÓN
+ * Lee imágenes desde una carpeta local permitida, valida rutas y contenido, genera copias
+ * normalizadas y miniaturas y verifica sus huellas en la biblioteca privada.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] AlmacenImagenWeb(String entrada, String biblioteca, String rutaHost)
+ * - [paquete] Carpeta :: Carpeta(SecureDirectoryStream<Path> directorio,
+ *   List<DirectoryStream<Path>> abiertos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] Origen listar(String carpeta)
+ * - [public] Carpeta :: void close() throws IOException
+ * - [private] Carpeta abrirCarpeta(String relativa) throws IOException
+ * - [paquete] byte[] leer(String relativa)
+ * - [private, static] String tipo(byte[] b)
+ * - [paquete, synchronized] Normalizada normalizar(byte[] bytes)
+ * - [paquete, synchronized] byte[] miniatura(byte[] bytes)
+ * - [private] Normalizada decodificar(byte[] bytes, boolean soloMiniatura)
+ * - [private, static] byte[] png(BufferedImage image) throws IOException
+ * - [paquete] Path archivo(UUID id, boolean miniatura)
+ * - [paquete] void guardar(UUID id, Normalizada image)
+ * - [private, static] void escribir(Path destino, byte[] bytes) throws IOException
+ * - [paquete] void borrarNuevo(UUID id)
+ * - [paquete] void comprobar(UUID id, String completa, String miniatura)
+ * - [private, static] String huellaArchivo(Path path) throws IOException
+ * - [paquete, static] String sha256(byte[] bytes)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - AlmacenImagenWeb (clase).
+ * - AlmacenImagenWeb.ArchivoEntrada (record).
+ * - AlmacenImagenWeb.Origen (record).
+ * - AlmacenImagenWeb.Normalizada (record).
+ * - AlmacenImagenWeb.Carpeta (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.web;
 
 import static ar.com.lamontana.web.PaginaWebService.error;

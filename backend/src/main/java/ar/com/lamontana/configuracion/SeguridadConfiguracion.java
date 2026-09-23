@@ -1,3 +1,53 @@
+//#region ENCABEZADO · SeguridadConfiguracion.java
+/*
+ * ========================================================================
+ * ARCHIVO: SeguridadConfiguracion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona desafíos de seguridad para cambios de configuración: contraseña, código por correo,
+ * propósito, versión, vigencia, consumo y revocación de autorizaciones.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] SeguridadConfiguracion(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   PasswordEncoder encoder, CorreoService correo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] Solicitud solicitar(UUID op, String proposito, UUID destino, long version, String
+ *   huella, String contrasena, String actor, Runnable validar, String evento, String asunto)
+ * - [paquete] Permiso comprobar(UUID op, String proposito, UUID destino, long version, String
+ *   huella, String contrasena, String codigo, String actor)
+ * - [paquete] void exigirVigente(UUID op)
+ * - [paquete] void consumir(Permiso permiso)
+ * - [paquete] void revocar(UUID op, UUID destino, String actor)
+ * - [private] Propietario propietario(String actor)
+ * - [private] void contenido(Desafio d, String proposito, UUID destino, long version, long actor,
+ *   String huella)
+ * - [private] void identidad(Desafio d, Propietario u)
+ * - [private] void fallido(Desafio d)
+ * - [private] Desafio desafio(UUID op)
+ * - [private] Solicitud respuesta(Desafio d)
+ * - [private] Instant ahora()
+ * - [private] String hash(String v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException invalido()
+ * - [private] ResponseStatusException error(HttpStatus status, String m)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SeguridadConfiguracion (clase).
+ * - SeguridadConfiguracion.Solicitud (record).
+ * - SeguridadConfiguracion.Propietario (record).
+ * - SeguridadConfiguracion.Desafio (record).
+ * - SeguridadConfiguracion.Permiso (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.identidad.CorreoService;

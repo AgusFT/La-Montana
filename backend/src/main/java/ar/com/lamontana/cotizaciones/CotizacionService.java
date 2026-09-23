@@ -1,3 +1,65 @@
+//#region ENCABEZADO · CotizacionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CotizacionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Genera cotizaciones con precios y condiciones calculados en el servidor y conservados en una
+ * oferta. Gestiona aceptación, cancelación, correcciones y reintentos con control de propietario y
+ * vigencia.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CotizacionService(JdbcTemplate jdbc, OfertaOperativaService operativa,
+ *   CatalogoService catalogo, EvaluadorPrecioItem precios, EvaluadorFinanciero finanzas)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Opciones opciones(String correo)
+ * - [public] Detalle crear(Crear in, String correo)
+ * - [public] Detalle crearCorreccion(Crear in, String correo, UUID correccion)
+ * - [private] Detalle crear(Crear in, String correo, UUID correccion)
+ * - [public] Detalle decidir(UUID id, Decision in, boolean aceptar, String correo)
+ * - [public] Detalle detalle(UUID id, String correo)
+ * - [public] Pagina listar(int pagina, String correo)
+ * - [private] Registro propia(UUID id, long actor)
+ * - [private] Correccion contextoCorreccion(long quote)
+ * - [private] Detalle reintento(UUID operacion, String tipo, String hash, long actor)
+ * - [private] long cliente(String correo)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] void evento(long id, long actor, UUID operacion, String tipo, String hash, String
+ *   motivo)
+ * - [private] Instant ahora()
+ * - [private] Instant instante(Timestamp v)
+ * - [private] String huella(Object v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] void exigir(boolean valido, String mensaje)
+ *   Rechaza la operación si no se cumple la condición indicada.
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CotizacionService (clase).
+ * - CotizacionService.Nombre (record).
+ * - CotizacionService.Punto (record).
+ * - CotizacionService.Opciones (record).
+ * - CotizacionService.ItemCotizado (record).
+ * - CotizacionService.Condiciones (record).
+ * - CotizacionService.Oferta (record).
+ * - CotizacionService.Detalle (record).
+ * - CotizacionService.Correccion (record).
+ * - CotizacionService.Resumen (record).
+ * - CotizacionService.Pagina (record).
+ * - CotizacionService.Registro (record).
+ * - CotizacionService.HuellaDecision (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.cotizaciones;
 
 import static ar.com.lamontana.cotizaciones.CotizacionController.*;

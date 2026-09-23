@@ -1,3 +1,75 @@
+//#region ENCABEZADO · EntregaService.java
+/*
+ * ========================================================================
+ * ARCHIVO: EntregaService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona códigos de entrega, movimientos logísticos, entrega física y cierre. Revalida permisos,
+ * dinero, producción, reserva y versión, conservando auditoría y resultados idempotentes.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EntregaService(JdbcTemplate jdbc, PedidoService pedidos, OrganizacionService
+ *   organizacion, CoberturaPagos cobertura, PasswordEncoder encoder)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Generacion :: String toString()
+ * - [public] Vista consultar(UUID pedido, String correo, boolean interno)
+ * - [private] Vista vista(PedidoService.Detalle p, String correo, boolean interno)
+ * - [public] Generacion emitir(UUID pedido, Emitir in, String correo)
+ * - [public] Vista mover(UUID pedido, Movimiento in, String correo)
+ * - [public] Validacion validar(UUID pedido, Validar in, String correo)
+ * - [public] Vista entregar(UUID pedido, Entregar in, String correo)
+ * - [public] Vista cerrar(UUID pedido, Cerrar in, String correo)
+ * - [private] List<String> bloqueosEntrega(PedidoService.Detalle p)
+ * - [private] List<String> bloqueosCierre(PedidoService.Detalle p)
+ * - [private] boolean disponible(PedidoService.Detalle p)
+ * - [private] String bloqueoMovimiento(PedidoService.Detalle p, String estado, Accion op, boolean
+ *   permiso)
+ * - [private] String logistica(PedidoService.Detalle p)
+ * - [private] long reserva(PedidoService.Detalle p)
+ * - [private] BigDecimal aplicado(PedidoService.Detalle p)
+ * - [private] Secreto ultimoCodigo(long pedido)
+ * - [private] String estadoCodigo(Secreto c, Instant now)
+ * - [private] Verificacion verificacion(PedidoService.Detalle p, Secreto c, long actor, Instant
+ *   now)
+ * - [private] long evento(PedidoService.Detalle p, Actor a, UUID op, String hash, String accion,
+ *   String destino, String motivo, String mensaje, Instant ahora)
+ * - [private] boolean recuperar(UUID op, String hash, PedidoService.Detalle p, Actor a)
+ * - [private] Actor actor(String correo)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] void version(PedidoService.Detalle p, long v)
+ * - [private] void texto(String v, int max)
+ * - [private] void confirmar(boolean v)
+ * - [private] String dinero(BigDecimal v)
+ * - [private] String huella(Object v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException conflicto(String m)
+ * - [private] ResponseStatusException error(HttpStatus s, String m)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EntregaService (clase).
+ * - EntregaService.Opcion (record).
+ * - EntregaService.Codigo (record).
+ * - EntregaService.Verificacion (record).
+ * - EntregaService.Constancia (record).
+ * - EntregaService.Evento (record).
+ * - EntregaService.Cierre (record).
+ * - EntregaService.Vista (record).
+ * - EntregaService.Generacion (record).
+ * - EntregaService.Validacion (record).
+ * - EntregaService.Actor (record).
+ * - EntregaService.Secreto (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.entregas;
 import static ar.com.lamontana.entregas.EntregaController.*;
 import ar.com.lamontana.configuracion.ConfiguracionController.MedioPago;

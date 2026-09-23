@@ -1,3 +1,72 @@
+//#region ENCABEZADO · ArchivoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ArchivoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Coordina el ciclo de los PDF privados: autorización, carga, inspección, antivirus, aceptación y
+ * recuperación de intentos. Revalida cotización, correcciones y cobertura de pagos antes de
+ * habilitar operaciones.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ArchivoService(JdbcTemplate jdbc, PlatformTransactionManager manager,
+ *   ArchivosPrivados storage, InspectorPdf inspector, Antivirus antivirus, OrganizacionService
+ *   organizacion, OfertaOperativaService operativa, EvaluadorFinanciero finanzas,
+ *   ar.com.lamontana.pagos.CoberturaPagos cobertura)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Bandeja bandeja(UUID branch, int page, String correo)
+ * - [public] Vista listar(UUID quote, String correo, boolean interno)
+ * - [public] Archivo consultar(UUID quote, UUID file, String correo, boolean interno)
+ * - [public] Acceso puedeEnviar(UUID quote, UUID file, String correo)
+ * - [public] Archivo crear(UUID quote, UUID item, UUID operation, long version, UUID correccion,
+ *   String correo)
+ * - [public] Archivo recibir(UUID quote, UUID file, String correo, InputStream input, long
+ *   declaredLength)
+ * - [public] Archivo aceptar(UUID quote, UUID file, UUID operation, String hash, String correo)
+ * - [public] Contenido contenido(UUID quote, UUID file, Integer pagina, String correo, boolean
+ *   interno)
+ * - [public] void recuperar()
+ *   Responde al evento de inicio de la aplicación.
+ * - [private] Vista vista(UUID quote, Contexto c, boolean interno)
+ * - [private] Contexto autorizar(UUID quote, String correo, boolean interno)
+ * - [private] Acceso gate(Cotizacion c)
+ * - [private] Correccion correccion(Cotizacion c)
+ * - [private] boolean itemSolicitado(long solicitud, UUID item)
+ * - [private] boolean coincideCorreccion(Cotizacion c, UUID file)
+ * - [private] void exigirCorreccion(Cotizacion c, UUID file)
+ * - [private] Acceso gateCorreccion(Cotizacion c)
+ * - [private] void exigirCarga(Cotizacion c)
+ * - [private] long itemId(long quote, UUID item)
+ * - [private] Archivo archivo(UUID quote, UUID file)
+ * - [private] void validacion(UUID file, String type, String result, String engine, String
+ *   version, String code)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] ResponseStatusException conflicto(String message)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ArchivoService (clase).
+ * - ArchivoService.Acceso (record).
+ * - ArchivoService.Archivo (record).
+ * - ArchivoService.Item (record).
+ * - ArchivoService.Vista (record).
+ * - ArchivoService.Correccion (record).
+ * - ArchivoService.Cotizacion (record).
+ * - ArchivoService.Contexto (record).
+ * - ArchivoService.Contenido (record).
+ * - ArchivoService.Recibida (record).
+ * - ArchivoService.Bandeja (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.archivos;
 
 import ar.com.lamontana.cotizaciones.CotizacionService;

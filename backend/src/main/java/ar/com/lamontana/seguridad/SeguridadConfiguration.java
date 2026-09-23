@@ -1,3 +1,29 @@
+//#region ENCABEZADO · SeguridadConfiguration.java
+/*
+ * ========================================================================
+ * ARCHIVO: SeguridadConfiguration.java
+ * ========================================================================
+ * FUNCIÓN
+ * Configura el codificador de contraseñas y la cadena de Spring Security: rutas públicas, permisos
+ * por rol, autenticación, sesiones, CSRF y filtros de control de acceso.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] PasswordEncoder contrasenas()
+ *   Provee una dependencia administrada por Spring.
+ * - [paquete] SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad,
+ *   org.springframework.jdbc.core.JdbcTemplate jdbc) throws Exception
+ *   Provee una dependencia administrada por Spring.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SeguridadConfiguration (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.seguridad;
 
 import ar.com.lamontana.identidad.IdentidadService;

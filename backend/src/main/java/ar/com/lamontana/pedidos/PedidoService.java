@@ -1,3 +1,64 @@
+//#region ENCABEZADO · PedidoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: PedidoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Revalida cotización, PDF, dinero y entrega antes de confirmar un pedido y reservar su capacidad.
+ * Conserva la versión efectiva del trabajo y controla acceso, consultas y reintentos.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PedidoService(JdbcTemplate jdbc, CotizacionService cotizaciones,
+ *   OfertaOperativaService operativa, CatalogoService catalogo, EvaluadorFinanciero financiero,
+ *   CoberturaPagos cobertura, EvaluadorFranjas franjas, ArchivosPrivados privados,
+ *   OrganizacionService organizacion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Revision revisar(UUID quote, String correo)
+ * - [public] Revision revisarCorreccion(UUID quote, long pedido, String correo)
+ * - [private] Revision evaluar(CotizacionService.Detalle q)
+ * - [private] Revision evaluar(CotizacionService.Detalle q, Long excluirPedido)
+ * - [private] Franja disponible(CotizacionService.Oferta o, EntregaRepositorio.Entrega e,
+ *   EvaluadorCalendario.Simulacion estimacion, Instant ahora, OfertaOperativaService.Sucursal
+ *   sucursalActual, Long excluirPedido)
+ * - [private] int ocupadas(Modalidad modo, UUID dest, UUID branch, EvaluadorFranjas.Ventana v,
+ *   Long excluirPedido)
+ * - [public] Detalle confirmar(UUID quote, PedidoController.Confirmar in, String correo)
+ * - [private] List<Pdf> archivos(long quote)
+ * - [public] Detalle detalle(UUID codigo, String correo, boolean interno)
+ * - [public] Pagina listar(UUID branch, int pagina, String estado, String correo)
+ * - [private] boolean esCorreccion(UUID quote)
+ * - [private] UUID vinculado(UUID quote)
+ * - [private] Actor actor(String correo, boolean interno)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] void texto(String texto)
+ * - [private] String huella(Object v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException conflicto(String msg)
+ * - [private] ResponseStatusException error(HttpStatus status, String msg)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PedidoService (clase).
+ * - PedidoService.Pdf (record).
+ * - PedidoService.Franja (record).
+ * - PedidoService.Condiciones (record).
+ * - PedidoService.Revision (record).
+ * - PedidoService.Evento (record).
+ * - PedidoService.Detalle (record).
+ * - PedidoService.Resumen (record).
+ * - PedidoService.Pagina (record).
+ * - PedidoService.Actor (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pedidos;
 
 import ar.com.lamontana.archivos.ArchivosPrivados;

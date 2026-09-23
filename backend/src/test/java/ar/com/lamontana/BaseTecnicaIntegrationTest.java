@@ -1,3 +1,33 @@
+//#region ENCABEZADO · BaseTecnicaIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: BaseTecnicaIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el arranque y las migraciones en PostgreSQL real, la ausencia de datos de negocio
+ * precargados y los estados públicos de salud e instalación.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete, static] void propiedades(DynamicPropertyRegistry properties)
+ *   Registra las propiedades del entorno de prueba.
+ * - [paquete] void migraPostgresRealSinPrecargarElNegocio()
+ *   Caso de prueba.
+ * - [paquete] void estadoYSaludPublicosNoHabilitanOperacion() throws Exception
+ *   Caso de prueba.
+ * - [private] HttpResponse<String> get(String path) throws Exception
+ * - [paquete, static] void limpiar() throws IOException
+ *   Cierre de los recursos compartidos de la prueba.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - BaseTecnicaIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.assertThat;

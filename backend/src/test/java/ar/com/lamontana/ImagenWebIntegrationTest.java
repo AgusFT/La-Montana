@@ -1,3 +1,66 @@
+//#region ENCABEZADO · ImagenWebIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ImagenWebIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba importación, normalización y miniaturas PNG/JPEG/WebP, deduplicación, privacidad,
+ * validación de rutas, integridad, concurrencia y publicación de imágenes.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void arrancar()
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [paquete] JsonNode estado() throws Exception
+ * - [paquete] Map<String, Object> contenido()
+ * - [paquete] Map<String, Object> ficha(String nombre, boolean visible)
+ * - [paquete] Map<String, Object> guardarDatos(long v, Map<String, Object> c)
+ * - [paquete] JsonNode guardar(long v, Map<String, Object> c) throws Exception
+ * - [paquete] Map<String, Object> publicarDatos(long v)
+ * - [paquete] HttpResponse<String> publicar(Map<String, Object> datos) throws Exception
+ * - [paquete] JsonNode publico() throws Exception
+ * - [paquete] byte[] crearImagen(String nombre, String formato, int color) throws Exception
+ * - [paquete] String hash(byte[] bytes) throws Exception
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [paquete] Map<String, Object> importacion(String ruta, byte[] bytes) throws Exception
+ * - [paquete] JsonNode importar(String ruta, byte[] bytes) throws Exception
+ * - [paquete] String consulta(String path, String campo, String value)
+ * - [paquete] HttpResponse<byte[]> binario(HttpClient c, String path) throws Exception
+ * - [paquete] void pngJpegWebpSeNormalizanConMiniaturasYNoSePublicanAlImportar() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void originalMovidoDedupeReemplazoYPublicacionAnteriorConservada() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rechazaEnlacesTraversalNoImagenLimitesYCambioDuranteSeleccion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void bibliotecaYSistemaDeArchivosSonPrivadosYLaPublicacionFiltraRecursos() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void concurrenciaNoDuplicaContenidoYCsrfEsObligatorio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] HttpClient cliente()
+ * - [paquete] URI uri(String p)
+ * - [paquete] HttpResponse<String> get(HttpClient c, String p) throws Exception
+ * - [paquete] String csrf(HttpClient c) throws Exception
+ * - [paquete] HttpRequest solicitud(HttpClient c, String method, String path, Object body) throws
+ *   Exception
+ * - [paquete] HttpResponse<String> mutar(HttpClient c, String method, String path, Object body)
+ *   throws Exception
+ * - [paquete] void login(HttpClient c, String correo) throws Exception
+ * - [paquete] void status(HttpResponse<String> r, int expected)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ImagenWebIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

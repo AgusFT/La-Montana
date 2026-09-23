@@ -1,3 +1,31 @@
+//#region ENCABEZADO · VentanasLocales.java
+/*
+ * ========================================================================
+ * ARCHIVO: VentanasLocales.java
+ * ========================================================================
+ * FUNCIÓN
+ * Convierte intervalos de apertura y cierre de un día local en intervalos reales de tiempo,
+ * separando las transiciones de zona horaria para evitar horas inexistentes o superpuestas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [private] VentanasLocales()
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete, static] List<Intervalo> calcular(LocalDate fecha, ZoneId zona, String apertura,
+ *   String cierre)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - VentanasLocales (clase).
+ * - VentanasLocales.Intervalo (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.time.*;

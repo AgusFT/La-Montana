@@ -1,3 +1,33 @@
+//#region ENCABEZADO · HorarioAtencion.java
+/*
+ * ========================================================================
+ * ARCHIVO: HorarioAtencion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Representa y valida la semana de atención de una sucursal: días únicos, habilitación explícita y
+ * horas de apertura y cierre coherentes.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [private] HorarioAtencion()
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public, static] void validar(List<Dia> dias)
+ * - [private, static] boolean hora(String value)
+ * - [private, static] void exigir(boolean condicion, String mensaje)
+ *   Rechaza la operación si no se cumple la condición indicada.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - HorarioAtencion (clase).
+ * - HorarioAtencion.Dia (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.organizacion;
 
 import jakarta.validation.constraints.*;

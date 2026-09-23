@@ -1,3 +1,22 @@
+# region ENCABEZADO · application.yaml
+# ========================================================================
+# ARCHIVO: application.yaml
+# ========================================================================
+# FUNCIÓN
+# Configura la ejecución del backend mediante propiedades de Spring y variables de entorno: base
+# de datos, correo, sesiones, salud y almacenamiento.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - spring: correo, sesiones JDBC, datasource, Flyway, JPA y Jackson.
+# - server: puerto, tiempos de espera, errores y cookies.
+# - management: exposición y comprobaciones de salud.
+# - lamontana: remitente, instalación, PDF, antivirus e imágenes web.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
 spring:
   application:
     name: lamontana

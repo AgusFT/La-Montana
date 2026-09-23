@@ -1,3 +1,38 @@
+//#region ENCABEZADO · PreparacionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: PreparacionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Construye el mapa de preparación inicial del dashboard a partir del estado real del configurador
+ * y del catálogo, señalando pendientes, bloqueos y pasos disponibles.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PreparacionController(ConfiguracionService configuracion,
+ *   RevisionConfiguracionService revision, CatalogoService catalogo, JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Preparacion leer(Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/preparacion.
+ * - [private, static] String detalle(List<RevisionConfiguracionService.Hallazgo> h, List<Integer>
+ *   fases, String ayuda)
+ * - [private, static] void agregar(List<Paso> pasos, String codigo, String titulo, boolean
+ *   presente, List<RevisionConfiguracionService.Hallazgo> h, List<Integer> fases, String guardada,
+ *   String ayuda)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PreparacionController (clase).
+ * - PreparacionController.Paso (record).
+ * - PreparacionController.Preparacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.CatalogoService;

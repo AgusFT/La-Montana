@@ -1,3 +1,37 @@
+//#region ENCABEZADO · CopiaConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CopiaConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Crea borradores a partir de configuraciones activas o históricas, registra su origen y exige
+ * reconfirmar los parámetros copiados antes de aplicarlos.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CopiaConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   RevisionConfiguracionService revision, CopiaParametrosConfiguracion parametros)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador copiar(UUID origen, Crear in, String correo)
+ * - [public] RevisionConfiguracionService.Revision confirmar(UUID codigo, ConfirmarRevision in,
+ *   String correo)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] ResponseStatusException conflicto(String m)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CopiaConfiguracionService (clase).
+ * - CopiaConfiguracionService.Contenido (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import static ar.com.lamontana.configuracion.CopiaConfiguracionController.*;
 import java.util.*;

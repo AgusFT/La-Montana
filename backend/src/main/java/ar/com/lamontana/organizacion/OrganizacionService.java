@@ -1,3 +1,60 @@
+//#region ENCABEZADO · OrganizacionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: OrganizacionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Administra sucursales y empleados, sus horarios, asignaciones y permisos. Valida cambios
+ * concurrentes, audita modificaciones y resuelve el contexto autorizado de operación.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] OrganizacionService(JdbcTemplate jdbc, PasswordEncoder encoder,
+ *   ar.com.lamontana.identidad.CredencialService credenciales)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] void bloquearOrganizacion()
+ * - [public] List<Sucursal> sucursales()
+ * - [public] UUID crearSucursal(NuevaSucursal in, String actor)
+ * - [public] Sucursal actualizarSucursal(UUID codigo, EdicionSucursal in, String actor)
+ * - [public] List<Empleado> empleados()
+ * - [public] UUID crearEmpleado(NuevoEmpleado in, String actor)
+ * - [public] Empleado actualizarEmpleado(UUID codigo, EdicionEmpleado in, String actor)
+ * - [public] Contexto contexto(String actor)
+ * - [public] Sucursal sucursalAutorizada(String actor, UUID codigo)
+ * - [public] void exigirPermiso(String actor, String permiso)
+ * - [private] void validarAsignaciones(List<UUID> sucursales, List<String> permisos, String
+ *   estado, List<UUID> existentes)
+ * - [private] void asignar(Long usuario, List<UUID> nuevasSucursales, List<String> nuevosPermisos,
+ *   String actor)
+ * - [private] List<UUID> asignaciones(Long id)
+ * - [private] List<String> permisos(Long id)
+ * - [private] List<String> permisosDisponibles()
+ * - [private] Long idUsuario(String correo)
+ * - [private] Empleado buscarEmpleado(UUID codigo)
+ * - [private] Sucursal buscarSucursal(UUID codigo)
+ * - [private] Empleado empleado(ResultSet rs, int row) throws SQLException
+ * - [private] Sucursal sucursal(ResultSet rs, int row) throws SQLException
+ * - [private] void auditar(String actor, String tipo, UUID codigo, long version)
+ * - [private] List<HorarioAtencion.Dia> horario(long sucursal)
+ * - [private] void guardarHorario(UUID codigo, List<HorarioAtencion.Dia> dias)
+ * - [private] String opcional(String value)
+ * - [private] String correo(String value)
+ * - [private] ResponseStatusException desactualizado()
+ * - [private] ResponseStatusException error(HttpStatus status, String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OrganizacionService (clase).
+ * - OrganizacionService.Contexto (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.organizacion;
 
 import java.sql.ResultSet;

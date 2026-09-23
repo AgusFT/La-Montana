@@ -1,3 +1,30 @@
+//#region ENCABEZADO · ClamavDePrueba.java
+/*
+ * ========================================================================
+ * ARCHIVO: ClamavDePrueba.java
+ * ========================================================================
+ * FUNCIÓN
+ * Implementa un servidor ClamAV de prueba para las verificaciones de carga de archivos. Permite
+ * ejecutar los tests sin depender de un antivirus externo real.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] ClamavDePrueba() throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] int port()
+ * - [public] void close() throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ClamavDePrueba (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import java.io.*;

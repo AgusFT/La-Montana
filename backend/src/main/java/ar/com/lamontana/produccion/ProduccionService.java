@@ -1,3 +1,68 @@
+//#region ENCABEZADO · ProduccionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ProduccionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona producción manual por ítem, selección de impresoras, cobertura de pagos, estados de
+ * trabajo, reimpresiones y calidad. Revalida condiciones y registra cada transición del pedido.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ProduccionService(JdbcTemplate jdbc, PedidoService pedidos, OrganizacionService
+ *   organizacion, ArchivosPrivados archivos, CoberturaPagos cobertura, RecursosRepositorio
+ *   recursos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Vista consultar(UUID pedido, String correo)
+ * - [private] Vista vista(PedidoService.Detalle p, String correo)
+ * - [public] Vista iniciar(UUID pedido, Inicio in, String correo)
+ * - [public] Vista cambiar(UUID pedido, UUID trabajo, Cambio in, String correo)
+ * - [public] Vista calidad(UUID pedido, UUID trabajo, Inspeccion in, String correo)
+ * - [private] List<Cobertura> cobertura(PedidoService.Detalle p)
+ * - [private] Cobertura cobertura(String nombre, String previo, String sena, BigDecimal aplicado)
+ * - [private] List<String> bloqueos(PedidoService.Detalle p, boolean permiso)
+ * - [private] String bloqueoItem(Trabajo t)
+ * - [private] List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p)
+ * - [private] boolean compatible(RecursosRepositorio.Impresora i, CotizacionService.ItemCotizado
+ *   item)
+ * - [private] List<Registro> trabajos(long pedido, UUID item)
+ * - [private] Registro trabajo(PedidoService.Detalle p, UUID id)
+ * - [private] void evento(PedidoService.Detalle p, Actor a, UUID op, String hash, long trabajo,
+ *   String accion, String origenTrabajo, String destinoTrabajo, String estado, String motivo,
+ *   String publico, Instant fecha)
+ * - [private] boolean recuperar(UUID op, String hash, PedidoService.Detalle p, Actor a)
+ * - [private] Actor actor(String correo)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] void version(PedidoService.Detalle p, long v)
+ * - [private] void texto(String v)
+ * - [private] void confirmar(boolean v)
+ * - [private] String huella(Object v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException conflicto(String m)
+ * - [private] ResponseStatusException error(HttpStatus status, String m)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ProduccionService (clase).
+ * - ProduccionService.Cobertura (record).
+ * - ProduccionService.Impresora (record).
+ * - ProduccionService.Calidad (record).
+ * - ProduccionService.Evento (record).
+ * - ProduccionService.Trabajo (record).
+ * - ProduccionService.Item (record).
+ * - ProduccionService.Vista (record).
+ * - ProduccionService.Actor (record).
+ * - ProduccionService.Registro (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.produccion;
 
 import static ar.com.lamontana.produccion.ProduccionController.*;

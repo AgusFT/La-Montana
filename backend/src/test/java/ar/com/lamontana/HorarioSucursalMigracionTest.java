@@ -1,3 +1,30 @@
+//#region ENCABEZADO · HorarioSucursalMigracionTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: HorarioSucursalMigracionTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba que la migración de horarios habituales conserva las versiones existentes y copia
+ * únicamente calendarios activos completos.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void migrarConservaVersionesYCopiaSoloElHorarioActivoCompleto() throws Exception
+ *   Caso de prueba.
+ * - [private] long sucursal(JdbcTemplate jdbc, long actor, String codigo)
+ * - [private] long config(JdbcTemplate jdbc, long actor, int numero, String estado)
+ * - [private] void calendario(JdbcTemplate jdbc, long config, long branch, int cantidad, String
+ *   apertura, String cierre)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - HorarioSucursalMigracionTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

@@ -1,3 +1,38 @@
+//#region ENCABEZADO · EntregaRepositorio.java
+/*
+ * ========================================================================
+ * ARCHIVO: EntregaRepositorio.java
+ * ========================================================================
+ * FUNCIÓN
+ * Reconstruye desde PostgreSQL los tiempos, modalidades y horarios de entrega de una versión de
+ * configuración, junto con sus estructuras de consulta.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EntregaRepositorio(JdbcTemplate jdbc, PuntosRepositorio puntos, ZonasRepositorio
+ *   zonas)
+ * - [public] Horario :: Horario(UUID sucursal, String zonaHoraria, List<Dia> dias,
+ *   List<PuntoEntregaController.Franja> franjasRetiro)
+ * - [public] Horario :: Horario(UUID sucursal, String zonaHoraria, List<Dia> dias)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Horario :: boolean retiroUtilizable()
+ * - [public] Entrega leer(long config)
+ * - [private] String numero(BigDecimal valor)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EntregaRepositorio (clase).
+ * - EntregaRepositorio.Horario (record).
+ * - EntregaRepositorio.Entrega (record).
+ * - EntregaRepositorio.Tiempos (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.EntregaConfiguracionController.*;

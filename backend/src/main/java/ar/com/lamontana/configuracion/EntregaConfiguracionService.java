@@ -1,3 +1,63 @@
+//#region ENCABEZADO · EntregaConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: EntregaConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y guarda calendarios y condiciones de entrega por versión. Calcula tiempos y opciones de
+ * retiro, puntos y domicilio usando las capacidades y disponibilidades correspondientes.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EntregaConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   EvaluadorCalendario evaluador, EvaluadorFranjas franjas)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador guardar(UUID codigo, GuardarEntrega input, String
+ *   correo)
+ * - [public] Validacion validar(UUID codigo, String correo)
+ * - [paquete] Validacion evaluar(UUID codigo, String correo, boolean programada)
+ * - [paquete] Validacion evaluarVigente(UUID codigo, String correo)
+ * - [paquete] Validacion evaluarHistorica(UUID codigo, String correo)
+ * - [private] Validacion evaluarEstado(UUID codigo, String correo, String estado)
+ * - [public] EvaluadorCalendario.Simulacion simular(UUID codigo, SimularEntrega input, String
+ *   correo)
+ * - [public] EvaluadorCalendario.Simulacion simular(UUID codigo, SimularEntrega input, String
+ *   correo, int minimoServiciosMinutos)
+ * - [paquete] List<PuntoDisponible> puntosCotizacion(ConfiguracionService.Borrador b)
+ * - [paquete] EvaluadorCalendario.Simulacion calcular(ConfiguracionService.Borrador b,
+ *   SimularEntrega input, int minimoServiciosMinutos)
+ * - [private] List<PuntoDisponible> opciones(EntregaRepositorio.Entrega entrega, List<Sucursal>
+ *   sucursales)
+ * - [private] List<Problema> problemasCalendario(EntregaRepositorio.Horario horario, UUID codigo,
+ *   String nombre)
+ * - [private] List<Sucursal> operativas(long config)
+ * - [private] Sucursal sucursal(UUID codigo)
+ * - [private] long id(UUID codigo)
+ * - [private] void editable(ConfiguracionService.Borrador b, Long version)
+ * - [private] BigDecimal horas(String texto, boolean preparacion)
+ * - [private] void validarDias(List<Dia> dias)
+ * - [private] Time hora(String texto)
+ * - [private] void exigir(boolean condicion, String mensaje)
+ *   Rechaza la operación si no se cumple la condición indicada.
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EntregaConfiguracionService (clase).
+ * - EntregaConfiguracionService.Problema (record).
+ * - EntregaConfiguracionService.PuntoDisponible (record).
+ * - EntregaConfiguracionService.Validacion (record).
+ * - EntregaConfiguracionService.Sucursal (record).
+ * - EntregaConfiguracionService.Calendario (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.EntregaConfiguracionController.*;

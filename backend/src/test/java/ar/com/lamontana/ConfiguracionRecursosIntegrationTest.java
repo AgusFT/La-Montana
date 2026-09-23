@@ -1,3 +1,65 @@
+//#region ENCABEZADO · ConfiguracionRecursosIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionRecursosIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el ciclo de impresoras y servicios por sucursal en los borradores, con capacidades,
+ * referencias, permisos, concurrencia, rollback y reinicio.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [paquete] void recursosVaciosCicloDeImpresoraServiciosPorSucursalYDesactivacion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void capacidadesReferenciasDuplicadosPermisosYCsrfNoAlteranBorrador() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void concurrenciaIdempotenciaDestinoRollbackRevocacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [private] String publico(String tabla, String codigo)
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] JsonNode sucursalActual(String codigo) throws Exception
+ * - [private] void modelo(String modelo, String criterio) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] Map<String, Object> grupo(String sucursal, String[] servicios)
+ * - [private] Map<String, Object> recursosComando(List<? extends Map<String, Object>> grupos)
+ * - [private] Map<String, Object> alta(String sucursal, String nombre, String estado)
+ * - [private] Map<String, Object> edicion(String nombre, int capacidad)
+ * - [private] Map<String, Object> motivo()
+ * - [private] Map<String, Object> estadoComando(String estado)
+ * - [private] JsonNode recursos()
+ * - [private] String impresora(String nombre, String sucursal)
+ * - [private] JsonNode porCodigo(String codigo)
+ * - [private] String ruta(String sufijo)
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionRecursosIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

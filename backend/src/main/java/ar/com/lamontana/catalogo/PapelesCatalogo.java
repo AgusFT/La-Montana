@@ -1,3 +1,42 @@
+//#region ENCABEZADO · PapelesCatalogo.java
+/*
+ * ========================================================================
+ * ARCHIVO: PapelesCatalogo.java
+ * ========================================================================
+ * FUNCIÓN
+ * Define los tamaños y gramajes precargados y administra la selección de papeles y sus variantes
+ * personalizadas. Sus escrituras se realizan dentro de la transacción y el bloqueo de
+ * CatalogoService.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] PapelesCatalogo(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private, static] List<Predefinido> predefinidos()
+ * - [paquete] List<Seleccion> seleccion()
+ * - [paquete] void predefinido(String codigo, String actor)
+ * - [paquete] void personalizado(PapelPersonalizado p, String actor)
+ * - [paquete] void cambiar(SeleccionPapel p, String actor)
+ * - [private] long formato(BigDecimal ancho, BigDecimal alto, String nombre)
+ * - [private] long crearPapel(String codigo, String nombre, BigDecimal gramaje, String
+ *   terminacion)
+ * - [private] void evento(String actor, String tipo, long papel)
+ * - [private] ResponseStatusException error(HttpStatus status, String message)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PapelesCatalogo (clase).
+ * - PapelesCatalogo.Seleccion (record).
+ * - PapelesCatalogo.Predefinido (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.catalogo;
 
 import java.math.BigDecimal;

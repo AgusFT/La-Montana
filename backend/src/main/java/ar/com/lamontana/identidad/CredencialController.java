@@ -1,3 +1,47 @@
+//#region ENCABEZADO · CredencialController.java
+/*
+ * ========================================================================
+ * ARCHIVO: CredencialController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone verificación de correo, recuperación y cambio de contraseña, además del cierre de sesión
+ * asociado al cambio de credenciales.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CredencialController(CredencialService credenciales)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Map<String, String> solicitarCorreo(Principal principal)
+ *   Entrada HTTP POST · ruta del método: /api/auth/correo/solicitar.
+ * - [public] Map<String, String> verificar(Principal principal, Codigo input)
+ *   Entrada HTTP POST · ruta del método: /api/auth/correo/confirmar.
+ * - [public] Map<String, String> solicitarRecuperacion(Solicitud input)
+ *   Entrada HTTP POST · ruta del método: /api/auth/recuperacion/solicitar.
+ * - [public] Map<String, String> recuperar(Recuperacion input, HttpServletRequest request)
+ *   Entrada HTTP POST · ruta del método: /api/auth/recuperacion/confirmar.
+ * - [public] Map<String, String> cambiar(Principal principal, CambioClave input,
+ *   HttpServletRequest request)
+ *   Entrada HTTP POST · ruta del método: /api/auth/contrasena.
+ * - [private] void cerrarSesion(HttpServletRequest request)
+ * - [public] Codigo :: String toString()
+ * - [public] Recuperacion :: String toString()
+ * - [public] CambioClave :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CredencialController (clase).
+ * - CredencialController.Codigo (record).
+ * - CredencialController.Solicitud (record).
+ * - CredencialController.Recuperacion (record).
+ * - CredencialController.CambioClave (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import jakarta.servlet.http.HttpServletRequest;

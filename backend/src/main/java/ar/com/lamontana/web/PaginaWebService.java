@@ -1,3 +1,56 @@
+//#region ENCABEZADO · PaginaWebService.java
+/*
+ * ========================================================================
+ * ARCHIVO: PaginaWebService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Mantiene separado el borrador privado de la publicación web. Valida estructura e imágenes,
+ * controla versiones y reintentos y publica únicamente el contenido habilitado.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PaginaWebService(JdbcTemplate jdbc, AlmacenImagenWeb almacen)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Estado estado(String correo)
+ * - [private] Estado leerEstado()
+ * - [paquete] Borrador borrador()
+ * - [private] Publicacion publicacionActual()
+ * - [public] Estado guardar(Guardar input, String correo)
+ * - [public] Revision revision(String correo)
+ * - [private] Revision revisar(Borrador b)
+ * - [public] Publicacion publicar(Publicar input, String correo)
+ * - [public] Publico publico()
+ * - [public] long propietario(String correo)
+ * - [paquete] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [paquete] void version(Borrador b, long version)
+ * - [paquete, static] void validarCarpeta(String carpeta)
+ * - [private] void validarEstructura(Contenido c)
+ * - [paquete, static] Contenido visibles(Contenido c)
+ * - [paquete, static] Set<UUID> imagenes(Contenido c)
+ * - [paquete] String huella(Object value)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [paquete] <T> T reintento(UUID op, String tipo, long actor, String huella, Class<T> clase)
+ * - [paquete] void registrar(UUID op, String tipo, long actor, String huella, Object respuesta)
+ * - [paquete, static] ResponseStatusException error(HttpStatus status, String message)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PaginaWebService (clase).
+ * - PaginaWebService.Borrador (record).
+ * - PaginaWebService.Publicacion (record).
+ * - PaginaWebService.Estado (record).
+ * - PaginaWebService.Revision (record).
+ * - PaginaWebService.Publico (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.web;
 
 import static ar.com.lamontana.web.PaginaWebController.*;

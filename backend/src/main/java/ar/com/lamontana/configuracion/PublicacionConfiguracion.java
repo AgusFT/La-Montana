@@ -1,3 +1,29 @@
+//#region ENCABEZADO · PublicacionConfiguracion.java
+/*
+ * ========================================================================
+ * ARCHIVO: PublicacionConfiguracion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Aplica en la base de datos el cambio de configuración operativa vigente y registra el fin de
+ * vigencia anterior, la activación nueva y los eventos correspondientes.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PublicacionConfiguracion(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] void publicar(long id, Long actorId, UUID operacion, UUID comercial, String motivo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PublicacionConfiguracion (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import java.sql.Timestamp;
 import java.util.UUID;

@@ -1,3 +1,64 @@
+//#region ENCABEZADO · ProgramacionConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ProgramacionConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone las operaciones de programación, cancelación y activación manual anticipada de
+ * configuraciones operativas, con sus solicitudes y revocaciones de autorización.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ProgramacionConfiguracionController(ProgramacionConfiguracionService servicio,
+ *   CancelacionConfiguracionService cancelacion, ConfiguracionService configuracion,
+ *   CatalogoService catalogo, ActivacionConfiguracionService activacion,
+ *   RevisionConfiguracionService revision)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] void preparar(String actor)
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(UUID borrador, Solicitar i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /solicitar.
+ * - [public] ConfiguracionService.Programacion confirmar(UUID borrador, Confirmar i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /confirmar.
+ * - [public] Map<String, String> revocar(UUID borrador, ActivacionConfiguracionController.Revocar
+ *   i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /revocar.
+ * - [public] SeguridadConfiguracion.Solicitud solicitarCancelacion(UUID borrador,
+ *   ConfiguracionController.SolicitarCancelacion i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /cancelacion/solicitar.
+ * - [public] ConfiguracionService.Borrador cancelar(UUID borrador,
+ *   ConfiguracionController.ConfirmarCancelacion i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /cancelacion/confirmar.
+ * - [public] Map<String, String> revocarCancelacion(UUID borrador,
+ *   ActivacionConfiguracionController.Revocar i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /cancelacion/revocar.
+ * - [public] RevisionConfiguracionService.Revision revisar(UUID borrador, Principal a)
+ *   Entrada HTTP GET · ruta del método: /revision.
+ * - [public] SeguridadConfiguracion.Solicitud solicitarActivacion(UUID borrador,
+ *   ActivacionConfiguracionController.Solicitar i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /activacion/solicitar.
+ * - [public] ActivacionConfiguracionService.Resultado activar(UUID borrador,
+ *   ActivacionConfiguracionController.Confirmar i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /activacion/confirmar.
+ * - [public] Map<String, String> revocarActivacion(UUID borrador,
+ *   ActivacionConfiguracionController.Revocar i, Principal a)
+ *   Entrada HTTP POST · ruta del método: /activacion/revocar.
+ * - [public] Solicitar :: String toString()
+ * - [public] Confirmar :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ProgramacionConfiguracionController (clase).
+ * - ProgramacionConfiguracionController.Decision (record).
+ * - ProgramacionConfiguracionController.Solicitar (record).
+ * - ProgramacionConfiguracionController.Confirmar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.CatalogoService;

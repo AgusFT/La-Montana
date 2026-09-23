@@ -1,3 +1,41 @@
+//#region ENCABEZADO · PapelesCatalogoIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: PapelesCatalogoIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba selección de papeles y gramajes, habilitación conjunta, reintentos, permisos y
+ * conservación de precios publicados y combinaciones anteriores al migrar.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void seleccionAtomicaReintentosPermisosYPreciosPublicadosConservados() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void migracionConservaTodosLosParesAnterioresSinCrearPapelesNuevos() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] ConfigurableApplicationContext iniciar(String[] props)
+ * - [private] int count(JdbcTemplate jdbc, String tabla)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String mail) throws Exception
+ * - [private] void status(HttpResponse<String> response, int code)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PapelesCatalogoIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

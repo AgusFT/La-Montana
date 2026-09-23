@@ -1,3 +1,44 @@
+//#region ENCABEZADO · CorreccionPedidoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: CorreccionPedidoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone solicitudes de corrección de pedidos, preparación de respuestas del cliente y creación de
+ * cotizaciones para los cambios solicitados.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CorreccionPedidoController(CorreccionPedidoService correcciones)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] CorreccionPedidoService.Vista listar(UUID id, Principal p, HttpServletRequest req)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/{id}/correcciones,
+ *   /api/operacion/pedidos/{id}/correcciones.
+ * - [public] PedidoService.Detalle solicitar(UUID id, Solicitar in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{id}/correcciones.
+ * - [public] CorreccionPedidoService.Preparacion preparar(UUID id, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/{id}/correcciones/respuesta.
+ * - [public] PedidoService.Detalle responder(UUID id, Responder in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/pedidos/{id}/correcciones/respuesta.
+ * - [public] CotizacionService.Detalle cotizar(UUID id, UUID solicitud, CotizacionController.Crear
+ *   in, Principal p)
+ *   Entrada HTTP POST · ruta del método:
+ *   /api/cliente/pedidos/{id}/correcciones/{solicitud}/cotizaciones.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CorreccionPedidoController (clase).
+ * - CorreccionPedidoController.Tipo (enumeración).
+ * - CorreccionPedidoController.Solicitar (record).
+ * - CorreccionPedidoController.Responder (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pedidos;
 
 import ar.com.lamontana.cotizaciones.*;

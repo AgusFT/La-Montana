@@ -1,3 +1,33 @@
+//#region ENCABEZADO · Antivirus.java
+/*
+ * ========================================================================
+ * ARCHIVO: Antivirus.java
+ * ========================================================================
+ * FUNCIÓN
+ * Envía archivos al servicio ClamAV por el protocolo INSTREAM, verifica su respuesta y distingue
+ * detecciones de malware de fallos o análisis incompletos.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] Antivirus(String host, int port)
+ * - [paquete] Deteccion :: Deteccion(String version)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] String analizar(Path file) throws IOException
+ * - [private] String version() throws IOException
+ * - [private] String reply(InputStream in) throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Antivirus (clase).
+ * - Antivirus.Deteccion (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.archivos;
 
 import java.io.*;

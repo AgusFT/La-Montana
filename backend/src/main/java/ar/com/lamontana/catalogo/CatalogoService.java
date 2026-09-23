@@ -1,3 +1,73 @@
+//#region ENCABEZADO · CatalogoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CatalogoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona el catálogo base y las configuraciones comerciales de tarifas y servicios. Valida
+ * combinaciones, conserva versiones e idempotencia y coordina publicación inmediata, programación
+ * y cancelación.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CatalogoService(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Estado estado()
+ * - [public] Estado leerEstado()
+ * - [private] List<Formato> formatos()
+ * - [private] List<Papel> papeles()
+ * - [private] List<Servicio> servicios()
+ * - [public] void predefinido(String codigo, String actor)
+ * - [public] void todosPredefinidos(String actor)
+ * - [public] void personalizado(PapelPersonalizado in, String actor)
+ * - [public] void seleccion(SeleccionPapel in, String actor)
+ * - [public] void formato(AltaFormato in, String actor)
+ * - [public] void papel(AltaPapel in, String actor)
+ * - [public] void servicio(AltaServicio in, String actor)
+ * - [private] void creado(int n, String tipo)
+ * - [private] String codigo(String value)
+ * - [private] void evento(String actor, String tipo, UUID objeto)
+ * - [public] Revision guardar(NuevaRevision in, String actor)
+ * - [public] Revision cancelar(UUID codigo, CancelarProgramacion in, String actor)
+ * - [public] void reconciliarProgramaciones()
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] Instant ahora()
+ * - [private] Timestamp timestamp(Instant instante)
+ * - [private] void publicar(long id)
+ * - [private] void aplicarVencida()
+ * - [private] String huellaRevision(NuevaRevision in)
+ * - [private] void validar(NuevaRevision in)
+ * - [private] boolean combinacionExiste(Set<UUID> formatos, Set<UUID> papeles, UUID f, UUID p)
+ * - [private] void existe(boolean condition, String message)
+ * - [public] Revision revision(UUID codigo)
+ * - [private] Resumen resumen(ResultSet rs, int row) throws SQLException
+ * - [private] Revision cargarRevision(UUID codigo)
+ * - [private] ResponseStatusException error(HttpStatus status, String message)
+ *   Construye un error HTTP controlado.
+ * - [private] String hash(String text)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogoService (clase).
+ * - CatalogoService.Formato (record).
+ * - CatalogoService.Papel (record).
+ * - CatalogoService.Servicio (record).
+ * - CatalogoService.EstadoRevision (enumeración).
+ * - CatalogoService.Resumen (record).
+ * - CatalogoService.Revision (record).
+ * - CatalogoService.Estado (record).
+ * - CatalogoService.Pendiente (record).
+ * - CatalogoService.RevisionInmediata (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.catalogo;
 
 import static ar.com.lamontana.catalogo.CatalogoController.*;

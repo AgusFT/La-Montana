@@ -1,3 +1,52 @@
+//#region ENCABEZADO · EvaluadorCalendario.java
+/*
+ * ========================================================================
+ * ARCHIVO: EvaluadorCalendario.java
+ * ========================================================================
+ * FUNCIÓN
+ * Calcula las fechas de preparación y entrega usando calendarios locales, horas operativas,
+ * tiempos de traslado y mínimos de servicios. Controla el horizonte de cálculo y las transiciones
+ * horarias.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] Simulacion :: Simulacion(long version, String zonaHoraria, Instant recibidoEn,
+ *   Instant inicioPreparacion, Instant finPreparacion, Instant llegadaEstimada, Instant
+ *   disponibleDesde, boolean enCola, List<String> advertencias, DestinoPunto destinoPunto,
+ *   DestinoZona destinoZona)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Simulacion evaluar(long version, EntregaRepositorio.Horario horario, String
+ *   preparacionHoras, String trasladoHoras, Modalidad modalidad, Instant recibidoEn)
+ * - [public] Simulacion evaluar(long version, EntregaRepositorio.Horario horario, String
+ *   preparacionHoras, String trasladoHoras, Modalidad modalidad, Instant recibidoEn, int
+ *   minimoServiciosMinutos)
+ * - [public, static] Instant limite(Instant recibidoEn, String zonaHoraria)
+ * - [private] long segundos(String horas)
+ * - [private] Instant siguienteApertura(Instant desde, ZoneId zona, Map<Integer, Dia> dias,
+ *   Instant limite)
+ * - [private] Instant consumir(Instant desde, long segundos, ZoneId zona, Map<Integer, Dia> dias,
+ *   Instant limite)
+ * - [private] List<VentanasLocales.Intervalo> ventanas(LocalDate fecha, ZoneId zona, Map<Integer,
+ *   Dia> dias)
+ * - [private] ResponseStatusException horizonte()
+ * - [private] ResponseStatusException error(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EvaluadorCalendario (clase).
+ * - EvaluadorCalendario.Simulacion (record).
+ * - EvaluadorCalendario.DestinoSucursal (record).
+ * - EvaluadorCalendario.DestinoPunto (record).
+ * - EvaluadorCalendario.DestinoZona (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.EntregaConfiguracionController.*;

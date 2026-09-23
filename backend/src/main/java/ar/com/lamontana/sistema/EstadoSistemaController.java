@@ -1,3 +1,31 @@
+//#region ENCABEZADO · EstadoSistemaController.java
+/*
+ * ========================================================================
+ * ARCHIVO: EstadoSistemaController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Publica el estado de instalación y preparación de La Montaña consultando la base de datos, para
+ * distinguir identidad inicial, configuración pendiente y operación habilitada.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EstadoSistemaController(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] EstadoSistema estado()
+ *   Entrada HTTP GET · ruta del método: /api/sistema/estado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EstadoSistemaController (clase).
+ * - EstadoSistemaController.EstadoSistema (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.sistema;
 
 import org.springframework.jdbc.core.JdbcTemplate;

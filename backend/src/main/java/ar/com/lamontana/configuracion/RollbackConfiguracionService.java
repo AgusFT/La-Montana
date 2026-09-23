@@ -1,3 +1,49 @@
+//#region ENCABEZADO · RollbackConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: RollbackConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Evalúa y autoriza la recuperación de una configuración anterior bajo condiciones actuales.
+ * Coordina intentos, publicación de una nueva versión y resultados de reintentos.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RollbackConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   RevisionConfiguracionService revision, SeguridadConfiguracion seguridad, CoordinadorActivacion
+ *   coordinador, PublicacionRollback publicacion, PlatformTransactionManager manager)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Revision revisar(String correo)
+ * - [private] Revision evaluar(String correo, UUID propio)
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(Solicitar in, String correo)
+ * - [public] Resultado confirmar(Confirmar in, String correo)
+ * - [private] void publicar(Confirmar in, String correo, Inicio inicio)
+ * - [private] Resultado resultado(UUID operacion)
+ * - [private] Revision validar(Decision d, String correo, UUID propio)
+ * - [private] void estructura(Decision d)
+ * - [public] void revocar(UUID objetivo, UUID operacion, String correo)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] String huella(Decision d)
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RollbackConfiguracionService (clase).
+ * - RollbackConfiguracionService.Revision (record).
+ * - RollbackConfiguracionService.Resultado (record).
+ * - RollbackConfiguracionService.Referencia (record).
+ * - RollbackConfiguracionService.Contenido (record).
+ * - RollbackConfiguracionService.Inicio (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.RollbackConfiguracionController.*;

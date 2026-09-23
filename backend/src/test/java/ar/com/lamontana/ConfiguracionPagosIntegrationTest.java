@@ -1,3 +1,60 @@
+//#region ENCABEZADO · ConfiguracionPagosIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionPagosIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba la configuración financiera y sus simulaciones: modelos, pago previo, seña, límites,
+ * precisión monetaria, validación e idempotencia.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [paquete] void matrizGuiadaSimulaManualPagoPrevioSenaYLimitesDeMontoRespetandoD1() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void validacionesDeCompletitudPrecisionModeloYSimulacionRechazanSinGuardarParcial()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void idempotenciaConcurrenciaRollbackRevocacionPermisosYPersistencia() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> pagos(boolean sena, String condicion, String umbral, String
+ *   tipo, String valor, String aprobacion, boolean transferencia)
+ * - [private] void modelo(String modelo, String criterio) throws Exception
+ * - [private] Map<String, Object> comando(Map<String, Object> pagos)
+ * - [private] void guardar(Map<String, Object> pagos) throws Exception
+ * - [private] JsonNode simular(String total, int carillas) throws Exception
+ * - [private] void assertSim(JsonNode s, boolean humana, boolean carga, String previo, String
+ *   sena, String saldo, String momento)
+ * - [private] long version()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionPagosIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

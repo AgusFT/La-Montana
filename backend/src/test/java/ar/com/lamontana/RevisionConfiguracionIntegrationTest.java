@@ -1,3 +1,83 @@
+//#region ENCABEZADO · RevisionConfiguracionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: RevisionConfiguracionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba hallazgos y simulación integral del configurador, interacción con el catálogo,
+ * capacidades, precios, tiempos y mapa de preparación, además de permisos y CSRF.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [private] JsonNode revision() throws Exception
+ * - [private] Set<String> codigos(JsonNode r)
+ * - [private] void preparar() throws Exception
+ * - [private] Map<String, Object> territorio()
+ * - [private] Map<String, Object> oferta(String id, String base, String precio, int minutos,
+ *   boolean habilitada)
+ * - [private] void publicar(Instant fecha, String precio, boolean term, boolean color) throws
+ *   Exception
+ * - [private] Map<String, Object> ejemplo(String modalidad)
+ * - [private] JsonNode simular(Map<String, Object> e) throws Exception
+ * - [paquete] void bloqueosVinculadosPreciosCapacidadesSucursalYAdvertencias() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void precioDobleFazD1CostoDeEntregaTiemposYLecturasSinEscrituras() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionComercialIndependienteProgramadaYReconciliadaAunqueSimulacionFalle()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void soloPropietarioYCsrfConErroresControlados() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void mapaPreparacionReutilizaValidacionesYNoActivaBorrador() throws Exception
+ *   Caso de prueba.
+ * - [private] void servicios(List<String> sucursales) throws Exception
+ * - [private] Map<String, Object> dia(int dia, Boolean habilitado, String apertura, String cierre)
+ * - [private] List<Map<String, Object>> semana(String apertura, String cierre)
+ * - [private] List<Map<String, Object>> soloDomingo(String apertura, String cierre)
+ * - [private] Map<String, Object> horario(String sucursal, List<? extends Map<String, Object>>
+ *   dias)
+ * - [private] Map<String, Object> entrega(String preparacion, String traslado, List<String>
+ *   modalidades, List<? extends Map<String, Object>> horarios)
+ * - [private] void guardar(String preparacion, String traslado, List<String> modalidades, List<?
+ *   extends Map<String, Object>> horarios) throws Exception
+ * - [private] Map<String, Object> simulacion(String sucursal, String modalidad, String recibido)
+ * - [private] JsonNode simular(String sucursal, String modalidad, String recibido) throws
+ *   Exception
+ * - [private] JsonNode validacion() throws Exception
+ * - [private] void assertProblemas(String[] esperados) throws Exception
+ * - [private] void assertInstante(JsonNode respuesta, String campo, String esperado)
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] String base()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RevisionConfiguracionIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

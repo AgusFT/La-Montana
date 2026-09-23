@@ -1,3 +1,44 @@
+//#region ENCABEZADO · ProduccionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ProduccionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la consulta de producción, inicio y cambio de trabajos de impresión y registro del
+ * control de calidad.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ProduccionController(ProduccionService service)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] Checklist :: boolean completo()
+ * - [public] ProduccionService.Vista consultar(UUID pedido, Principal p)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] ProduccionService.Vista iniciar(UUID pedido, Inicio in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /iniciar.
+ * - [public] ProduccionService.Vista cambiar(UUID pedido, UUID trabajo, Cambio in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /trabajos/{trabajo}/estado.
+ * - [public] ProduccionService.Vista calidad(UUID pedido, UUID trabajo, Inspeccion in, Principal
+ *   p)
+ *   Entrada HTTP POST · ruta del método: /trabajos/{trabajo}/calidad.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ProduccionController (clase).
+ * - ProduccionController.Accion (enumeración).
+ * - ProduccionController.Resultado (enumeración).
+ * - ProduccionController.Inicio (record).
+ * - ProduccionController.Cambio (record).
+ * - ProduccionController.Checklist (record).
+ * - ProduccionController.Inspeccion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.produccion;
 
 import jakarta.validation.Valid;

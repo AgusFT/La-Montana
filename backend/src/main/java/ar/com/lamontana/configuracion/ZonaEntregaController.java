@@ -1,3 +1,43 @@
+//#region ENCABEZADO · ZonaEntregaController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ZonaEntregaController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el alta y edición de zonas de envío y define los datos de cobertura, costo, habilitación
+ * y franjas de cada zona.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ZonaEntregaController(ZonaEntregaService zonas)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador crear(UUID borrador, CrearZona input, Principal actor)
+ *   Entrada HTTP POST sobre la ruta del controlador.
+ * - [public] ConfiguracionService.Borrador editar(UUID borrador, UUID zona, EditarZona input,
+ *   Principal actor)
+ *   Entrada HTTP PUT · ruta del método: /{zona}.
+ * - [interfaz] Definicion :: String nombre()
+ * - [interfaz] Definicion :: String descripcion()
+ * - [interfaz] Definicion :: String zonaHoraria()
+ * - [interfaz] Definicion :: String costo()
+ * - [interfaz] Definicion :: Boolean habilitada()
+ * - [interfaz] Definicion :: List<TerritorioEntrega> territorios()
+ * - [interfaz] Definicion :: List<Franja> franjas()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ZonaEntregaController (clase).
+ * - ZonaEntregaController.Definicion (interfaz).
+ * - ZonaEntregaController.CrearZona (record).
+ * - ZonaEntregaController.EditarZona (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import jakarta.validation.Valid;

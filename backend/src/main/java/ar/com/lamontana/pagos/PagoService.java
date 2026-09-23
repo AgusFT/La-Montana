@@ -1,3 +1,99 @@
+//#region ENCABEZADO · PagoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: PagoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Distingue avisos de pago, dinero recibido, aplicaciones y devoluciones. Valida permisos, saldos,
+ * medios y vínculos con cotizaciones y pedidos para evitar consumir fondos dos veces y conservar
+ * hechos auditables.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PagoService(JdbcTemplate jdbc, OrganizacionService organizacion,
+ *   OfertaOperativaService operativa, EvaluadorFinanciero reglas, CoberturaPagos cobertura)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] AccesoComprobante accesoComprobante(UUID quote, UUID intento, UUID pago, String
+ *   correo, boolean interno)
+ * - [public] Vista vista(UUID quote, String correo, boolean interno)
+ * - [public] Bandeja bandeja(UUID branch, int pagina, String correo)
+ * - [public] Vista informar(UUID quote, Informar in, String correo)
+ * - [public] Vista descartar(UUID quote, Descartar in, String correo, boolean interno)
+ * - [public] Vista recibir(UUID quote, Recibir in, String correo)
+ * - [public] Vista aplicar(UUID quote, Aplicar in, String correo)
+ * - [public] Vista devolver(UUID quote, Devolver in, String correo)
+ * - [private] void reservarAnticipo(Oferta q, MedioPago medio, BigDecimal cantidad)
+ * - [private] void reservarMedios(Oferta q, MedioPago medio, BigDecimal cantidad, String previo,
+ *   String sena, List<MedioPago> admitidos)
+ * - [private] Vista leer(Oferta q, Actor a, String correo, boolean interno)
+ * - [private] BigDecimal maximoAplicable(Oferta q, Fondos p, Actor a, String correo, boolean
+ *   interno)
+ * - [private] BigDecimal topeMedios(Oferta q, MedioPago medio, String previo, String sena,
+ *   List<MedioPago> admitidos)
+ * - [private] Actor actor(String correo, boolean interno)
+ * - [private] Oferta autorizar(UUID quote, Actor a, String correo)
+ * - [private] boolean acceso(Oferta q, Actor a, String correo)
+ * - [private] void permisoFinanciero(String correo)
+ * - [private] Oferta oferta(UUID quote)
+ * - [private] Fondos fondos(UUID pago)
+ * - [private] List<Asignacion> asignaciones(long pago)
+ * - [private] UUID codigo(long id)
+ * - [private] boolean descendiente(long destino, long origen)
+ * - [private] long intentoPendiente(Oferta q, UUID id)
+ * - [private] long version(Fondos p)
+ * - [private] void version(Fondos p, long version)
+ * - [private] boolean replay(UUID op, String tipo, String hash, Actor a)
+ * - [private] long evento(UUID op, long quote, Actor a, String tipo, String hash, String motivo)
+ * - [private] boolean admite(Oferta q, MedioPago medio)
+ * - [private] String clave(Oferta q, MedioPago medio, String ref)
+ * - [private] String permiso(MedioPago medio)
+ * - [private] Long pedidoVinculado(Oferta q)
+ * - [private] boolean pedidoCerrado(Oferta q)
+ * - [private] boolean pedidoFinalizado(Oferta q)
+ * - [private] boolean cotizacionSustituida(Oferta q)
+ * - [private] boolean admiteAplicacion(Oferta q)
+ * - [private] boolean puedeLiberarHacia(Oferta origen, Oferta destino)
+ * - [private] EvaluadorFinanciero.Simulacion condicionesFinales(Oferta q)
+ * - [private] boolean vigente(Oferta q)
+ * - [private] String estado(String estado, Instant vence)
+ * - [private] void fecha(Instant t)
+ * - [private] BigDecimal importe(String valor)
+ * - [private] String dinero(BigDecimal n)
+ * - [private] void texto(String v)
+ * - [private] String huella(UUID quote, Object in)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] void exigir(boolean ok, String msg)
+ * - [private] ResponseStatusException conflicto(String msg)
+ * - [private] ResponseStatusException error(HttpStatus status, String msg)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PagoService (clase).
+ * - PagoService.Actor (record).
+ * - PagoService.Oferta (record).
+ * - PagoService.Fondos (record).
+ * - PagoService.Asignacion (record).
+ * - PagoService.Intento (record).
+ * - PagoService.Aplicacion (record).
+ * - PagoService.Devolucion (record).
+ * - PagoService.Pago (record).
+ * - PagoService.OfertaRelacionada (record).
+ * - PagoService.Evento (record).
+ * - PagoService.Vista (record).
+ * - PagoService.Fila (record).
+ * - PagoService.Bandeja (record).
+ * - PagoService.AccesoComprobante (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pagos;
 
 import static ar.com.lamontana.pagos.PagoController.*;

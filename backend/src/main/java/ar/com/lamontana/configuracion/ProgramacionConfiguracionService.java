@@ -1,3 +1,39 @@
+//#region ENCABEZADO · ProgramacionConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ProgramacionConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Autoriza y confirma la programación de una configuración operativa. Revalida fecha, versión y
+ * contenido antes de conservar la programación y su comprobante.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ProgramacionConfiguracionService(JdbcTemplate jdbc, ConfiguracionService
+ *   configuracion, ActivacionConfiguracionService activacion, SeguridadConfiguracion seguridad)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(UUID destino, Solicitar i, String actor)
+ * - [public] ConfiguracionService.Programacion confirmar(UUID destino, Confirmar i, String actor)
+ * - [public] void revocar(UUID destino, UUID operacion, String actor)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] Instant validar(UUID destino, Decision d, String actor)
+ * - [private] String huella(UUID destino, Decision d)
+ * - [private] ResponseStatusException error(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ProgramacionConfiguracionService (clase).
+ * - ProgramacionConfiguracionService.Contenido (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ProgramacionConfiguracionController.*;

@@ -1,3 +1,47 @@
+//#region ENCABEZADO · PuntoEntregaController.java
+/*
+ * ========================================================================
+ * ARCHIVO: PuntoEntregaController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el alta y edición de puntos de entrega dentro del borrador y define los datos de
+ * dirección, relaciones con sucursales y franjas requeridos por esas operaciones.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PuntoEntregaController(PuntoEntregaService puntos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador crear(UUID borrador, CrearPunto input, Principal actor)
+ *   Entrada HTTP POST sobre la ruta del controlador.
+ * - [public] ConfiguracionService.Borrador editar(UUID borrador, UUID punto, EditarPunto input,
+ *   Principal actor)
+ *   Entrada HTTP PUT · ruta del método: /{punto}.
+ * - [interfaz] Definicion :: String nombre()
+ * - [interfaz] Definicion :: String calle()
+ * - [interfaz] Definicion :: String numero()
+ * - [interfaz] Definicion :: String localidad()
+ * - [interfaz] Definicion :: String provincia()
+ * - [interfaz] Definicion :: String codigoPostal()
+ * - [interfaz] Definicion :: String referencias()
+ * - [interfaz] Definicion :: String zonaHoraria()
+ * - [interfaz] Definicion :: List<SucursalPunto> sucursales()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PuntoEntregaController (clase).
+ * - PuntoEntregaController.Franja (record).
+ * - PuntoEntregaController.SucursalPunto (record).
+ * - PuntoEntregaController.Definicion (interfaz).
+ * - PuntoEntregaController.CrearPunto (record).
+ * - PuntoEntregaController.EditarPunto (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import jakarta.validation.Valid;

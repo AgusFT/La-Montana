@@ -1,3 +1,41 @@
+//#region ENCABEZADO · EntregaConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: EntregaConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el guardado, la validación y la simulación de horarios, tiempos y modalidades de entrega
+ * de una configuración operativa.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EntregaConfiguracionController(EntregaConfiguracionService entrega)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador guardar(UUID borrador, GuardarEntrega input, Principal
+ *   actor)
+ *   Entrada HTTP PUT sobre la ruta del controlador.
+ * - [public] EntregaConfiguracionService.Validacion validar(UUID borrador, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /validacion.
+ * - [public] EvaluadorCalendario.Simulacion simular(UUID borrador, SimularEntrega input, Principal
+ *   actor)
+ *   Entrada HTTP POST · ruta del método: /simular.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EntregaConfiguracionController (clase).
+ * - EntregaConfiguracionController.Modalidad (enumeración).
+ * - EntregaConfiguracionController.Dia (record).
+ * - EntregaConfiguracionController.HorarioSucursal (record).
+ * - EntregaConfiguracionController.GuardarEntrega (record).
+ * - EntregaConfiguracionController.SimularEntrega (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.configuracion.PuntoEntregaController.Franja;

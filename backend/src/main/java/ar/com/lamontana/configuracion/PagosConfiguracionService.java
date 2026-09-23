@@ -1,3 +1,40 @@
+//#region ENCABEZADO · PagosConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: PagosConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y guarda los parámetros financieros del borrador y permite simular sus reglas de pago
+ * previo y seña sin registrar dinero real.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PagosConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   EvaluadorFinanciero evaluador)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador guardar(UUID codigo, GuardarPagos input, String correo)
+ * - [public] EvaluadorFinanciero.Simulacion simular(UUID codigo, SimularPagos input, String
+ *   correo)
+ * - [private] void exigirEditable(ConfiguracionService.Borrador borrador, long version)
+ * - [paquete] void comprobar(ConfiguracionService.Borrador b)
+ * - [private] Valores validar(ConfiguracionService.Borrador b, Pagos p)
+ * - [private] BigDecimal decimalPositivo(String texto, int decimales, String campo)
+ * - [private] void exigir(boolean condicion, String mensaje)
+ * - [private] ResponseStatusException error(HttpStatus status, String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PagosConfiguracionService (clase).
+ * - PagosConfiguracionService.Valores (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ConfiguracionController.*;

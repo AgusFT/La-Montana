@@ -1,3 +1,50 @@
+//#region ENCABEZADO · CredencialService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CredencialService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Emite y verifica códigos temporales con propósito, vencimiento e intentos limitados. Cambia
+ * contraseñas y revoca credenciales y sesiones que dejaron de ser válidas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] Tipo :: Tipo(String tabla, String id, String hash, String asunto)
+ * - [public] CredencialService(JdbcTemplate jdbc, PasswordEncoder encoder, CorreoService correo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] void solicitarVerificacion(String email)
+ * - [public] void solicitarRecuperacion(String email)
+ * - [public] void confirmarVerificacion(String email, String token)
+ * - [public] void recuperar(String email, String token, String nueva)
+ * - [public] void cambiarClave(String email, String actual, String nueva)
+ * - [private] void actualizarClave(Usuario u, String nueva, String tipo)
+ * - [public] void revocar(long usuario)
+ * - [private] Usuario usuario(String email)
+ * - [private] void emitir(Usuario u, Tipo tipo)
+ * - [private] Desafio validar(Usuario u, Tipo tipo, String token)
+ * - [private] void consumir(Tipo tipo, Desafio d)
+ * - [private] void diferente(Usuario u, String nueva)
+ * - [private] void evento(long usuario, String tipo)
+ * - [private] ResponseStatusException invalido()
+ * - [private] ResponseStatusException error(HttpStatus status, String mensaje)
+ *   Construye un error HTTP controlado.
+ * - [private] String hash(String token)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CredencialService (clase).
+ * - CredencialService.Tipo (enumeración).
+ * - CredencialService.Usuario (record).
+ * - CredencialService.Desafio (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import java.nio.charset.StandardCharsets;

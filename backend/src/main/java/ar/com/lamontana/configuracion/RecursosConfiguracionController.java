@@ -1,3 +1,51 @@
+//#region ENCABEZADO · RecursosConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: RecursosConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone las operaciones del borrador sobre servicios por sucursal e impresoras: alta, edición,
+ * cambio de estado y retiro.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RecursosConfiguracionController(RecursosConfiguracionService recursos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador guardar(UUID borrador, GuardarRecursos input, Principal
+ *   actor)
+ *   Entrada HTTP PUT · ruta del método: /recursos.
+ * - [public] ConfiguracionService.Borrador crear(UUID borrador, CrearImpresora input, Principal
+ *   actor)
+ *   Entrada HTTP POST · ruta del método: /impresoras.
+ * - [public] ConfiguracionService.Borrador editar(UUID borrador, UUID impresora, EditarImpresora
+ *   input, Principal actor)
+ *   Entrada HTTP PUT · ruta del método: /impresoras/{impresora}.
+ * - [public] ConfiguracionService.Borrador estado(UUID borrador, UUID impresora, CambiarEstado
+ *   input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /impresoras/{impresora}/estado.
+ * - [public] ConfiguracionService.Borrador retirar(UUID borrador, UUID impresora, RetirarImpresora
+ *   input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /impresoras/{impresora}/retirar.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RecursosConfiguracionController (clase).
+ * - RecursosConfiguracionController.MetodoAsignacion (enumeración).
+ * - RecursosConfiguracionController.EstadoSeleccionado (enumeración).
+ * - RecursosConfiguracionController.ServiciosSucursal (record).
+ * - RecursosConfiguracionController.GuardarRecursos (record).
+ * - RecursosConfiguracionController.CrearImpresora (record).
+ * - RecursosConfiguracionController.EditarImpresora (record).
+ * - RecursosConfiguracionController.CambiarEstado (record).
+ * - RecursosConfiguracionController.RetirarImpresora (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import jakarta.validation.Valid;

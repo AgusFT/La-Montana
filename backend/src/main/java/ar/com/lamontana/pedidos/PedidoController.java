@@ -1,3 +1,42 @@
+//#region ENCABEZADO · PedidoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: PedidoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la revisión previa y confirmación de pedidos desde cotizaciones, y consultas de pedidos
+ * para clientes y personal de sucursales.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PedidoController(PedidoService pedidos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] PedidoService.Revision revisar(UUID id, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/cotizaciones/{id}/confirmacion.
+ * - [public] PedidoService.Detalle confirmar(UUID id, Confirmar in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/cotizaciones/{id}/confirmacion.
+ * - [public] PedidoService.Pagina listar(int pagina, String estado, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos.
+ * - [public] PedidoService.Detalle cliente(UUID id, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/{id}.
+ * - [public] PedidoService.Detalle interno(UUID id, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/pedidos/{id}.
+ * - [public] PedidoService.Pagina sucursal(UUID id, int pagina, String estado, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/sucursales/{id}/pedidos.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PedidoController (clase).
+ * - PedidoController.Contacto (record).
+ * - PedidoController.Confirmar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pedidos;
 
 import jakarta.validation.Valid;

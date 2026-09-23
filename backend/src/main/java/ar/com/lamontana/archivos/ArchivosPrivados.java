@@ -1,3 +1,37 @@
+//#region ENCABEZADO · ArchivosPrivados.java
+/*
+ * ========================================================================
+ * ARCHIVO: ArchivosPrivados.java
+ * ========================================================================
+ * FUNCIÓN
+ * Almacena los PDF en carpetas privadas por identificador. Controla tamaño, cabecera e integridad
+ * SHA-256 y publica el archivo recibido mediante un movimiento atómico.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ArchivosPrivados(Path directorioArchivos) throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Path carpeta(UUID id) throws IOException
+ * - [public] Recibido recibir(UUID id, InputStream input) throws IOException
+ * - [public] void publicar(UUID id) throws IOException
+ * - [public] Path original(UUID id, String hash, long bytes) throws IOException
+ * - [public] void descartar(UUID id) throws IOException
+ * - [private, static] void verificarDirectorio(Path p) throws IOException
+ * - [private, static] MessageDigest sha()
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ArchivosPrivados (clase).
+ * - ArchivosPrivados.Recibido (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.archivos;
 
 import java.io.*;

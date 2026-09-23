@@ -1,3 +1,78 @@
+//#region ENCABEZADO · SimulacionPuntosIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: SimulacionPuntosIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba elegibilidad y simulación de puntos de entrega con disponibilidad, capacidad, horarios
+ * y permisos, sin crear reservas ni alterar datos.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [private] Map<String, Object> franja(int dia, String inicio, String fin, int cupo, boolean
+ *   habilitada)
+ * - [private] Map<String, Object> relacion(String origen, String costo, boolean habilitado,
+ *   List<Map<String, Object>> franjas)
+ * - [private] String punto(String codigo, String zona, List<Map<String, Object>> relaciones)
+ *   throws Exception
+ * - [private] void disponibilidad(String punto, int version, String estado) throws Exception
+ * - [private] Map<String, Object> ejemplo(String punto, String origen, String recibido)
+ * - [private] JsonNode calcular(String punto, String origen, String recibido) throws Exception
+ * - [paquete] void elegibilidadActualCompartidaConValidacionYRetiroAlternativo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void cupoCeroRelacionDeshabilitadaCierresFinDeSemanaYPersistenciaSinEscrituras()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void referenciasVersionModalidadPermisosYCsrfSeValidanEnServidor() throws Exception
+ *   Caso de prueba.
+ * - [private] void servicios(List<String> sucursales) throws Exception
+ * - [private] Map<String, Object> dia(int dia, Boolean habilitado, String apertura, String cierre)
+ * - [private] List<Map<String, Object>> semana(String apertura, String cierre)
+ * - [private] List<Map<String, Object>> soloDomingo(String apertura, String cierre)
+ * - [private] Map<String, Object> horario(String sucursal, List<? extends Map<String, Object>>
+ *   dias)
+ * - [private] Map<String, Object> entrega(String preparacion, String traslado, List<String>
+ *   modalidades, List<? extends Map<String, Object>> horarios)
+ * - [private] void guardar(String preparacion, String traslado, List<String> modalidades, List<?
+ *   extends Map<String, Object>> horarios) throws Exception
+ * - [private] Map<String, Object> simulacion(String sucursal, String modalidad, String recibido)
+ * - [private] JsonNode simular(String sucursal, String modalidad, String recibido) throws
+ *   Exception
+ * - [private] JsonNode validacion() throws Exception
+ * - [private] void assertProblemas(String[] esperados) throws Exception
+ * - [private] void assertInstante(JsonNode respuesta, String campo, String esperado)
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] String base()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SimulacionPuntosIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

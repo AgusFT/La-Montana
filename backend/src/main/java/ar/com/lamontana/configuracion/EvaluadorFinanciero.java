@@ -1,3 +1,29 @@
+//#region ENCABEZADO · EvaluadorFinanciero.java
+/*
+ * ========================================================================
+ * ARCHIVO: EvaluadorFinanciero.java
+ * ========================================================================
+ * FUNCIÓN
+ * Evalúa las reglas financieras del modelo operativo: pago previo, seña, saldo, medios de
+ * acreditación y condiciones necesarias para continuar el trabajo.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Simulacion evaluar(Modelo modelo, Criterio criterio, Pagos pagos, long version,
+ *   BigDecimal total, int carillas)
+ * - [private] String dinero(BigDecimal valor)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EvaluadorFinanciero (clase).
+ * - EvaluadorFinanciero.Momento (enumeración).
+ * - EvaluadorFinanciero.Simulacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ConfiguracionController.*;

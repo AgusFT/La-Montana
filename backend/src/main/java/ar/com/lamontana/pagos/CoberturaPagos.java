@@ -1,3 +1,30 @@
+//#region ENCABEZADO · CoberturaPagos.java
+/*
+ * ========================================================================
+ * ARCHIVO: CoberturaPagos.java
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta el dinero acreditado y aplicado en los medios admitidos y determina si cubre las
+ * exigencias de pago previo y seña de una cotización.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CoberturaPagos(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] BigDecimal acreditado(long cotizacion, List<MedioPago> medios)
+ * - [public] boolean cubre(long cotizacion, String previo, String sena, List<MedioPago> medios)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CoberturaPagos (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pagos;
 
 import ar.com.lamontana.configuracion.ConfiguracionController.MedioPago;

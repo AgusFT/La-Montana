@@ -1,3 +1,46 @@
+//#region ENCABEZADO · IdentidadController.java
+/*
+ * ========================================================================
+ * ARCHIVO: IdentidadController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la instalación inicial del propietario, registro de clientes, estado de identidad, perfil
+ * de sesión y obtención del token CSRF.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] IdentidadController(IdentidadService identidad)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] IdentidadService.EstadoInstalacion estado()
+ *   Entrada HTTP GET · ruta del método: /api/setup/estado.
+ * - [public] Map<String, String> crear(AltaPropietario alta)
+ *   Entrada HTTP POST · ruta del método: /api/setup/propietario.
+ * - [public] Map<String, String> csrf(CsrfToken csrf)
+ *   Entrada HTTP GET · ruta del método: /api/auth/csrf.
+ * - [public] IdentidadService.Perfil perfil(Principal principal)
+ *   Entrada HTTP GET · ruta del método: /api/auth/me.
+ * - [public] Map<String, Boolean> administracion()
+ *   Entrada HTTP GET · ruta del método: /api/admin/estado.
+ * - [public] Map<String, String> registro(RegistroCliente registro)
+ *   Entrada HTTP POST · ruta del método: /api/auth/registro.
+ * - [public] Map<String, Boolean> cliente()
+ *   Entrada HTTP GET · ruta del método: /api/cliente/estado.
+ * - [public] RegistroCliente :: String toString()
+ * - [public] AltaPropietario :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - IdentidadController (clase).
+ * - IdentidadController.RegistroCliente (record).
+ * - IdentidadController.AltaPropietario (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import jakarta.validation.Valid;

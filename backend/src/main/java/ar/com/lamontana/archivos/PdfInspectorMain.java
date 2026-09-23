@@ -1,3 +1,33 @@
+//#region ENCABEZADO · PdfInspectorMain.java
+/*
+ * ========================================================================
+ * ARCHIVO: PdfInspectorMain.java
+ * ========================================================================
+ * FUNCIÓN
+ * Es el punto de entrada del proceso aislado que analiza PDF con PDFBox o renderiza una página.
+ * Rechaza documentos cifrados, contenido activo y límites inválidos mediante códigos de salida.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] Rechazo :: Rechazo(int code)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public, static] void main(String[] args)
+ * - [private, static] void render(PDDocument doc, PDFRenderer renderer, int index, int longest,
+ *   Path output) throws IOException, Rechazo
+ * - [private, static] void inspectObjects(PDDocument document) throws IOException, Rechazo
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PdfInspectorMain (clase).
+ * - PdfInspectorMain.Rechazo (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.archivos;
 
 import java.io.*;

@@ -1,3 +1,67 @@
+//#region ENCABEZADO · PuntosEntregaIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: PuntosEntregaIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba definiciones de puntos de entrega, relaciones con sucursales, costos, franjas,
+ * disponibilidad, validaciones, concurrencia y conservación de versiones.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [paquete] void estructuraVaciaCompartidaPorDosOrigenesCostosCuposYDisponibilidadPendiente()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void validaSolapamientosReferenciasPrecisionEnterosCamposExplicitosYZonaIana()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void idempotenciaConcurrenteDestinoPermisosRollbackRevocacionPersistenciaYSnapshot()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> franja(int dia, String apertura, String cierre, int capacidad,
+ *   boolean habilitada)
+ * - [private] Map<String, Object> relacion(String sucursal, String costo, boolean habilitado,
+ *   List<? extends Map<String, Object>> franjas)
+ * - [private] Map<String, Object> edicion(List<? extends Map<String, Object>> relaciones)
+ * - [private] Map<String, Object> alta(String codigo, List<? extends Map<String, Object>>
+ *   relaciones)
+ * - [private] void guardarEntrega() throws Exception
+ * - [private] JsonNode puntos()
+ * - [private] String primerId()
+ * - [private] JsonNode validacion() throws Exception
+ * - [private] List<String> problemas() throws Exception
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] String base()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PuntosEntregaIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

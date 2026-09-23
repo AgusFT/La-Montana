@@ -1,3 +1,31 @@
+//#region ENCABEZADO · HorarioSucursalTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: HorarioSucursalTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba resolución de zona horaria argentina y validación de la semana de atención, rechazando
+ * días repetidos y horas incoherentes.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void provinciasYAliasResuelvenSinAceptarLaZonaEnviadaPorElNavegador()
+ *   Caso de prueba.
+ * - [paquete] void semanaCompletaAbiertaYCerradaEsValida()
+ *   Caso de prueba.
+ * - [paquete] void rechazaVaciosRepetidosHorasInvertidasYDiasCerradosConHoras()
+ *   Caso de prueba.
+ * - [private] ArrayList<HorarioAtencion.Dia> semana()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - HorarioSucursalTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

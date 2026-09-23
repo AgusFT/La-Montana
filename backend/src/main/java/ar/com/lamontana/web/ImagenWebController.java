@@ -1,3 +1,48 @@
+//#region ENCABEZADO · ImagenWebController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ImagenWebController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la exploración e importación de imágenes, su consulta privada y la entrega pública de
+ * imágenes que pertenecen al sitio publicado.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ImagenWebController(ImagenWebService imagenes)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] AlmacenImagenWeb.Origen origen(String carpeta, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web/origen.
+ * - [public] ResponseEntity<byte[]> candidata(String ruta, String sha256, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web/origen/miniatura.
+ * - [public] List<ImagenWebService.Imagen> biblioteca(Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web/imagenes.
+ * - [public] ImagenWebService.Importacion importar(Importar input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/admin/pagina-web/imagenes/importar.
+ * - [public] ResponseEntity<FileSystemResource> privada(UUID codigo, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web/imagenes/{codigo}.
+ * - [public] ResponseEntity<FileSystemResource> privadaMiniatura(UUID codigo, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web/imagenes/{codigo}/miniatura.
+ * - [public] ResponseEntity<FileSystemResource> publica(UUID codigo)
+ *   Entrada HTTP GET · ruta del método: /api/publico/pagina-web/imagenes/{codigo}.
+ * - [public] ResponseEntity<FileSystemResource> publicaMiniatura(UUID codigo)
+ *   Entrada HTTP GET · ruta del método: /api/publico/pagina-web/imagenes/{codigo}/miniatura.
+ * - [private] ResponseEntity<FileSystemResource> archivo(UUID id, boolean thumb, boolean publico,
+ *   String correo)
+ * - [private, static] HttpHeaders headers()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ImagenWebController (clase).
+ * - ImagenWebController.Importar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.web;
 
 import jakarta.validation.Valid;

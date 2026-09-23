@@ -1,3 +1,55 @@
+//#region ENCABEZADO · ActivacionConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ActivacionConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Revalida y activa configuraciones operativas mediante autorización de seguridad. Coordina
+ * intentos manuales, publicación transaccional y recuperación del resultado, tanto desde un
+ * borrador como desde una programación.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ActivacionConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   RevisionConfiguracionService revision, SeguridadConfiguracion seguridad,
+ *   PublicacionConfiguracion publicacion, CoordinadorActivacion coordinador,
+ *   PlatformTransactionManager manager)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(UUID destino, Solicitar i, String actor)
+ * - [public] SeguridadConfiguracion.Solicitud solicitarProgramada(UUID destino, Solicitar i,
+ *   String actor)
+ * - [private] SeguridadConfiguracion.Solicitud solicitar(UUID destino, Solicitar i, String actor,
+ *   boolean programada)
+ * - [public] Resultado confirmar(UUID destino, Confirmar i, String actor)
+ * - [public] Resultado confirmarProgramada(UUID destino, Confirmar i, String actor)
+ * - [private] Resultado confirmar(UUID destino, Confirmar i, String actor, boolean programada)
+ * - [private] void publicar(UUID destino, Confirmar i, String actor, boolean programada, Inicio
+ *   inicio)
+ * - [private] Resultado resultado(UUID destino, UUID operacion)
+ * - [public] void revocar(UUID destino, UUID op, String actor)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [paquete] void validar(UUID destino, Decision i, String actor)
+ * - [private] void validar(UUID destino, Decision i, String actor, boolean programada)
+ * - [private] String proposito(boolean programada)
+ * - [private] String huella(String proposito, UUID destino, Decision d)
+ * - [private] ResponseStatusException conflicto(String m)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ActivacionConfiguracionService (clase).
+ * - ActivacionConfiguracionService.Resultado (record).
+ * - ActivacionConfiguracionService.Contenido (record).
+ * - ActivacionConfiguracionService.Inicio (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ActivacionConfiguracionController.*;

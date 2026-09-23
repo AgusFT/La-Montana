@@ -1,3 +1,30 @@
+//#region ENCABEZADO · CoordinadorActivacion.java
+/*
+ * ========================================================================
+ * ARCHIVO: CoordinadorActivacion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Serializa la activación de configuraciones con un bloqueo asesor de PostgreSQL y marca como
+ * interrumpidos los intentos iniciados que quedaron sin resultado confirmado.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CoordinadorActivacion(DataSource dataSource, JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] <T> T exclusivo(boolean esperar, Supplier<T> tarea)
+ * - [paquete] int recuperar()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CoordinadorActivacion (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.sql.SQLException;

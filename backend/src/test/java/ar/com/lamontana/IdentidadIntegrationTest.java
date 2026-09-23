@@ -1,3 +1,37 @@
+//#region ENCABEZADO · IdentidadIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: IdentidadIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el propietario único, registro y acceso, sesiones persistentes, protección CSRF y
+ * revocación de credenciales.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void propietarioUnicoSesionPersistenteCsrfYRevocacion() throws Exception
+ *   Caso de prueba.
+ * - [private] ConfigurableApplicationContext iniciar(EmbeddedPostgres pg, Path files)
+ * - [private] String alta(String token)
+ * - [private] String registro()
+ * - [private] String sucursal(String codigo)
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient client, String path) throws Exception
+ * - [private] String csrf(HttpClient client) throws Exception
+ * - [private] HttpRequest requestPost(String path, String body, String contentType, String csrf)
+ * - [private] HttpResponse<String> post(HttpClient client, String path, String body, String
+ *   contentType, String csrf) throws Exception
+ * - [private] String cookie(CookieManager manager)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - IdentidadIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.assertThat;

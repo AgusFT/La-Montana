@@ -1,3 +1,33 @@
+//#region ENCABEZADO · UbicacionSucursal.java
+/*
+ * ========================================================================
+ * ARCHIVO: UbicacionSucursal.java
+ * ========================================================================
+ * FUNCIÓN
+ * Define provincias argentinas y sus alias para resolver la zona horaria sin conexión. Normaliza
+ * la ubicación y devuelve su desfase horario para la interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [private] UbicacionSucursal()
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private, static] Provincia provincia(String nombre, String ciudad, String[] alias)
+ * - [private, static] String normalizar(String valor)
+ * - [public, static] String zona(String provincia, String zonaAnterior, boolean contratoAnterior)
+ * - [public, static] String desfase(String zona)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - UbicacionSucursal (clase).
+ * - UbicacionSucursal.Provincia (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.organizacion;
 
 import java.text.Normalizer;

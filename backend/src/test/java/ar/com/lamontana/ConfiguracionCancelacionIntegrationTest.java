@@ -1,3 +1,80 @@
+//#region ENCABEZADO · ConfiguracionCancelacionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionCancelacionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba cancelación segura de configuraciones con correo, códigos, versiones y permisos;
+ * incluye concurrencia, expiración, fallos SMTP/SQL y persistencia.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] CapturaSmtp :: CapturaSmtp() throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [paquete] void
+ *   correoRealCancelacionConcurrenteSnapshotHistorialReinicioYReplaySinAfectarNuevoBorrador()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void contrasenaObligatoriaCincoIntentosPersistenCooldownExpiracionYReenvio() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cambiosDeVersionContrasenaYCorreoInvalidanLaAutorizacionPendiente() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void smtpYFalloSqlRevierteEmisionCancelacionConsumoComprobanteYAuditoria() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void permisosCsrfPropositosYActorImpidenUsarAutorizacionesAjenas() throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> solicitud(long version, String contrasena)
+ * - [private] Map<String, Object> confirmacion(Map<String, Object> solicitud, String codigo)
+ * - [private] Map<String, Object> seleccionar(long version)
+ * - [private] String ruta(String id, String accion)
+ * - [private] JsonNode crear() throws Exception
+ * - [private] JsonNode estado() throws Exception
+ * - [private] int contar(String tabla)
+ * - [private] int eventos(String tipo)
+ * - [private] int intentos()
+ * - [private] void envejecer()
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> enviar(HttpClient c, String metodo, String path, Object data)
+ *   throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo, String clave) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ * - [paquete] CapturaSmtp :: int port()
+ * - [paquete] CapturaSmtp :: int pendientes()
+ * - [paquete] CapturaSmtp :: Mensaje recibir() throws Exception
+ * - [private] CapturaSmtp :: void aceptar()
+ * - [private] CapturaSmtp :: void responder(BufferedWriter escritor, String respuesta) throws
+ *   IOException
+ * - [public] CapturaSmtp :: void close() throws Exception
+ * - [paquete] Mensaje :: String token()
+ * - [public] Mensaje :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionCancelacionIntegrationTest (clase).
+ * - ConfiguracionCancelacionIntegrationTest.CapturaSmtp (clase).
+ * - ConfiguracionCancelacionIntegrationTest.Mensaje (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

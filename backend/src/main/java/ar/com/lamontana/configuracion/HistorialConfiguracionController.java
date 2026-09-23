@@ -1,3 +1,39 @@
+//#region ENCABEZADO · HistorialConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: HistorialConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el listado paginado, detalle, auditoría y comparación de versiones de la configuración
+ * operativa.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] HistorialConfiguracionController(HistorialConfiguracionService service)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] HistorialConfiguracionService.Listado listar(String buscar, String estado, String
+ *   orden, int pagina, Principal actor)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] HistorialConfiguracionService.Detalle detalle(UUID id, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /{id}.
+ * - [public] HistorialConfiguracionService.Pagina<HistorialConfiguracionService.Evento>
+ *   auditoria(UUID id, int pagina, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /{id}/auditoria.
+ * - [public] HistorialConfiguracionService.Comparacion comparar(UUID id, UUID destino, Principal
+ *   actor)
+ *   Entrada HTTP GET · ruta del método: /{id}/comparacion/{destino}.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - HistorialConfiguracionController (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import java.security.Principal;
 import java.util.UUID;

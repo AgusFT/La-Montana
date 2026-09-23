@@ -1,3 +1,35 @@
+//#region ENCABEZADO · EvaluadorPrecioItem.java
+/*
+ * ========================================================================
+ * ARCHIVO: EvaluadorPrecioItem.java
+ * ========================================================================
+ * FUNCIÓN
+ * Calcula el precio de un ítem a partir de las tarifas, servicios, cantidad de páginas, copias y
+ * caras. Comprueba compatibilidades y límites monetarios y devuelve el desglose y la preparación
+ * mínima.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Precio calcular(CatalogoService.Estado catalogo, Item item)
+ * - [private] OfertaServicio oferta(CatalogoService.Revision r, UUID servicio)
+ * - [public] void limite(BigDecimal total)
+ * - [private] String dinero(BigDecimal v)
+ * - [private] void exigir(boolean condicion, String mensaje)
+ * - [private] ResponseStatusException error(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EvaluadorPrecioItem (clase).
+ * - EvaluadorPrecioItem.Item (record).
+ * - EvaluadorPrecioItem.Linea (record).
+ * - EvaluadorPrecioItem.Precio (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.catalogo;
 
 import static ar.com.lamontana.catalogo.CatalogoController.*;

@@ -1,3 +1,74 @@
+//#region ENCABEZADO · ConfiguracionEntregaIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionEntregaIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba horarios y modalidades de entrega, cálculos entre cierres y cambios de zona horaria,
+ * validaciones, concurrencia, permisos y guardado transaccional.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [paquete] void vacioParcialValidacionMultisucursalModalidadesYErroresSinDatosPrecargados()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void simulacionCruzaCierresFinDeSemanaRespetaSegundosExactosYSnapshotDeZona() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cambiosDstCuentanDuracionRealYOmiteVentanasInvertidasPorSaltoHorario() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void idempotenciaConcurrenciaPermisosCsrfRollbackRevocaAutorizacionYPersiste()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] void servicios(List<String> sucursales) throws Exception
+ * - [private] Map<String, Object> dia(int dia, Boolean habilitado, String apertura, String cierre)
+ * - [private] List<Map<String, Object>> semana(String apertura, String cierre)
+ * - [private] List<Map<String, Object>> soloDomingo(String apertura, String cierre)
+ * - [private] Map<String, Object> horario(String sucursal, List<? extends Map<String, Object>>
+ *   dias)
+ * - [private] Map<String, Object> entrega(String preparacion, String traslado, List<String>
+ *   modalidades, List<? extends Map<String, Object>> horarios)
+ * - [private] void guardar(String preparacion, String traslado, List<String> modalidades, List<?
+ *   extends Map<String, Object>> horarios) throws Exception
+ * - [private] Map<String, Object> simulacion(String sucursal, String modalidad, String recibido)
+ * - [private] JsonNode simular(String sucursal, String modalidad, String recibido) throws
+ *   Exception
+ * - [private] JsonNode validacion() throws Exception
+ * - [private] void assertProblemas(String[] esperados) throws Exception
+ * - [private] void assertInstante(JsonNode respuesta, String campo, String esperado)
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] String base()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionEntregaIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

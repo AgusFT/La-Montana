@@ -1,3 +1,37 @@
+//#region ENCABEZADO · IdentidadService.java
+/*
+ * ========================================================================
+ * ARCHIVO: IdentidadService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona la creación única del propietario, registro de clientes, carga de usuarios para
+ * autenticación y consulta de perfil. Normaliza correos y registra eventos de acceso.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] IdentidadService(JdbcTemplate jdbc, PasswordEncoder encoder, String setupToken)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] EstadoInstalacion estado()
+ * - [public] void crearPropietario(IdentidadController.AltaPropietario alta)
+ * - [public] UserDetails loadUserByUsername(String username)
+ * - [public] void registrarCliente(IdentidadController.RegistroCliente registro)
+ * - [public] Perfil perfil(String correo)
+ * - [public] void registrarAcceso(String tipo, String correo)
+ * - [private] String normalizar(String correo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - IdentidadService (clase).
+ * - IdentidadService.EstadoInstalacion (record).
+ * - IdentidadService.Perfil (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import java.nio.charset.StandardCharsets;

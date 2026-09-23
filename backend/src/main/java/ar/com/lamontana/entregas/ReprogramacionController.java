@@ -1,3 +1,44 @@
+//#region ENCABEZADO · ReprogramacionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ReprogramacionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la consulta de franjas y propuestas de reprogramación, su retiro por operación y la
+ * respuesta del cliente.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ReprogramacionController(ReprogramacionService service)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ReprogramacionService.Vista cliente(UUID pedido, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/{pedido}/reprogramacion.
+ * - [public] ReprogramacionService.Vista interno(UUID pedido, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/pedidos/{pedido}/reprogramacion.
+ * - [public] ReprogramacionService.Disponibilidad franjas(UUID pedido, LocalDate fecha, Principal
+ *   p)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/pedidos/{pedido}/reprogramacion/franjas.
+ * - [public] ReprogramacionService.Vista proponer(UUID pedido, Proponer in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{pedido}/reprogramacion.
+ * - [public] ReprogramacionService.Vista retirar(UUID pedido, Retirar in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{pedido}/reprogramacion/retirar.
+ * - [public] ReprogramacionService.Vista responder(UUID pedido, Responder in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/pedidos/{pedido}/reprogramacion/responder.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ReprogramacionController (clase).
+ * - ReprogramacionController.Proponer (record).
+ * - ReprogramacionController.Responder (record).
+ * - ReprogramacionController.Retirar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.entregas;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

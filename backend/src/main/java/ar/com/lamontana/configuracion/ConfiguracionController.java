@@ -1,3 +1,65 @@
+//#region ENCABEZADO · ConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el estado y las operaciones iniciales del configurador: crear borrador, elegir modelo,
+ * cancelar y guardar o simular los parámetros financieros.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ConfiguracionController(ConfiguracionService configuracion,
+ *   CancelacionConfiguracionService cancelacion, PagosConfiguracionService pagos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Estado estado(Principal actor)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] ConfiguracionService.Borrador crear(CrearBorrador input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /borradores.
+ * - [public] ConfiguracionService.Borrador seleccionar(UUID codigo, SeleccionarModelo input,
+ *   Principal actor)
+ *   Entrada HTTP PUT · ruta del método: /borradores/{codigo}/modelo.
+ * - [public] SeguridadConfiguracion.Solicitud solicitarCancelacion(UUID codigo,
+ *   SolicitarCancelacion input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /borradores/{codigo}/cancelacion/solicitar.
+ * - [public] ConfiguracionService.Borrador confirmarCancelacion(UUID codigo, ConfirmarCancelacion
+ *   input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /borradores/{codigo}/cancelacion/confirmar.
+ * - [public] java.util.Map<String, String> revocarCancelacion(UUID codigo,
+ *   ActivacionConfiguracionController.Revocar input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /borradores/{codigo}/cancelacion/revocar.
+ * - [public] ConfiguracionService.Borrador guardarPagos(UUID codigo, GuardarPagos input, Principal
+ *   actor)
+ *   Entrada HTTP PUT · ruta del método: /borradores/{codigo}/pagos.
+ * - [public] EvaluadorFinanciero.Simulacion simularPagos(UUID codigo, SimularPagos input,
+ *   Principal actor)
+ *   Entrada HTTP POST · ruta del método: /borradores/{codigo}/pagos/simular.
+ * - [public] SolicitarCancelacion :: String toString()
+ * - [public] ConfirmarCancelacion :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionController (clase).
+ * - ConfiguracionController.Modelo (enumeración).
+ * - ConfiguracionController.Criterio (enumeración).
+ * - ConfiguracionController.MedioPago (enumeración).
+ * - ConfiguracionController.CondicionSena (enumeración).
+ * - ConfiguracionController.TipoSena (enumeración).
+ * - ConfiguracionController.Pagos (record).
+ * - ConfiguracionController.GuardarPagos (record).
+ * - ConfiguracionController.SimularPagos (record).
+ * - ConfiguracionController.CrearBorrador (record).
+ * - ConfiguracionController.SeleccionarModelo (record).
+ * - ConfiguracionController.SolicitarCancelacion (record).
+ * - ConfiguracionController.ConfirmarCancelacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import jakarta.validation.Valid;

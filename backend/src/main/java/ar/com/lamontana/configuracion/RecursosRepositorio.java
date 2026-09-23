@@ -1,3 +1,31 @@
+//#region ENCABEZADO · RecursosRepositorio.java
+/*
+ * ========================================================================
+ * ARCHIVO: RecursosRepositorio.java
+ * ========================================================================
+ * FUNCIÓN
+ * Reconstruye los recursos de una configuración: método de asignación, impresoras con sus
+ * capacidades y formatos, y servicios habilitados por sucursal.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RecursosRepositorio(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Recursos leer(long version)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RecursosRepositorio (clase).
+ * - RecursosRepositorio.Impresora (record).
+ * - RecursosRepositorio.Recursos (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.RecursosConfiguracionController.*;

@@ -1,3 +1,40 @@
+//#region ENCABEZADO · SucursalController.java
+/*
+ * ========================================================================
+ * ARCHIVO: SucursalController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el listado, alta y edición de sucursales y el catálogo de ubicaciones disponible para
+ * resolver la zona horaria argentina.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] SucursalController(OrganizacionService organizacion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] List<Sucursal> listar()
+ *   Entrada HTTP GET · ruta del método: /api/admin/sucursales.
+ * - [public] List<Ubicacion> ubicaciones()
+ *   Entrada HTTP GET · ruta del método: /api/admin/sucursales/ubicaciones.
+ * - [public] Map<String, UUID> crear(NuevaSucursal input, Principal principal)
+ *   Entrada HTTP POST · ruta del método: /api/admin/sucursales.
+ * - [public] Sucursal actualizar(UUID codigo, EdicionSucursal input, Principal principal)
+ *   Entrada HTTP PUT · ruta del método: /api/admin/sucursales/{codigo}.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SucursalController (clase).
+ * - SucursalController.Ubicacion (record).
+ * - SucursalController.NuevaSucursal (record).
+ * - SucursalController.EdicionSucursal (record).
+ * - SucursalController.Sucursal (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.organizacion;
 
 import jakarta.validation.Valid;

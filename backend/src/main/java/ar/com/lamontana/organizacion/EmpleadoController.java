@@ -1,3 +1,42 @@
+//#region ENCABEZADO · EmpleadoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: EmpleadoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la administración de empleados y la consulta del contexto operativo y de sucursales
+ * autorizadas para la persona autenticada.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EmpleadoController(OrganizacionService organizacion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] List<Empleado> listar()
+ *   Entrada HTTP GET · ruta del método: /api/admin/empleados.
+ * - [public] Map<String, UUID> crear(NuevoEmpleado input, Principal principal)
+ *   Entrada HTTP POST · ruta del método: /api/admin/empleados.
+ * - [public] Empleado actualizar(UUID codigo, EdicionEmpleado input, Principal principal)
+ *   Entrada HTTP PUT · ruta del método: /api/admin/empleados/{codigo}.
+ * - [public] OrganizacionService.Contexto contexto(Principal principal)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/contexto.
+ * - [public] SucursalController.Sucursal sucursal(UUID codigo, Principal principal)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/sucursales/{codigo}.
+ * - [public] NuevoEmpleado :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EmpleadoController (clase).
+ * - EmpleadoController.NuevoEmpleado (record).
+ * - EmpleadoController.EdicionEmpleado (record).
+ * - EmpleadoController.Empleado (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.organizacion;
 
 import jakarta.validation.Valid;

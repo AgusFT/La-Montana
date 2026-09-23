@@ -1,3 +1,66 @@
+//#region ENCABEZADO · CatalogoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: CatalogoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone las operaciones HTTP del catálogo comercial: formatos, papeles, servicios,
+ * configuraciones de precios y programación. Valida las entradas y delega la lógica de negocio en
+ * CatalogoService.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CatalogoController(CatalogoService catalogo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] CatalogoService.Estado estado()
+ *   Consulta el estado del catálogo.
+ * - [public] Map<String, String> formato(AltaFormato data, Principal actor)
+ *   Solicita crear un formato de papel.
+ * - [public] Map<String, String> papel(AltaPapel data, Principal actor)
+ *   Solicita crear un material de papel.
+ * - [public] Map<String, String> servicio(AltaServicio data, Principal actor)
+ *   Solicita crear un servicio.
+ * - [public] CatalogoService.Revision guardar(NuevaRevision data, Principal actor)
+ *   Solicita guardar una configuración comercial.
+ * - [public] CatalogoService.Revision revision(UUID codigo)
+ *   Consulta una configuración comercial por su identificador.
+ * - [public] CatalogoService.Revision cancelar(UUID codigo, CancelarProgramacion data, Principal
+ *   actor)
+ *   Solicita cancelar una configuración comercial programada.
+ * - [public] Map<String, String> predefinido(HabilitarPredefinido data, Principal actor)
+ *   Habilita un papel del catálogo precargado.
+ * - [public] Map<String, String> todosPredefinidos(Principal actor)
+ *   Habilita todos los papeles precargados.
+ * - [public] Map<String, String> personalizado(PapelPersonalizado data, Principal actor)
+ *   Solicita guardar un papel con especificaciones propias.
+ * - [public] Map<String, String> seleccion(SeleccionPapel data, Principal actor)
+ *   Habilita o deshabilita una combinación de formato y papel.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogoController (clase).
+ * - CatalogoController.HabilitarPredefinido (record).
+ * - CatalogoController.SeleccionPapel (record).
+ * - CatalogoController.PapelPersonalizado (record).
+ * - CatalogoController.AltaFormato (record).
+ * - CatalogoController.AltaPapel (record).
+ * - CatalogoController.AltaServicio (record).
+ * - CatalogoController.TipoServicio (enumeración).
+ * - CatalogoController.ModoColor (enumeración).
+ * - CatalogoController.BasePrecio (enumeración).
+ * - CatalogoController.Tarifa (record).
+ * - CatalogoController.Compatibilidad (record).
+ * - CatalogoController.OfertaServicio (record).
+ * - CatalogoController.NuevaRevision (record).
+ * - CatalogoController.CancelarProgramacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.catalogo;
 
 import jakarta.validation.Valid;

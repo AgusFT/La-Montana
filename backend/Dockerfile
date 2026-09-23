@@ -1,3 +1,23 @@
+# region ENCABEZADO · Dockerfile
+# ========================================================================
+# ARCHIVO: Dockerfile
+# ========================================================================
+# FUNCIÓN
+# Construye el JAR del backend con Maven y prepara una imagen de ejecución Java 17 con usuario sin
+# privilegios y comprobación de salud.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - Etapa build: copia fuentes y compila/empaqueta con Maven.
+# - Etapa final: instala dependencias del sistema y crea directorios privados.
+# - Usuario lamontana: ejecuta el proceso sin privilegios de root.
+# - Puerto 8080 y HEALTHCHECK: comprueba readiness por HTTP.
+# - ENTRYPOINT: inicia /app/app.jar.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
 FROM maven:3.9.16-eclipse-temurin-17 AS build
 WORKDIR /build
 COPY pom.xml ./

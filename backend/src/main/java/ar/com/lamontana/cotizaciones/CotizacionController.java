@@ -1,3 +1,45 @@
+//#region ENCABEZADO · CotizacionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: CotizacionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone al cliente la consulta de opciones, creación, listado, detalle, aceptación y cancelación
+ * de cotizaciones.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CotizacionController(CotizacionService cotizaciones)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] CotizacionService.Opciones opciones(Principal actor)
+ *   Entrada HTTP GET · ruta del método: /opciones.
+ * - [public] CotizacionService.Pagina listar(int pagina, Principal actor)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] CotizacionService.Detalle detalle(UUID id, Principal actor)
+ *   Entrada HTTP GET · ruta del método: /{id}.
+ * - [public] CotizacionService.Detalle crear(Crear in, Principal actor)
+ *   Entrada HTTP POST sobre la ruta del controlador.
+ * - [public] CotizacionService.Detalle aceptar(UUID id, Decision in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /{id}/aceptar.
+ * - [public] CotizacionService.Detalle cancelar(UUID id, Decision in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /{id}/cancelar.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CotizacionController (clase).
+ * - CotizacionController.Documento (record).
+ * - CotizacionController.Item (record).
+ * - CotizacionController.Direccion (record).
+ * - CotizacionController.Crear (record).
+ * - CotizacionController.Decision (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.cotizaciones;
 
 import ar.com.lamontana.catalogo.EvaluadorPrecioItem;

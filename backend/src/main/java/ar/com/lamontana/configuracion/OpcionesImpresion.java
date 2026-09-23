@@ -1,3 +1,32 @@
+//#region ENCABEZADO · OpcionesImpresion.java
+/*
+ * ========================================================================
+ * ARCHIVO: OpcionesImpresion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Deriva combinaciones de impresión disponibles cruzando sucursales activas, servicios
+ * habilitados, tarifas e impresoras compatibles con formato, color y doble faz.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [private] OpcionesImpresion()
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public, static] List<RevisionConfiguracionService.Opcion>
+ *   calcular(ConfiguracionService.Borrador b, CatalogoService.Estado c, Set<UUID> activas)
+ * - [public, static] boolean compatible(RecursosRepositorio.Impresora p, UUID sucursal, UUID
+ *   formato, ModoColor color, boolean doble)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OpcionesImpresion (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.*;

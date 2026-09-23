@@ -1,3 +1,64 @@
+//#region ENCABEZADO · ReprogramacionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ReprogramacionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona propuestas de cambio de entrega y su aceptación o rechazo. Revalida disponibilidad y
+ * cupos antes de reemplazar la reserva y registra la resolución sin reescribir precios.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ReprogramacionService(JdbcTemplate jdbc, PedidoService pedidos, OrganizacionService
+ *   organizacion, OfertaOperativaService operativa, EvaluadorFranjas franjas)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Vista consultar(UUID pedido, String correo, boolean interno)
+ * - [public] Disponibilidad disponibilidad(UUID pedido, LocalDate fecha, String correo)
+ * - [private] Vista vista(PedidoService.Detalle p, String correo, boolean interno)
+ * - [private] String invalida(PedidoService.Detalle p, Registro r)
+ * - [private] Disponibilidad ventanas(PedidoService.Detalle p, LocalDate fecha)
+ * - [public] Vista proponer(UUID pedido, Proponer in, String correo)
+ * - [public] Vista retirar(UUID pedido, Retirar in, String correo)
+ * - [public] Vista responder(UUID pedido, Responder in, String correo)
+ * - [private] boolean mismaFranja(Franja a, Franja b)
+ * - [private] Franja seleccionar(Disponibilidad d, Instant desde, Instant hasta)
+ * - [private] void resolver(Registro r, Actor a, UUID op, String hash, String estado, String
+ *   motivo, Instant fecha, long version, Long nueva, Long evento)
+ * - [private] Registro registro(PedidoService.Detalle p, UUID codigo)
+ * - [private] Registro mapear(ResultSet r) throws SQLException
+ * - [private] Franja leerReserva(long id)
+ * - [private] long reserva(PedidoService.Detalle p)
+ * - [private] boolean replay(UUID op, String hash, PedidoService.Detalle p, Actor a)
+ * - [private] Actor actor(String correo)
+ * - [private] void exigirEtapa(PedidoService.Detalle p)
+ * - [private] void pendiente(Registro r)
+ * - [private] void version(PedidoService.Detalle p, long v)
+ * - [private] void confirmar(boolean c)
+ * - [private] void texto(String t)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] String huella(Object in)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException conflicto(String m)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ReprogramacionService (clase).
+ * - ReprogramacionService.Decision (record).
+ * - ReprogramacionService.Propuesta (record).
+ * - ReprogramacionService.Vista (record).
+ * - ReprogramacionService.Disponibilidad (record).
+ * - ReprogramacionService.Actor (record).
+ * - ReprogramacionService.Registro (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.entregas;
 import static ar.com.lamontana.entregas.ReprogramacionController.*;
 import ar.com.lamontana.configuracion.*;

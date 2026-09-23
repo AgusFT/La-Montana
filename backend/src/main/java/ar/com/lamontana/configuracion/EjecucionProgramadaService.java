@@ -1,3 +1,40 @@
+//#region ENCABEZADO · EjecucionProgramadaService.java
+/*
+ * ========================================================================
+ * ARCHIVO: EjecucionProgramadaService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Reconcilia las activaciones operativas programadas: registra el intento, revalida condiciones
+ * actuales y publica o conserva el resultado del fallo y la política de reintento.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EjecucionProgramadaService(CoordinadorActivacion coordinador, JdbcTemplate jdbc,
+ *   ConfiguracionService configuracion, RevisionConfiguracionService revision,
+ *   PublicacionConfiguracion activacion, CatalogoService catalogo, PlatformTransactionManager
+ *   manager)
+ * - [paquete] CondicionesInvalidas :: CondicionesInvalidas(String mensaje)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] void reconciliar(boolean recuperando)
+ * - [private] UUID iniciar(boolean recuperando)
+ * - [private] void publicar(UUID intento)
+ * - [private] Instant ahora()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EjecucionProgramadaService (clase).
+ * - EjecucionProgramadaService.Pendiente (record).
+ * - EjecucionProgramadaService.Candidata (record).
+ * - EjecucionProgramadaService.AutorizacionVencida (clase).
+ * - EjecucionProgramadaService.CondicionesInvalidas (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.CatalogoService;

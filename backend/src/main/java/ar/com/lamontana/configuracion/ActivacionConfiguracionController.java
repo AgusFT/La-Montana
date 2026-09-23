@@ -1,3 +1,44 @@
+//#region ENCABEZADO · ActivacionConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ActivacionConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la solicitud, confirmación y revocación de la autorización para activar una configuración
+ * operativa. Sus tipos de entrada evitan mostrar secretos al convertirse en texto.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ActivacionConfiguracionController(ActivacionConfiguracionService activacion,
+ *   ConfiguracionService configuracion, CatalogoService catalogo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] void preparar(String correo)
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(UUID borrador, Solicitar input, Principal
+ *   actor)
+ *   Entrada HTTP POST · ruta del método: /solicitar.
+ * - [public] ActivacionConfiguracionService.Resultado confirmar(UUID borrador, Confirmar input,
+ *   Principal actor)
+ *   Entrada HTTP POST · ruta del método: /confirmar.
+ * - [public] Map<String, String> revocar(UUID borrador, Revocar input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /revocar.
+ * - [public] Solicitar :: String toString()
+ * - [public] Confirmar :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ActivacionConfiguracionController (clase).
+ * - ActivacionConfiguracionController.Decision (record).
+ * - ActivacionConfiguracionController.Solicitar (record).
+ * - ActivacionConfiguracionController.Confirmar (record).
+ * - ActivacionConfiguracionController.Revocar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import ar.com.lamontana.catalogo.CatalogoService;
 import jakarta.validation.Valid;

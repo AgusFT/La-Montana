@@ -1,3 +1,34 @@
+//#region ENCABEZADO · EvaluadorFranjas.java
+/*
+ * ========================================================================
+ * ARCHIVO: EvaluadorFranjas.java
+ * ========================================================================
+ * FUNCIÓN
+ * Obtiene franjas de entrega válidas a partir de una fecha y zona horaria, respetando
+ * habilitación, capacidad, disponibilidad y transiciones del reloj local.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Ventana siguiente(Instant llegada, String zonaHoraria,
+ *   List<PuntoEntregaController.Franja> franjas, Instant limite)
+ * - [public] Ventana siguiente(Instant llegada, String zonaHoraria,
+ *   List<PuntoEntregaController.Franja> franjas, Instant limite,
+ *   java.util.function.Predicate<Ventana> disponible)
+ * - [public] List<Ventana> dia(LocalDate fecha, String zonaHoraria,
+ *   List<PuntoEntregaController.Franja> franjas)
+ * - [private] List<Ventana> ventanas(LocalDate fecha, ZoneId zona, PuntoEntregaController.Franja
+ *   franja)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EvaluadorFranjas (clase).
+ * - EvaluadorFranjas.Ventana (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.time.*;

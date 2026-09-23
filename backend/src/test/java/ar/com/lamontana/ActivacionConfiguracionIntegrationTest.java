@@ -1,3 +1,401 @@
+//#region ENCABEZADO · ActivacionConfiguracionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ActivacionConfiguracionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba recorridos integrados con PostgreSQL y HTTP: activación y programación de
+ * configuraciones, copias y reversión, cotizaciones, PDF, pagos, pedidos, correcciones,
+ * producción, entrega y reprogramación; incluye concurrencia, fallos y reinicios.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] CapturaSmtp :: CapturaSmtp() throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [private] void arrancar(boolean automatico)
+ * - [private] String reprogramacion(JsonNode p, boolean interno)
+ * - [private] JsonNode reprogramacionVista(JsonNode p) throws Exception
+ * - [private] JsonNode franjasReprogramacion(JsonNode p, java.time.LocalDate fecha) throws
+ *   Exception
+ * - [private] Map<String, Object> propuestaReprogramacion(JsonNode p, java.time.LocalDate fecha)
+ *   throws Exception
+ * - [private] Map<String, Object> respuestaReprogramacion(JsonNode p, JsonNode v, boolean aceptar)
+ * - [private] String prepararTresEntregas() throws Exception
+ * - [private] JsonNode pedidoModalidad(HttpClient c, String mode, String point) throws Exception
+ * - [paquete] void reprogramacionTresModalidadesConservaLogisticaDineroYRevocaCodigo() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void reprogramacionCupoConcurrenteRollbackYRetiro() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reprogramacionPermisosVentanaCaducidadYCancelacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reprogramacionRevalidaConfiguracionYPuntoSinCambiarPrecio() throws Exception
+ *   Caso de prueba.
+ * - [private] String entregaRuta(JsonNode p, boolean interno)
+ * - [private] JsonNode entregaVista(JsonNode p) throws Exception
+ * - [private] Map<String, Object> entregaComando(JsonNode p)
+ * - [private] JsonNode dejarListo(JsonNode p, boolean pagar) throws Exception
+ * - [private] Map<String, Object> validarEntrega(JsonNode p, String codigo)
+ * - [private] Map<String, Object> confirmarEntrega(JsonNode v)
+ * - [private] String emitirEntrega(HttpClient c, JsonNode p) throws Exception
+ * - [private] void relojEntrega(Instant ahora) throws Exception
+ * - [paquete] void entregasTresModalidadesCodigoCierreYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void entregasPermisosCodigoBloqueoVencimientoYVersion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void entregasSaldoExcedenteConciliacionCarreraRollbackYCierreInmutable() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] String produccion(JsonNode p)
+ * - [private] JsonNode pedidoActual(JsonNode p) throws Exception
+ * - [private] JsonNode produccionVista(JsonNode p) throws Exception
+ * - [private] JsonNode aprobarProduccion(JsonNode p) throws Exception
+ * - [private] void cubrirProduccion(JsonNode p) throws Exception
+ * - [private] Map<String, Object> iniciarProduccion(JsonNode p)
+ * - [private] Map<String, Object> estadoTrabajo(JsonNode v, String accion)
+ * - [private] Map<String, Object> inspeccionTrabajo(JsonNode v, String resultado, boolean
+ *   completo)
+ * - [private] String ultimoTrabajo(JsonNode v)
+ * - [private] JsonNode registrarProduccion(String path, Object in) throws Exception
+ * - [paquete] void produccionD1DineroCalidadReimpresionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void produccionPermisosCsrfCarreraRollbackYCancellationTrabajo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void produccionPdfCorregidoIntegridadDineroYRecuperacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void produccionVariosItemsUltimaCalidadYPermisosAdministrables() throws Exception
+ *   Caso de prueba.
+ * - [private] String correcciones(JsonNode p, boolean interno)
+ * - [private] Map<String, Object> solicitarCorreccion(JsonNode p)
+ * - [private] JsonNode solicitudCorreccion(HttpClient c, JsonNode p) throws Exception
+ * - [private] JsonNode prepararRespuesta(HttpClient c, JsonNode p) throws Exception
+ * - [private] Map<String, Object> responderCorreccion(JsonNode pre)
+ * - [private] JsonNode pdfCorregido(HttpClient c, JsonNode p, byte[] bytes) throws Exception
+ * - [private] JsonNode cotizarCorreccion(HttpClient c, JsonNode p, JsonNode req, Map<String,
+ *   Object> input) throws Exception
+ * - [paquete] void correccionesPdfVersionesPrivacidadReinicioYRevision() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesMaterialesDineroCupoUnicoYCancelacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesPermisosCsrfVersionRollbackYCarrera() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesPagoPrevioVencimientoDiferenciaYReplay() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesRespuestaRollbackIntegridadNuevaSolicitudYCargaVieja() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] JsonNode pedidoRevision(HttpClient c) throws Exception
+ * - [private] String gestionPedido(JsonNode p)
+ * - [private] String cancelarPedido(JsonNode p)
+ * - [private] Map<String, Object> decisionPedido(JsonNode p, String accion)
+ * - [private] Map<String, Object> cancelacionPedido(JsonNode p)
+ * - [private] void permisoPedidos(String correo)
+ * - [paquete] void revisionPedidoPermisoAdministrableYCancelacionAutomatica() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoD1PrivacidadAprobacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoPermisosRevocadosCsrfYVersion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoCancelacionConservaDineroYLiberaCupo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoCarreraDecisionRollbackEInvariantes() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoIntegridadPdfYSucursalDesactivada() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosNuevaConfiguracionConservaCupoYPdfSinReescribirPrecio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosVariantesPurasRevalidanDineroAntesDeConfirmar(String criterion) throws
+ *   Exception
+ * - [paquete] void pedidosVencimientoYBloqueoDeSucursalNoCreanReservas() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosPuntoReservaPorOrigenYRevalidaDisponibilidad() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosFinanzasConservanMediosAceptadosAlCambiarConfiguracion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] String confirmacionPedido(String quote)
+ * - [private] JsonNode revisarPedido(HttpClient c, JsonNode q) throws Exception
+ * - [private] Map<String, Object> confirmarPedido(JsonNode rev)
+ * - [private] JsonNode pdfAceptado(HttpClient c, JsonNode q, byte[] pdf) throws Exception
+ * - [paquete] void pedidosD1ConfirmacionUnicaPrecioCongeladoPdfDineroYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosCupoConcurrenteRespuestaPerdidaRevalidacionYRollback() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosPermisosRevocacionPdfCambiadoIntegridadYCsrf() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosZonaComparteCupoEntreSucursalesYExigeContacto() throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> franjaRetiro(int dia, String desde, String hasta, int cupo,
+ *   boolean habilitada)
+ * - [private] Map<String, Object> retiroSolicitud(List<? extends Map<String, Object>> franjas)
+ * - [paquete] void retiroVacioLimitesHorarioPermisosYActivacionNoInventanCupos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void retiroFranjasExplicitasSimulacionYCotizacionPersistenSinReservar() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void retiroCopiaComparacionRollbackYVersionCerradaConservanFranjas() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void retiroGuardadoConcurrenteYFalloParcialReviertenCalendariosYCupos() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosImportesReferenciasYRestriccionSqlNoPierdenPrecision() throws Exception
+ *   Caso de prueba.
+ * - [private] String comprobantes(String quote, boolean interno)
+ * - [private] Map<String, Object> iniciarComprobante(String intento, String pago)
+ * - [private] String informarPago(HttpClient c, String quote) throws Exception
+ * - [private] HttpRequest requestPdf(HttpClient c, String path, byte[] bytes) throws Exception
+ * - [private] JsonNode enviarComprobante(HttpClient c, String path, byte[] bytes) throws Exception
+ * - [private] JsonNode listaComprobantes(HttpClient c, String path) throws Exception
+ * - [paquete] void comprobantesAntesDeAcreditarNoCreanDineroYNacenConFinalidadPrivada() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comprobantesVersionesRechazosAntivirusYFallosConservanEvidenciaYDinero() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comprobantesPermisosPropositoYRevocacionAislanContenidoFinanciero() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comprobantesConcurrenciaLimiteIntegridadYRecuperacionNoPublicanParciales()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] String pagos(String quote, boolean interno)
+ * - [private] JsonNode pagosVista(HttpClient c, String quote, boolean interno) throws Exception
+ * - [private] JsonNode ofertaAceptada(HttpClient c, Map<String, Object> input) throws Exception
+ * - [private] Map<String, Object> recibirPago(String medio, String cantidad, String referencia)
+ * - [private] Map<String, Object> aplicarPago(JsonNode p, String importe)
+ * - [private] Map<String, Object> devolverPago(JsonNode p, String importe, String referencia)
+ * - [private] void permisoEmpleado(String correo, String permiso)
+ * - [paquete] void pagosIntentoNoEsDineroRecepcionIdempotenteYAuditoriaInmutable() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosTardiosD2ReasignanSoloOfertaAceptadaConDiferenciaYDevolucion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosConcurrenciaFalloParcialYSaldoNoSeConsumenDosVeces() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosPermisosSucursalRevocadosClienteAjenoYDescarteNoCreanDinero() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosSoloDineroAplicadoDesbloqueaPdfYDevolucionRevocaGate(String criterion)
+ *   throws Exception
+ * - [private] JsonNode revision() throws Exception
+ * - [private] Set<String> codigos(JsonNode r)
+ * - [private] void preparar() throws Exception
+ * - [private] Map<String, Object> territorio()
+ * - [private] Map<String, Object> oferta(String id, String base, String precio, int minutos,
+ *   boolean habilitada)
+ * - [private] void publicar(Instant fecha, String precio, boolean term, boolean color) throws
+ *   Exception
+ * - [private] Map<String, Object> ejemplo(String modalidad)
+ * - [private] JsonNode simular(Map<String, Object> e) throws Exception
+ * - [private] void configurarSegundo() throws Exception
+ * - [private] Map<String, Object> decision() throws Exception
+ * - [private] Map<String, Object> solicitud() throws Exception
+ * - [private] String rutaActivar()
+ * - [private] String solicitar(Map<String, Object> s) throws Exception
+ * - [private] Map<String, Object> confirmacion(Map<String, Object> s, String token)
+ * - [private] JsonNode activar() throws Exception
+ * - [private] void cooldown()
+ * - [private] JsonNode copiarBase(String origen, UUID operacion) throws Exception
+ * - [private] void adoptarCopia(JsonNode copia)
+ * - [private] void guardarFaseCopia(int fase) throws Exception
+ * - [private] Map<String, Object> confirmarCopiaSolicitud() throws Exception
+ * - [private] void confirmarCopia(Map<String, Object> in) throws Exception
+ * - [paquete] void baseCopiaIntegraIdentidadesOrigenYBarridoSinDuplicarNiReactivar() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void baseReconfirmacionObligatoriaInvalidacionYActivacionSegura() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void baseRollbackDeCopiaConcurrenciaBarridoDinamicoYPermisos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void baseProgramadaConservaConfirmacionYHistoricaPuedeOriginarOtraCopia() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] JsonNode revisionRollback() throws Exception
+ * - [private] void segundaActivaRollback() throws Exception
+ * - [private] JsonNode dosActivasRollback() throws Exception
+ * - [private] Map<String, Object> solicitudRollback() throws Exception
+ * - [private] Map<String, Object> autorizarRollback() throws Exception
+ * - [private] JsonNode confirmarRollback(Map<String, Object> c) throws Exception
+ * - [private] JsonNode programadaRollback() throws Exception
+ * - [paquete] void rollbackSinPredecesoraBorradorPermisosCsrfYRevocacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackNuevaVersionCancelaProgramacionConservaPredecesoraYReplay() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackFalloDespuesDeCopiarYPublicarRevierteTodoMenosIntento() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackRevalidaCondicionesActualesSinReintentoPropio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackInterrumpidoSeRecuperaSinRepetirCopiaNiCancelar() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackConcurrenciaConWorkerYConfirmacionesUnicas() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosPdfPrivadosVistaPreviaVersionesAceptacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosDiscrepanciaExigeNuevaOfertaSinCambiarPrecioOriginal() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosRechazanContenidoCifradoActivoMalwareYAntivirusIncompleto() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosPermisosSucursalCsrfCarreraYRecuperacionDeFallo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosLimitesIntegridadYVencimientoNoHabilitanPreview() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosPagoPrevioYSeñaBloqueanCargaSinDineroReal(String criterion) throws
+ *   Exception
+ * - [private] HttpClient empleadoArchivos(String name, String branch) throws Exception
+ * - [private] String archivos(String quote)
+ * - [private] Map<String, Object> inicioArchivo(JsonNode q)
+ * - [private] Map<String, Object> ofertaPdf(byte[] pdf, int pages) throws Exception
+ * - [private] JsonNode cargarPdf(HttpClient c, String q, String f, byte[] bytes) throws Exception
+ * - [private] HttpResponse<byte[]> binario(HttpClient c, String path) throws Exception
+ * - [private] byte[] pdf(int pages, boolean encrypted, boolean active, int mark) throws Exception
+ * - [private] HttpClient particularCotizacion(String sufijo) throws Exception
+ * - [private] Map<String, Object> ofertaCliente()
+ * - [private] JsonNode cotizar(HttpClient c, Map<String, Object> in) throws Exception
+ * - [private] JsonNode cotizacion(HttpClient c, String id) throws Exception
+ * - [private] Map<String, Object> decisionCotizacion(JsonNode q)
+ * - [paquete] void cotizacionesDisponibilidadPermisosYValidacionesNoExponenAdministracion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesMultiplesCalculoAutoritativoPrecioCongeladoAceptacionYReinicio()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesAislamientoReemplazoVencimientoYTransicionTerminal() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesConcurrenciaRespuestaPerdidaYReemplazoNoDejanParciales() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesEntregaDomicilioYCambioOperativoNoReescribeOferta() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesFalloParcialRevierteReemplazoYPaginacionCompleta() throws Exception
+ *   Caso de prueba.
+ * - [private] JsonNode historial(String ruta) throws Exception
+ * - [paquete] void historialDetalleComparacionAuditoriaCompletaSinMutacionesYReinicio() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void historialProgramaConReferenciaAutorYCancelacionSinFalsaVigencia() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void historialFiltrosPaginacionPermisosYValidacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void primeraActivacionConcurrenteRecuperacionInmutabilidadYReinicio() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void reemplazoAtomicoFalloDurableConservaActivaBorradorYResultado() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void cambioComercialAdvertenciasRevocacionEdicionEIntentos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void smtpFallidoCodigoVencidoPermisosYCsrf() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionExigePropietarioCsrfYCredenciales() throws Exception
+ *   Caso de prueba.
+ * - [private] String rutaProgramar()
+ * - [private] Map<String, Object> solicitudProgramacion() throws Exception
+ * - [private] Map<String, Object> programar() throws Exception
+ * - [private] int intentosObjetivo()
+ * - [private] void vencerProgramacion()
+ * - [private] void ejecutar(boolean recuperacion)
+ * - [private] void vencerReintento()
+ * - [paquete] void programacionSeguraInmutableCancelacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionAutomaticaAtomicaFallosDiezMinutosYConcurrencia() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void primeraProgramacionRevalidaCondicionesActualesYSinRespaldo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void recuperaInicioDurableSinPublicacionYNoDuplicaExito() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionNoReutilizaAutorizacionDeAccesoRevocada() throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> solicitudAdelanto() throws Exception
+ * - [private] Map<String, Object> autorizarAdelanto() throws Exception
+ * - [paquete] void adelantoManualAntesDeFechaConcurrenteConservaProgramacionYActor() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void falloManualProgramadoConservaResultadoYReintentaADiezMinutos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void interrupcionDespuesDeInicioEsDurableBloqueaEdicionYSeRecuperaSinReejecutar()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reintentoDeAdelantoPuedeVencerAntesDeLaFechaOriginal() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reciboDeActivacionAnteriorNoInventaIntentoHistorico() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void falloInmediatoNoAdelantaProgramacionCreadaDespues() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void automaticoQueGanaLaExclusionImpidePublicacionManualDuplicada() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void manualQueGanaLaExclusionNoEsInterrumpidoPorElWorker() throws Exception
+ *   Caso de prueba.
+ * - [private] void servicios(List<String> sucursales) throws Exception
+ * - [private] Map<String, Object> dia(int dia, Boolean habilitado, String apertura, String cierre)
+ * - [private] List<Map<String, Object>> semana(String apertura, String cierre)
+ * - [private] List<Map<String, Object>> soloDomingo(String apertura, String cierre)
+ * - [private] Map<String, Object> horario(String sucursal, List<? extends Map<String, Object>>
+ *   dias)
+ * - [private] Map<String, Object> entrega(String preparacion, String traslado, List<String>
+ *   modalidades, List<? extends Map<String, Object>> horarios)
+ * - [private] void guardar(String preparacion, String traslado, List<String> modalidades, List<?
+ *   extends Map<String, Object>> horarios) throws Exception
+ * - [private] Map<String, Object> simulacion(String sucursal, String modalidad, String recibido)
+ * - [private] JsonNode simular(String sucursal, String modalidad, String recibido) throws
+ *   Exception
+ * - [private] JsonNode validacion() throws Exception
+ * - [private] void assertProblemas(String[] esperados) throws Exception
+ * - [private] void assertInstante(JsonNode respuesta, String campo, String esperado)
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] String base()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ * - [paquete] CapturaSmtp :: int port()
+ * - [paquete] CapturaSmtp :: int pendientes()
+ * - [paquete] CapturaSmtp :: Mensaje recibir() throws Exception
+ * - [private] CapturaSmtp :: void aceptar()
+ * - [private] CapturaSmtp :: void responder(BufferedWriter escritor, String respuesta) throws
+ *   IOException
+ * - [public] CapturaSmtp :: void close() throws Exception
+ * - [paquete] Mensaje :: String token()
+ * - [public] Mensaje :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ActivacionConfiguracionIntegrationTest (clase).
+ * - ActivacionConfiguracionIntegrationTest.<anónima> (clase).
+ * - ActivacionConfiguracionIntegrationTest.<anónima> (clase).
+ * - ActivacionConfiguracionIntegrationTest.<anónima> (clase).
+ * - ActivacionConfiguracionIntegrationTest.CapturaSmtp (clase).
+ * - ActivacionConfiguracionIntegrationTest.Mensaje (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

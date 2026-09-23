@@ -1,3 +1,35 @@
+//#region ENCABEZADO · DisponibilidadPuntoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: DisponibilidadPuntoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la consulta y modificación de la disponibilidad temporal de los puntos de entrega,
+ * separada de sus parámetros versionados.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] DisponibilidadPuntoController(DisponibilidadPuntoService disponibilidad)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] DisponibilidadPuntoService.Panel listar(Principal actor)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] DisponibilidadPuntoService.Disponibilidad cambiar(UUID punto, Cambiar input,
+ *   Principal actor)
+ *   Entrada HTTP PUT · ruta del método: /{punto}.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - DisponibilidadPuntoController (clase).
+ * - DisponibilidadPuntoController.Estado (enumeración).
+ * - DisponibilidadPuntoController.Cambiar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import jakarta.validation.Valid;

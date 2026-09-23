@@ -1,3 +1,47 @@
+//#region ENCABEZADO · OrganizacionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: OrganizacionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba empleados, permisos, asignación y aislamiento por sucursal, bajas y edición
+ * concurrente de la organización.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void empleadosPermisosAislamientoBajasYEdicionConcurrente() throws Exception
+ *   Caso de prueba.
+ * - [private] HttpClient cliente()
+ * - [private] Map<String, Object> sucursal(String codigo)
+ * - [private] Map<String, Object> alta(String nombre, List<String> sucursales, List<String>
+ *   permisos)
+ * - [private] Map<String, Object> editarEmpleado(HttpClient admin, String id) throws Exception
+ * - [private] Map<String, Object> editarSucursal(HttpClient admin, String id) throws Exception
+ * - [private] Map<String, Object> editable(HttpClient admin, String path, String id) throws
+ *   Exception
+ * - [private] void loginEmpleado(HttpClient client, String correo) throws Exception
+ * - [private] void login(HttpClient client, String correo, int expected) throws Exception
+ * - [private] void login(HttpClient client, String correo, int expected, String clave) throws
+ *   Exception
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient client, String path) throws Exception
+ * - [private] String csrf(HttpClient client) throws Exception
+ * - [private] HttpRequest request(HttpClient client, String method, String path, Object body)
+ *   throws Exception
+ * - [private] HttpResponse<String> enviar(HttpClient client, String method, String path, Object
+ *   body) throws Exception
+ * - [private] void assertStatus(HttpResponse<String> r, int status)
+ * - [private] String creado(HttpResponse<String> r)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OrganizacionIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.assertThat;

@@ -1,3 +1,60 @@
+//#region ENCABEZADO · RecursosConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: RecursosConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y guarda recursos manuales de producción: impresoras, capacidades, formatos y servicios
+ * por sucursal. Registra transiciones y preserva las versiones operativas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RecursosConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador guardar(UUID codigo, GuardarRecursos input, String
+ *   correo)
+ * - [public] ConfiguracionService.Borrador crear(UUID codigo, CrearImpresora input, String correo)
+ * - [public] ConfiguracionService.Borrador editar(UUID codigo, UUID impresora, EditarImpresora
+ *   input, String correo)
+ * - [public] ConfiguracionService.Borrador estado(UUID codigo, UUID impresora, CambiarEstado
+ *   input, String correo)
+ * - [public] ConfiguracionService.Borrador retirar(UUID codigo, UUID impresora, RetirarImpresora
+ *   input, String correo)
+ * - [private] ConfiguracionService.Borrador editable(UUID codigo, Long version)
+ * - [private] ConfiguracionService.Borrador terminar(UUID codigo, ConfiguracionService.Borrador
+ *   actual, UUID operacion, String tipo, long actor, String huella, String evento, UUID recurso,
+ *   String motivo)
+ * - [private] long id(UUID codigo)
+ * - [private] void registrarTransicion(long config, long version, String anterior, String nuevo)
+ * - [private] Sucursal sucursal(UUID codigo)
+ * - [private] long referencia(String tabla, UUID codigo)
+ * - [private] List<Long> formatos(List<UUID> codigos)
+ * - [private] String nombre(long config, long sucursal, Long excluir, String nombre)
+ * - [private] void capacidades(Boolean color, Boolean duplex, Integer hojas)
+ * - [private] String motivo(String valor)
+ * - [private] Impresora impresora(long config, UUID codigo)
+ * - [private] void deshabilitada(Impresora impresora)
+ * - [private] void guardarFormatos(long config, long impresora, List<Long> formatos)
+ * - [private] ResponseStatusException invalido(String mensaje)
+ *   Construye un error HTTP controlado.
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RecursosConfiguracionService (clase).
+ * - RecursosConfiguracionService.Sucursal (record).
+ * - RecursosConfiguracionService.ServicioSucursal (record).
+ * - RecursosConfiguracionService.Impresora (record).
+ * - RecursosConfiguracionService.Destino (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.RecursosConfiguracionController.*;

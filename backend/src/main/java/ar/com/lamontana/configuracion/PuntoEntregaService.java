@@ -1,3 +1,47 @@
+//#region ENCABEZADO · PuntoEntregaService.java
+/*
+ * ========================================================================
+ * ARCHIVO: PuntoEntregaService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y guarda definiciones versionadas de puntos de entrega, sus sucursales de origen, costos
+ * y franjas. Conserva identidades, control de edición, reintentos y auditoría.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PuntoEntregaService(JdbcTemplate jdbc, ConfiguracionService configuracion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador crear(UUID codigo, CrearPunto input, String correo)
+ * - [public] ConfiguracionService.Borrador editar(UUID codigo, UUID publico, EditarPunto input,
+ *   String correo)
+ * - [private] List<Relacion> validar(long config, Long punto, Definicion input)
+ * - [private] void guardarDefinicion(long config, long punto, Definicion in, List<Relacion>
+ *   relaciones)
+ * - [private] ConfiguracionService.Borrador terminar(UUID codigo, ConfiguracionService.Borrador b,
+ *   UUID operacion, String tipo, long actor, String huella, String evento, UUID punto)
+ * - [private] ConfiguracionService.Borrador editable(UUID codigo, Long version)
+ * - [private] long id(UUID codigo)
+ * - [private] void texto(String texto, int max, String campo)
+ * - [private] LocalTime hora(String texto)
+ * - [private] void exigir(boolean condicion, String mensaje)
+ *   Rechaza la operación si no se cumple la condición indicada.
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PuntoEntregaService (clase).
+ * - PuntoEntregaService.Relacion (record).
+ * - PuntoEntregaService.Sucursal (record).
+ * - PuntoEntregaService.Destino (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.PuntoEntregaController.*;

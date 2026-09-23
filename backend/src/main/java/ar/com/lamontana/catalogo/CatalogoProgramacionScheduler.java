@@ -1,3 +1,30 @@
+//#region ENCABEZADO · CatalogoProgramacionScheduler.java
+/*
+ * ========================================================================
+ * ARCHIVO: CatalogoProgramacionScheduler.java
+ * ========================================================================
+ * FUNCIÓN
+ * Ejecuta periódicamente la reconciliación del catálogo para aplicar las configuraciones
+ * comerciales cuya fecha programada ya llegó.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CatalogoProgramacionScheduler(CatalogoService catalogo)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] void reconciliar()
+ *   Tarea periódica invocada por Spring.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogoProgramacionScheduler (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.catalogo;
 
 import org.springframework.context.annotation.Configuration;

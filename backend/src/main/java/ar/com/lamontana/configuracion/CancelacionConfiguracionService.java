@@ -1,3 +1,45 @@
+//#region ENCABEZADO · CancelacionConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CancelacionConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona la autorización y confirmación de la cancelación de un borrador o una configuración
+ * programada, conservando el resultado de reintentos y la trazabilidad.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CancelacionConfiguracionService(JdbcTemplate jdbc, ConfiguracionService
+ *   configuracion, SeguridadConfiguracion seguridad)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] SeguridadConfiguracion.Solicitud solicitar(UUID destino, SolicitarCancelacion i,
+ *   String actor)
+ * - [public] SeguridadConfiguracion.Solicitud solicitarProgramacion(UUID destino,
+ *   SolicitarCancelacion i, String actor)
+ * - [private] SeguridadConfiguracion.Solicitud solicitar(UUID destino, SolicitarCancelacion i,
+ *   String actor, boolean programada)
+ * - [public] ConfiguracionService.Borrador confirmar(UUID destino, ConfirmarCancelacion i, String
+ *   actor)
+ * - [public] ConfiguracionService.Borrador confirmarProgramacion(UUID destino,
+ *   ConfirmarCancelacion i, String actor)
+ * - [private] ConfiguracionService.Borrador confirmar(UUID destino, ConfirmarCancelacion i, String
+ *   actor, boolean programada)
+ * - [public] void revocar(UUID destino, UUID operacion, String actor)
+ * - [private] String huella(String proposito, UUID destino, long version, String motivo)
+ * - [private] void snapshot(UUID destino, long version, boolean programada)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CancelacionConfiguracionService (clase).
+ * - CancelacionConfiguracionService.Contenido (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import static ar.com.lamontana.configuracion.ConfiguracionController.*;
 import java.util.UUID;

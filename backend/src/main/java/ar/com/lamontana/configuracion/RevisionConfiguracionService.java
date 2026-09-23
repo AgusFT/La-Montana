@@ -1,3 +1,50 @@
+//#region ENCABEZADO · RevisionConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: RevisionConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Cruza configuración operativa, catálogo, recursos, reglas financieras y entrega para producir
+ * hallazgos y simular un recorrido completo sin crear pedidos ni reservas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RevisionConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   CatalogoService catalogo, EntregaConfiguracionService entrega, PagosConfiguracionService
+ *   pagos, EvaluadorFinanciero finanzas, EvaluadorPrecioItem precios)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Revision revisar(UUID codigo, String correo)
+ * - [public] Revision revisarProgramada(UUID codigo, String correo)
+ * - [paquete] Revision evaluar(UUID codigo, String correo, boolean programada)
+ * - [paquete] Revision evaluarHistorica(UUID codigo, String correo)
+ * - [private] Revision evaluar(UUID codigo, String correo, boolean programada, boolean historica)
+ * - [public] Revision revisarPreparacion(UUID codigo, String correo)
+ * - [private] Revision evaluar(UUID codigo, String correo, boolean programada, boolean historica,
+ *   boolean vigente)
+ * - [private] void bloqueo(List<Hallazgo> h, String codigo, String area, int fase, String mensaje,
+ *   UUID sucursal)
+ * - [public] Simulacion simular(UUID codigo, Ejemplo input, String correo)
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RevisionConfiguracionService (clase).
+ * - RevisionConfiguracionService.Hallazgo (record).
+ * - RevisionConfiguracionService.Sucursal (record).
+ * - RevisionConfiguracionService.Opcion (record).
+ * - RevisionConfiguracionService.Revision (record).
+ * - RevisionConfiguracionService.Referencia (record).
+ * - RevisionConfiguracionService.Impresora (record).
+ * - RevisionConfiguracionService.Simulacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.*;

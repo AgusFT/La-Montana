@@ -1,3 +1,28 @@
+//#region ENCABEZADO · LimiteAccesoFilter.java
+/*
+ * ========================================================================
+ * ARCHIVO: LimiteAccesoFilter.java
+ * ========================================================================
+ * FUNCIÓN
+ * Limita la frecuencia de solicitudes de acceso mediante una ventana temporal y devuelve HTTP 429
+ * con tiempo de espera cuando se supera el límite.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private, synchronized] boolean admitir()
+ * - [protected] boolean shouldNotFilter(HttpServletRequest request)
+ * - [protected] void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain
+ *   chain) throws ServletException, IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - LimiteAccesoFilter (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.seguridad;
 
 import jakarta.servlet.FilterChain;

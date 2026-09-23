@@ -1,3 +1,36 @@
+//#region ENCABEZADO · CopiaConfiguracionController.java
+/*
+ * ========================================================================
+ * ARCHIVO: CopiaConfiguracionController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la creación de un borrador a partir de una configuración guardada y la confirmación de la
+ * revisión de los parámetros copiados.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CopiaConfiguracionController(CopiaConfiguracionService service)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador copiar(UUID origen, Crear in, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/admin/configuracion/historial/{origen}/base.
+ * - [public] RevisionConfiguracionService.Revision confirmar(UUID borrador, ConfirmarRevision in,
+ *   Principal actor)
+ *   Entrada HTTP POST · ruta del método:
+ *   /api/admin/configuracion/borradores/{borrador}/revision/confirmar.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CopiaConfiguracionController (clase).
+ * - CopiaConfiguracionController.Crear (record).
+ * - CopiaConfiguracionController.ConfirmarRevision (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

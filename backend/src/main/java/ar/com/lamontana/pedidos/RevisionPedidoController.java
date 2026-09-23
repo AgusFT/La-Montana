@@ -1,3 +1,41 @@
+//#region ENCABEZADO · RevisionPedidoController.java
+/*
+ * ========================================================================
+ * ARCHIVO: RevisionPedidoController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone la revisión administrativa de pedidos: consulta de gestión, decisión, observaciones y
+ * cancelación.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RevisionPedidoController(RevisionPedidoService revision)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] RevisionPedidoService.Gestion gestion(UUID id, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/pedidos/{id}/gestion.
+ * - [public] PedidoService.Detalle decidir(UUID id, Decision in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{id}/gestion.
+ * - [public] RevisionPedidoService.Gestion observar(UUID id, Observacion in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{id}/observaciones.
+ * - [public] PedidoService.Detalle cancelar(UUID id, Cancelacion in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/pedidos/{id}/cancelar.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RevisionPedidoController (clase).
+ * - RevisionPedidoController.Accion (enumeración).
+ * - RevisionPedidoController.Importancia (enumeración).
+ * - RevisionPedidoController.Decision (record).
+ * - RevisionPedidoController.Cancelacion (record).
+ * - RevisionPedidoController.Observacion (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pedidos;
 
 import jakarta.validation.Valid;

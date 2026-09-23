@@ -1,3 +1,49 @@
+//#region ENCABEZADO · EntregaController.java
+/*
+ * ========================================================================
+ * ARCHIVO: EntregaController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone consultas de entrega para cliente y operación y las acciones de emisión y validación de
+ * código, movimiento logístico, entrega física y cierre del pedido.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] EntregaController(EntregaService service)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Validar :: String toString()
+ * - [public] EntregaService.Vista cliente(UUID pedido, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/{pedido}/entrega.
+ * - [public] EntregaService.Vista interno(UUID pedido, Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/operacion/pedidos/{pedido}/entrega.
+ * - [public] EntregaService.Generacion emitir(UUID pedido, Emitir in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/cliente/pedidos/{pedido}/entrega/codigo.
+ * - [public] EntregaService.Vista mover(UUID pedido, Movimiento in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{pedido}/entrega/movimientos.
+ * - [public] EntregaService.Validacion validar(UUID pedido, Validar in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{pedido}/entrega/validar.
+ * - [public] EntregaService.Vista entregar(UUID pedido, Entregar in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{pedido}/entrega/confirmar.
+ * - [public] EntregaService.Vista cerrar(UUID pedido, Cerrar in, Principal p)
+ *   Entrada HTTP POST · ruta del método: /api/operacion/pedidos/{pedido}/entrega/cerrar.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EntregaController (clase).
+ * - EntregaController.Accion (enumeración).
+ * - EntregaController.Movimiento (record).
+ * - EntregaController.Emitir (record).
+ * - EntregaController.Validar (record).
+ * - EntregaController.Entregar (record).
+ * - EntregaController.Cerrar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.entregas;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

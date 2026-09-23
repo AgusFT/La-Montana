@@ -1,3 +1,34 @@
+//#region ENCABEZADO · EvaluadorPrecioItemTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: EvaluadorPrecioItemTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el cálculo de precios por copia, hoja y carilla, compatibilidades, preparación mínima,
+ * límites monetarios y condiciones de importe cero.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] CatalogoService.Estado catalogo(String precio, String recargo, List<OfertaServicio>
+ *   extras)
+ * - [private] EvaluadorPrecioItem.Item item(int paginas, int copias, boolean doble, List<UUID>
+ *   extras)
+ * - [paquete] void basesExactasHojasSeparadasPorCopiaYMinimoMayor()
+ *   Caso de prueba.
+ * - [paquete] void entradasCompatibilidadYLimiteMonetario()
+ *   Caso de prueba.
+ * - [paquete] void totalCeroNoRequiereAcreditacionParaCargarPdf()
+ *   Caso de prueba.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EvaluadorPrecioItemTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 import static org.assertj.core.api.Assertions.*;
 import static ar.com.lamontana.catalogo.CatalogoController.*;

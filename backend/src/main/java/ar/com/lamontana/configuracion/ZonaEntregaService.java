@@ -1,3 +1,43 @@
+//#region ENCABEZADO · ZonaEntregaService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ZonaEntregaService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y guarda zonas de envío versionadas, con territorios normalizados, costos y franjas.
+ * Aplica control de edición, exclusividad de cobertura e idempotencia.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ZonaEntregaService(JdbcTemplate jdbc, ConfiguracionService configuracion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador crear(UUID codigo, CrearZona in, String correo)
+ * - [public] ConfiguracionService.Borrador editar(UUID codigo, UUID publico, EditarZona in, String
+ *   correo)
+ * - [private] List<TerritorioEntrega> validar(long config, Long zona, Definicion in)
+ * - [private] void guardar(long config, long zona, Definicion in, List<TerritorioEntrega>
+ *   territorios)
+ * - [private] ConfiguracionService.Borrador terminar(UUID codigo, ConfiguracionService.Borrador b,
+ *   UUID operacion, String tipo, long actor, String huella, String evento, UUID zona)
+ * - [private] ConfiguracionService.Borrador editable(UUID codigo, Long version)
+ * - [private] long id(UUID codigo)
+ * - [private] void exigir(boolean condicion, String mensaje)
+ *   Rechaza la operación si no se cumple la condición indicada.
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ZonaEntregaService (clase).
+ * - ZonaEntregaService.Destino (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ZonaEntregaController.*;

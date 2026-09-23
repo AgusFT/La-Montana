@@ -1,3 +1,37 @@
+//#region ENCABEZADO · CatalogoIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: CatalogoIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba catálogo base, precios, validaciones, configuraciones comerciales, concurrencia,
+ * permisos y persistencia después del reinicio.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void catalogoVacioPreciosValidacionesRevisionesConcurrenciaPermisosYReinicio()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] ConfigurableApplicationContext iniciar(String[] props)
+ * - [private] int count(JdbcTemplate jdbc, String tabla)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String mail) throws Exception
+ * - [private] void status(HttpResponse<String> response, int code)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogoIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

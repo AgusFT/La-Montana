@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- #region ENCABEZADO · pom.xml
+  ========================================================================
+  ARCHIVO: pom.xml
+  ========================================================================
+  FUNCIÓN
+  Define el proyecto Maven de Spring Boot, sus dependencias de producción y pruebas, la versión de
+  Java y el empaquetado ejecutable.
+
+  ........................................................................
+  CONTENIDO DECLARADO
+  - parent y coordenadas: identidad del proyecto y versión de Spring Boot.
+  - properties: versión de Java.
+  - dependencyManagement: versión de binarios PostgreSQL de pruebas.
+  - dependencies: web, seguridad, datos, correo, PDF, imágenes y tests.
+  - build: nombre del JAR y plugin de Spring Boot.
+
+  MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+  ========================================================================
+#endregion -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>

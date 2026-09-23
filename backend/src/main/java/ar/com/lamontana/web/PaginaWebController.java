@@ -1,3 +1,45 @@
+//#region ENCABEZADO · PaginaWebController.java
+/*
+ * ========================================================================
+ * ARCHIVO: PaginaWebController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone el borrador, guardado, revisión y publicación del sitio de la imprenta, además de la
+ * consulta pública del contenido publicado.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PaginaWebController(PaginaWebService sitio)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] PaginaWebService.Estado estado(Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web.
+ * - [public] PaginaWebService.Estado guardar(Guardar input, Principal actor)
+ *   Entrada HTTP PUT · ruta del método: /api/admin/pagina-web/borrador.
+ * - [public] PaginaWebService.Revision revision(Principal actor)
+ *   Entrada HTTP GET · ruta del método: /api/admin/pagina-web/revision.
+ * - [public] PaginaWebService.Publicacion publicar(Publicar input, Principal actor)
+ *   Entrada HTTP POST · ruta del método: /api/admin/pagina-web/publicar.
+ * - [public] PaginaWebService.Publico publico()
+ *   Entrada HTTP GET · ruta del método: /api/publico/pagina-web.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PaginaWebController (clase).
+ * - PaginaWebController.TipoFicha (enumeración).
+ * - PaginaWebController.Seccion (enumeración).
+ * - PaginaWebController.Imagen (record).
+ * - PaginaWebController.Ficha (record).
+ * - PaginaWebController.Contenido (record).
+ * - PaginaWebController.Guardar (record).
+ * - PaginaWebController.Publicar (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.web;
 
 import jakarta.validation.Valid;

@@ -1,3 +1,21 @@
+# region ENCABEZADO · .dockerignore
+# ========================================================================
+# ARCHIVO: .dockerignore
+# ========================================================================
+# FUNCIÓN
+# Excluye del contexto de construcción Docker los resultados de compilación, archivos de entorno y
+# datos locales.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - target: resultados generados por Maven.
+# - .env*: variables y archivos de entorno locales.
+# - var: datos de ejecución locales.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
 target
 .env*
 var

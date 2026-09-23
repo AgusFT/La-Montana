@@ -1,3 +1,52 @@
+//#region ENCABEZADO · ComprobanteController.java
+/*
+ * ========================================================================
+ * ARCHIVO: ComprobanteController.java
+ * ========================================================================
+ * FUNCIÓN
+ * Expone carga, consulta, descarga y vista previa de comprobantes PDF privados vinculados a
+ * intentos o pagos, respetando el acceso de cliente y operación.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ComprobanteController(ComprobanteService comprobantes)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ComprobanteService.Lista listar(UUID quote, UUID intento, UUID pago, int pagina,
+ *   Principal actor, HttpServletRequest req)
+ *   Entrada HTTP GET sobre la ruta del controlador.
+ * - [public] ComprobanteService.Archivo crear(UUID quote, Inicio in, Principal actor,
+ *   HttpServletRequest req)
+ *   Entrada HTTP POST sobre la ruta del controlador.
+ * - [public] ComprobanteService.Archivo consultar(UUID quote, UUID file, Principal actor,
+ *   HttpServletRequest req)
+ *   Entrada HTTP GET · ruta del método: /{file}.
+ * - [public] ComprobanteService.Carga carga(UUID quote, UUID file, Principal actor,
+ *   HttpServletRequest req)
+ *   Entrada HTTP GET · ruta del método: /{file}/carga.
+ * - [public] ComprobanteService.Archivo recibir(UUID quote, UUID file, Principal actor,
+ *   HttpServletRequest req) throws IOException
+ *   Entrada HTTP PUT · ruta del método: /{file}/contenido.
+ * - [public] ResponseEntity<byte[]> original(UUID quote, UUID file, Principal actor,
+ *   HttpServletRequest req)
+ *   Entrada HTTP GET · ruta del método: /{file}/original.
+ * - [public] ResponseEntity<byte[]> preview(UUID quote, UUID file, int page, Principal actor,
+ *   HttpServletRequest req)
+ *   Entrada HTTP GET · ruta del método: /{file}/paginas/{page}.
+ * - [private] boolean interno(HttpServletRequest req)
+ * - [private] ResponseEntity<byte[]> contenido(ArchivoService.Contenido c, boolean download)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ComprobanteController (clase).
+ * - ComprobanteController.Inicio (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pagos;
 
 import ar.com.lamontana.archivos.ArchivoService;

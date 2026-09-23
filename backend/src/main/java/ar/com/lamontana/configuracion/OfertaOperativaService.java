@@ -1,3 +1,35 @@
+//#region ENCABEZADO · OfertaOperativaService.java
+/*
+ * ========================================================================
+ * ARCHIVO: OfertaOperativaService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Reúne la configuración operativa activa, el catálogo comercial y las sucursales utilizables para
+ * ofrecer opciones reales de impresión y calcular la entrega.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] OfertaOperativaService(ConfiguracionService configuracion, CatalogoService catalogo,
+ *   EntregaConfiguracionService entrega, JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador configuracionActiva()
+ * - [public] Contexto leer()
+ * - [public] EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,
+ *   EntregaConfiguracionController.SimularEntrega in, int minutos)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OfertaOperativaService (clase).
+ * - OfertaOperativaService.Sucursal (record).
+ * - OfertaOperativaService.Contexto (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import ar.com.lamontana.catalogo.CatalogoService;

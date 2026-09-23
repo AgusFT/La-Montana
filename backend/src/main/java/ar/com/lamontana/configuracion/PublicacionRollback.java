@@ -1,3 +1,32 @@
+//#region ENCABEZADO · PublicacionRollback.java
+/*
+ * ========================================================================
+ * ARCHIVO: PublicacionRollback.java
+ * ========================================================================
+ * FUNCIÓN
+ * Publica la recuperación de una configuración anterior como una nueva versión. Copia parámetros y
+ * registra la reversión, incluyendo la cancelación de una programación pendiente cuando
+ * corresponde.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PublicacionRollback(JdbcTemplate jdbc, CopiaParametrosConfiguracion parametros,
+ *   PublicacionConfiguracion publicacion)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] long publicar(long origen, long actor, UUID operacion, UUID intento,
+ *   RollbackConfiguracionService.Revision revision, String motivo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PublicacionRollback (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.util.UUID;

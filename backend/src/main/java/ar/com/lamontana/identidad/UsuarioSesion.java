@@ -1,3 +1,30 @@
+//#region ENCABEZADO · UsuarioSesion.java
+/*
+ * ========================================================================
+ * ARCHIVO: UsuarioSesion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Extiende el usuario de Spring Security con la versión de acceso guardada al autenticarse, para
+ * detectar sesiones invalidadas por cambios posteriores.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] UsuarioSesion(String correo, String hash, String rol, boolean activo, long
+ *   versionAcceso)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] long versionAcceso()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - UsuarioSesion (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.identidad;
 
 import java.io.Serial;

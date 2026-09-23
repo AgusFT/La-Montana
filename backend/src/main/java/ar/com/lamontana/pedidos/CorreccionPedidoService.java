@@ -1,3 +1,65 @@
+//#region ENCABEZADO · CorreccionPedidoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: CorreccionPedidoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona el intercambio de correcciones y las nuevas versiones de trabajo del pedido, vinculando
+ * solicitudes, respuestas, PDF y cotizaciones sin alterar evidencias anteriores.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CorreccionPedidoService(JdbcTemplate jdbc, PedidoService pedidos, CotizacionService
+ *   cotizaciones, OrganizacionService organizacion, ArchivosPrivados privados, CoberturaPagos
+ *   cobertura)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Vista consultar(UUID id, String correo, boolean interno)
+ * - [public] PedidoService.Detalle solicitar(UUID id, Solicitar in, String correo)
+ * - [public] CotizacionService.Detalle cotizar(UUID id, UUID solicitud, CotizacionController.Crear
+ *   in, String correo)
+ * - [public] Preparacion preparar(UUID id, String correo)
+ * - [private] Preparacion preparar(PedidoService.Detalle p, Base req, String correo)
+ * - [public] PedidoService.Detalle responder(UUID id, Responder in, String correo)
+ * - [private] List<PedidoService.Pdf> archivosPropuestos(Base req)
+ * - [private] List<PedidoService.Pdf> archivosRespuesta(long id)
+ * - [private] PedidoService.Pdf pdf(java.sql.ResultSet r) throws java.sql.SQLException
+ * - [private] Base pendiente(PedidoService.Detalle p)
+ * - [private] Base base(long pedido, UUID code)
+ * - [private] List<UUID> items(long request)
+ * - [private] void contacto(CotizacionService.Oferta oferta, PedidoController.Contacto contacto)
+ * - [private] void evento(PedidoService.Detalle p, Actor a, UUID op, String hash, String accion,
+ *   String estado, String motivo, String publico, Instant fecha)
+ * - [private] boolean replay(UUID op, String hash, long pedido, long actor)
+ * - [private] Actor actor(String correo)
+ * - [private] void version(PedidoService.Detalle p, long version)
+ * - [private] void texto(String v, int max)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] Instant instant(Timestamp t)
+ * - [private] String huella(Object v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException conflicto(String msg)
+ * - [private] ResponseStatusException error(HttpStatus code, String msg)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CorreccionPedidoService (clase).
+ * - CorreccionPedidoService.Oferta (record).
+ * - CorreccionPedidoService.Respuesta (record).
+ * - CorreccionPedidoService.Solicitud (record).
+ * - CorreccionPedidoService.Vista (record).
+ * - CorreccionPedidoService.Preparacion (record).
+ * - CorreccionPedidoService.Actor (record).
+ * - CorreccionPedidoService.Base (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pedidos;
 
 import static ar.com.lamontana.pedidos.CorreccionPedidoController.*;

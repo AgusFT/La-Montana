@@ -1,3 +1,39 @@
+//#region ENCABEZADO · ImagenWebService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ImagenWebService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona la biblioteca de imágenes y su importación idempotente, verificando contenido y
+ * permisos. Coordina archivos con la transacción y limita el acceso público a imágenes publicadas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ImagenWebService(JdbcTemplate jdbc, PaginaWebService sitio, AlmacenImagenWeb almacen)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private] Imagen mapear(java.sql.ResultSet r, int fila) throws java.sql.SQLException
+ * - [public] List<Imagen> biblioteca(String correo)
+ * - [public] AlmacenImagenWeb.Origen origen(String carpeta, String correo)
+ * - [public] byte[] miniaturaEntrada(String ruta, String sha256, String correo)
+ * - [public] Importacion importar(ImagenWebController.Importar input, String correo)
+ * - [public] <anónima> :: void afterCompletion(int status)
+ *   Elimina el archivo recién creado si la transacción no se confirma.
+ * - [public] Path archivo(UUID codigo, boolean miniatura, boolean publico, String correo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ImagenWebService (clase).
+ * - ImagenWebService.Imagen (record).
+ * - ImagenWebService.Importacion (record).
+ * - ImagenWebService.<anónima> (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.web;
 
 import static ar.com.lamontana.web.PaginaWebService.error;

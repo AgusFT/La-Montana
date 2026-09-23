@@ -1,3 +1,59 @@
+//#region ENCABEZADO · PaginaWebIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: PaginaWebIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba separación entre borrador y publicación, contenido visible, validaciones, conflictos
+ * entre pestañas, reintentos, permisos y persistencia del sitio web.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void arrancar()
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [paquete] JsonNode estado() throws Exception
+ * - [paquete] Map<String, Object> contenido()
+ * - [paquete] Map<String, Object> ficha(String nombre, boolean visible)
+ * - [paquete] Map<String, Object> guardarDatos(long v, Map<String, Object> c)
+ * - [paquete] JsonNode guardar(long v, Map<String, Object> c) throws Exception
+ * - [paquete] Map<String, Object> publicarDatos(long v)
+ * - [paquete] HttpResponse<String> publicar(Map<String, Object> datos) throws Exception
+ * - [paquete] JsonNode publico() throws Exception
+ * - [paquete] void borradorPrivadoPublicacionExplicitaYContenidoVisible() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void validacionNoPublicaDatosIncompletosNiReemplazaVersionAnterior() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void conflictosEntrePestanasReintentosYConcurrenciaNoDuplicanPublicaciones() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void permisosCsrfYRemotoNoImplementado() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reinicioConservaBorradorYPublicacionSeparados() throws Exception
+ *   Caso de prueba.
+ * - [paquete] HttpClient cliente()
+ * - [paquete] URI uri(String p)
+ * - [paquete] HttpResponse<String> get(HttpClient c, String p) throws Exception
+ * - [paquete] String csrf(HttpClient c) throws Exception
+ * - [paquete] HttpRequest solicitud(HttpClient c, String method, String path, Object body) throws
+ *   Exception
+ * - [paquete] HttpResponse<String> mutar(HttpClient c, String method, String path, Object body)
+ *   throws Exception
+ * - [paquete] void login(HttpClient c, String correo) throws Exception
+ * - [paquete] void status(HttpResponse<String> r, int expected)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PaginaWebIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

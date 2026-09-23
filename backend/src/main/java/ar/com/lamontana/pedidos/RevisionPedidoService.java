@@ -1,3 +1,57 @@
+//#region ENCABEZADO · RevisionPedidoService.java
+/*
+ * ========================================================================
+ * ARCHIVO: RevisionPedidoService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona aprobación, rechazo, observaciones y cancelación de pedidos con control de permisos,
+ * versión e integridad de PDF, preservando estados y consecuencias sobre reservas y dinero.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RevisionPedidoService(JdbcTemplate jdbc, PedidoService pedidos, OrganizacionService
+ *   organizacion, ArchivosPrivados archivos)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Gestion consultar(UUID id, String correo)
+ * - [private] Gestion gestion(PedidoService.Detalle d, String correo)
+ * - [public] PedidoService.Detalle decidir(UUID id, Decision in, String correo)
+ * - [public] PedidoService.Detalle cancelar(UUID id, Cancelacion in, String correo)
+ * - [public] Gestion observar(UUID id, Observacion in, String correo)
+ * - [private] void transicion(PedidoService.Detalle d, Actor a, UUID op, String hash, Accion
+ *   accion, String motivo, String publico)
+ * - [private] String bloqueo(PedidoService.Detalle d, Estado e, Accion accion, boolean permiso)
+ * - [private] void verificarPdf(PedidoService.Detalle d)
+ * - [private] boolean recuperar(UUID op, String hash, PedidoService.Detalle d, Actor actor)
+ * - [private] Estado estado(long id)
+ * - [private] boolean permiso(String correo)
+ * - [private] Actor actor(String correo)
+ * - [private] void version(PedidoService.Detalle d, long version)
+ * - [private] void texto(String texto, int max)
+ * - [private] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [private] String huella(Object v)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException conflicto(String msg)
+ * - [private] ResponseStatusException error(HttpStatus code, String msg)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RevisionPedidoService (clase).
+ * - RevisionPedidoService.Opcion (record).
+ * - RevisionPedidoService.Nota (record).
+ * - RevisionPedidoService.Evento (record).
+ * - RevisionPedidoService.Gestion (record).
+ * - RevisionPedidoService.Actor (record).
+ * - RevisionPedidoService.Estado (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.pedidos;
 
 import static ar.com.lamontana.pedidos.RevisionPedidoController.*;

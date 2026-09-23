@@ -1,3 +1,31 @@
+//#region ENCABEZADO · SesionVigenteFilter.java
+/*
+ * ========================================================================
+ * ARCHIVO: SesionVigenteFilter.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba en cada solicitud autenticada que el usuario, rol y versión de acceso continúen
+ * vigentes. Invalida sesiones revocadas y restringe operaciones cuando se exige cambiar la
+ * contraseña.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] SesionVigenteFilter(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [protected] void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+ *   FilterChain chain) throws ServletException, IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SesionVigenteFilter (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.seguridad;
 
 import ar.com.lamontana.identidad.UsuarioSesion;

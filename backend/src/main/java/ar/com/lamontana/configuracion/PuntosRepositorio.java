@@ -1,3 +1,30 @@
+//#region ENCABEZADO · PuntosRepositorio.java
+/*
+ * ========================================================================
+ * ARCHIVO: PuntosRepositorio.java
+ * ========================================================================
+ * FUNCIÓN
+ * Lee las definiciones de puntos de entrega de una versión y reconstruye sus relaciones con
+ * sucursales, costos y franjas horarias.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] PuntosRepositorio(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] List<Punto> leer(long config)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PuntosRepositorio (clase).
+ * - PuntosRepositorio.Punto (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.PuntoEntregaController.*;

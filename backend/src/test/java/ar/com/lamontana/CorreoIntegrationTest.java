@@ -1,3 +1,90 @@
+//#region ENCABEZADO · CorreoIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: CorreoIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba entrega SMTP, verificación y recuperación de credenciales, expiración y consumo de
+ * códigos, revocación de sesiones, concurrencia, fallos y atributos de cookies.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] CapturaSmtp :: CapturaSmtp() throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar(TestInfo test) throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [paquete] void verificacionEntregaSmtpHashPrivadoPropositosSeparadosYUnSoloUso() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void intentosPersistidosExpiracionYReenvioSinReactivarCodigoAnterior(boolean
+ *   verificacion) throws Exception
+ * - [paquete] void recuperacionNoRevelaSiCorreoExisteYNoReenviaDuranteCooldown() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void
+ *   cambioYRecuperacionInvalidanTodasLasSesionesClavesAnterioresYCodigosPendientes() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void dosConfirmacionesConcurrentesConsumenRecuperacionUnaSolaVez() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void falloSmtpRevierteEmisionRevocacionYAuditoriaSinRevelarCuenta() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void editarCorreoYDarDeBajaEmpleadoRevocanCredencialesYSesiones() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void principalLeidoAntesDeCambiarClaveNoAutorizaUnaSesionTardia() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void configuracionCookieRespetaSecureHttpOnlyYSameSite()
+ *   Caso de prueba.
+ * - [private] void assertSecretoSoloEnCorreo(String tabla, String columna, String token, String
+ *   api) throws Exception
+ * - [private] void assertRevocados(String empleado)
+ * - [private] boolean verificado(String email)
+ * - [private] int sesiones(String email)
+ * - [private] int contar(String tabla)
+ * - [private] int intentos(String tabla)
+ * - [private] void envejecer(String tabla)
+ * - [private] Map<String, String> recuperacion(String email, String token, String nueva)
+ * - [private] void solicitar(HttpClient actor, boolean verificar) throws Exception
+ * - [private] HttpResponse<String> confirmar(HttpClient actor, boolean verificar, String token)
+ *   throws Exception
+ * - [private] Map<String, Object> editarEmpleado(String id) throws Exception
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient actor, String path) throws Exception
+ * - [private] String csrf(HttpClient actor) throws Exception
+ * - [private] HttpRequest request(HttpClient actor, String method, String path, Object body)
+ *   throws Exception
+ * - [private] HttpResponse<String> enviar(HttpClient actor, String method, String path, Object
+ *   body) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient actor, String path, Object body) throws
+ *   Exception
+ * - [private] void login(HttpClient actor, String email, String clave, int estado) throws
+ *   Exception
+ * - [private] void assertStatus(HttpResponse<String> response, int esperado)
+ * - [paquete] CapturaSmtp :: int port()
+ * - [paquete] CapturaSmtp :: int pendientes()
+ * - [paquete] CapturaSmtp :: Mensaje recibir() throws Exception
+ * - [private] CapturaSmtp :: void aceptar()
+ * - [private] CapturaSmtp :: void responder(BufferedWriter escritor, String respuesta) throws
+ *   IOException
+ * - [public] CapturaSmtp :: void close() throws Exception
+ * - [paquete] Mensaje :: String token()
+ * - [public] Mensaje :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CorreoIntegrationTest (clase).
+ * - CorreoIntegrationTest.CapturaSmtp (clase).
+ * - CorreoIntegrationTest.Mensaje (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.assertThat;

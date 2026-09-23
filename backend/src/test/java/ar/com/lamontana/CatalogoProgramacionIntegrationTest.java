@@ -1,3 +1,63 @@
+//#region ENCABEZADO · CatalogoProgramacionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: CatalogoProgramacionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba publicación programada y cancelación del catálogo, reconciliación tras reinicio,
+ * concurrencia, fallos transaccionales e idempotencia.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar(boolean scheduler)
+ * - [paquete] void futuroConservaVigenteBloqueaOtraRevisionYCancelacionEsIdempotenteConcurrente()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionPersisteYSeActivaPorSchedulerTrasReiniciarSinConsultas() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void consultasYComandosReconcilianVencidasAunqueLuegoRespondanConflicto() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void
+ *   fallaAlActivarNoPublicaParcialNiPierdePendienteYReintentosConcurrentesAplicanUnaVez() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cancelacionFallidaRevierteComprobanteYEstadoYPermiteReintentarMismoComando()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> revision(String base, Instant fecha, String precio)
+ * - [private] JsonNode guardar(Map<String, Object> data) throws Exception
+ * - [private] JsonNode estado() throws Exception
+ * - [private] String estadoDb(UUID id)
+ * - [private] void esperarVencimiento(UUID id) throws Exception
+ * - [private] void esperar(BooleanSupplier condicion, Duration limite) throws Exception
+ * - [private] int contar(String tabla)
+ * - [private] int eventos(String tipo)
+ * - [private] void assertSnapshots(JsonNode antes, JsonNode despues)
+ * - [private] void fallarEvento(String tipo)
+ * - [private] void quitarFalla()
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String mail) throws Exception
+ * - [private] void status(HttpResponse<String> response, int codigo)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogoProgramacionIntegrationTest (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;

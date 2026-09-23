@@ -1,3 +1,32 @@
+//#region ENCABEZADO · FranjasEntrega.java
+/*
+ * ========================================================================
+ * ARCHIVO: FranjasEntrega.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida los días, horas, capacidades y posibles solapamientos de las franjas de entrega
+ * declaradas por el administrador.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [private] FranjasEntrega()
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete, static] void validar(List<Franja> franjas)
+ * - [private, static] LocalTime hora(String texto)
+ * - [private, static] void exigir(boolean condicion, String mensaje)
+ *   Rechaza la operación si no se cumple la condición indicada.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - FranjasEntrega (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import java.time.LocalTime;
 import java.util.*;

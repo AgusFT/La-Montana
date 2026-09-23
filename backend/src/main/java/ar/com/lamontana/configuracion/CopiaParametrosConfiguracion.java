@@ -1,3 +1,30 @@
+//#region ENCABEZADO · CopiaParametrosConfiguracion.java
+/*
+ * ========================================================================
+ * ARCHIVO: CopiaParametrosConfiguracion.java
+ * ========================================================================
+ * FUNCIÓN
+ * Copia entre versiones los parámetros financieros, recursos, horarios y condiciones de entrega,
+ * preservando las identidades de los recursos referidos.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] CopiaParametrosConfiguracion(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] void copiar(long origen, long destino)
+ * - [private] void copiar(String tabla, String columnas, long origen, long destino)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CopiaParametrosConfiguracion (clase).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;

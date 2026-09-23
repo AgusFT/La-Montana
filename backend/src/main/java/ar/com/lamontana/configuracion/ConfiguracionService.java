@@ -1,3 +1,68 @@
+//#region ENCABEZADO · ConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: ConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Administra versiones, borradores y estado de la configuración operativa. Centraliza carga de
+ * parámetros, exclusión de operaciones, comprobantes de reintento, auditoría y reconfirmación de
+ * configuraciones copiadas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] ConfiguracionService(JdbcTemplate jdbc, RecursosRepositorio recursos,
+ *   EntregaRepositorio entrega)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Estado estado(String correo)
+ * - [paquete] List<Intento> intentos(UUID codigo)
+ * - [paquete] Intento intentoPorOperacion(UUID operacion)
+ * - [private] Intento mapearIntento(ResultSet r, int fila) throws SQLException
+ * - [paquete] Programacion programada()
+ * - [paquete] Programacion programacion(UUID codigo)
+ * - [paquete] Version activa()
+ * - [paquete] Version versionActivada(UUID codigo)
+ * - [public] Borrador crear(CrearBorrador input, String correo)
+ * - [public] Borrador seleccionar(UUID codigo, SeleccionarModelo input, String correo)
+ * - [paquete] void sinIntentoEnCurso()
+ * - [paquete] void bloquear()
+ *   Toma el bloqueo transaccional de PostgreSQL.
+ * - [paquete] long propietario(String correo)
+ * - [paquete] Borrador reintento(UUID operacion, String tipo, UUID destino, long actor, String
+ *   huella)
+ * - [paquete] void registrar(UUID operacion, String tipo, long id, long actor, String huella,
+ *   String evento, long version)
+ * - [paquete] void registrar(UUID operacion, String tipo, long id, long actor, String huella,
+ *   String evento, long version, UUID recurso, String motivo)
+ * - [paquete] Borrador cargar(UUID codigo)
+ * - [private] Borrador mapear(ResultSet rs, int fila) throws SQLException
+ * - [paquete] Copia copia(long id)
+ * - [private] void reconfirmarGuardado(long id, String evento, long actor, long version)
+ * - [paquete] void exigirRevisionCopia(Borrador b, String huella, boolean programada)
+ * - [private] Pagos pagos(long id)
+ * - [private] String dinero(BigDecimal valor)
+ * - [paquete] String huella(Object input)
+ *   Calcula o prepara la huella SHA-256 del contenido.
+ * - [private] ResponseStatusException error(HttpStatus status, String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ConfiguracionService (clase).
+ * - ConfiguracionService.Borrador (record).
+ * - ConfiguracionService.Copia (record).
+ * - ConfiguracionService.Version (record).
+ * - ConfiguracionService.Intento (record).
+ * - ConfiguracionService.Programacion (record).
+ * - ConfiguracionService.Estado (record).
+ * - ConfiguracionService.Comprobante (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import static ar.com.lamontana.configuracion.ConfiguracionController.*;

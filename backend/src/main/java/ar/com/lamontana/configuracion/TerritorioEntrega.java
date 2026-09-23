@@ -1,3 +1,26 @@
+//#region ENCABEZADO · TerritorioEntrega.java
+/*
+ * ========================================================================
+ * ARCHIVO: TerritorioEntrega.java
+ * ========================================================================
+ * FUNCIÓN
+ * Representa una cobertura por código postal, localidad y provincia y normaliza esos datos para
+ * compararlos y validarlos de forma consistente.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] TerritorioEntrega normalizado()
+ * - [private, static] String normalizar(String s)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - TerritorioEntrega (record).
+ * ========================================================================
+ */
+//#endregion
+
 package ar.com.lamontana.configuracion;
 
 import java.text.Normalizer;
