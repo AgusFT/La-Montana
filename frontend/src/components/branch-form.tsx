@@ -15,16 +15,29 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [saved, setSaved] = useState(false);
   const [province, setProvince] = useState(() => locations?.find(p => [p.provincia, ...p.alias].some(a => normalize(a) === normalize(branch?.provincia ?? "")))?.provincia ?? "");
   const [locality, setLocality] = useState(branch?.localidad ?? ""), [hours, setHours] = useState(() => week(branch));
+  const [copyNotice, setCopyNotice] = useState("");
   const id = useId(), router = useRouter();
   const location = locations?.find(p => p.provincia === province);
   function dayChange(day: number, changes: Partial<BranchDay>) {
     setHours(rows => rows.map(row => row.dia === day ? { ...row, ...changes } : row));
+    setSaved(false); setMessage(""); setCopyNotice("");
+  }
+  function canApplyHours(source: BranchDay) {
+    return source.habilitado && !!source.apertura && !!source.cierre && source.apertura < source.cierre
+      && hours.some(d => d.habilitado && d.dia !== source.dia);
+  }
+  function applyHours(source: BranchDay) {
+    if (busy || !canApplyHours(source)) return;
+    const targets = hours.filter(d => d.habilitado && d.dia !== source.dia);
+    setHours(rows => rows.map(d => d.habilitado && d.dia !== source.dia
+      ? { ...d, apertura: source.apertura, cierre: source.cierre } : d));
     setSaved(false); setMessage("");
+    setCopyNotice(`Horario de ${weekDays[source.dia - 1]} aplicado a ${targets.map(d => weekDays[d.dia - 1]).join(", ")}. Podés ajustar cada día antes de guardar.`);
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) return;
-    setSaved(false); setMessage("");
+    setSaved(false); setMessage(""); setCopyNotice("");
     if (!location) { setMessage("Seleccioná la provincia o Ciudad Autónoma de Buenos Aires."); return; }
     if (!hours.some(d => d.habilitado)) { setMessage("Seleccioná al menos un día de atención."); return; }
     const invalid = hours.find(d => d.habilitado && (!d.apertura || !d.cierre || d.apertura >= d.cierre));
@@ -65,12 +78,14 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
         <p className="branch-timezone" role="status">{location ? <>Zona horaria automática: <strong>{location.desfase}</strong>. Los horarios se interpretan en la hora local de la sucursal.</> : "Seleccioná la provincia para detectar la zona horaria."}</p>
       </fieldset>
       <fieldset className="choice-fieldset branch-form-section"><legend>2. Días y horario de atención</legend>
-        <p className="empty-note">Marcá los días que abre la sucursal y elegí Desde y Hasta para cada uno. Los días sin marcar quedan cerrados. Se admite un horario continuo por día, sin cruzar la medianoche.</p>
+        <p className="empty-note">Marcá los días abiertos y elegí Desde y Hasta. Para repetir un horario, habilitá al menos dos días, completá uno y aplicalo al resto: reemplaza sus horarios y después podés editar cada uno. Los días sin marcar quedan cerrados. Se admite un horario continuo por día, sin cruzar la medianoche.</p>
         <div className="branch-week">{hours.map(d => <div className={`branch-day${d.habilitado ? " is-open" : ""}`} key={d.dia}>
           <label className="checkbox-label branch-day-toggle"><input type="checkbox" checked={d.habilitado} aria-label={`Abierto ${weekDays[d.dia - 1]}`} onChange={e => dayChange(d.dia, { habilitado: e.target.checked, ...(e.target.checked ? {} : { apertura: null, cierre: null }) })} /><span>{weekDays[d.dia - 1]}<small>{d.habilitado ? "Abierto" : "Cerrado"}</small></span></label>
           <label htmlFor={`${id}-${d.dia}-from`}>Desde<input id={`${id}-${d.dia}-from`} aria-label={`Desde ${weekDays[d.dia - 1]}`} type="time" step="60" required={d.habilitado} disabled={!d.habilitado} value={d.apertura ?? ""} onChange={e => dayChange(d.dia, { apertura: e.target.value || null })} /></label>
           <label htmlFor={`${id}-${d.dia}-to`}>Hasta<input id={`${id}-${d.dia}-to`} aria-label={`Hasta ${weekDays[d.dia - 1]}`} type="time" step="60" required={d.habilitado} disabled={!d.habilitado} value={d.cierre ?? ""} onChange={e => dayChange(d.dia, { cierre: e.target.value || null })} /></label>
+          {d.habilitado && <button type="button" className="admin-button secondary branch-copy-hours" aria-label={`Aplicar horario de ${weekDays[d.dia - 1]} al resto de días habilitados`} disabled={!canApplyHours(d)} onClick={() => applyHours(d)}>Aplicar al resto de días habilitados</button>}
         </div>)}</div>
+        <p className="branch-copy-notice" role="status" aria-live="polite" aria-atomic="true">{copyNotice}</p>
         <p className="empty-note">Este horario queda guardado en la ficha. En Configurador → Horarios y entregas podés copiarlo al calendario, completar los cupos y activar la configuración. Guardar esta ficha no cambia los pedidos ni los calendarios ya activos.</p>
       </fieldset>
       {branch && <label>Estado<select name="estado" defaultValue={branch.estado}><option value="ACTIVA">Activa</option><option value="DESACTIVADA">Desactivada</option></select></label>}
