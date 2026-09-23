@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
-export function CodeField({code, subject, maxLength=40, children}: {code?:string;subject:string;maxLength?:number;children:ReactNode}) {
+export function CodeField({code, value, onValueChange, subject, maxLength=40, children}: {code?:string;value?:string;onValueChange?:(value:string)=>void;subject:string;maxLength?:number;children:ReactNode}) {
   const id = useId(), [open, setOpen] = useState(false);
   const control = useRef<HTMLDivElement>(null), button = useRef<HTMLButtonElement>(null);
   const helpId = `${id}-help`;
@@ -26,7 +26,7 @@ export function CodeField({code, subject, maxLength=40, children}: {code?:string
       onPointerLeave={event => { if (event.pointerType === "mouse" && document.activeElement !== button.current) setOpen(false); }}
       onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
       onKeyDown={event => { if (event.key === "Escape" && open) { event.stopPropagation(); setOpen(false); } }}>
-      <input id={id} name="codigo" required maxLength={maxLength} pattern="[A-Za-z0-9_\-]+" defaultValue={code ?? ""} readOnly={!!code} aria-describedby={helpId} />
+      <input id={id} name="codigo" required maxLength={maxLength} pattern="[A-Za-z0-9_\-]+" {...(value===undefined?{defaultValue:code??""}:{value})} onChange={event=>onValueChange?.(event.target.value)} readOnly={!!code} aria-describedby={helpId} />
       <button ref={button} type="button" className="branch-code-info" aria-label={`Información sobre el código de ${subject}`}
         aria-expanded={open} aria-controls={helpId} aria-describedby={helpId}
         onPointerEnter={event => { if (event.pointerType === "mouse") setOpen(true); }}

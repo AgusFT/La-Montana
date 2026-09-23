@@ -1,37 +1,36 @@
 "use client";
 import {useState,type FormEvent} from "react";
 import {secureMutation} from "@/lib/secure-mutation";
+import {CatalogServiceFields} from "@/components/catalog-service-fields";
 import {CodeField} from "@/components/code-field";
 import {presetPaperGroups,registeredPaperGroups} from "@/lib/catalog-paper-groups";
 import type {CatalogState,PaperSelection} from "@/lib/catalog-types";
 
-function MasterForm({kind,onCreated}:{kind:"papel"|"servicio";onCreated:()=>Promise<void>}) {
+function MasterForm({kind,onCreated,serviceCodes=[]}:{kind:"papel"|"servicio";onCreated:()=>Promise<void>;serviceCodes?:string[]}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState(""),[saved,setSaved]=useState(false);
   const paper=kind==="papel";
+  const [formEpoch,setFormEpoch]=useState(0);
   async function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();if(busy)return;const form=event.currentTarget,data=new FormData(form);
     const base={codigo:String(data.get("codigo")).trim(),nombre:String(data.get("nombre")).trim()};
     const payload=paper?{...base,anchoMm:Number(data.get("anchoMm")),altoMm:Number(data.get("altoMm")),gramaje:Number(data.get("gramaje")),terminacion:String(data.get("terminacion")).trim()}:{...base,tipo:String(data.get("tipo")),descripcion:String(data.get("descripcion")).trim()};
     setBusy(true);setError("");setSaved(false);
-    try{await secureMutation(`/api/admin/catalogo/${paper?"papeles-personalizados":"servicios"}`,JSON.stringify(payload),"application/json");await onCreated();form.reset();setSaved(true);}
+    try{await secureMutation(`/api/admin/catalogo/${paper?"papeles-personalizados":"servicios"}`,JSON.stringify(payload),"application/json");await onCreated();form.reset();setFormEpoch(value=>value+1);setSaved(true);}
     catch(error){setError(error instanceof TypeError?"No pudimos comunicarnos con el servidor. Reintentá para confirmar el resultado.":error instanceof Error?error.message:"No pudimos completar el alta.");}finally{setBusy(false);}
   }
   return <form className="admin-form catalog-custom-form" onSubmit={submit}><fieldset disabled={busy} className="admin-fieldset"><div className="admin-form-grid">
-    <CodeField subject={kind} maxLength={paper?40:50}>
-      <p>Es el identificador único de este {kind}. Se usa para reconocerlo en el catálogo, al preparar tarifas{paper?" y compatibilidades":" y servicios ofrecidos"}.</p>
-      <p><strong>Formato recomendado:</strong> {paper?"tipo + tamaño + gramaje":"abreviatura del servicio"}. Por ejemplo, <code>{paper?"ILUST-A4-150":"IMP-BN"}</code> o <code>{paper?"CART-300":"ANILLADO"}</code>.</p>
-      <p>Hasta {paper?40:50} caracteres: letras sin tildes (A–Z), números, guion (-) o guion bajo (_), sin espacios. Se guarda en mayúsculas y queda fijo después del alta.</p>
-    </CodeField>
-    <label>Nombre<input name="nombre" required maxLength={paper?120:140} placeholder={paper?"Ej.: Ilustración A4 150 g/m²":"Ej.: Anillado"}/></label>
     {paper?<>
+    <CodeField subject="papel">
+      <p>Es el identificador único de este papel. Se usa para reconocerlo en el catálogo, al preparar tarifas y compatibilidades.</p>
+      <p><strong>Formato recomendado:</strong> tipo + tamaño + gramaje. Por ejemplo, <code>ILUST-A4-150</code> o <code>CART-300</code>.</p>
+      <p>Hasta 40 caracteres: letras sin tildes (A–Z), números, guion (-) o guion bajo (_), sin espacios. Se guarda en mayúsculas y queda fijo después del alta.</p>
+    </CodeField>
+    <label>Nombre<input name="nombre" required maxLength={120} placeholder="Ej.: Ilustración A4 150 g/m²"/></label>
       <label>Ancho de la hoja (mm)<input name="anchoMm" type="number" required min="0.01" max="999999.99" step="0.01"/><small>La medida de un lado de la hoja, en milímetros.</small></label>
       <label>Alto de la hoja (mm)<input name="altoMm" type="number" required min="0.01" max="999999.99" step="0.01"/><small>La medida del otro lado. Ejemplo A4: 210 × 297 mm.</small></label>
       <label>Gramaje (g/m²)<input name="gramaje" type="number" required min="0.01" max="999999.99" step="0.01"/><small>Buscalo en el paquete: expresa el peso del papel por metro cuadrado.</small></label>
       <label>Terminación del papel<input name="terminacion" required maxLength={100} placeholder="Ej.: Mate, brillante o sin estucar"/><small>Indica cómo es su superficie, según el fabricante.</small></label>
-    </>:<>
-      <label>Tipo<select name="tipo" required defaultValue=""><option value="" disabled>Seleccionar tipo</option><option value="IMPRESION">Impresión</option><option value="TERMINACION">Terminación</option></select></label>
-      <label>Descripción (opcional)<textarea name="descripcion" maxLength={1000}/></label>
-    </>}
+    </>:<CatalogServiceFields key={formEpoch} existingCodes={serviceCodes} disabled={busy}/>}
   </div></fieldset>{error&&<p className="form-message error-message" role="alert">{error}</p>}{saved&&<p role="status" className="admin-success">{paper?"Papel guardado y habilitado en el catálogo base.":"Servicio guardado. Agregalo a una revisión para definir su precio y habilitarlo."}</p>}<button className="admin-button" disabled={busy}>{busy?"Guardando…":paper?"Guardar papel personalizado":"Crear servicio"}</button></form>;
 }
 export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreated:()=>Promise<void>}){
@@ -93,7 +92,7 @@ export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreat
     </details>
     <section className="catalog-services"><h3>Después, agregá tus servicios <span className="admin-count">{catalog.servicios.length}</span></h3><p className="admin-note">Impresión es pasar el documento al papel. Terminación es un trabajo adicional, como anillado o plastificado. Sus precios se definen en el paso siguiente.</p>
       {catalog.servicios.length===0?<p className="admin-empty">Todavía no creaste servicios. Necesitarás al menos uno de impresión.</p>:<ul className="catalog-master-list">{catalog.servicios.map(s=><li key={s.codigoPublico}><strong>{s.nombre}</strong><small>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</small>{s.descripcion&&<small>{s.descripcion}</small>}</li>)}</ul>}
-      <details className="catalog-custom"><summary>Agregar servicio</summary><MasterForm kind="servicio" onCreated={onCreated}/></details>
+      <details className="catalog-custom"><summary>Agregar servicio</summary><MasterForm kind="servicio" serviceCodes={catalog.servicios.map(s=>s.codigo)} onCreated={onCreated}/></details>
     </section>
   </section>;
 }
