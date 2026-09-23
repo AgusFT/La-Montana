@@ -75,7 +75,11 @@ El configurador presenta ocho fases: configuración actual, modelo, pagos, recur
 
 Medios generales, instrucciones de transferencia, vigencia de cotización, umbrales, porcentajes y montos se ingresan expresamente. No existe la antigua regla fija de 200 carillas/30%. La seña fija se limita al total; porcentajes se redondean a centavos con HALF_UP, sin inventar un cargo mínimo si el resultado es cero.
 
-Cada sucursal declara servicios e impresoras/capacidades para asignación manual. Declarar un recurso no afirma conexión con una impresora ni existencia de papel. CUPS y telemetría quedan fuera del piloto. Los calendarios definen los siete días, zona IANA y horas de atención; preparación y traslado consumen ventanas operativas de la sucursal de origen. Los ejemplos explican el cálculo, sin crear pedidos ni garantizar tiempos reales de transporte.
+Cada sucursal declara servicios e impresoras/capacidades para asignación manual. Declarar un recurso no afirma conexión con una impresora ni existencia de papel. CUPS y telemetría quedan fuera del piloto. Al crear o editar una sucursal se elige provincia/localidad de Argentina y se marcan los días de atención con Desde/Hasta. La zona horaria se detecta automáticamente y se muestra como GMT; el identificador IANA se conserva internamente. Cada día admite un intervalo continuo, sin cruzar medianoche. Los días no marcados quedan cerrados y debe haber al menos un día abierto.
+
+El horario habitual se guarda en la ficha de la sucursal. Al agregar su calendario en la fase 5 se copian esos horarios; un calendario existente dispone de **Usar horario guardado de la sucursal** con confirmación de reemplazo. Las franjas de retiro se conservan y deben seguir dentro de los horarios elegidos. Guardar la ficha no cambia versiones activas ni pedidos: los cambios operativos requieren guardar/revisar/activar el borrador. Las sucursales anteriores recuperan el horario activo completo cuando existe; en otro caso se indica pendiente, sin inventar horarios.
+
+Los calendarios operativos definen los siete días y horas de atención; preparación y traslado consumen ventanas operativas de la sucursal de origen. Los ejemplos explican el cálculo, sin crear pedidos ni garantizar tiempos reales de transporte.
 
 - **Retiro local:** franjas dentro del calendario, con cupos explícitos de pedidos completos. No hay viaje.
 - **Puntos de entrega:** identidad estable, dirección y zona horaria; cada relación con un origen tiene costo y franjas/cupos propios. Su disponibilidad temporal se decide por separado, sin crear otra versión. Deshabilitarlo no cancela compromisos existentes; nuevas ofertas, confirmaciones y reprogramaciones revalidan su disponibilidad.
@@ -172,7 +176,7 @@ El PDF usa un visor privado compartido; las etapas del pedido se navegan por sec
 
 ## Desarrollo, datos y pruebas
 
-- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. El esquema se modifica mediante migraciones V1–V35; Hibernate sólo valida.
+- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. El esquema se modifica mediante migraciones V1–V36; Hibernate sólo valida.
 - `frontend/`: Next.js 16.3.5, React 19.3.0, TypeScript, pnpm 11.19.0 y Node 22/24. App Router, proxy de rutas permitidas y salida standalone.
 - `infra/`, Dockerfiles y `compose.yaml`: servicios, puertos de loopback, salud y volúmenes. Backend/frontend ejecutan como usuarios sin privilegios.
 
@@ -213,3 +217,10 @@ La landing funcionó en localhost y 127.0.0.1 sin solicitudes externas, con los 
 Los datos sintéticos pertenecen exclusivamente a proyectos aislados de certificación, detenidos al cerrar la verificación y con sus volúmenes conservados. El arranque normal de `lamontana` comienza sin usuarios ni operaciones de ejemplo. No ejecutar `down --volumes` para reiniciar.
 
 Revisión responsive final: 53 vistas/estados generales más los seis pasos del configurador web y la landing, en 320, 360, 390, 600, 768, 820, 1024 y 1440 px (480 comprobaciones). Sin desbordes de página ni errores JavaScript inesperados. Se comprobaron navegación de ida/vuelta, cambios sin guardar, autorizaciones pendientes, tablas/galerías por teclado, menú por toque y diálogos a 320×568, 390×700 y 844×390. Las tablas y las vistas previas grandes mantienen desplazamiento interno; los campos de una línea permiten desplazar texto largo. Se revisaron capturas y se corrigieron menú oculto, espacios de formularios, etiquetas accesibles, fechas que causaban diferencias de renderizado y selección visible de fases. Son pruebas en Chromium con emulación de tamaños/toque; no certifican dispositivos físicos ni Safari/Firefox.
+
+
+### Revisión posterior: sucursales y hora local (23/09/2026)
+
+La demo contempla Argentina: 23 provincias y CABA, con catálogo local basado en [IANA tzdb](https://data.iana.org/time-zones/tzdb/zone1970.tab), sin geocodificación ni conexión externa. El servidor resuelve la zona a partir de la provincia, suficiente para las localidades argentinas cubiertas; no toma como autoridad una zona horaria enviada desde el formulario. Los alias CABA, Capital Federal y nombres sin acentos se reconocen. Para compatibilidad con integraciones v6, la API anterior sin horario de alta puede conservar su zona IANA explícita; el formulario nuevo exige provincia reconocida y horario completo.
+
+V36 agrega `sucursal_horario_atencion` y sólo copia los calendarios activos completos existentes, sin modificar sucursales, borradores ni versiones publicadas. Pruebas de esta revisión: 9 pruebas backend de organización, calendarios, detección y migración V35→V36; compilación/tipado de frontend; alta/edición por navegador, validaciones, recarga y copia explícita al borrador; 14 comprobaciones responsive entre 320 y 1440 px. Las cifras de certificación v6 anteriores corresponden a esa entrega, no a una repetición íntegra en esta revisión.

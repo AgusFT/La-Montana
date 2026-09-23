@@ -35,7 +35,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.PUT, "/api/admin/pagina-web/borrador").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/pagina-web/publicar", "/api/admin/pagina-web/imagenes/importar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/estado", "/api/admin/preparacion").hasRole("ADMIN_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/sucursales", "/api/admin/sucursales/ubicaciones").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/sucursales").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/sucursales/*", "/api/admin/empleados/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/empleados").hasRole("ADMIN_ADMIN")

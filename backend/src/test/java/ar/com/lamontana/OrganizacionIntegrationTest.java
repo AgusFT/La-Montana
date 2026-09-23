@@ -54,6 +54,34 @@ class OrganizacionIntegrationTest {
             assertStatus(get(alice,"/api/admin/sucursales"),403);
             assertStatus(enviar(alice,"POST","/api/admin/empleados",alta("no",List.of(a),List.of())),403);
             assertStatus(enviar(alice,"PUT","/api/admin/empleados/"+aliceId,editarEmpleado(admin,aliceId)),403);
+            // Nueva alta: horario explícito, provincia argentina y zona resuelta en servidor.
+            assertStatus(get(alice,"/api/admin/sucursales/ubicaciones"),403);
+            var ubicaciones=get(admin,"/api/admin/sucursales/ubicaciones");assertStatus(ubicaciones,200);
+            assertThat(JSON.readTree(ubicaciones.body()).size()).isEqualTo(24);
+            assertThat(ubicaciones.body()).contains("GMT-03:00","Ciudad Autónoma de Buenos Aires");
+            var nueva=sucursal("HORARIO");nueva.put("provincia","CABA");nueva.put("localidad","Ciudad Autónoma de Buenos Aires");
+            nueva.put("zonaHoraria","Asia/Tokyo"); // No puede alterar la detección automática.
+            var semana=new ArrayList<Map<String,Object>>();
+            for(int dia=1;dia<=7;dia++){var fila=new HashMap<String,Object>();fila.put("dia",dia);fila.put("habilitado",dia<=5);fila.put("apertura",dia<=5?"09:00":null);fila.put("cierre",dia<=5?"18:00":null);semana.add(fila);}
+            nueva.put("horarioAtencion",semana);
+            String horarioId=creado(enviar(admin,"POST","/api/admin/sucursales",nueva));
+            var guardada=editarSucursal(admin,horarioId);
+            assertThat(guardada.get("zonaHoraria")).isEqualTo("America/Argentina/Buenos_Aires");
+            assertThat(guardada.get("horarioAtencion")).isEqualTo(semana);
+            var invalida=new HashMap<>(nueva);invalida.put("codigo","INVALIDA");invalida.put("provincia","Provincia desconocida");
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales",invalida),400);
+            invalida.put("provincia","CABA");invalida.put("horarioAtencion",List.of());
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales",invalida),400);
+            var incompleta=new ArrayList<>(semana);incompleta.set(0,Map.of("dia",1,"habilitado",true,"apertura","18:00","cierre","09:00"));
+            guardada.put("horarioAtencion",incompleta);
+            assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+horarioId,guardada),400);
+            assertThat(editarSucursal(admin,horarioId).get("horarioAtencion")).isEqualTo(semana);
+            guardada=editarSucursal(admin,horarioId);guardada.remove("zonaHoraria");guardada.put("nombre","Horario actualizado");
+            assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+horarioId,guardada),200);
+            assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+horarioId,guardada),409);
+            assertThat(editarSucursal(admin,horarioId).get("horarioAtencion")).isEqualTo(semana);
+            assertStatus(enviar(alice,"POST","/api/admin/sucursales",nueva),403);
+
             var org = app.getBean(OrganizacionService.class);
             org.exigirPermiso("alice@example.test","ACREDITAR_PAGO");
             assertThatThrownBy(()->org.exigirPermiso("bob@example.test","ACREDITAR_PAGO")).isInstanceOf(ResponseStatusException.class);

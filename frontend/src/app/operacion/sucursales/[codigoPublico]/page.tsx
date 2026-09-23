@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { IdentityShell } from "@/components/identity-shell";
 import { getSession } from "@/lib/identity-server";
 import { getOperationBranch, getOperationContext } from "@/lib/organization-server";
-import { uuidPattern } from "@/lib/organization-types";
+import { timeZoneLabel, uuidPattern } from "@/lib/organization-types";
 
 import {OrderListView} from "@/components/order-list";
 import {PaymentQueue} from "@/components/payment-queue";
@@ -27,7 +27,7 @@ export default async function OperationBranchPage({ params, searchParams }: { pa
   const financial=context?.permisos.some(p=>["ACREDITAR_PAGO","REGISTRAR_COBRO","REGISTRAR_DEVOLUCION"].includes(p));
   const branch = result.state === "found" ? result.branch : null;
   return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={session.profile.rol === "ADMIN_ADMIN"} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={branch?.nombre ?? (result.state === "forbidden" ? "Acceso denegado" : "Sucursal no disponible")} description="Pedidos confirmados, archivos y pagos de esta sucursal.">
-    {branch ? <article className="branch-card"><h2>{branch.nombre}</h2><p>Código: {branch.codigo}</p><p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p><p>Zona horaria: {branch.zonaHoraria}</p>{branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}</article> : <p className="form-message error-message" role="alert">{result.state === "forbidden" ? "No tenés acceso a esta sucursal." : "No pudimos conectar con el sistema para consultar esta sucursal. Intentá nuevamente."}</p>}
+    {branch ? <article className="branch-card"><h2>{branch.nombre}</h2><p>Código: {branch.codigo}</p><p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p><p>Hora local: {timeZoneLabel(branch.zonaHoraria)}</p>{branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}</article> : <p className="form-message error-message" role="alert">{result.state === "forbidden" ? "No tenés acceso a esta sucursal." : "No pudimos conectar con el sistema para consultar esta sucursal. Intentá nuevamente."}</p>}
     {branch&&<><OrderListView branch={codigoPublico} initialState={initialState}/><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}</>}
     <a className="secondary-link" href="/operacion">Volver a tus sucursales</a>
   </AdminShell>;

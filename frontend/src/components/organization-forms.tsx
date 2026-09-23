@@ -5,47 +5,7 @@ import { useRouter } from "next/navigation";
 import { secureMutation } from "@/lib/secure-mutation";
 import { permissionLabels, type Branch, type Employee } from "@/lib/organization-types";
 
-const branchFields = [
-  ["codigo", "Código", 40], ["nombre", "Nombre", 140], ["calle", "Calle", 160], ["numero", "Número", 20],
-  ["localidad", "Localidad", 120], ["provincia", "Provincia", 120], ["codigoPostal", "Código postal", 12],
-  ["zonaHoraria", "Zona horaria IANA", 64], ["correo", "Correo (opcional)", 254], ["telefono", "Teléfono (opcional)", 40],
-] as const;
-
-export function BranchForm({ branch }: { branch?: Branch }) {
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [saved, setSaved] = useState(false);
-  const router = useRouter();
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (busy) return;
-    const form = event.currentTarget, data = new FormData(form);
-    const fields = Object.fromEntries(branchFields.map(([key]) => [key, String(data.get(key) ?? "").trim()]));
-    const payload = branch ? { ...fields, codigo: branch.codigo, estado: data.get("estado"), version: branch.version } : fields;
-    setBusy(true); setMessage(""); setSaved(false);
-    try {
-      await secureMutation(`/api/admin/sucursales${branch ? `/${branch.codigoPublico}` : ""}`, JSON.stringify(payload), "application/json", branch ? "PUT" : "POST");
-      if (!branch) form.reset();
-      setSaved(true); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos guardar la sucursal."); }
-    finally { setBusy(false); }
-  }
-  return <form className="identity-form" onSubmit={submit}>
-    <h2>{branch ? "Editar sucursal" : "Nueva sucursal"}</h2>
-    <fieldset className="plain-fieldset" disabled={busy}><div className="form-columns">
-      {branchFields.map(([key, label, maxLength]) => <label key={key}>{label}<input name={key} required={key !== "correo" && key !== "telefono"} maxLength={maxLength}
-        type={key === "correo" ? "email" : key === "telefono" ? "tel" : "text"} defaultValue={branch?.[key] ?? ""}
-        readOnly={key === "codigo" && !!branch} pattern={key === "codigo" ? "[A-Za-z0-9_\\-]+" : undefined}
-        placeholder={key === "zonaHoraria" ? "America/Argentina/Buenos_Aires" : undefined} /></label>)}
-    </div>
-    {branch && <label>Estado<select name="estado" defaultValue={branch.estado}><option value="ACTIVA">Activa</option><option value="DESACTIVADA">Desactivada</option></select></label>}
-    </fieldset>
-    {branch && <p className="empty-note">El código permanece fijo. No se puede desactivar la última sucursal activa asignada a un empleado activo.</p>}
-    {message && <p className="form-message error-message" role="alert">{message}</p>}
-    {saved && <p className="form-message" role="status">Sucursal guardada.</p>}
-    <button className="refresh" disabled={busy}>{busy ? "Guardando…" : branch ? "Guardar sucursal" : "Crear sucursal"}</button>
-  </form>;
-}
+export { BranchForm } from "./branch-form";
 
 export function EmployeeForm({ employee, branches }: { employee?: Employee; branches: Branch[] }) {
   const [busy, setBusy] = useState(false);

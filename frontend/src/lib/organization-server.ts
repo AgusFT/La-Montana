@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { isBranch, isEmployee, isPermissions, uuidPattern, type Employee, type Branch, type OperationContext } from "@/lib/organization-types";
+import { isBranchLocation, type BranchLocation, isBranch, isEmployee, isPermissions, uuidPattern, type Employee, type Branch, type OperationContext } from "@/lib/organization-types";
 
 async function getResource(path: string): Promise<unknown> {
   const base = process.env.BACKEND_INTERNAL_URL;
@@ -12,6 +12,10 @@ async function getResource(path: string): Promise<unknown> {
     });
     return response.ok ? await response.json() : null;
   } catch { return null; }
+}
+export async function getBranchLocations(): Promise<BranchLocation[] | null> {
+  const data = await getResource("admin/sucursales/ubicaciones");
+  return Array.isArray(data) && data.length > 0 && data.every(isBranchLocation) ? data : null;
 }
 export async function getBranches(): Promise<Branch[] | null> {
   const data = await getResource("admin/sucursales");

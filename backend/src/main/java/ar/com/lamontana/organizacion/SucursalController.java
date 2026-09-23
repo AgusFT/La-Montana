@@ -1,6 +1,7 @@
 package ar.com.lamontana.organizacion;
 
 import jakarta.validation.Valid;
+import ar.com.lamontana.organizacion.HorarioAtencion.Dia;
 import jakarta.validation.constraints.*;
 import java.security.Principal;
 import java.util.List;
@@ -16,6 +17,12 @@ public class SucursalController {
 
     @GetMapping("/api/admin/sucursales")
     public List<Sucursal> listar() { return organizacion.sucursales(); }
+
+    @GetMapping("/api/admin/sucursales/ubicaciones")
+    public List<Ubicacion> ubicaciones() {
+        return UbicacionSucursal.PROVINCIAS.stream().map(p -> new Ubicacion(p.nombre(), p.zonaHoraria(), UbicacionSucursal.desfase(p.zonaHoraria()), p.alias())).toList();
+    }
+    public record Ubicacion(String provincia, String zonaHoraria, String desfase, List<String> alias) {}
 
     @PostMapping("/api/admin/sucursales")
     @ResponseStatus(HttpStatus.CREATED)
@@ -38,7 +45,8 @@ public class SucursalController {
             @NotBlank @Size(max = 12) String codigoPostal,
             @Email @Size(max = 254) String correo,
             @Size(max = 40) String telefono,
-            @NotBlank @Size(max = 64) String zonaHoraria) {}
+            @Size(max = 64) String zonaHoraria,
+            @Size(min = 7, max = 7) List<@NotNull @Valid Dia> horarioAtencion) {}
     public record EdicionSucursal(
             @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{1,40}") String codigo,
             @NotBlank @Size(max = 140) String nombre,
@@ -49,10 +57,11 @@ public class SucursalController {
             @NotBlank @Size(max = 12) String codigoPostal,
             @Email @Size(max = 254) String correo,
             @Size(max = 40) String telefono,
-            @NotBlank @Size(max = 64) String zonaHoraria,
+            @Size(max = 64) String zonaHoraria,
             @NotBlank @Pattern(regexp = "ACTIVA|DESACTIVADA") String estado,
-            @NotNull @PositiveOrZero Long version) {}
+            @NotNull @PositiveOrZero Long version,
+            @Size(max = 7) List<@NotNull @Valid Dia> horarioAtencion) {}
     public record Sucursal(UUID codigoPublico, String codigo, String nombre, String calle, String numero,
                            String localidad, String provincia, String codigoPostal, String correo,
-                           String telefono, String zonaHoraria, String estado, long version) {}
+                           String telefono, String zonaHoraria, String estado, long version, List<HorarioAtencion.Dia> horarioAtencion) {}
 }
