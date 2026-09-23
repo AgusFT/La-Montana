@@ -1,3 +1,36 @@
+//#region ENCABEZADO · src/components/payment-panel.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/payment-panel.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta movimientos y saldos de una cotización y permite informar, descartar, recibir, aplicar
+ * o devolver dinero según los permisos y condiciones vigentes.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] PaymentPanel({quote,internal=false,onChange}:
+ *   {quote:string;internal?:boolean;onChange?:()=>void})
+ *   Componente de interfaz.
+ * - [async] PaymentPanel :: load()
+ * - PaymentPanel :: choose(a: Action)
+ * - [async] PaymentPanel :: submit(e: FormEvent<HTMLFormElement>)
+ * - [async] PaymentPanel :: execute()
+ * - PaymentPanel :: permission(p: string)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Action (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - names [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {quoteRead,date,money} from "@/lib/quote-types";

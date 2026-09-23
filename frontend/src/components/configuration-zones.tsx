@@ -1,3 +1,42 @@
+//#region ENCABEZADO · src/components/configuration-zones.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-zones.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Edita zonas de envío con cobertura territorial, costos y franjas, conservando valores locales
+ * ante errores o conflictos de guardado.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - fromZone(z: DeliveryZone): Form
+ * - [export] ConfigurationZones({draft,onSaved,onBack,onLockChange}:
+ *   {draft:ConfigurationDraft;onSaved:(d:ConfigurationDraft)=>void;onBack:()=>void;onLockChange:(v:boolean)=>void})
+ *   Componente de interfaz.
+ * - ConfigurationZones :: change<K extends keyof Form>(k: K, v: Form[K])
+ * - ConfigurationZones :: open(z?: DeliveryZone)
+ * - [async] ConfigurationZones :: state()
+ * - [async] ConfigurationZones :: send(event?: FormEvent)
+ * - [async] ConfigurationZones :: consult()
+ * - ConfigurationZones :: adopt()
+ * - ConfigurationZones :: slot(key: keyof Slot, value: string)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Slot (tipo).
+ * - Form (tipo).
+ * - Command (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - days [const].
+ * - empty [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useNavigationGuard,useConfirmNavigation} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";

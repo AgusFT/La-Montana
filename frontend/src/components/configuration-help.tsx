@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/components/configuration-help.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-help.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Reúne las explicaciones pedagógicas de las fases del configurador operativo y las presenta junto
+ * al paso correspondiente.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ConfigurationHelp({phase}: {phase:number})
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - help [const].
+ * ========================================================================
+ */
+//#endregion
+
 const help=[
   ["Primero prepará un borrador","Un borrador es una configuración de trabajo guardada: podés completarla en varias sesiones sin cambiar cómo funciona la imprenta. Solo la activación del paso 7 aplica sus reglas a los nuevos pedidos.","Creá las sucursales y cargá servicios, formatos, papeles y precios desde el menú. Después creá un borrador o retomá el existente. Si ya hay una versión activa, seguirá funcionando mientras preparás la siguiente."],
   ["Decidí quién aprueba los pedidos","Elegí si un responsable revisa cada pedido o si la aprobación depende de una condición. Esta decisión determina qué reglas de pago completarás después.","Seleccioná una opción según el funcionamiento real de tu negocio y guardala. Guardar permite continuar al paso 3, pero todavía no cambia la operación."],

@@ -1,3 +1,50 @@
+//#region ENCABEZADO · src/lib/website-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/website-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida contenido, fichas, imágenes, borrador, publicación, estado público y revisión
+ * del sitio web configurable.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - id(v: unknown)
+ * - optionalId(v: unknown)
+ * - integer(v: unknown)
+ * - [export] isSiteContent(v: unknown): v is SiteContent
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isSitePublication(v: unknown): v is SitePublication
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isSiteState(v: unknown): v is SiteState
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isSitePublic(v: unknown): v is SitePublic
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isSiteReview(v: unknown): v is SiteReview
+ *   Validador de datos recibidos en tiempo de ejecución.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SiteImage (tipo).
+ * - SiteCard (tipo).
+ * - SiteSection (tipo).
+ * - SiteContent (tipo).
+ * - SiteDraft (tipo).
+ * - SitePublication (tipo).
+ * - SiteState (tipo).
+ * - SitePublic (tipo).
+ * - SiteReview (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - sectionLabels [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {uuidPattern} from "./organization-types";
 export type SiteImage={codigo:string;alternativo:string};
 export type SiteCard={codigo:string;tipo:"PRODUCTO"|"SERVICIO";nombre:string;descripcion:string;servicio:string|null;imagenes:SiteImage[];orden:number;visible:boolean};

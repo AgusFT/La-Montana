@@ -1,3 +1,36 @@
+//#region ENCABEZADO · src/components/catalog-service-fields.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-service-fields.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Ofrece sugerencias de servicios básicos y completa nombre, código y tipo al elegir una opción,
+ * conservando la edición manual y evitando códigos conocidos en uso.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - normalize(value: string)
+ * - [export] CatalogServiceFields({existingCodes,disabled}:
+ *   {existingCodes:string[];disabled:boolean})
+ *   Componente de interfaz.
+ * - CatalogServiceFields :: suggestedCode(base: string)
+ * - CatalogServiceFields :: choose(s: Suggestion)
+ * - CatalogServiceFields :: keyboard(event: KeyboardEvent<HTMLInputElement>)
+ * - CatalogServiceFields :: outside(event: PointerEvent)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Suggestion (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - suggestions [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useId,useRef,useState,type KeyboardEvent} from "react";
 import {CodeField} from "@/components/code-field";

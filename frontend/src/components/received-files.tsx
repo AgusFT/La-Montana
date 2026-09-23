@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/received-files.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/received-files.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta la bandeja paginada de PDF recibidos en una sucursal y permite acceder a los archivos
+ * de sus cotizaciones.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ReceivedFiles({branch}: {branch:string})
+ *   Componente de interfaz.
+ * - [async] ReceivedFiles :: load()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Page (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 import "@/app/client.css";

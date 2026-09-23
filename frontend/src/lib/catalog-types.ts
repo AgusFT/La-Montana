@@ -1,3 +1,58 @@
+//#region ENCABEZADO · src/lib/catalog-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/catalog-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define estructuras del catálogo, tarifas y configuraciones comerciales, con validadores de
+ * respuestas en tiempo de ejecución y formatos de fecha e importe.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(value: unknown): value is Record<string, unknown>
+ * - strings(value: Record<string, unknown>, keys: string[]): boolean
+ * - number(value: unknown): value is number
+ * - compatibility(value: unknown): value is Compatibility
+ * - rate(value: unknown): value is PrintRate
+ * - offer(value: unknown): value is ServiceOffer
+ * - summary(value: unknown): value is RevisionSummary
+ * - [export] isCatalogRevision(value: unknown): value is CatalogRevision
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - selection(value: unknown): value is PaperSelection
+ * - preset(value: unknown): value is PaperPreset
+ * - [export] isCatalogState(value: unknown): value is CatalogState
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] catalogDate(value: string): string
+ * - [export] catalogMoney(value: number): string
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Format (tipo).
+ * - Paper (tipo).
+ * - CatalogService (tipo).
+ * - ColorMode (tipo).
+ * - PriceBase (tipo).
+ * - Compatibility (tipo).
+ * - PrintRate (tipo).
+ * - ServiceOffer (tipo).
+ * - CommercialStatus (tipo).
+ * - RevisionSummary (tipo).
+ * - CatalogRevision (tipo).
+ * - PaperSelection (tipo).
+ * - PaperPreset (tipo).
+ * - CatalogState (tipo).
+ * - NewRevision (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - colorLabels [const, exportado].
+ * - priceLabels [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 export type Format = { codigoPublico: string; codigo: string; nombre: string; anchoMm: number; altoMm: number };
 export type Paper = { codigoPublico: string; codigo: string; nombre: string; gramaje: number; terminacion: string };
 export type CatalogService = { codigoPublico: string; codigo: string; nombre: string; tipo: "IMPRESION" | "TERMINACION"; descripcion: string | null };

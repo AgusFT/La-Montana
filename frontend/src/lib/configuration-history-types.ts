@@ -1,3 +1,51 @@
+//#region ENCABEZADO · src/lib/configuration-history-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/configuration-history-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida listas, detalles, eventos, comparaciones y referencias del historial de
+ * configuraciones operativas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - nullableString(v: unknown)
+ * - actor(v: unknown): v is Actor
+ * - ref(v: unknown): boolean
+ * - row(v: unknown): v is HistoryRow
+ * - value(v: unknown): v is Value
+ * - refs(v: unknown): v is Record<string,string>
+ * - page<T>(v: unknown, valid: (x:unknown)=>x is T): v is HistoryPage<T>
+ * - [export] isHistoryList(v: unknown): v is HistoryList
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isHistoryDetail(v: unknown): v is HistoryDetail
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isHistoryEvents(v: unknown): v is HistoryPage<HistoryEvent>
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isHistoryComparison(v: unknown): v is HistoryComparison
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - base(v: unknown): v is BaseAvailability
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Value (tipo).
+ * - Actor (tipo).
+ * - Reference (tipo).
+ * - HistoryRow (tipo).
+ * - HistoryPage (tipo).
+ * - HistoryList (tipo).
+ * - HistoryModule (tipo).
+ * - BaseAvailability (tipo).
+ * - HistoryDetail (tipo).
+ * - HistoryEvent (tipo).
+ * - HistoryComparison (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import {isConfigurationCopy,type ConfigurationCopy} from "@/lib/configuration-types";
 export type Value=null|boolean|number|string|Value[]|{[key:string]:Value};
 export type Actor={nombre:string;rol:string|null;capturado:boolean};

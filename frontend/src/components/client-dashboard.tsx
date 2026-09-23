@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/client-dashboard.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/client-dashboard.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta y presenta el resumen de cotizaciones y pedidos del cliente y los accesos para
+ * continuar su trabajo.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ClientDashboard()
+ *   Componente de interfaz.
+ * - [async] ClientDashboard :: load()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Dashboard (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - activeStates [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 
 import {useEffect,useState} from "react";

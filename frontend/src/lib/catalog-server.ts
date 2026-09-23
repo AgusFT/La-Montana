@@ -1,3 +1,25 @@
+//#region ENCABEZADO · src/lib/catalog-server.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/catalog-server.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Obtiene el catálogo desde el servidor Next.js, reenviando la sesión al backend y validando la
+ * respuesta sin caché.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, async] getCatalog(): Promise<CatalogState | null>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 import { cookies } from "next/headers";
 import { isCatalogState, type CatalogState } from "@/lib/catalog-types";

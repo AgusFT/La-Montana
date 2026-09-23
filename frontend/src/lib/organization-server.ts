@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/lib/organization-server.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/organization-server.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta sucursales, ubicaciones, empleados y contexto operativo desde Next.js usando la sesión
+ * actual, con validación y distinción entre acceso denegado, recurso inexistente y fallo de
+ * conexión.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [async] getResource(path: string): Promise<unknown>
+ * - [export, async] getBranchLocations(): Promise<BranchLocation[] | null>
+ * - [export, async] getBranches(): Promise<Branch[] | null>
+ * - [export, async] getEmployees(): Promise<Employee[] | null>
+ * - [export, async] getOperationContext(): Promise<OperationContext | null>
+ * - [export, async] getOperationBranch(id: string): Promise<OperationBranchResult>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OperationBranchResult (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 import { cookies } from "next/headers";
 import { isBranchLocation, type BranchLocation, isBranch, isEmployee, isPermissions, uuidPattern, type Employee, type Branch, type OperationContext } from "@/lib/organization-types";

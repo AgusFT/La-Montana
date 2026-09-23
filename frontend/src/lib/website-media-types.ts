@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/lib/website-media-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/website-media-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida imágenes de biblioteca, archivos candidatos y respuestas de exploración de la
+ * carpeta de origen.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - [export] isWebImage(v: unknown): v is WebImage
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isImageSource(v: unknown): v is ImageSource
+ *   Validador de datos recibidos en tiempo de ejecución.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - WebImage (tipo).
+ * - SourceFile (tipo).
+ * - ImageSource (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 export type WebImage={codigo:string;nombre:string;sha256:string;tipoOrigen:string;bytesOrigen:number;ancho:number;alto:number;creadaEn:string};
 export type SourceFile={ruta:string;nombre:string;bytes:number;sha256:string|null;estado:"CANDIDATA"|"INVALIDA";mensaje:string};
 export type ImageSource={rutaHost:string;carpeta:string;legible:boolean;mensaje:string;subcarpetas:string[];archivos:SourceFile[];limitada:boolean};

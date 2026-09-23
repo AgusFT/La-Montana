@@ -1,3 +1,25 @@
+//#region ENCABEZADO · src/lib/point-availability-server.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/point-availability-server.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta desde el servidor Next.js el panel de disponibilidad de puntos de entrega con la sesión
+ * actual y valida su estructura.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, async] getPointAvailability(): Promise<PointAvailabilityPanel|null>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 import {cookies} from "next/headers";
 import {isPointAvailabilityPanel,type PointAvailabilityPanel} from "@/lib/point-availability-types";

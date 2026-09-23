@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/catalog-workspace.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-workspace.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Coordina las pestañas de catálogo base, tarifas y servicios e historial. Refresca el estado y
+ * permite consultar configuraciones anteriores sin descartar el trabajo al cambiar de pestaña.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] CatalogWorkspace({initial}: {initial:CatalogState})
+ *   Componente de interfaz.
+ * - CatalogWorkspace :: sync()
+ * - CatalogWorkspace :: selectTab(id: string)
+ * - [async] CatalogWorkspace :: refresh()
+ * - CatalogWorkspace :: saved(revision: CatalogRevision)
+ * - [async] CatalogWorkspace :: openHistory(id: string)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import { useEffect, useState } from "react";
 import { readCatalog } from "@/lib/catalog-client";

@@ -1,3 +1,23 @@
+# region ENCABEZADO · Dockerfile
+# ========================================================================
+# ARCHIVO: Dockerfile
+# ========================================================================
+# FUNCIÓN
+# Construye el frontend con Node.js y pnpm y prepara una imagen standalone de Next.js, con usuario
+# sin privilegios y comprobación de salud.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - base: Node.js, directorio de trabajo y versión de pnpm.
+# - dependencies: instalación con lockfile congelado.
+# - builder: compilación de Next.js y preparación de PDF.js.
+# - runner: copia de la aplicación standalone, estáticos y recursos públicos.
+# - USER, EXPOSE, HEALTHCHECK y CMD: usuario, puerto, salud e inicio.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
 FROM node:22-alpine AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1

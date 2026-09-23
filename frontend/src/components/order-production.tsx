@@ -1,3 +1,41 @@
+//#region ENCABEZADO · src/components/order-production.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-production.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta producción manual por ítem, impresoras, trabajos, reimpresión y controles de calidad, y
+ * envía las transiciones autorizadas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - jobState(v: string)
+ * - isProduction(v: unknown): v is Production
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] OrderProduction({order,onSaved}: {order:Order;onSaved:()=>void})
+ *   Componente de interfaz.
+ * - [async] OrderProduction :: load()
+ * - OrderProduction :: choose(a: Action)
+ * - [async] OrderProduction :: save(recover = false)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Checklist (tipo).
+ * - Job (tipo).
+ * - Item (tipo).
+ * - Production (tipo).
+ * - Action (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - checks [const].
+ * - actionLabels [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,date,money} from "@/lib/quote-types";

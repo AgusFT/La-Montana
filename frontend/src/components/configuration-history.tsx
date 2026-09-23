@@ -1,3 +1,47 @@
+//#region ENCABEZADO · src/components/configuration-history.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-history.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona filtros, paginación, detalle, auditoría y comparación de configuraciones operativas
+ * guardadas, y permite crear un borrador usando una versión anterior como base.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - date(x: string|null)
+ * - ActorName({value}: {value:Actor|null})
+ *   Componente de interfaz.
+ * - Validity({v}: {v:HistoryRow})
+ *   Componente de interfaz.
+ * - [async] read<T>(path: string, guard: (v:unknown)=>v is T): Promise<T>
+ * - noop(_locked: boolean)
+ * - [export] ConfigurationHistory({onCurrent,onCreated,onLockChange=noop}:
+ *   {onCurrent:()=>void;onCreated?:(b:ConfigurationDraft)=>void;onLockChange?:(locked:boolean)=>void})
+ *   Componente de interfaz.
+ * - [async] ConfigurationHistory :: run(work: ()=>Promise<void>)
+ * - [async] ConfigurationHistory :: listing(page = 0)
+ * - [async] ConfigurationHistory :: open(id: string)
+ * - [async] ConfigurationHistory :: optionBatch(page: number)
+ * - [async] ConfigurationHistory :: compareFrom()
+ * - ConfigurationHistory :: submit(e: FormEvent)
+ * - [async] ConfigurationHistory :: copy(source?: HistoryRow)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - root [const].
+ * - states [const].
+ * - events [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {isConfigurationDraft,type ConfigurationDraft} from "@/lib/configuration-types";

@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/instalacion/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/instalacion/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta el estado de instalación y presenta el formulario de creación del propietario cuando el
+ * alta inicial está habilitada.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] InstallationPage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import { redirect } from "next/navigation";
 import { IdentityShell } from "@/components/identity-shell";
 import { InstallationForm } from "@/components/identity-forms";

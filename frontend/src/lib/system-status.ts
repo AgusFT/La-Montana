@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/lib/system-status.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/system-status.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta y valida el estado público del sistema desde el servidor, distinguiendo falta de
+ * configuración de conexión, indisponibilidad y respuesta inválida.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isSystemStatus(value: unknown): value is SystemStatus
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export, async] getSystemStatus(): Promise<StatusResult>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SystemStatus (tipo).
+ * - StatusResult (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 
 export type SystemStatus = {

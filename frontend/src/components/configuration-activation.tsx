@@ -1,3 +1,32 @@
+//#region ENCABEZADO · src/components/configuration-activation.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-activation.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Guía la autorización y confirmación de activación inmediata o programada de una configuración,
+ * mostrando resultados, revocación y recuperación de respuestas inciertas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export]
+ *   ConfigurationActivation({review,active,onApplied,onFailed,onBack,onHome,onLockChange}:
+ *   {review:Review;active:ConfigurationVersion|null;onApplied:(result:Applied)=>Promise<void>;onFailed:()=>Promise<void>;onBack:()=>void;onHome:()=>void;onLockChange:(locked:boolean)=>void})
+ *   Componente de interfaz.
+ * - [async] ConfigurationActivation :: send(kind?: Command["kind"], event?: FormEvent)
+ * - [async] ConfigurationActivation :: leave(to: "review"|"decision"|"security")
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Applied (tipo).
+ * - Receipt (tipo).
+ * - Command (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {commercialConfigurationText} from "@/lib/catalog-wording";
 import {useNavigationGuard} from "@/components/navigation-boundary";

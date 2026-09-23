@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/acceso/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/acceso/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta el inicio de sesión, comprueba el estado de instalación y deriva a las sesiones
+ * existentes a su área. Explica cuándo todavía falta crear al propietario o activar la operación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] AccessPage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {installationRequired,operationPending} from "@/lib/installation-messages";
 import {getSystemStatus} from "@/lib/system-status";
 import { redirect } from "next/navigation";

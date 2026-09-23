@@ -1,3 +1,43 @@
+//#region ENCABEZADO · src/components/catalog-editor.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-editor.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Edita el conjunto de tarifas y servicios de una configuración comercial. Valida importes en ARS
+ * y compatibilidades, permite aplicación inmediata o programada y conserva el borrador ante
+ * conflictos o respuestas inciertas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - seedRates(revision: CatalogRevision|null): RateDraft[]
+ * - seedOffers(revision: CatalogRevision|null): OfferDraft[]
+ * - [export] CatalogEditor({catalog,onSaved}:
+ *   {catalog:CatalogState;onSaved:(revision:CatalogRevision)=>void})
+ *   Componente de interfaz.
+ * - CatalogEditor :: changeRate(id: string, change: Partial<RateDraft>)
+ * - CatalogEditor :: changeOffer(id: string, change: Partial<OfferDraft>)
+ * - CatalogEditor :: chooseService(row: OfferDraft, id: string)
+ * - CatalogEditor :: focusCard(id: string)
+ * - CatalogEditor :: addRate()
+ * - CatalogEditor :: addOffer()
+ * - CatalogEditor :: pairChange(row: OfferDraft, id: string, change: Partial<PairDraft>)
+ * - CatalogEditor :: payload(): NewRevision
+ * - [async] CatalogEditor :: save(event?: FormEvent<HTMLFormElement>)
+ * - [async] CatalogEditor :: checkLatest()
+ * - CatalogEditor :: adoptBase()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RateDraft (tipo).
+ * - PairDraft (tipo).
+ * - OfferDraft (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {catalogConfigurationText} from "@/lib/catalog-wording";
 import { useRef, useState, type FormEvent } from "react";

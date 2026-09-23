@@ -1,3 +1,38 @@
+//#region ENCABEZADO · src/components/order-delivery.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-delivery.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona la interfaz de logística, código de entrega, validación, entrega física y cierre del
+ * pedido, con acciones disponibles según permisos y estado.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isDelivery(v: unknown): v is Delivery
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] OrderDelivery({order,internal,financial,onSaved}:
+ *   {order:Order;internal:boolean;financial:boolean;onSaved:()=>void})
+ *   Componente de interfaz.
+ * - [async] OrderDelivery :: load()
+ * - OrderDelivery :: choose(a: Action)
+ * - [async] OrderDelivery :: save(kind: Action|"CODIGO", recover = false)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Movement (tipo).
+ * - Action (tipo).
+ * - Delivery (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - labels [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,date,money,modeLabels} from "@/lib/quote-types";

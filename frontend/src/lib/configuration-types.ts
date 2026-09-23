@@ -1,3 +1,76 @@
+//#region ENCABEZADO · src/lib/configuration-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/configuration-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define modelos, pagos, recursos, entrega, borradores, versiones e intentos de configuración
+ * operativa, con validadores de datos recibidos y etiquetas de presentación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] isConfigurationAttempt(i: unknown): i is ConfigurationAttempt
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isActivationOutcome(v: unknown): v is ActivationOutcome
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isConfigurationSchedule(v: unknown): v is ConfigurationSchedule
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - record(value: unknown): value is Record<string,unknown>
+ * - [export] isPaymentConfiguration(value: unknown): value is PaymentConfiguration
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isResourceConfiguration(value: unknown): value is ResourceConfiguration
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isDeliveryPoint(value: unknown): value is DeliveryPoint
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isDeliveryZone(v: unknown): v is DeliveryZone
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isDeliveryConfiguration(value: unknown): value is DeliveryConfiguration
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isConfigurationCopy(v: unknown): v is ConfigurationCopy
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isConfigurationDraft(value: unknown): value is ConfigurationDraft
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isConfigurationVersion(v: unknown): v is ConfigurationVersion
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isConfigurationState(value: unknown): value is ConfigurationState
+ *   Validador de datos recibidos en tiempo de ejecución.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OperatingModel (tipo).
+ * - ApprovalCriterion (tipo).
+ * - PaymentMethod (tipo).
+ * - DepositCondition (tipo).
+ * - PaymentConfiguration (tipo).
+ * - ConfiguredPrinter (tipo).
+ * - ResourceConfiguration (tipo).
+ * - DeliveryMode (tipo).
+ * - OperatingDay (tipo).
+ * - BranchSchedule (tipo).
+ * - PointSlot (tipo).
+ * - PointOrigin (tipo).
+ * - DeliveryPoint (tipo).
+ * - DeliveryTerritory (tipo).
+ * - DeliveryZone (tipo).
+ * - DeliveryConfiguration (tipo).
+ * - ConfigurationCopy (tipo).
+ * - ConfigurationDraft (tipo).
+ * - ConfigurationVersion (tipo).
+ * - ConfigurationAttempt (tipo).
+ * - ConfigurationSchedule (tipo).
+ * - ActivationOutcome (tipo).
+ * - ConfigurationState (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - modelLabels [const, exportado].
+ * - criterionLabels [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 export type OperatingModel = "MANUAL" | "CONDICIONAL";
 export type ApprovalCriterion = "PAGO_PREVIO" | "SENA" | "MONTO_TOTAL";
 export type PaymentMethod = "TRANSFERENCIA" | "EFECTIVO";

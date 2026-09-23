@@ -1,3 +1,39 @@
+//#region ENCABEZADO · src/components/order-detail.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-detail.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Coordina la vista del pedido: resumen de trabajo, gestión, correcciones, producción y entrega,
+ * según el contexto de cliente u operación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - defaultSection(order: Order, internal: boolean)
+ * - WorkSummary({order,internal}: {order:Order;internal:boolean})
+ *   Componente de interfaz.
+ * - Summary({order,internal}: {order:Order;internal:boolean})
+ *   Componente de interfaz.
+ * - [export] OrderDetail({id,internal=false,financial=true}:
+ *   {id:string;internal?:boolean;financial?:boolean})
+ *   Componente de interfaz.
+ * - [async] OrderDetail :: load()
+ * - OrderDetail :: read()
+ * - OrderDetail :: saved()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - sections [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 import {quoteRead,money,date,modeLabels} from "@/lib/quote-types";

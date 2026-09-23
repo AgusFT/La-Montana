@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/identity-shell.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/identity-shell.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Proporciona la estructura visual compartida de las pantallas de identidad, acceso, registro e
+ * instalación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] IdentityShell({ title, description, children, access=false }: { title: string;
+ *   description: string; children: React.ReactNode; access?:boolean })
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {MountainMark, MountainSignature} from "./mountain-brand";
 import "@/app/access.css";
 

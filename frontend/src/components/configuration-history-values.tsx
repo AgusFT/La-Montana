@@ -1,3 +1,36 @@
+//#region ENCABEZADO · src/components/configuration-history-values.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-history-values.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta valores y resúmenes legibles de los módulos de configuración para el detalle histórico
+ * y la comparación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] HistoryValues({value,refs,field=""}:
+ *   {value:Value;refs:Record<string,string>;field?:string})
+ *   Componente de interfaz.
+ * - [export] historySummary(code: string, value: Value): string
+ * - historySummary :: list(k: string)
+ * - historySummary :: count(key: string, one: string, many: string)
+ * - historySummary :: word(v: Value|undefined)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - labels [const].
+ * - terms [const].
+ * ========================================================================
+ */
+//#endregion
+
 import type {Value} from "@/lib/configuration-history-types";
 const labels:Record<string,string>={modelo:"Modelo operativo",criterio:"Condición de aprobación",medios:"Medios de pago",instruccionesTransferencia:"Instrucciones de transferencia",vigenciaCotizacionMinutos:"Vigencia de cotización (minutos)",exigirSena:"Exigir seña",condicionSena:"Condición de seña",umbralSena:"Umbral de seña",tipoSena:"Tipo de seña",valorSena:"Valor de seña",umbralAprobacion:"Umbral de aprobación (ARS)",metodoAsignacion:"Asignación",impresoras:"Impresoras declaradas",serviciosPorSucursal:"Servicios por sucursal",sucursal:"Sucursal",servicios:"Servicios",nombre:"Nombre",formatos:"Formatos",admiteColor:"Admite color",admiteDobleFaz:"Admite doble faz",capacidadHojas:"Capacidad máxima (hojas)",estado:"Estado declarado",retiradaEn:"Retirada el",motivoRetiro:"Motivo de retiro",preparacionHoras:"Preparación (horas)",trasladoHoras:"Traslado (horas)",horariosPorSucursal:"Calendarios por sucursal",franjasRetiro:"Franjas de retiro en sucursal",zonaHoraria:"Zona horaria",dias:"Días",dia:"Día",habilitado:"Habilitado",habilitada:"Habilitada",apertura:"Apertura",cierre:"Cierre",modalidades:"Modalidades",puntos:"Puntos de entrega",zonas:"Zonas domiciliarias",codigo:"Código",calle:"Calle",numero:"Número",localidad:"Localidad",provincia:"Provincia",codigoPostal:"Código postal",referencias:"Referencias de ubicación",sucursales:"Condiciones por origen",costo:"Costo (ARS)",franjas:"Franjas",capacidadPedidos:"Cupo configurado (pedidos)",descripcion:"Descripción",territorios:"Cobertura"};
 const terms:Record<string,string>={MANUAL:"Control manual",CONDICIONAL:"Control condicional",PAGO_PREVIO:"Pago previo",SENA:"Seña",MONTO_TOTAL:"Umbral de importe",TRANSFERENCIA:"Transferencia",EFECTIVO:"Efectivo",SIEMPRE:"Siempre",DESDE_CARILLAS:"Desde cantidad de carillas",DESDE_MONTO:"Desde importe",SUPERAR_UMBRAL_APROBACION:"Al superar el umbral de aprobación",PORCENTAJE:"Porcentaje",FIJA:"Importe fijo (ARS)",OPERATIVA:"Operativa declarada",DESHABILITADA:"Deshabilitada",RETIRADA:"Retirada",RETIRO_SUCURSAL:"Retiro en sucursal",RETIRO_PUNTO_ENTREGA:"Retiro en punto de entrega",ENVIO_DOMICILIO:"Envío a domicilio"};

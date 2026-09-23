@@ -1,3 +1,51 @@
+//#region ENCABEZADO · src/components/configuration-workspace.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-workspace.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Coordina las fases del configurador operativo, su borrador y guardados, la revisión, aplicación
+ * e historial, y protege la navegación durante ediciones y autorizaciones pendientes.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [async] readState()
+ * - [export] ConfigurationWorkspace({initial,initialPhase=1}:
+ *   {initial:ConfigurationState;initialPhase?:number})
+ *   Componente de interfaz.
+ * - ConfigurationWorkspace :: paymentsSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: resourcesSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: deliverySaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: pointsSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: zonesSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: loadDraft(data: ConfigurationDraft)
+ * - [async] ConfigurationWorkspace :: refreshCurrent()
+ * - [async] ConfigurationWorkspace :: applied(result: ConfigurationVersion|ConfigurationSchedule)
+ * - [async] ConfigurationWorkspace :: cancelled(data: ConfigurationDraft)
+ * - [async] ConfigurationWorkspace :: send(next?: Command)
+ * - [async] ConfigurationWorkspace :: advance()
+ * - ConfigurationWorkspace :: create()
+ * - ConfigurationWorkspace :: save(event: FormEvent<HTMLFormElement>)
+ * - [async] ConfigurationWorkspace :: consult()
+ * - ConfigurationWorkspace :: adopt()
+ * - ConfigurationWorkspace :: choose(value: OperatingModel)
+ * - ConfigurationWorkspace :: navigate(next: number)
+ * - ConfigurationWorkspace :: goTo(next: number)
+ * - [async] ConfigurationWorkspace :: openReview()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Command (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - phases [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {commercialConfigurationText} from "@/lib/catalog-wording";
 import {useStepNavigation} from "./use-step-navigation";

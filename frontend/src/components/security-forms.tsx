@@ -1,3 +1,37 @@
+//#region ENCABEZADO · src/components/security-forms.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/security-forms.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Implementa verificación de correo, cambio de contraseña y recuperación de acceso, con
+ * solicitudes de código, confirmaciones y mensajes de error.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - errorMessage(error: unknown)
+ * - [async] send(path: string, data: object)
+ * - [export] EmailVerificationForm({ correo, verified }: { correo: string; verified: boolean })
+ *   Componente de interfaz.
+ * - [async] EmailVerificationForm :: requestCode()
+ * - [async] EmailVerificationForm :: confirm(event: FormEvent<HTMLFormElement>)
+ * - [export] PasswordChangeForm()
+ *   Componente de interfaz.
+ * - [async] PasswordChangeForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - [export] RecoveryForms()
+ *   Componente de interfaz.
+ * - [async] RecoveryForms :: request(event: FormEvent<HTMLFormElement>)
+ * - [async] RecoveryForms :: confirm(event: FormEvent<HTMLFormElement>)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 
 import { useId, useState, type FormEvent } from "react";

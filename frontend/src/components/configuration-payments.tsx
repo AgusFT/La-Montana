@@ -1,3 +1,42 @@
+//#region ENCABEZADO · src/components/configuration-payments.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-payments.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Edita las reglas financieras del borrador, valida sus entradas y permite simular pago previo,
+ * seña y saldo antes de continuar el configurador.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isSimulation(value: unknown): value is Simulation
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - initialValues(draft: ConfigurationDraft): FormValues
+ * - [export] ConfigurationPayments({draft,onSaved,onBack,onLockChange,onNext}:
+ *   {draft:ConfigurationDraft;onSaved:(draft:ConfigurationDraft)=>void;onBack:()=>void;onNext:()=>void;onLockChange:(locked:boolean)=>void})
+ *   Componente de interfaz.
+ * - ConfigurationPayments :: change<K extends keyof FormValues>(key: K, value: FormValues[K])
+ * - ConfigurationPayments :: payload(): PaymentConfiguration
+ * - [async] ConfigurationPayments :: save(event?: FormEvent<HTMLFormElement>)
+ * - [async] ConfigurationPayments :: consult()
+ * - ConfigurationPayments :: adopt()
+ * - [async] ConfigurationPayments :: simulate(event: FormEvent<HTMLFormElement>)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - FormValues (tipo).
+ * - Simulation (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - conditions [const].
+ * - moments [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useNavigationGuard} from "@/components/navigation-boundary";
 

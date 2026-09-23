@@ -1,3 +1,26 @@
+//#region ENCABEZADO · src/components/branch-code-field.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/branch-code-field.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Especializa el campo de código con la explicación de identificación de sucursales, usos y
+ * formato recomendado.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] BranchCodeField({code}: {code?:string})
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {CodeField} from "@/components/code-field";
 export function BranchCodeField({code}:{code?:string}) {

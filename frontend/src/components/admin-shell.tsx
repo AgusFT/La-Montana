@@ -1,3 +1,32 @@
+//#region ENCABEZADO · src/components/admin-shell.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/admin-shell.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Proporciona el marco administrativo compartido: menú lateral, navegación adaptable, identidad
+ * del usuario y cierre de sesión, según el contexto de administración u operación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - AdminIcon({ kind }: { kind: "home" | "catalog" | "people" | "branch" | "lock" })
+ *   Componente de interfaz.
+ * - [export] AdminShell({ title, description, name, children, active="catalogo",
+ *   userRole="Propietario", administration=true }: { title:string; description:string;
+ *   name:string; userRole?:string; administration?:boolean; children:React.ReactNode;
+ *   active?:"web"|"dashboard"|"catalogo"|"configuracion"|"puntos"|"operacion"|"sucursales"|"empleados"
+ *   })
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {NavigationBoundary} from "./navigation-boundary";
 import {MountainMark} from "./mountain-brand";
 import { LogoutButton } from "@/components/identity-forms";

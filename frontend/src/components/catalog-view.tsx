@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/catalog-view.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-view.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Muestra el detalle de una configuración comercial en modo de consulta, con tarifas, servicios,
+ * compatibilidades, vigencia e importes en ARS.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] RevisionView({ revision, catalog }: { revision:CatalogRevision; catalog:CatalogState
+ *   })
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import { catalogDate, colorLabels, priceLabels, type CatalogState, type CatalogRevision } from "@/lib/catalog-types";
 import {ars} from "@/lib/catalog-pricing";
 import {paperLabel} from "@/components/catalog-paper-select";

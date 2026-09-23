@@ -1,3 +1,29 @@
+//#region ENCABEZADO · src/lib/secure-mutation.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/secure-mutation.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Prepara el token CSRF y envía escrituras autenticadas a la API, representando los errores HTTP y
+ * las respuestas inciertas con MutationError.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - MutationError :: constructor(message: string, status: number, uncertain = false)
+ *   Representa un error HTTP y si el resultado del envío es incierto.
+ * - [export, async] secureMutation(path: string, body?: BodyInit, contentType?: string, method:
+ *   "POST" | "PUT" = "POST")
+ *   Obtiene CSRF, envía la escritura y comprueba la respuesta.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - MutationError (clase).
+ * ========================================================================
+ */
+//#endregion
+
 export class MutationError extends Error {
   constructor(message: string, readonly status: number, readonly uncertain = false) { super(message); this.name = "MutationError"; }
 }

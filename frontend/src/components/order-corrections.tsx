@@ -1,3 +1,42 @@
+//#region ENCABEZADO · src/components/order-corrections.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-corrections.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta solicitudes y respuestas de corrección del pedido, preparación de nuevos PDF y
+ * cotizaciones de cambios según el rol del usuario.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isView(v: unknown): v is View
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - isPreview(v: unknown): v is Preview
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] OrderCorrections({order,internal,financial,onSaved}:
+ *   {order:Order;internal:boolean;financial:boolean;onSaved:()=>void})
+ *   Componente de interfaz.
+ * - [async] OrderCorrections :: load()
+ * - [async] OrderCorrections :: save(recover = false)
+ * - OrderCorrections :: changed()
+ * - OrderCorrections :: requote(s: Request)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Kind (tipo).
+ * - Request (tipo).
+ * - View (tipo).
+ * - Preview (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - kinds [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,money,date} from "@/lib/quote-types";

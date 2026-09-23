@@ -1,3 +1,47 @@
+//#region ENCABEZADO · src/components/configuration-resources.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-resources.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona impresoras y servicios por sucursal dentro del borrador: capacidades, formatos, estados
+ * y retiros, con validación y conservación del trabajo local.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - printerForm(printer: ConfiguredPrinter): PrinterForm
+ * - serviceMap(draft: ConfigurationDraft)
+ * - [export] ConfigurationResources({draft,onSaved,onBack,onLockChange,onNext}:
+ *   {draft:ConfigurationDraft;onSaved:(value:ConfigurationDraft)=>void;onBack:()=>void;onNext:()=>void;onLockChange:(locked:boolean)=>void})
+ *   Componente de interfaz.
+ * - [async] ConfigurationResources :: loadOptions()
+ * - ConfigurationResources :: branchName(id: string)
+ * - ConfigurationResources :: change<K extends keyof PrinterForm>(key: K, value: PrinterForm[K])
+ * - ConfigurationResources :: openEditor(printer?: ConfiguredPrinter)
+ * - [async] ConfigurationResources :: send(next?: Command)
+ * - ConfigurationResources :: mutate(path: string, method: "POST"|"PUT", fields:
+ *   Record<string,unknown>)
+ * - ConfigurationResources :: saveResources(event: FormEvent)
+ * - ConfigurationResources :: savePrinter(event: FormEvent)
+ * - ConfigurationResources :: saveAction(event: FormEvent)
+ * - [async] ConfigurationResources :: consult()
+ * - ConfigurationResources :: adopt()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PrinterForm (tipo).
+ * - Command (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - emptyPrinter [const].
+ * - printerLabels [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useNavigationGuard,useConfirmNavigation} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";

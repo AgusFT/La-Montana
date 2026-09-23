@@ -1,3 +1,34 @@
+//#region ENCABEZADO · src/lib/configuration-review-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/configuration-review-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida hallazgos, opciones y resultados de simulación de la revisión integral de
+ * configuración y construye claves para elegir combinaciones.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - rec(v: unknown): v is Record<string,unknown>
+ * - strings(v: Record<string,unknown>, keys: string[])
+ * - [export] isReview(v: unknown): v is Review
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isReviewSimulation(v: unknown): v is ReviewSimulation
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] optionKey(o: ReviewOption)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Finding (tipo).
+ * - ReviewOption (tipo).
+ * - Review (tipo).
+ * - ReviewSimulation (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import {isConfigurationDraft,type ConfigurationDraft} from "@/lib/configuration-types";
 import {isCatalogState,type CatalogState,type ColorMode} from "@/lib/catalog-types";
 export type Finding={nivel:"BLOQUEO"|"ADVERTENCIA"|"INFORMACION";codigo:string;area:string;fase:number;mensaje:string;sucursal:string|null};

@@ -1,3 +1,54 @@
+/* #region ENCABEZADO · src/app/client.css
+ * ========================================================================
+ * ARCHIVO: src/app/client.css
+ * ========================================================================
+ * FUNCIÓN
+ * Define el marco y las vistas del cliente y los componentes de pedidos, archivos, correcciones,
+ * producción, entrega y reprogramación.
+ *
+ * ------------------------------------------------------------------------
+ * CONTENIDO DECLARADO
+ * - Hoja de estilos; no declara funciones ni métodos JavaScript.
+ *
+ * CLASES DECLARADAS (agrupadas por prefijo)
+ * - center: .center
+ * - client: .client-actions, .client-app, .client-brand, .client-button, .client-card,
+ *   .client-check, .client-construction, .client-content, .client-current-date,
+ *   .client-current-empty, .client-current-grid, .client-current-order, .client-dashboard,
+ *   .client-dashboard-aside, .client-dashboard-counts, .client-dashboard-main,
+ *   .client-dashboard-orders, .client-empty, .client-file, .client-footer, .client-form,
+ *   .client-grid, .client-item-title, .client-key-values, .client-logo, .client-main,
+ *   .client-muted, .client-new-icon, .client-new-order, .client-note, .client-sidebar,
+ *   .client-sidebar-note, .client-state, .client-step, .client-success, .client-summary,
+ *   .client-table, .client-table-wrap, .client-title, .client-top, .client-total, .client-warning
+ * - correction: .correction-form-grid, .correction-work-card
+ * - delivery: .delivery-close, .delivery-code, .delivery-dialog, .delivery-money, .delivery-panel,
+ *   .delivery-secret, .delivery-summary
+ * - order: .order-approve, .order-confirmation, .order-correction-entry,
+ *   .order-correction-response, .order-corrections, .order-danger, .order-decision-form,
+ *   .order-decision-grid, .order-detail-heading, .order-internal-history, .order-management,
+ *   .order-management-heading, .order-pilot-limits, .order-private-note, .order-private-notes,
+ *   .order-section, .order-sections, .order-text, .order-timeline
+ * - private: .private-file-history, .private-file-item, .private-files, .private-preview,
+ *   .private-preview-sheet
+ * - production: .production-checklist, .production-coverage, .production-current,
+ *   .production-form, .production-item, .production-panel, .production-quality-checks,
+ *   .production-quality-grid, .production-quality-result, .production-work-grid
+ * - reschedule: .reschedule-dialog, .reschedule-panel, .reschedule-proposal, .reschedule-window
+ * - secondary: .secondary
+ * - three: .three
+ *
+ * CONDICIONES Y DIRECTIVAS CSS
+ * - @media (max-width:1000px)
+ * - @media (max-width:760px)
+ * - @media (max-width: 650px)
+ * - @media (max-width:700px)
+ * - @media (max-width:600px)
+ * - @media (max-width:1150px)
+ * ========================================================================
+ * #endregion
+ */
+
 .client-app{display:flex;min-height:100vh;background:#f5f7fb;color:#1c3859}.client-sidebar{width:228px;flex-shrink:0;background:linear-gradient(160deg,#163850,#0b2c53 70%,#234463);color:white;padding:32px 16px;display:flex;flex-direction:column}.client-logo{text-decoration:none;color:inherit}.client-brand{display:flex;align-items:center;gap:12px;font-size:25px;font-weight:700;line-height:1.1}.client-brand svg{width:58px;height:54px;flex-shrink:0}.client-brand small{display:block;color:#ff7215;letter-spacing:2px;font-size:12px;font-weight:400;margin-top:5px}.client-sidebar .client-brand{flex-direction:column;text-align:center;font-family:Georgia,serif}.client-sidebar .client-brand svg{width:85px;height:75px}.client-sidebar nav{display:flex;flex-direction:column;gap:10px;margin-top:50px}.client-sidebar nav>a,.client-sidebar nav>span{padding:17px 14px;border-radius:8px;color:white;text-decoration:none;font-size:15px}.client-sidebar nav>a[aria-current=page]{background:#2c5c96}.client-sidebar nav>a:hover{background:#ffffff16}.client-sidebar nav>span{opacity:.75}.client-sidebar nav small{display:block;font-size:11px;margin-top:8px;color:#ffd3b5}.client-sidebar-note{margin-top:auto;padding-top:50px;font-size:12px;line-height:1.7;opacity:.7}.client-main{flex:1;min-width:0}.client-top{background:#fff;border-bottom:1px solid #dbe3ee;min-height:86px;display:flex;justify-content:space-between;align-items:center;gap:15px;padding:12px 32px}.client-top>div{display:flex;align-items:center;gap:15px}.client-top button{font-size:12px}.client-content{max-width:1340px;margin:auto;padding:32px}.client-title{margin-bottom:28px}.client-title h1{font-size:32px;letter-spacing:-.6px;margin:0 0 13px}.client-title p{font-size:15px;line-height:1.7;margin:0}.client-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:0 6px 20px #233c5106}.client-card h2,.client-card h3{margin:0 0 18px}.client-card p{line-height:1.6}.client-note,.client-warning,.client-success{border-radius:8px;padding:14px 18px;background:#edf3ff;color:#224d80;font-size:14px;line-height:1.65;margin:15px 0;overflow-wrap:anywhere}.client-warning{background:#fff4e6;color:#81510f}.client-success{background:#eaf8ee;color:#186938}.client-button,.client-button.secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:8px;padding:13px 20px;background:#ff7110;color:#fff;text-decoration:none;font:600 15px Arial;cursor:pointer;min-height:44px}.client-button.secondary{color:#244b76;background:#fff;border-color:#cbd7e8}.client-button:disabled{cursor:not-allowed;opacity:.5}.client-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:20px}.client-actions.center{justify-content:center}.client-form label{display:flex;flex-direction:column;gap:8px;font-size:14px;min-width:0}.client-form input,.client-form select,.client-form textarea{font:inherit;color:#183753;border:1px solid #cbd7e8;border-radius:6px;background:#fff;padding:12px;min-width:0;width:100%;min-height:44px}.client-form input:focus,.client-form select:focus,.client-form textarea:focus{outline:2px solid #6296cb;outline-offset:1px}.client-form input[type=checkbox]{width:19px;height:19px;min-height:0;flex-shrink:0;accent-color:#ff7215}.client-form .client-check{display:flex;flex-direction:row;align-items:flex-start;line-height:1.6;gap:10px;white-space:normal}.client-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.client-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.client-form fieldset{border:0;padding:0;margin:0;min-width:0}.client-step{display:inline-flex;align-items:center;justify-content:center;background:#1d467b;color:#fff;width:27px;height:27px;border-radius:50%;font-size:14px;margin-right:9px}.client-file{border:1px dashed #aec5e5;padding:24px;border-radius:9px;background:#fafbff;margin-bottom:20px;overflow-wrap:anywhere}.client-file input{margin-top:10px}.client-item-title{display:flex;justify-content:space-between;gap:15px;align-items:center;margin-bottom:18px}.client-item-title h2{margin:0}.client-summary{background:linear-gradient(130deg,#4f8ccc,#2968ae);padding:26px;border-radius:14px;color:white}.client-summary>h2{color:white;text-align:center;margin:0 0 24px}.client-summary .client-card{color:#183753;box-shadow:none}.client-total{font-size:28px;font-weight:700;color:#15385e}.client-key-values{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}.client-key-values>div{border-bottom:1px solid #e8edf4;padding:10px 0}.client-key-values dt{font-size:12px;color:#647e99;margin-bottom:7px}.client-key-values dd{margin:0;font-size:15px;overflow-wrap:anywhere}.client-table-wrap{overflow:auto}.client-table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}.client-table th,.client-table td{padding:16px 12px;border-bottom:1px solid #e8edf4;white-space:nowrap}.client-table th{font-size:12px;background:#f7f9fc}.client-state{font-size:11px;font-weight:bold;border-radius:6px;padding:7px 9px;background:#e8f0ff;color:#235ba0}.client-empty{text-align:center;padding:28px 15px}.client-muted{color:#667f9b;font-size:13px;line-height:1.65}.client-footer{text-align:center;padding:25px;color:#68809d;font-size:12px}.client-construction{display:inline-block;border:1px solid #ebc49e;background:#fff4e9;color:#92601f;font-size:11px;padding:4px 7px;border-radius:5px;margin-left:8px}.client-app a:focus-visible,.client-app button:focus-visible{outline:3px solid #4b96d8;outline-offset:3px}
 @media(max-width:1000px){.client-sidebar{width:190px}.client-content{padding:25px}.client-top{padding-inline:25px}.client-grid.three{grid-template-columns:1fr}.client-brand{font-size:22px}}
 @media(max-width:760px){.client-app{display:block}.client-sidebar{width:100%;padding:12px 15px}.client-sidebar>.client-logo,.client-sidebar-note{display:none}.client-sidebar nav{margin:0;flex-direction:row;overflow:auto;gap:6px}.client-sidebar nav>a,.client-sidebar nav>span{padding:12px;font-size:13px;flex-shrink:0;max-width:150px}.client-sidebar nav small{font-size:10px}.client-top{padding:13px 15px}.client-top .client-brand{font-size:19px;gap:5px}.client-top .client-brand svg{width:35px}.client-top .client-brand small{font-size:10px;letter-spacing:1px}.client-top>div{align-items:flex-end;flex-direction:column;gap:8px;font-size:12px}.client-content{padding:25px 15px}.client-title h1{font-size:27px}.client-card{padding:18px}.client-grid,.client-grid.three{grid-template-columns:1fr;gap:16px}.client-summary{padding:16px}.client-key-values{grid-template-columns:1fr}.client-item-title{align-items:flex-start}.client-file{padding:16px}.client-button{padding:12px 15px}.client-actions>*{flex:1}.client-form label{font-size:14px}.client-total{font-size:26px}}

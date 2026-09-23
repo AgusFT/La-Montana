@@ -1,3 +1,46 @@
+//#region ENCABEZADO · src/components/order-reschedule.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-reschedule.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta propuestas de reprogramación y franjas disponibles, con acciones de propuesta o retiro
+ * para operación y aceptación o rechazo para el cliente.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - validSlot(v: unknown): v is OrderSlot
+ * - isReschedule(v: unknown): v is Reschedule
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - isSlots(v: unknown): v is Slots
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - Window({slot,title}: {slot:OrderSlot;title:string})
+ *   Componente de interfaz.
+ * - [export] OrderReschedule({order,internal,onSaved}:
+ *   {order:Order;internal:boolean;onSaved:()=>void})
+ *   Componente de interfaz.
+ * - [async] OrderReschedule :: load()
+ * - OrderReschedule :: choose(a: Action)
+ * - [async] OrderReschedule :: lookup()
+ * - [async] OrderReschedule :: save(recover = false)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Proposal (tipo).
+ * - Reschedule (tipo).
+ * - Slots (tipo).
+ * - Action (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - labels [const].
+ * - states [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {type Order,type OrderSlot} from "@/lib/order-types";

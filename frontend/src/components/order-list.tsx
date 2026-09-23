@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/order-list.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-list.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta y presenta listas paginadas de pedidos con sus estados y enlaces al detalle, para
+ * cliente o sucursal.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] OrderListView({branch,initialState=""}: {branch?:string;initialState?:string})
+ *   Componente de interfaz.
+ * - [async] OrderListView :: load(page = 0)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 import {quoteRead,money,date,modeLabels} from "@/lib/quote-types";

@@ -1,3 +1,46 @@
+//#region ENCABEZADO · src/lib/order-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/order-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida pedidos, requisitos de confirmación, PDF y reservas de entrega, y traduce
+ * estados del pedido y logística para su presentación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - strings(v: unknown): v is string[]
+ * - conditions(v: unknown)
+ * - slot(v: unknown)
+ * - files(v: unknown)
+ * - [export] isOrderReview(v: unknown): v is OrderReview
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isOrder(v: unknown): v is Order
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isOrderList(v: unknown): v is OrderList
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - orderState(s: string, mode?: Mode)
+ * - logisticsState(s: string)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - OrderPdf (tipo).
+ * - OrderSlot (tipo).
+ * - OrderConditions (tipo).
+ * - OrderReview (tipo).
+ * - Order (tipo).
+ * - OrderList (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - orderStates [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {type Quote,type Mode} from "./quote-types";
 export type OrderPdf={item:string;archivo:string;nombre:string;sha256:string;bytes:number;paginas:number;aceptadaEn:string};
 export type OrderSlot={modalidad:Mode;destino:string;origen:string;nombre:string;zonaHoraria:string;fecha:string;apertura:string;cierre:string;desde:string;hasta:string;cupoConfigurado:number;plazasLibres:number;costo:string};

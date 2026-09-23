@@ -1,3 +1,41 @@
+//#region ENCABEZADO · src/components/configuration-review.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-review.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta la revisión integral del borrador y sus bloqueos, advertencias y simulaciones de
+ * precio, pagos, recursos y entrega antes de aplicar la configuración.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ConfigurationReview({draft,onNavigate,onSnapshot,onLockChange,onNext}:
+ *   {draft:ConfigurationDraft;onNavigate:(phase:number)=>void;onSnapshot:(b:ConfigurationDraft)=>void;onLockChange:(busy:boolean)=>void;onNext:(review:Review)=>void})
+ *   Componente de interfaz.
+ * - [async] ConfigurationReview :: refresh()
+ * - ConfigurationReview :: clear()
+ * - ConfigurationReview :: branch(id: string)
+ * - ConfigurationReview :: service(id: string)
+ * - ConfigurationReview :: optionName(o: ReviewOption)
+ * - [async] ConfigurationReview :: simulate(event: FormEvent)
+ * - [async] ConfigurationReview :: proceed(retry = false)
+ * - ConfigurationReview :: status(area: string)
+ * - ConfigurationReview :: date(v: string|null)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - depositConditions [const].
+ * - modes [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {commercialConfigurationText} from "@/lib/catalog-wording";
 import {useEffect,useState,useRef,type FormEvent} from "react";

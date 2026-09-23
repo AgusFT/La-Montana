@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/configuration-pickup-slots.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-pickup-slots.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Edita las franjas de retiro por sucursal con días, horas, capacidad y habilitación explícita.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ConfigurationPickupSlots({branch,slots,onChange}:
+ *   {branch:string;slots:PickupSlotDraft[];onChange:(slots:PickupSlotDraft[])=>void})
+ *   Componente de interfaz.
+ * - ConfigurationPickupSlots :: change(index: number, field: Partial<PickupSlotDraft>)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PickupSlotDraft (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - days [const].
+ * ========================================================================
+ */
+//#endregion
+
 import type {PointSlot} from "@/lib/configuration-types";
 export type PickupSlotDraft=Omit<PointSlot,"dia"|"capacidadPedidos"|"habilitada">&{dia:number|null;capacidadPedidos:number|null;habilitada:boolean|null};
 const days=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];

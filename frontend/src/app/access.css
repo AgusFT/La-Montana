@@ -1,3 +1,30 @@
+/* #region ENCABEZADO · src/app/access.css
+ * ========================================================================
+ * ARCHIVO: src/app/access.css
+ * ========================================================================
+ * FUNCIÓN
+ * Define la presentación de las pantallas de acceso e identidad: contenedores, marca, campos y
+ * adaptación a pantallas pequeñas.
+ *
+ * ------------------------------------------------------------------------
+ * CONTENIDO DECLARADO
+ * - Hoja de estilos; no declara funciones ni métodos JavaScript.
+ *
+ * CLASES DECLARADAS (agrupadas por prefijo)
+ * - access: .access-card, .access-description, .access-footer, .access-header, .access-layout,
+ *   .access-main, .access-recovery, .access-register
+ * - brand: .brand
+ * - identity: .identity-form
+ * - mountain: .mountain-mark, .mountain-signature, .mountain-snow
+ * - refresh: .refresh
+ * - secondary: .secondary-link
+ *
+ * CONDICIONES Y DIRECTIVAS CSS
+ * - @media (max-width:600px)
+ * ========================================================================
+ * #endregion
+ */
+
 .access-layout{min-height:100vh;display:flex;flex-direction:column;background:#e8edf1;color:#294155}
 .access-header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px max(28px,calc((100vw - 1280px)/2));background:#293f51;color:#fff}
 .access-header .brand{color:#fff;font-size:34px;letter-spacing:.5px}.access-header .brand small{color:#f3973d;letter-spacing:7px;text-transform:lowercase;font-size:14px;font-weight:400}.access-header .mountain-mark{width:65px;height:62px}.access-header .mountain-snow{fill:#293f51}.access-header nav{display:flex;gap:25px}.access-header nav a{color:#fff;text-decoration:none;font-size:15px}

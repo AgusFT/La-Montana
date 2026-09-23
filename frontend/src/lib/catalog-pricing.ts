@@ -1,3 +1,33 @@
+//#region ENCABEZADO · src/lib/catalog-pricing.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/catalog-pricing.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y convierte entradas de precios en ARS, permite coma o punto decimal y ofrece formato de
+ * presentación y explicaciones de las bases de cobro.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] validAmount(value: string)
+ * - [export] parseAmount(value: string, label: string)
+ * - [export] amountDraft(value: number)
+ * - ars(value: number)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - amountPattern [const, exportado].
+ * - priceExplanations [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import type {PriceBase} from "@/lib/catalog-types";
 export const amountPattern="[0-9]{1,12}([.,][0-9]{1,2})?";
 export function validAmount(value:string){return new RegExp(`^${amountPattern}$`).test(value.trim());}

@@ -1,3 +1,35 @@
+//#region ENCABEZADO · src/lib/point-availability-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/point-availability-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida los estados de disponibilidad temporal, puntos operativos y panel de
+ * disponibilidad.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - [export] isPointAvailability(v: unknown): v is PointAvailability
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isPointAvailabilityPanel(v: unknown): v is PointAvailabilityPanel
+ *   Validador de datos recibidos en tiempo de ejecución.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - PointAvailability (tipo).
+ * - OperationalPoint (tipo).
+ * - PointAvailabilityPanel (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - pointStateLabels [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {uuidPattern} from "@/lib/organization-types";
 export type PointAvailability={punto:string;estado:"SIN_DEFINIR"|"HABILITADO"|"DESHABILITADO";version:number;actualizadaEn:string|null;actor:string|null};
 export type OperationalPoint={codigoPublico:string;codigo:string;nombre:string;direccion:string;zonaHoraria:string;disponibilidad:PointAvailability};

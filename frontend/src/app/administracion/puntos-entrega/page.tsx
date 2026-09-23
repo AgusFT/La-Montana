@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/administracion/puntos-entrega/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/administracion/puntos-entrega/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el acceso del propietario y presenta el panel de disponibilidad temporal de los puntos
+ * de entrega.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] PointsPage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {redirect} from "next/navigation";
 import {AdminShell} from "@/components/admin-shell";
 import {PointAvailabilityWorkspace} from "@/components/point-availability-workspace";

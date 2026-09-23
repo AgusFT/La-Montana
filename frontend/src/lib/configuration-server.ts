@@ -1,3 +1,25 @@
+//#region ENCABEZADO · src/lib/configuration-server.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/configuration-server.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Obtiene desde el servidor Next.js el estado del configurador operativo, reenviando la sesión y
+ * comprobando la respuesta del backend.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, async] getConfiguration(): Promise<ConfigurationState|null>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 import {cookies} from "next/headers";
 import {isConfigurationState,type ConfigurationState} from "@/lib/configuration-types";

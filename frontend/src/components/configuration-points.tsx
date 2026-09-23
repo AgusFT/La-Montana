@@ -1,3 +1,48 @@
+//#region ENCABEZADO · src/components/configuration-points.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-points.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Edita puntos de entrega, direcciones, sucursales de origen, costos y franjas del borrador, con
+ * guardado seguro y resolución de conflictos de versión.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - fromPoint(p: DeliveryPoint): PointForm
+ * - [export] ConfigurationPoints({draft,onSaved,onBack,onLockChange}:
+ *   {draft:ConfigurationDraft;onSaved:(value:ConfigurationDraft)=>void;onBack:()=>void;onLockChange:(value:boolean)=>void})
+ *   Componente de interfaz.
+ * - [async] ConfigurationPoints :: load()
+ * - ConfigurationPoints :: branchName(id: string)
+ * - ConfigurationPoints :: change<K extends keyof PointForm>(key: K, value: PointForm[K])
+ * - ConfigurationPoints :: originChange(id: string, field: "habilitado"|"costo", value: string)
+ * - ConfigurationPoints :: slotChange(id: string, index: number, field: keyof SlotForm, value:
+ *   string)
+ * - ConfigurationPoints :: addOrigin()
+ * - ConfigurationPoints :: open(p?: DeliveryPoint)
+ * - [async] ConfigurationPoints :: state()
+ * - [async] ConfigurationPoints :: send(event?: FormEvent)
+ * - [async] ConfigurationPoints :: consult()
+ * - ConfigurationPoints :: adopt()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SlotForm (tipo).
+ * - OriginForm (tipo).
+ * - PointForm (tipo).
+ * - Command (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - days [const].
+ * - empty [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useNavigationGuard,useConfirmNavigation} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";

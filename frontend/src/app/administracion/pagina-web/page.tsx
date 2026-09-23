@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/administracion/pagina-web/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/administracion/pagina-web/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el acceso del propietario, obtiene el borrador del sitio y presenta el configurador de
+ * la página web pública.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] WebsiteConfigurationPage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {redirect} from "next/navigation";
 import {getSession} from "@/lib/identity-server";
 import {roleHome} from "@/lib/roles";

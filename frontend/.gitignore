@@ -1,3 +1,21 @@
+# region ENCABEZADO · .gitignore
+# ========================================================================
+# ARCHIVO: .gitignore
+# ========================================================================
+# FUNCIÓN
+# Evita versionar dependencias, resultados de compilación, variables de entorno y registros de
+# ejecución del frontend.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - node_modules/ y .next/: dependencias y construcción.
+# - *.tsbuildinfo: caché incremental de TypeScript.
+# - .env* y *.log: archivos locales y registros.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
 node_modules/
 .next/
 *.tsbuildinfo

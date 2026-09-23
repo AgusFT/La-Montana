@@ -1,3 +1,35 @@
+//#region ENCABEZADO · src/app/api/[...path]/route.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/api/[...path]/route.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Actúa como proxy de la API del backend con rutas y métodos permitidos explícitamente. Controla
+ * solicitudes, cabeceras, cookies, tamaño y contenido, y traduce errores de comunicación sin
+ * exponer la dirección interna.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - error(status: number, mensaje: string, headers?: Headers)
+ * - [async] proxy(request: Request, context: { params: Promise<{ path: string[] }> })
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - allowed [const].
+ * - dynamic [const, exportado].
+ * - GET [const, exportado].
+ * - POST [const, exportado].
+ * - PUT [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import { uuidPattern } from "@/lib/organization-types";
 
 const allowed: Record<string, readonly string[]> = {

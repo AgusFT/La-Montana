@@ -1,3 +1,29 @@
+//#region ENCABEZADO · src/lib/identity-server.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/identity-server.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta el estado de instalación y la sesión desde Next.js, valida el perfil recibido y
+ * distingue sesión anónima de indisponibilidad del backend.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [async] getIdentityResource(path: "setup/estado" | "auth/me", cookie?: string)
+ * - [export, async] getSetupState(): Promise<SetupState | null>
+ * - [export, async] getSession(): Promise<{ state: "authenticated"; profile: Profile } | { state:
+ *   "anonymous" | "unavailable" }>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SetupState (tipo).
+ * - Profile (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 import { isRole, type Role } from "@/lib/roles";
 import { cookies } from "next/headers";

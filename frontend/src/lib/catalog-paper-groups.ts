@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/lib/catalog-paper-groups.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/catalog-paper-groups.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Agrupa papeles por dimensiones para presentar sus gramajes como variantes, conservando las
+ * identidades y la selección independiente de cada combinación.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - groupBySize<T>(items: SizedPaper<T>[]): PaperGroup<T>[]
+ * - [export] presetPaperGroups(presets: PaperPreset[])
+ * - [export] registeredPaperGroups(catalog: CatalogState, presets: PaperGroup<PaperPreset>[])
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SizedPaper (tipo).
+ * - PaperGroup (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import type {CatalogState,PaperPreset,PaperSelection} from "@/lib/catalog-types";
 
 type SizedPaper<T>={nombre:string;anchoMm:number;altoMm:number;value:T};

@@ -1,3 +1,15 @@
+<!-- ENCABEZADO · public/mountains.svg
+========================================================================
+FUNCIÓN
+Ilustración vectorial de montañas utilizada como recurso visual de la marca.
+........................................................................
+CONTENIDO DECLARADO
+- viewBox: lienzo de 1600 por 800 unidades.
+- Grupo con opacidad y cuatro trazados: siluetas, luces y sombras.
+- preserveAspectRatio: adapta la imagen manteniendo su proporción.
+MÉTODOS / FUNCIONES: no declara; recurso SVG estático.
+========================================================================
+-->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" preserveAspectRatio="xMidYMax slice">
   <g fill="#c1cdda" opacity=".65">
     <path d="M0 530 120 305 215 432 319 355 540 688 687 565 829 595 1040 342 1260 85 1426 273 1600 350V800H0Z"/>

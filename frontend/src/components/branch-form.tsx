@@ -1,3 +1,39 @@
+//#region ENCABEZADO · src/components/branch-form.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/branch-form.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona alta y edición de sucursales, ubicación argentina, zona horaria derivada y semana de
+ * atención. Permite copiar un horario al resto de días habilitados y envía los cambios con
+ * protección CSRF.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - normalize(s: string)
+ * - week(branch?: Branch): BranchDay[]
+ * - [export] BranchForm({ branch, locations }: { branch?: Branch; locations: BranchLocation[] |
+ *   null })
+ *   Componente de interfaz.
+ * - BranchForm :: dayChange(day: number, changes: Partial<BranchDay>)
+ * - BranchForm :: canApplyHours(source: BranchDay)
+ * - BranchForm :: applyHours(source: BranchDay)
+ * - [async] BranchForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - BranchForm :: field([key, label, maxLength]: typeof fields[number])
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - fields [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 
 import { useId, useState, type FormEvent } from "react";

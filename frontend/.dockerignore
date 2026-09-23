@@ -1,3 +1,21 @@
+# region ENCABEZADO · .dockerignore
+# ========================================================================
+# ARCHIVO: .dockerignore
+# ========================================================================
+# FUNCIÓN
+# Excluye dependencias, resultados de Next.js, metadatos Git, archivos de entorno y registros del
+# contexto de construcción Docker.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - node_modules y .next: archivos generados.
+# - .git: metadatos del repositorio.
+# - .env*, *.log y *.tsbuildinfo: entorno y datos locales.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
 node_modules
 .next
 .git

@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta el panel inicial de la demo con el estado real de instalación, pasos de preparación y
+ * accesos al sitio público, registro, sesión y creación del propietario.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] HomePage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {MountainMark} from "@/components/mountain-brand";
 import { getSystemStatus } from "@/lib/system-status";
 import {installationRequired,operationPending} from "@/lib/installation-messages";

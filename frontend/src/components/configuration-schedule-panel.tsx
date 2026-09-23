@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/components/configuration-schedule-panel.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-schedule-panel.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Muestra el estado de una configuración operativa programada y coordina su consulta, cancelación
+ * y activación anticipada.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export]
+ *   ConfigurationSchedulePanel({value,active,onRefresh,onCancelled,onAdvance,onLockChange}:
+ *   {value:ConfigurationSchedule;active:ConfigurationVersion|null;onRefresh:()=>Promise<void>;onAdvance:()=>Promise<void>;onCancelled:(d:ConfigurationDraft)=>Promise<void>;onLockChange:(b:boolean)=>void})
+ *   Componente de interfaz.
+ * - ConfigurationSchedulePanel :: lock(b: boolean)
+ * - [async] ConfigurationSchedulePanel :: refresh()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useState,useCallback} from "react";
 import {DraftCancellation} from "@/components/draft-cancellation";

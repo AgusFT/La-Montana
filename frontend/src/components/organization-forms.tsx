@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/organization-forms.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/organization-forms.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona alta y edición de empleados, sus sucursales, permisos y estado, con validación,
+ * protección CSRF y tratamiento de conflictos.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] EmployeeForm({ employee, branches }: { employee?: Employee; branches: Branch[] })
+ *   Componente de interfaz.
+ * - [async] EmployeeForm :: submit(event: FormEvent<HTMLFormElement>)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - reexportación: export { BranchForm } from "./branch-form";
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 
 import { useId, useState, type FormEvent } from "react";

@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/components/preparation-map.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/preparation-map.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta el estado real de preparación de la imprenta y muestra una secuencia visual de pasos,
+ * pendientes y enlaces de configuración.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - valid(value: unknown): value is Preparation
+ * - [export] PreparationMap()
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Step (tipo).
+ * - Preparation (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 type Step={codigo:string;titulo:string;completo:boolean;estado:string;detalle:string;enlace:string;complementario:boolean};

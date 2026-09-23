@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/payment-queue.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/payment-queue.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta y presenta la bandeja paginada de pagos de una sucursal y sus accesos a la gestión
+ * financiera de cada cotización.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] PaymentQueue({branch}: {branch:string})
+ *   Componente de interfaz.
+ * - [async] PaymentQueue :: load()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Page (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 import {money} from "@/lib/quote-types";

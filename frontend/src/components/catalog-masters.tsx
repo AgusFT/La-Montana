@@ -1,3 +1,33 @@
+//#region ENCABEZADO · src/components/catalog-masters.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-masters.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Administra el catálogo base con papeles agrupados por tamaño y gramaje, selección individual o
+ * conjunta, papeles personalizados y servicios, sin cambiar directamente los precios vigentes.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - MasterForm({kind,onCreated,serviceCodes=[]}:
+ *   {kind:"papel"|"servicio";onCreated:()=>Promise<void>;serviceCodes?:string[]})
+ *   Componente de interfaz.
+ * - [async] MasterForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - [export] CatalogMasters({catalog,onCreated}:
+ *   {catalog:CatalogState;onCreated:()=>Promise<void>})
+ *   Componente de interfaz.
+ * - [async] CatalogMasters :: addAll()
+ * - [async] CatalogMasters :: change(selection: PaperSelection|null, preset?: string)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useState,type FormEvent} from "react";
 import {secureMutation} from "@/lib/secure-mutation";

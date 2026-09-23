@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/components/point-availability-workspace.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/point-availability-workspace.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta y modifica la disponibilidad temporal de puntos de entrega, diferenciándola de su
+ * configuración estructural y conservando reintentos seguros.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] PointAvailabilityWorkspace({initial}: {initial:PointAvailabilityPanel})
+ *   Componente de interfaz.
+ * - [async] PointAvailabilityWorkspace :: refresh()
+ * - [async] PointAvailabilityWorkspace :: send(next?: Command)
+ * - PointAvailabilityWorkspace :: change(point: OperationalPoint, estado:
+ *   "HABILITADO"|"DESHABILITADO")
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Command (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useRef,useState} from "react";
 import {MutationError,secureMutation} from "@/lib/secure-mutation";

@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/client-page-frame.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/client-page-frame.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba sesión, rol y cambio obligatorio de contraseña antes de renderizar el contenido dentro
+ * del marco de navegación del cliente.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, async] ClientPageFrame({title,description,active,children}:
+ *   {title:string;description:string;active:"home"|"quotes"|"new"|"orders";children:React.ReactNode})
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {redirect} from "next/navigation";
 import {getSession} from "@/lib/identity-server";
 import {roleHome} from "@/lib/roles";

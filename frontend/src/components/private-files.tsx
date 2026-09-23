@@ -1,3 +1,33 @@
+//#region ENCABEZADO · src/components/private-files.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/private-files.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona los PDF privados de una cotización: consulta, carga, apertura, vista previa y
+ * aceptación, respetando los requisitos y estados devueltos por el servidor.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export]
+ *   PrivateFiles({quote,version,internal=false,refresh=0,onChange,confirmed=false,snapshot,correction}:
+ *   {quote:string;version:number;internal?:boolean;refresh?:number;onChange?:()=>void;confirmed?:boolean;snapshot?:string[];correction?:{pedido:string;solicitud:string}})
+ *   Componente de interfaz.
+ * - [async] PrivateFiles :: load()
+ * - PrivateFiles :: open(file: PrivateFile)
+ * - [async] PrivateFiles :: execute()
+ * - PrivateFiles :: upload(item: string)
+ * - PrivateFiles :: accept()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";

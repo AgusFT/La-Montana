@@ -1,3 +1,32 @@
+//#region ENCABEZADO · src/components/catalog-pricing-fields.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-pricing-fields.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Proporciona ayudas accesibles y campos de importes del catálogo, con moneda ARS explícita y
+ * validación visual de los formatos permitidos.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] CatalogInfo({title,htmlFor,children}:
+ *   {title:string;htmlFor?:string;children:ReactNode})
+ *   Componente de interfaz.
+ * - CatalogInfo :: outside(e: PointerEvent)
+ * - CatalogInfo :: key(e: KeyboardEvent)
+ * - [export] CatalogAmount({label,value,onChange,help}:
+ *   {label:string;value:string;onChange:(value:string)=>void;help:ReactNode})
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useId,useRef,useState,type ReactNode} from "react";
 import {amountPattern,validAmount} from "@/lib/catalog-pricing";

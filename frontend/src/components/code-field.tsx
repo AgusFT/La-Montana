@@ -1,3 +1,29 @@
+//#region ENCABEZADO · src/components/code-field.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/code-field.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Implementa el campo reutilizable de código con una ayuda accesible que se puede abrir por
+ * puntero, teclado o toque y cerrar al salir o presionar Escape.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] CodeField({code, value, onValueChange, subject, maxLength=40, children}:
+ *   {code?:string;value?:string;onValueChange?:(value:string)=>void;subject:string;maxLength?:number;children:ReactNode})
+ *   Componente de interfaz.
+ * - CodeField :: outside(event: PointerEvent)
+ * - CodeField :: escape(event: KeyboardEvent)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";

@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/app/operacion/sucursales/[codigoPublico]/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/operacion/sucursales/[codigoPublico]/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el acceso a una sucursal y reúne sus bandejas de pedidos, archivos y pagos,
+ * diferenciando recursos inexistentes, acceso denegado y fallos de consulta.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] OperationBranchPage({ params, searchParams }: { params: Promise<{
+ *   codigoPublico: string }>; searchParams: Promise<{estado?:string}> })
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {orderStates} from "@/lib/order-types";
 import {AdminShell} from "@/components/admin-shell";
 import { notFound, redirect } from "next/navigation";

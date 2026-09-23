@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/components/catalog-schedule.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-schedule.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta una configuración comercial programada y permite cancelarla con motivo, control de
+ * envío y tratamiento de errores.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] CatalogSchedule({revision,onChanged}:
+ *   {revision:CatalogRevision;onChanged:()=>Promise<void>})
+ *   Componente de interfaz.
+ * - [async] CatalogSchedule :: cancel(event?: FormEvent<HTMLFormElement>)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {catalogConfigurationText} from "@/lib/catalog-wording";
 import { useRef, useState, type FormEvent } from "react";

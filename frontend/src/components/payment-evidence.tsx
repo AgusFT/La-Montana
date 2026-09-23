@@ -1,3 +1,38 @@
+//#region ENCABEZADO · src/components/payment-evidence.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/payment-evidence.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Gestiona carga y consulta de comprobantes PDF privados asociados a intentos o pagos, incluyendo
+ * preparación, envío y apertura del contenido.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isEvidence(v: unknown): v is Evidence
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] PaymentEvidence({quote,parent,kind,internal=false,onClose}:
+ *   {quote:string;parent:string;kind:"intento"|"pago";internal?:boolean;onClose:()=>void})
+ *   Componente de interfaz.
+ * - [async] PaymentEvidence :: load()
+ * - PaymentEvidence :: prepare()
+ * - [async] PaymentEvidence :: execute()
+ * - PaymentEvidence :: open(f: Evidence)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Evidence (tipo).
+ * - List (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - states [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";

@@ -1,3 +1,43 @@
+//#region ENCABEZADO · src/components/website-workspace.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/website-workspace.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Coordina el asistente del sitio web, contenido, fichas e imágenes, orden de secciones, guardado
+ * del borrador, revisión y publicación explícita.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [async] readState()
+ * - [export] WebsiteWorkspace({initial}: {initial:SiteState})
+ *   Componente de interfaz.
+ * - [async] WebsiteWorkspace :: loadImages()
+ * - WebsiteWorkspace :: imported(image: WebImage)
+ * - WebsiteWorkspace :: useImage(id: string, target: string)
+ * - WebsiteWorkspace :: change<K extends keyof SiteContent>(key: K, value: SiteContent[K])
+ * - WebsiteWorkspace :: cardChange(id: string, update: Partial<SiteCard>)
+ * - WebsiteWorkspace :: adopt(value: SiteState)
+ * - WebsiteWorkspace :: navigate(next: number)
+ * - [async] WebsiteWorkspace :: send(next?: Command)
+ * - WebsiteWorkspace :: save(next?: number)
+ * - [async] WebsiteWorkspace :: consult()
+ * - WebsiteWorkspace :: moveSection(index: number, direction: number)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Command (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - steps [const].
+ * - help [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {useStepNavigation} from "./use-step-navigation";

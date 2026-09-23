@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/operacion/cotizaciones/[id]/archivos/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/operacion/cotizaciones/[id]/archivos/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Verifica la sesión operativa y el identificador de cotización para mostrar los PDF privados
+ * recibidos dentro del panel administrativo.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] QuoteFilesPage({params}: {params:Promise<{id:string}>})
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {AdminShell} from "@/components/admin-shell";
 import {notFound,redirect} from "next/navigation";
 import {getSession} from "@/lib/identity-server";

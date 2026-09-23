@@ -1,3 +1,29 @@
+//#region ENCABEZADO · src/lib/configuration-rollback-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/configuration-rollback-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida las respuestas de revisión y resultado de la reversión manual de configuración.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - [export] isRollbackReview(v: unknown): v is RollbackReview
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isRollbackResult(v: unknown): v is RollbackResult
+ *   Validador de datos recibidos en tiempo de ejecución.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RollbackReview (tipo).
+ * - RollbackResult (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 import {isConfigurationVersion,isConfigurationSchedule,isConfigurationDraft,isConfigurationAttempt,type ConfigurationVersion,type ConfigurationSchedule,type ConfigurationDraft,type ConfigurationAttempt} from "@/lib/configuration-types";
 import {isReview,type Review} from "@/lib/configuration-review-types";
 export type RollbackReview={activa:ConfigurationVersion|null;objetivo:ConfigurationVersion|null;programada:ConfigurationSchedule|null;condiciones:Review|null;impedimentos:string[];permitida:boolean;huella:string};

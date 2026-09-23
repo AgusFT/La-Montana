@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/lib/website-server.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/website-server.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta el borrador privado y la publicación pública del sitio desde Next.js, reenviando
+ * cookies únicamente para recursos privados y validando las respuestas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [async] read<T>(path: string, guard: (value:unknown)=>value is T, privateResource = false):
+ *   Promise<T|null>
+ * - getWebsiteState()
+ * - getPublicWebsite()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import "server-only";
 import {cookies} from "next/headers";
 import {isSiteState,isSitePublic} from "./website-types";

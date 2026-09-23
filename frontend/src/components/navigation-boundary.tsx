@@ -1,3 +1,41 @@
+//#region ENCABEZADO · src/components/navigation-boundary.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/navigation-boundary.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Registra formularios con cambios o acciones pendientes y controla enlaces, cambios de paso,
+ * cierre de sesión y salida del navegador para evitar abandonar operaciones sin advertencia.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - register()
+ * - confirm()
+ * - [export] NavigationBoundary({children}: {children:ReactNode})
+ *   Componente de interfaz.
+ * - NavigationBoundary :: register(id: string, guard: Guard)
+ * - NavigationBoundary :: confirm()
+ * - NavigationBoundary :: beforeUnload(event: BeforeUnloadEvent)
+ * - NavigationBoundary :: followLink(event: MouseEvent)
+ * - [export] useNavigationGuard({dirty=false,blocked=false}: Guard)
+ *   Hook reutilizable de React.
+ * - [export] useConfirmNavigation()
+ *   Hook reutilizable de React.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Guard (tipo).
+ * - Navigation (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - NavigationContext [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {createContext,useCallback,useContext,useEffect,useId,useRef,type ReactNode} from "react";
 

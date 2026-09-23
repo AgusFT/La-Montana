@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/lib/local-pdf.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/local-pdf.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Lee un PDF local con PDF.js para obtener páginas, tamaño y huella del documento, con límites y
+ * cancelación. Los datos preparan la cotización; la inspección definitiva corresponde al servidor.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, async] readLocalPdf(file: File, signal: AbortSignal):
+ *   Promise<{documento:DocumentInfo;paginas:number}>
+ * - readLocalPdf :: abort()
+ * - readLocalPdf :: task.onPassword()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import type {DocumentInfo} from "./quote-types";
 
 /** Sólo prepara datos declarados. El servidor debe inspeccionar el PDF antes de crear un pedido. */

@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/components/quote-detail.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/quote-detail.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta el detalle y vigencia de una cotización y presenta su aceptación, cancelación y
+ * continuación hacia archivos, pagos y confirmación del pedido.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] QuoteDetail({id}: {id:string})
+ *   Componente de interfaz.
+ * - [async] QuoteDetail :: load()
+ * - [async] QuoteDetail :: mutate(action?: "aceptar"|"cancelar")
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,isQuote,date,money,modeLabels,type Quote} from "@/lib/quote-types";

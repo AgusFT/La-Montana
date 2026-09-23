@@ -1,3 +1,35 @@
+//#region ENCABEZADO · src/components/draft-cancellation.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/draft-cancellation.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Guía la cancelación segura de borradores o programaciones mediante contraseña y código, con
+ * revocación, reinicio y recuperación de resultados inciertos.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isReceipt(value: unknown): value is Receipt
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] DraftCancellation({draft,onCancelled,onRefresh,onLockChange}:
+ *   {draft:ConfigurationDraft;onCancelled:(value:ConfigurationDraft)=>Promise<void>;onRefresh:()=>Promise<void>;onLockChange:(locked:boolean)=>void})
+ *   Componente de interfaz.
+ * - [async] DraftCancellation :: send(kind?: "solicitar"|"confirmar"|"revocar", event?:
+ *   FormEvent<HTMLFormElement>)
+ * - DraftCancellation :: restart()
+ * - [async] DraftCancellation :: leave(close: boolean)
+ * - [async] DraftCancellation :: refresh()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Receipt (tipo).
+ * - Pending (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useNavigationGuard} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";

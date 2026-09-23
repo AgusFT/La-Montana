@@ -1,3 +1,33 @@
+//#region ENCABEZADO · src/components/catalog-search-select.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-search-select.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Implementa un selector de catálogo con búsqueda desde dos caracteres, normalización de texto,
+ * navegación por teclado y cierre sin perder la selección anterior.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - normalize(text: string)
+ * - [export] CatalogSearchSelect({label,options,value,onChange,disabled=false,placeholder="Buscar
+ *   o elegir",help="Escribí 2 o más caracteres para filtrar. Elegí un resultado de la lista."}:
+ *   {label:string;options:CatalogChoice[];value:string;onChange:(value:string)=>void;disabled?:boolean;placeholder?:string;help?:string})
+ *   Componente de interfaz.
+ * - CatalogSearchSelect :: show()
+ * - CatalogSearchSelect :: choose(option: CatalogChoice)
+ * - CatalogSearchSelect :: keyboard(event: KeyboardEvent<HTMLInputElement>)
+ * - CatalogSearchSelect :: outside(event: PointerEvent)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - CatalogChoice (tipo).
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useId,useRef,useState,type KeyboardEvent} from "react";
 

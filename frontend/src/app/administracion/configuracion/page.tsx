@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/app/administracion/configuracion/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/administracion/configuracion/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el acceso del propietario y carga el estado inicial del asistente de configuración
+ * operativa, con navegación administrativa permanente.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] ConfigurationPage({searchParams}:
+ *   {searchParams:Promise<{borrador?:string}>})
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {redirect} from "next/navigation";
 import {AdminShell} from "@/components/admin-shell";
 import {ConfigurationWorkspace} from "@/components/configuration-workspace";

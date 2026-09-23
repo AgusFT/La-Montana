@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/operacion/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/operacion/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Muestra al personal autenticado sus sucursales activas y permisos, con accesos a pedidos,
+ * archivos y pagos de cada sucursal.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] OperationPage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {AdminShell} from "@/components/admin-shell";
 import { redirect } from "next/navigation";
 import { IdentityShell } from "@/components/identity-shell";

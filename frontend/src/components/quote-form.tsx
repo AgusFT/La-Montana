@@ -1,3 +1,37 @@
+//#region ENCABEZADO · src/components/quote-form.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/quote-form.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Construye una solicitud de cotización con opciones disponibles, documentos PDF, cantidades y
+ * entrega. Lee datos locales del PDF y envía la solicitud al servidor para el cálculo definitivo.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - choiceKey(o: Combination)
+ * - [export] QuoteForm({replaces,inspectedFile,correction}:
+ *   {replaces?:string;inspectedFile?:string;correction?:{pedido:string;solicitud:string}})
+ *   Componente de interfaz.
+ * - [async] QuoteForm :: load(initial = false)
+ * - QuoteForm :: update(key: string, change: Partial<Row>)
+ * - [async] QuoteForm :: files(list: FileList|null)
+ * - [async] QuoteForm :: submit(event?: FormEvent)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Row (tipo).
+ * - Combination (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - emptyAddress [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from "react";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";

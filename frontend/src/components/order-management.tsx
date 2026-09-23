@@ -1,3 +1,37 @@
+//#region ENCABEZADO · src/components/order-management.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-management.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta la revisión administrativa del pedido, observaciones, decisiones y cancelación, con
+ * control del estado y de las acciones pendientes.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - isManagement(v: unknown): v is Management
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] OrderManagement({order,internal,onSaved}:
+ *   {order:Order;internal:boolean;onSaved:()=>void})
+ *   Componente de interfaz.
+ * - [async] OrderManagement :: load()
+ * - OrderManagement :: choose(a: Action)
+ * - [async] OrderManagement :: save(recover = false)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Action (tipo).
+ * - Management (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - labels [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,date} from "@/lib/quote-types";

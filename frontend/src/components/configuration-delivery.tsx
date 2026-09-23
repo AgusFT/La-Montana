@@ -1,3 +1,63 @@
+//#region ENCABEZADO · src/components/configuration-delivery.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-delivery.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Edita calendarios, tiempos y modalidades de entrega por sucursal y permite validar y simular
+ * resultados, conservando valores locales ante conflictos de versión.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - [export] isDeliveryValidation(v: unknown): v is Validation
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - isDestination(v: unknown): v is PointDestination
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - isZoneDestination(v: unknown): v is ZoneDestination
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - isPickupDestination(v: unknown): v is PickupDestination
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - isEstimate(v: unknown): v is Estimate
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - fullWeek(values: OperatingDay[]): OperatingDay[]
+ * - initialSchedules(draft: ConfigurationDraft)
+ * - [export]
+ *   ConfigurationDelivery({draft,onSaved,onBack,onLockChange,onPoints,onZones,onNext,onReviewReady}:
+ *   {draft:ConfigurationDraft;onSaved:(value:ConfigurationDraft)=>void;onBack:()=>void;onPoints:()=>void;onZones:()=>void;onNext:()=>void;onReviewReady:(ready:boolean)=>void;onLockChange:(value:boolean)=>void})
+ *   Componente de interfaz.
+ * - [async] ConfigurationDelivery :: load()
+ * - ConfigurationDelivery :: name(id: string)
+ * - ConfigurationDelivery :: clearEstimate()
+ * - ConfigurationDelivery :: dayChange(branch: string, day: number, field:
+ *   "habilitado"|"apertura"|"cierre", value: boolean|string|null)
+ * - ConfigurationDelivery :: addSchedule()
+ * - [async] ConfigurationDelivery :: save(event?: FormEvent)
+ * - [async] ConfigurationDelivery :: consult()
+ * - ConfigurationDelivery :: adopt()
+ * - [async] ConfigurationDelivery :: simulate(event: FormEvent)
+ * - ConfigurationDelivery :: date(value: string|null, zone?: string)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - EditingSchedule (tipo).
+ * - PointOption (tipo).
+ * - Validation (tipo).
+ * - PointDestination (tipo).
+ * - ZoneDestination (tipo).
+ * - PickupDestination (tipo).
+ * - Estimate (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - days [const].
+ * - modes [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useNavigationGuard} from "@/components/navigation-boundary";
 import {useEffect,useRef,useState,type FormEvent} from "react";

@@ -1,3 +1,36 @@
+//#region ENCABEZADO · src/components/configuration-rollback.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-rollback.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Guía la revisión y autorización de una reversión manual a una configuración operativa anterior,
+ * con confirmación segura, revocación y resultado verificable.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ConfigurationRollback()
+ *   Componente de interfaz.
+ * - [async] ConfigurationRollback :: refresh()
+ * - ConfigurationRollback :: continueReview(e: FormEvent)
+ * - [async] ConfigurationRollback :: send(action?: "solicitar"|"confirmar", e?: FormEvent)
+ * - [async] ConfigurationRollback :: leave(next: "review"|"home")
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Receipt (tipo).
+ * - Decision (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - root [const].
+ * - phases [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {commercialConfigurationText} from "@/lib/catalog-wording";
 import {useStepNavigation} from "./use-step-navigation";

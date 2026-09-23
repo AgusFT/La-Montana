@@ -1,3 +1,46 @@
+//#region ENCABEZADO · src/lib/quote-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/quote-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define y valida opciones, ítems, documentos y cotizaciones, con utilidades de consulta y
+ * presentación de importes y fechas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - record(v: unknown): v is Record<string,unknown>
+ * - [export] isQuote(v: unknown): v is Quote
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isOptions(v: unknown): v is QuoteOptions
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isQuoteList(v: unknown): v is QuoteList
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - money(value: string)
+ * - date(value: string|null)
+ * - [export, async] quoteRead<T>(path: string, guard: (v:unknown)=>v is T): Promise<T>
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - WorkItem (tipo).
+ * - DocumentInfo (tipo).
+ * - Mode (tipo).
+ * - Address (tipo).
+ * - QuoteOptions (tipo).
+ * - Named (tipo).
+ * - QuoteInput (tipo).
+ * - Quote (tipo).
+ * - QuoteList (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - modeLabels [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 
 export type WorkItem={servicio:string;formato:string;papel:string;color:"BLANCO_NEGRO"|"COLOR";paginas:number;copias:number;dobleFaz:boolean;terminaciones:string[]};
 export type DocumentInfo={nombre:string;bytes:number;sha256:string};

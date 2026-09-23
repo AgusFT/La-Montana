@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/operacion/cotizaciones/[id]/pagos/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/operacion/cotizaciones/[id]/pagos/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Verifica la sesión operativa y el identificador de cotización para mostrar su gestión de pagos
+ * con los permisos del usuario.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] QuotePaymentsPage({params}: {params:Promise<{id:string}>})
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {notFound,redirect} from "next/navigation";
 import {getSession} from "@/lib/identity-server";
 import {uuidPattern} from "@/lib/organization-types";

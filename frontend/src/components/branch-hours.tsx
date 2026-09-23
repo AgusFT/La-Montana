@@ -1,3 +1,26 @@
+//#region ENCABEZADO · src/components/branch-hours.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/branch-hours.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Muestra el horario de atención declarado por una sucursal, distinguiendo días abiertos, cerrados
+ * y ausencia de configuración.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] BranchHours({ days }: { days: BranchDay[] })
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import { weekDays, type BranchDay } from "@/lib/organization-types";
 
 export function BranchHours({ days }: { days: BranchDay[] }) {

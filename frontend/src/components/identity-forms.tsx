@@ -1,3 +1,36 @@
+//#region ENCABEZADO · src/components/identity-forms.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/identity-forms.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Implementa los formularios de inicio de sesión, registro de clientes e instalación del
+ * propietario y el botón de cierre de sesión, con estados de envío y errores explicados.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] LoginForm()
+ *   Componente de interfaz.
+ * - [async] LoginForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - [export] RegistrationForm()
+ *   Componente de interfaz.
+ * - [async] RegistrationForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - [export] InstallationForm()
+ *   Componente de interfaz.
+ * - [async] InstallationForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - [export] LogoutButton()
+ *   Componente de interfaz.
+ * - [async] LogoutButton :: logout()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useConfirmNavigation} from "@/components/navigation-boundary";
 

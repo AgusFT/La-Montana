@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/website-view.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/website-view.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Renderiza la página pública o la vista previa privada del sitio: identidad, portada, fichas,
+ * imágenes y contacto. Muestra placeholders cuando aún no se publicó contenido.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - Placeholder({label="Imagen de portada"}: {label?:string})
+ *   Componente de interfaz.
+ * - [export] WebsiteView({content,requiresOwner=false,unavailable=false,preview=false}:
+ *   {content:SiteContent|null;requiresOwner?:boolean;unavailable?:boolean;preview?:boolean})
+ *   Componente de interfaz.
+ * - WebsiteView :: image(id: string)
+ * - WebsiteView :: section(key: SiteSection)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {MountainMark} from "@/components/mountain-brand";
 import type {SiteContent,SiteSection} from "@/lib/website-types";
 function Placeholder({label="Imagen de portada"}:{label?:string}){return <div className="website-image-placeholder"><span aria-hidden="true">▧</span><p>{label}</p><small>Sin configurar</small></div>;}

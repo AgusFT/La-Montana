@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/components/mountain-brand.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/mountain-brand.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Renderiza las marcas gráficas reutilizables de La Montaña mediante SVG y texto para cabeceras y
+ * paneles.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] MountainMark({sun=false}: {sun?:boolean})
+ *   Componente de interfaz.
+ * - [export] MountainSignature()
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {useId} from "react";
 
 // Vector reconstruido desde la silueta de los mocks; no depende de imágenes remotas.

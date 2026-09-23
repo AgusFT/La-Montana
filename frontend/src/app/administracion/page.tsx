@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/administracion/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/administracion/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Construye el dashboard del propietario con mapa de preparación, consultas operativas por
+ * sucursal, disponibilidad de puntos y accesos a las áreas administrativas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] AdministrationPage()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import { getPointAvailability } from "@/lib/point-availability-server";
 import { redirect } from "next/navigation";
 import { roleHome } from "@/lib/roles";

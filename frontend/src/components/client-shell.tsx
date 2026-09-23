@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/client-shell.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/client-shell.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Proporciona la estructura visual compartida del área del cliente, su navegación y las acciones
+ * de cuenta.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ClientShell({name,title,description,active,children}:
+ *   {name:string;title:string;description:string;active:"home"|"quotes"|"new"|"orders";children:React.ReactNode})
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {MountainMark} from "./mountain-brand";
 import {LogoutButton} from "./identity-forms";
 import "@/app/client.css";

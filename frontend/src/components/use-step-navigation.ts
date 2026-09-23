@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/use-step-navigation.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/use-step-navigation.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Mantiene visible el paso seleccionado dentro del navegador horizontal del configurador cuando
+ * cambia el paso o se redimensiona su contenedor.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] useStepNavigation(step: number)
+ *   Hook reutilizable de React.
+ * - useStepNavigation :: reveal()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef} from "react";
 

@@ -1,3 +1,27 @@
+//#region ENCABEZADO · src/components/quote-list.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/quote-list.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta y presenta la lista paginada de cotizaciones del cliente, con estados y enlaces para
+ * continuar cada una.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] QuoteListView()
+ *   Componente de interfaz.
+ * - [async] QuoteListView :: load(page = 0)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 import {quoteRead,isQuoteList,money,date,type QuoteList} from "@/lib/quote-types";

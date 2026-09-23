@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/components/catalog-paper-select.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-paper-select.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Construye opciones de papel completo con tamaño, gramaje y material y las presenta en un
+ * selector con búsqueda que conserva referencias retiradas.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] paperKey(pair: Compatibility)
+ * - [export] paperLabel(catalog: CatalogState, pair: Compatibility)
+ * - [export] CatalogPaperSelect({catalog,value,label,onChange,disabled=false}:
+ *   {catalog:CatalogState;value:Compatibility;label:string;onChange:(pair:Compatibility)=>void;disabled?:boolean})
+ *   Componente de interfaz.
+ * - CatalogPaperSelect :: choice(pair: Compatibility): CatalogChoice
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 import {CatalogSearchSelect,type CatalogChoice} from "@/components/catalog-search-select";
 import type {CatalogState,Compatibility} from "@/lib/catalog-types";
 export function paperKey(pair:Compatibility){return `${pair.formato}/${pair.papel}`;}

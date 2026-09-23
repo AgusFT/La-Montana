@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/website-media.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/website-media.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta la carpeta local de imágenes candidatas, sus miniaturas y la biblioteca importada, y
+ * permite importar archivos para usarlos en el sitio.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - CandidateThumbnail({file}: {file:SourceFile})
+ *   Componente de interfaz.
+ * - [export]
+ *   WebsiteMedia({folder,onFolderChange,images,cards=[],onImported,onUse,onLockChange,compact=false,fixedTarget,disabled=false}:
+ *   {folder:string;onFolderChange:(folder:string)=>void;images:WebImage[];cards?:SiteCard[];onImported:(image:WebImage)=>void;onUse:(id:string,target:string)=>void;onLockChange:(locked:boolean)=>void;compact?:boolean;fixedTarget?:string;disabled?:boolean})
+ *   Componente de interfaz.
+ * - [async] WebsiteMedia :: importFile(file?: SourceFile)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";

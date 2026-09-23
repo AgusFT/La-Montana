@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/components/configuration-history-page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-history-page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Integra la consulta de historial de configuraciones con la protección de navegación de los
+ * formularios.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] ConfigurationHistoryPage()
+ *   Componente de interfaz.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - phases [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useStepNavigation} from "./use-step-navigation";
 import {useNavigationGuard} from "@/components/navigation-boundary";

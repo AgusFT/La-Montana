@@ -1,3 +1,30 @@
+//#region ENCABEZADO · src/app/administracion/configuracion/historial/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/administracion/configuracion/historial/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Protege y presenta la consulta del historial de configuraciones operativas dentro del panel
+ * administrativo.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] Page()
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 import {redirect} from "next/navigation";
 import {AdminShell} from "@/components/admin-shell";
 import {ConfigurationHistoryPage} from "@/components/configuration-history-page";

@@ -1,3 +1,31 @@
+//#region ENCABEZADO · src/components/admin-dashboard.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/admin-dashboard.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Presenta consultas y accesos operativos del dashboard administrativo por sucursal, con conteos y
+ * estados obtenidos desde la API.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] AdminDashboard({branches}: {branches:Branch[]})
+ *   Componente de interfaz.
+ * - AdminDashboard :: href(state = "")
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Snapshot (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - stages [const].
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useState} from "react";
 import {type Branch} from "@/lib/organization-types";

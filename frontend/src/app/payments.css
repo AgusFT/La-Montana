@@ -1,3 +1,27 @@
+/* #region ENCABEZADO · src/app/payments.css
+ * ========================================================================
+ * ARCHIVO: src/app/payments.css
+ * ========================================================================
+ * FUNCIÓN
+ * Define la presentación de paneles financieros, importes, acciones y comprobantes, con adaptación
+ * a pantallas pequeñas.
+ *
+ * ------------------------------------------------------------------------
+ * CONTENIDO DECLARADO
+ * - Hoja de estilos; no declara funciones ni métodos JavaScript.
+ *
+ * CLASES DECLARADAS (agrupadas por prefijo)
+ * - client: .client-actions, .client-button
+ * - evidence: .evidence-preview, .evidence-record
+ * - payment: .payment-confirm, .payment-evidence, .payment-form, .payment-heading, .payment-panel,
+ *   .payment-pending, .payment-totals
+ *
+ * CONDICIONES Y DIRECTIVAS CSS
+ * - @media (max-width:640px)
+ * ========================================================================
+ * #endregion
+ */
+
 .payment-panel{border:1px solid #cad8e4;border-radius:14px;background:#fff;margin:24px 0;padding:22px;color:#18334d;overflow-wrap:anywhere}
 .payment-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;background:linear-gradient(110deg,#0060dd,#0754c7);color:white;padding:22px;margin:-22px -22px 20px;border-radius:13px 13px 0 0}
 .payment-heading span{font-size:.73rem;letter-spacing:.09em}.payment-heading h2{color:white!important;font-size:1.4rem;margin:7px 0 0}.payment-heading button{flex-shrink:0}

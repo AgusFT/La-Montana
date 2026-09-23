@@ -1,3 +1,44 @@
+//#region ENCABEZADO · src/lib/organization-types.ts
+/*
+ * ========================================================================
+ * ARCHIVO: src/lib/organization-types.ts
+ * ========================================================================
+ * FUNCIÓN
+ * Define sucursales, horarios, ubicaciones, empleados y permisos, con validadores de respuestas,
+ * etiquetas y formato de zona horaria.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] timeZoneLabel(zone: string): string
+ * - [export] isBranchLocation(value: unknown): value is BranchLocation
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isBranch(value: unknown): value is Branch
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isPermissions(value: unknown): value is Permission[]
+ *   Validador de datos recibidos en tiempo de ejecución.
+ * - [export] isEmployee(value: unknown): value is Employee
+ *   Validador de datos recibidos en tiempo de ejecución.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - BranchDay (tipo).
+ * - BranchLocation (tipo).
+ * - Branch (tipo).
+ * - Permission (tipo).
+ * - Employee (tipo).
+ * - OperationContext (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - uuidPattern [const, exportado].
+ * - weekDays [const, exportado].
+ * - permissionLabels [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
 export const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const weekDays = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export type BranchDay = { dia: number; habilitado: boolean; apertura: string | null; cierre: string | null };

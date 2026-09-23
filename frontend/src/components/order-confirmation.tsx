@@ -1,3 +1,28 @@
+//#region ENCABEZADO · src/components/order-confirmation.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/order-confirmation.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Consulta los requisitos para confirmar una cotización como pedido y envía la confirmación
+ * conservando la misma operación cuando corresponde reintentar.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export] OrderConfirmation({quote,refresh}: {quote:Quote;refresh:number})
+ *   Componente de interfaz.
+ * - [async] OrderConfirmation :: load()
+ * - [async] OrderConfirmation :: confirm(recover = false)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ * ========================================================================
+ */
+//#endregion
+
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,money,type Quote} from "@/lib/quote-types";
