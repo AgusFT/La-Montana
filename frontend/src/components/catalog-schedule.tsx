@@ -1,4 +1,5 @@
 "use client";
+import {catalogConfigurationText} from "@/lib/catalog-wording";
 import { useRef, useState, type FormEvent } from "react";
 import { MutationError, secureMutation } from "@/lib/secure-mutation";
 import { catalogDate, isCatalogRevision, type CatalogRevision } from "@/lib/catalog-types";
@@ -14,14 +15,14 @@ export function CatalogSchedule({revision,onChanged}:{revision:CatalogRevision;o
       const data:unknown=await response.json();if(!isCatalogRevision(data)||data.estado!=="CANCELADA")throw new Error("No pudimos confirmar la cancelación recibida.");
       command.current=null;setUncertain(false);await onChanged();
     } catch(error) {
-      setError(error instanceof Error?error.message:"No pudimos cancelar la programación.");
+      setError(error instanceof Error?catalogConfigurationText(error.message):"No pudimos cancelar la programación.");
       if(error instanceof MutationError&&!error.uncertain){command.current=null;setUncertain(false);}
       else if(command.current)setUncertain(true);
     } finally {setBusy(false);}
   }
   return <section className="admin-card catalog-pending" aria-labelledby="pending-title">
-    <div className="admin-section-title"><div><h2 id="pending-title">Revisión {revision.numero} programada</h2><p>Entrará en vigencia el {revision.programadaPara?catalogDate(revision.programadaPara):"instante indicado"}.</p></div><button type="button" className="admin-button secondary" disabled={busy} onClick={()=>onChanged().catch(()=>setError("No pudimos actualizar el estado."))}>Actualizar estado</button></div>
-    <p className="admin-note">La revisión actual se mantiene hasta entonces. Para guardar otro cambio comercial, primero cancelá esta programación. El historial conserva la revisión cancelada.</p>
+    <div className="admin-section-title"><div><h2 id="pending-title">Configuración {revision.numero} programada</h2><p>Entrará en vigencia el {revision.programadaPara?catalogDate(revision.programadaPara):"instante indicado"}.</p></div><button type="button" className="admin-button secondary" disabled={busy} onClick={()=>onChanged().catch(()=>setError("No pudimos actualizar el estado."))}>Actualizar estado</button></div>
+    <p className="admin-note">La configuración actual se mantiene hasta entonces. Para guardar otro cambio comercial, primero cancelá esta programación. El historial conserva la configuración cancelada.</p>
     {error&&<p className="form-message error-message" role="alert">{error}</p>}
     <details><summary>Cancelar programación</summary><form className="admin-form" onSubmit={cancel}>
       <div className="catalog-field"><label htmlFor="catalog-cancel-reason">Motivo de cancelación</label><textarea id="catalog-cancel-reason" required maxLength={500} value={reason} disabled={busy||uncertain} onChange={event=>setReason(event.target.value)}/></div>

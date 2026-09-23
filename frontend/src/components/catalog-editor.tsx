@@ -1,4 +1,5 @@
 "use client";
+import {catalogConfigurationText} from "@/lib/catalog-wording";
 import { useRef, useState, type FormEvent } from "react";
 import { MutationError, secureMutation } from "@/lib/secure-mutation";
 import { readCatalog } from "@/lib/catalog-client";
@@ -46,7 +47,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
     if(offers.filter(offer=>offer.habilitado&&catalog.servicios.find(service=>service.codigoPublico===offer.servicio)?.tipo==="IMPRESION").length<1)throw new Error("Debe haber al menos un servicio de impresión habilitado.");
     const rateKeys=rates.map(rate=>`${rate.formato}/${rate.papel}/${rate.color}`);
     if(new Set(rateKeys).size!==rateKeys.length)throw new Error("Hay tarifas repetidas para la misma combinación de formato, papel y color.");
-    if(new Set(offers.map(offer=>offer.servicio)).size!==offers.length)throw new Error("Cada servicio puede aparecer una sola vez en la revisión.");
+    if(new Set(offers.map(offer=>offer.servicio)).size!==offers.length)throw new Error("Cada servicio puede aparecer una sola vez en la configuración.");
     for(const offer of offers){const printing=catalog.servicios.find(service=>service.codigoPublico===offer.servicio)?.tipo==="IMPRESION";
       if(!printing&&offer.habilitado&&offer.compatibilidades.length===0)throw new Error(`Agregá al menos una compatibilidad para ${offer.nombreVisible||"el servicio de terminación"}.`);
       const pairs=offer.compatibilidades.map(pair=>`${pair.formato}/${pair.papel}`);if(new Set(pairs).size!==pairs.length)throw new Error("Hay compatibilidades repetidas en un servicio.");
@@ -59,18 +60,18 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
     try{
       if(!pending.current)pending.current=payload();
       const response=await secureMutation("/api/admin/catalogo/revisiones",JSON.stringify(pending.current),"application/json");
-      const data:unknown=await response.json();if(!isCatalogRevision(data))throw new Error("No pudimos confirmar la revisión recibida.");
+      const data:unknown=await response.json();if(!isCatalogRevision(data))throw new Error("No pudimos confirmar la configuración recibida.");
       pending.current=null;setUncertain(false);setConflict(data.estado!=="VIGENTE"&&data.estado!=="PROGRAMADA");setComparison(null);if(data.estado==="VIGENTE"){setBase(data.codigoPublico);setBaseNumber(data.numero);}setReason("");setRates(seedRates(data));setOffers(seedOffers(data));setSaved(data);onSaved(data);
     }catch(error){
-      setMessage(error instanceof Error?error.message:"No pudimos guardar la revisión.");
+      setMessage(error instanceof Error?catalogConfigurationText(error.message):"No pudimos guardar la configuración.");
       if(error instanceof MutationError&&!error.uncertain){pending.current=null;setUncertain(false);setConflict(error.status===409);}
       else if(pending.current){setUncertain(true);}
     }finally{setBusy(false);}
   }
-  async function checkLatest(){setChecking(true);try{setComparison(await readCatalog());}catch(error){setMessage(error instanceof Error?error.message:"No pudimos consultar la revisión vigente.");}finally{setChecking(false);}}
+  async function checkLatest(){setChecking(true);try{setComparison(await readCatalog());}catch(error){setMessage(error instanceof Error?catalogConfigurationText(error.message):"No pudimos consultar la configuración vigente.");}finally{setChecking(false);}}
   function adoptBase(){if(!comparison)return;setBase(comparison.actual?.codigoPublico??null);setBaseNumber(comparison.actual?.numero??null);setConflict(false);setComparison(null);setMessage("");pending.current=null;}
   return <section id="revision-comercial" className="pricing-editor"><form onSubmit={save} className="admin-form">
-    <div className="catalog-editor-heading"><div><h2>Nueva revisión comercial</h2><p>{baseNumber===null?"Primera revisión: todavía no hay precios vigentes.":`Editando a partir de la revisión ${baseNumber}. Al guardar se creará una nueva revisión.`}</p></div><span className="pricing-currency">ARS · Pesos argentinos</span></div>
+    <div className="catalog-editor-heading"><div><h2>Nueva configuración comercial</h2><p>{baseNumber===null?"Primera configuración: todavía no hay precios vigentes.":`Editando a partir de la configuración ${baseNumber}. Al guardar se creará una nueva configuración.`}</p></div><span className="pricing-currency">ARS · Pesos argentinos</span></div>
     <div className="pricing-guide"><strong>Configurá en este orden</strong><ol><li><b>1. Tarifas</b><span>Cuánto vale imprimir en cada papel y color.</span></li><li><b>2. Servicios</b><span>Qué trabajos ofrecés y cómo cobrás sus terminaciones.</span></li><li><b>3. Aplicación</b><span>Revisá el conjunto y elegí cuándo usar estos precios.</span></li></ol><p>Todos los precios y recargos son importes fijos en ARS. Esta vista no aplica descuentos ni porcentajes. Escribí, por ejemplo, <b>1500,50</b> o <b>1500.50</b>, sin separadores de miles.</p></div>
     <fieldset disabled={locked} className="admin-fieldset">
       <section className="admin-card pricing-section" aria-labelledby="pricing-rates-title">
@@ -86,7 +87,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
             <CatalogAmount label={`Recargo doble faz de tarifa ${index+1}`} value={rate.recargoDobleFaz} onChange={recargoDobleFaz=>changeRate(rate.id,{recargoDobleFaz})} help={<p>Adicional fijo en ARS por cada carilla impresa cuando el cliente elige doble faz. No es un porcentaje ni un descuento. Dejá 0 si no cobrás este adicional.</p>}/>
           </div>
           {validAmount(rate.precio)&&validAmount(rate.recargoDobleFaz)&&<p className="pricing-example"><strong>Ejemplo · 4 páginas, 1 copia:</strong> simple faz {ars(parseAmount(rate.precio,"Precio")*4)}; doble faz {ars((parseAmount(rate.precio,"Precio")+parseAmount(rate.recargoDobleFaz,"Recargo"))*4)}. Sólo impresión, sin terminaciones.</p>}
-          <label className="admin-check pricing-enable"><input type="checkbox" checked={rate.habilitada} onChange={e=>changeRate(rate.id,{habilitada:e.target.checked})}/>Habilitar tarifa {index+1} en esta revisión</label>
+          <label className="admin-check pricing-enable"><input type="checkbox" checked={rate.habilitada} onChange={e=>changeRate(rate.id,{habilitada:e.target.checked})}/>Habilitar tarifa {index+1} en esta configuración</label>
         </article>)}</div>
       </section>
       <section className="admin-card pricing-section" aria-labelledby="pricing-offers-title">
@@ -109,22 +110,22 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
             {offer.compatibilidades.map((pair,pairIndex)=><div className="pricing-pair" key={pair.id}><CatalogPaperSelect catalog={catalog} value={pair} disabled={locked} label={`Papel compatible ${pairIndex+1} de servicio ${index+1}`} onChange={p=>pairChange(offer,pair.id,p)}/><button type="button" className="admin-link-button" onClick={()=>changeOffer(offer.id,{compatibilidades:offer.compatibilidades.filter(p=>p.id!==pair.id)})}>Quitar compatibilidad {pairIndex+1} de servicio {index+1}</button>{pair.papel&&!rates.some(r=>r.habilitada&&r.formato===pair.formato&&r.papel===pair.papel)&&<p className="pricing-wide admin-note">Este papel necesita una tarifa habilitada en el paso 1 para ofrecer la terminación.</p>}</div>)}
             <button type="button" className="admin-button secondary" disabled={offer.compatibilidades.length>=300||!catalog.papelesHabilitados.some(p=>p.habilitado)} onClick={()=>changeOffer(offer.id,{compatibilidades:[...offer.compatibilidades,{id:crypto.randomUUID(),formato:"",papel:""}]})}>+ Agregar papel compatible a servicio {index+1}</button>
           </fieldset>}
-          <label className="admin-check pricing-enable"><input type="checkbox" checked={offer.habilitado} onChange={e=>changeOffer(offer.id,{habilitado:e.target.checked})}/>Habilitar servicio {index+1} en esta revisión</label>
+          <label className="admin-check pricing-enable"><input type="checkbox" checked={offer.habilitado} onChange={e=>changeOffer(offer.id,{habilitado:e.target.checked})}/>Habilitar servicio {index+1} en esta configuración</label>
         </article>;})}</div>
       </section>
       <section className="admin-card catalog-save pricing-section">
-        <h2>3. Revisá y aplicá los precios</h2><CatalogInfo title="¿Qué se guarda en una revisión?"><p>Una revisión reúne todas las tarifas y servicios de este formulario. Hasta confirmar el guardado, editar, agregar o quitar no cambia los precios vigentes. Estos cambios de trabajo se conservan al cambiar de pestaña, pero se pierden al recargar o salir sin guardar.</p><p>Al aplicar la revisión cambian las nuevas cotizaciones. Las ofertas aceptadas y los pedidos conservan sus importes, y el historial permite consultar los precios anteriores.</p></CatalogInfo>
-        <div className="pricing-publish-grid"><label>Cuándo aplicar<select value={scheduled?"scheduled":"now"} onChange={e=>{setScheduled(e.target.value==="scheduled");setSaved(null);}}><option value="now">Al guardar esta revisión</option><option value="scheduled">Programar para más adelante</option></select></label>
+        <h2>3. Revisá y aplicá los precios</h2><CatalogInfo title="¿Qué se guarda en una configuración?"><p>Una configuración reúne todas las tarifas y servicios de este formulario. Hasta confirmar el guardado, editar, agregar o quitar no cambia los precios vigentes. Estos cambios de trabajo se conservan al cambiar de pestaña, pero se pierden al recargar o salir sin guardar.</p><p>Al aplicar la configuración cambian las nuevas cotizaciones. Las ofertas aceptadas y los pedidos conservan sus importes, y el historial permite consultar los precios anteriores.</p></CatalogInfo>
+        <div className="pricing-publish-grid"><label>Cuándo aplicar<select value={scheduled?"scheduled":"now"} onChange={e=>{setScheduled(e.target.value==="scheduled");setSaved(null);}}><option value="now">Al guardar esta configuración</option><option value="scheduled">Programar para más adelante</option></select></label>
         {scheduled&&<label>Fecha y hora de vigencia (UTC)<input type="datetime-local" required value={scheduledFor} onChange={event=>setScheduledFor(event.target.value)}/><small>Hora UTC, no hora argentina. En Argentina (UTC−3), 15:00 UTC equivale a 12:00 local.</small></label>}</div>
-        <div className="catalog-field"><label htmlFor="catalog-reason">Motivo de la nueva revisión</label><textarea id="catalog-reason" required maxLength={500} placeholder="Ej.: Actualización de precios de impresión A4 y anillado" value={reason} onChange={e=>{setReason(e.target.value);setSaved(null);}}/></div>
-        <p className="admin-note">{scheduled?"La revisión vigente se conserva hasta la fecha elegida. Sólo puede haber una programación comercial pendiente; cancelala para reemplazarla.":"Al pulsar Guardar nueva revisión, los cambios se aplican inmediatamente. El historial anterior se conserva."}</p>
+        <div className="catalog-field"><label htmlFor="catalog-reason">Motivo de la nueva configuración</label><textarea id="catalog-reason" required maxLength={500} placeholder="Ej.: Actualización de precios de impresión A4 y anillado" value={reason} onChange={e=>{setReason(e.target.value);setSaved(null);}}/></div>
+        <p className="admin-note">{scheduled?"La configuración vigente se conserva hasta la fecha elegida. Sólo puede haber una programación comercial pendiente; cancelala para reemplazarla.":"Al pulsar Guardar nueva configuración, los cambios se aplican inmediatamente. El historial anterior se conserva."}</p>
       </section>
     </fieldset>
     {message&&<p className={`form-message ${conflict||uncertain?"admin-warning":"error-message"}`} role="alert">{message}</p>}
-    {uncertain&&<div className="admin-warning"><p>No pudimos confirmar el resultado del envío. Conservamos la misma operación y sus datos para reintentar sin crear una revisión duplicada.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>save()}>{busy?"Confirmando…":"Reintentar el mismo envío"}</button></div>}
-    {conflict&&<div className="admin-warning"><p>Tus valores siguen en el formulario. Consultá la revisión vigente antes de decidir si querés usarlos sobre la nueva base.</p><button type="button" className="admin-button secondary" disabled={checking} onClick={checkLatest}>{checking?"Consultando…":"Consultar revisión vigente"}</button></div>}
-    {comparison&&<div className="admin-card"><h3>Comparar con el catálogo vigente</h3>{comparison.actual?<RevisionView catalog={comparison} revision={comparison.actual}/>:<p>No hay una revisión vigente.</p>}<button type="button" className="admin-button secondary" onClick={adoptBase}>Usar esta base conservando mis valores</button></div>}
-    {saved!==null&&<p className="admin-success" role="status">{saved.estado==="PROGRAMADA"?`Revisión ${saved.numero} programada.`:saved.estado==="VIGENTE"?`Revisión ${saved.numero} guardada y vigente.`:`La revisión ${saved.numero} ya fue procesada; su estado actual es ${saved.estado.toLowerCase()}. Consultá la vigente antes de guardar nuevos cambios.`}</p>}
-    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva revisión"}</button></div>
+    {uncertain&&<div className="admin-warning"><p>No pudimos confirmar el resultado del envío. Conservamos la misma operación y sus datos para reintentar sin crear una configuración duplicada.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>save()}>{busy?"Confirmando…":"Reintentar el mismo envío"}</button></div>}
+    {conflict&&<div className="admin-warning"><p>Tus valores siguen en el formulario. Consultá la configuración vigente antes de decidir si querés usarlos sobre la nueva base.</p><button type="button" className="admin-button secondary" disabled={checking} onClick={checkLatest}>{checking?"Consultando…":"Consultar configuración vigente"}</button></div>}
+    {comparison&&<div className="admin-card"><h3>Comparar con el catálogo vigente</h3>{comparison.actual?<RevisionView catalog={comparison} revision={comparison.actual}/>:<p>No hay una configuración vigente.</p>}<button type="button" className="admin-button secondary" onClick={adoptBase}>Usar esta base conservando mis valores</button></div>}
+    {saved!==null&&<p className="admin-success" role="status">{saved.estado==="PROGRAMADA"?`Configuración ${saved.numero} programada.`:saved.estado==="VIGENTE"?`Configuración ${saved.numero} guardada y vigente.`:`La configuración ${saved.numero} ya fue procesada; su estado actual es ${saved.estado.toLowerCase()}. Consultá la vigente antes de guardar nuevos cambios.`}</p>}
+    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva configuración"}</button></div>
   </form></section>;
 }
