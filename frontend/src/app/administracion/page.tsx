@@ -4,8 +4,8 @@
  * ARCHIVO: src/app/administracion/page.tsx
  * ========================================================================
  * FUNCIÓN
- * Construye el dashboard del propietario con mapa de preparación, consultas operativas por
- * sucursal, disponibilidad de puntos y accesos a las áreas administrativas.
+ * Construye el dashboard del propietario con mapa de primera instalación hasta activar la
+ * configuración, consultas por sucursal, disponibilidad de puntos y accesos administrativos.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
