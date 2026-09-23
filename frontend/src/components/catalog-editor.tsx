@@ -42,6 +42,8 @@
 //#endregion
 
 "use client";
+import {useInstallation} from "./installation-guide";
+import {SaveNotice} from "./save-notice";
 import {catalogConfigurationText} from "@/lib/catalog-wording";
 import { useRef, useState, type FormEvent } from "react";
 import { MutationError, secureMutation } from "@/lib/secure-mutation";
@@ -72,28 +74,32 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
   const [scheduled,setScheduled]=useState(false),[scheduledFor,setScheduledFor]=useState("");
   const [comparison,setComparison]=useState<CatalogState|null>(null),[checking,setChecking]=useState(false);
   const pending=useRef<NewRevision|null>(null);
+  const guide=useInstallation(),firstSetup=guide.enabled&&!guide.data?.activa;
+  const [prepared,setPrepared]=useState("");
+  const ratesReady=!editingRate&&rates.some(r=>r.habilitada);
+  const offersReady=!editingOffer&&offers.some(o=>o.habilitado&&catalog.servicios.some(s=>s.codigoPublico===o.servicio&&s.tipo==="IMPRESION"));
   const locked=busy||uncertain||catalog.programada!==null;
   const baselineRates=seedRates(baseline),baselineOffers=seedOffers(baseline);
   const dirty=!!editingRate||!!editingOffer||JSON.stringify(rates.map(rateSignature))!==JSON.stringify(baselineRates.map(rateSignature))||JSON.stringify(offers.map(offerSignature))!==JSON.stringify(baselineOffers.map(offerSignature));
   useNavigationGuard({dirty,blocked:busy||uncertain});
-  function changeRate(id:string,change:Partial<RateDraft>){setRateError("");setSaved(null);setRates(current=>current.map(row=>row.id===id?{...row,...change}:row));}
-  function changeOffer(id:string,change:Partial<OfferDraft>){setOfferError("");setSaved(null);setOffers(current=>current.map(row=>row.id===id?{...row,...change}:row));}
+  function changeRate(id:string,change:Partial<RateDraft>){setPrepared("");setRateError("");setSaved(null);setRates(current=>current.map(row=>row.id===id?{...row,...change}:row));}
+  function changeOffer(id:string,change:Partial<OfferDraft>){setPrepared("");setOfferError("");setSaved(null);setOffers(current=>current.map(row=>row.id===id?{...row,...change}:row));}
   function chooseService(row:OfferDraft,id:string){
     const selected=catalog.servicios.find(service=>service.codigoPublico===id),printing=selected?.tipo==="IMPRESION";
     const oldName=catalog.servicios.find(service=>service.codigoPublico===row.servicio)?.nombre;
     changeOffer(row.id,{servicio:id,...(!row.nombreVisible.trim()||row.nombreVisible===oldName?{nombreVisible:selected?.nombre??""}:{}),...(printing?{basePrecio:"POR_CARILLA",precio:"0",compatibilidades:[]}:row.basePrecio==="POR_CARILLA"&&catalog.servicios.find(service=>service.codigoPublico===row.servicio)?.tipo==="IMPRESION"?{basePrecio:"",precio:""}:{})});
   }
   function focusCard(id:string){requestAnimationFrame(()=>{const card=document.getElementById(id);card?.scrollIntoView({block:"start"});card?.querySelector<HTMLElement>("[data-rate-color], input")?.focus({preventScroll:true});});}
-  function addRate(){if(editingRate||locked)return;const id=crypto.randomUUID();setEditingRate({id,previous:null});setRateError("");setSaved(null);setRates(current=>[...current,{id,grupo:id,nombre:rateName("",current.length),nombrePersonalizado:false,color:"",papeles:[],precio:"",modoDobleFaz:"FIJO",valorDobleFaz:"",habilitada:true}]);focusCard(id);}
-  function editRate(rate:RateDraft){if(editingRate||locked)return;setEditingRate({id:rate.id,previous:rate});setRateError("");setSaved(null);focusCard(rate.id);}
-  function applyRate(){try{expandRates(rates);setEditingRate(null);setRateError("");}catch(cause){setRateError(cause instanceof Error?cause.message:"Revisá los datos de la tarifa.");}}
-  function cancelRate(){if(!editingRate)return;const {id,previous}=editingRate;setRates(current=>previous?current.map(rate=>rate.id===id?previous:rate):current.filter(rate=>rate.id!==id));setEditingRate(null);setRateError("");}
-  function removeRate(id:string){setSaved(null);setRates(current=>current.filter(rate=>rate.id!==id));if(editingRate?.id===id){setEditingRate(null);setRateError("");}}
-  function addOffer(){if(editingOffer||locked)return;const id=crypto.randomUUID();setEditingOffer({id,previous:null});setOfferError("");setSaved(null);setOffers(current=>[...current,{id,servicio:"",nombreVisible:"",basePrecio:"",precio:"",preparacionMinutos:"0",habilitado:false,compatibilidades:[]}]);focusCard(id);}
-  function editOffer(offer:OfferDraft){if(editingOffer||locked)return;setEditingOffer({id:offer.id,previous:offer});setOfferError("");setSaved(null);focusCard(offer.id);}
-  function applyOffer(){if(!editingOffer||locked)return;try{const index=offers.findIndex(offer=>offer.id===editingOffer.id);if(index<0)return;validateOffer(offers[index],index,offers,catalog);setEditingOffer(null);setOfferError("");}catch(cause){setOfferError(cause instanceof Error?cause.message:"Revisá los datos del servicio.");}}
-  function cancelOffer(){if(!editingOffer)return;const {id,previous}=editingOffer;setOffers(current=>previous?current.map(offer=>offer.id===id?previous:offer):current.filter(offer=>offer.id!==id));setEditingOffer(null);setOfferError("");}
-  function removeOffer(id:string){setSaved(null);setOffers(current=>current.filter(offer=>offer.id!==id));if(editingOffer?.id===id){setEditingOffer(null);setOfferError("");}}
+  function addRate(){setPrepared("");if(editingRate||locked)return;const id=crypto.randomUUID();setEditingRate({id,previous:null});setRateError("");setSaved(null);setRates(current=>[...current,{id,grupo:id,nombre:rateName("",current.length),nombrePersonalizado:false,color:"",papeles:[],precio:"",modoDobleFaz:"FIJO",valorDobleFaz:"",habilitada:true}]);focusCard(id);}
+  function editRate(rate:RateDraft){setPrepared("");if(editingRate||locked)return;setEditingRate({id:rate.id,previous:rate});setRateError("");setSaved(null);focusCard(rate.id);}
+  function applyRate(){try{expandRates(rates);setEditingRate(null);setRateError("");setPrepared("Tarifa confirmada en este formulario. Continuá con los servicios; al final guardá la configuración completa para conservar los precios.");}catch(cause){setRateError(cause instanceof Error?cause.message:"Revisá los datos de la tarifa.");}}
+  function cancelRate(){setPrepared("");if(!editingRate)return;const {id,previous}=editingRate;setRates(current=>previous?current.map(rate=>rate.id===id?previous:rate):current.filter(rate=>rate.id!==id));setEditingRate(null);setRateError("");}
+  function removeRate(id:string){setPrepared("");setSaved(null);setRates(current=>current.filter(rate=>rate.id!==id));if(editingRate?.id===id){setEditingRate(null);setRateError("");}}
+  function addOffer(){setPrepared("");if(editingOffer||locked||firstSetup&&!ratesReady)return;const id=crypto.randomUUID();setEditingOffer({id,previous:null});setOfferError("");setSaved(null);setOffers(current=>[...current,{id,servicio:"",nombreVisible:"",basePrecio:"",precio:"",preparacionMinutos:"0",habilitado:false,compatibilidades:[]}]);focusCard(id);}
+  function editOffer(offer:OfferDraft){setPrepared("");if(editingOffer||locked)return;setEditingOffer({id:offer.id,previous:offer});setOfferError("");setSaved(null);focusCard(offer.id);}
+  function applyOffer(){if(!editingOffer||locked)return;try{const index=offers.findIndex(offer=>offer.id===editingOffer.id);if(index<0)return;validateOffer(offers[index],index,offers,catalog);setEditingOffer(null);setOfferError("");setPrepared("Servicio confirmado en este formulario. Podés agregar otro o guardar la configuración completa para conservar todos los precios.");}catch(cause){setOfferError(cause instanceof Error?cause.message:"Revisá los datos del servicio.");}}
+  function cancelOffer(){setPrepared("");if(!editingOffer)return;const {id,previous}=editingOffer;setOffers(current=>previous?current.map(offer=>offer.id===id?previous:offer):current.filter(offer=>offer.id!==id));setEditingOffer(null);setOfferError("");}
+  function removeOffer(id:string){setPrepared("");setSaved(null);setOffers(current=>current.filter(offer=>offer.id!==id));if(editingOffer?.id===id){setEditingOffer(null);setOfferError("");}}
   function pairChange(row:OfferDraft,id:string,change:Partial<PairDraft>){changeOffer(row.id,{compatibilidades:row.compatibilidades.map(pair=>pair.id===id?{...pair,...change}:pair)});}
   const enabledPapers=catalog.papelesHabilitados.filter(p=>p.habilitado);
   function addAllCompatiblePapers(offer:OfferDraft){
@@ -116,7 +122,7 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
   }
   async function save(event?:FormEvent<HTMLFormElement>){
     event?.preventDefault();if(busy)return;
-    setMessage("");setSaved(null);setBusy(true);
+    setMessage("");setSaved(null);setPrepared("");setBusy(true);
     try{
       if(!pending.current)pending.current=payload();
       const response=await secureMutation("/api/admin/catalogo/revisiones",JSON.stringify(pending.current),"application/json");
@@ -141,7 +147,8 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
         {editingRate&&<p className="admin-info">Terminá esta tarifa con «Aplicar tarifa al borrador» o cancelá su edición. Después podrás editar otra o guardar la configuración completa.</p>}
         <div className="pricing-card-list">{rates.map((rate,index)=>editingRate?.id===rate.id?<CatalogRateEditor key={rate.id} rate={rate} index={index} rates={rates} catalog={catalog} error={rateError} onApply={applyRate} onCancel={cancelRate} onChange={change=>changeRate(rate.id,change)} onRemove={()=>removeRate(rate.id)}/>:<CatalogRateSummary key={rate.id} rate={rate} index={index} catalog={catalog} state={baselineRates.some(savedRate=>rateSignature(savedRate)===rateSignature(rate))?(baseline?.estado==="PROGRAMADA"?"PROGRAMADA":"VIGENTE"):"PENDIENTE"} disabled={!!editingRate} onEdit={()=>editRate(rate)} onRemove={()=>removeRate(rate.id)}/>)}</div>
       </section>
-      <section className="admin-card pricing-section" aria-labelledby="pricing-offers-title">
+      {firstSetup&&!ratesReady&&<p className="admin-info">Paso 2 bloqueado: aplicá al borrador al menos una tarifa habilitada antes de configurar los servicios.</p>}
+      <fieldset className="admin-fieldset" disabled={firstSetup&&!ratesReady}>      <section className="admin-card pricing-section" aria-labelledby="pricing-offers-title">
         <div className="admin-section-title"><div><h2 id="pricing-offers-title">2. Servicios ofrecidos <span className="admin-count">{offers.length}</span></h2><p>Elegí servicios del Catálogo base y completá cómo se ofrecen al cliente.</p></div><button type="button" className="admin-button" disabled={!!editingOffer||offers.length>=100||!catalog.servicios.length} onClick={addOffer}>+ Agregar servicio</button></div>
         <CatalogInfo title="¿Qué es un servicio y cómo se configura?"><p>Es un trabajo que ofrece tu imprenta, como impresión o anillado. Primero se crea su identidad en Catálogo base. Aquí definís el nombre que verá el cliente, el tiempo de preparación y si está habilitado.</p><p>La impresión toma su precio de las tarifas del paso 1. Las terminaciones suman su propio cargo, según la unidad de cobro elegida, y necesitan papeles compatibles con tarifa habilitada.</p><p>Guardá cada servicio al borrador para cerrar su formulario y poder agregar otro. Al terminar, Guardar nueva configuración publica el conjunto. Para publicar necesitás al menos una tarifa y un servicio de impresión habilitados. Crear un servicio base no lo publica automáticamente.</p></CatalogInfo>
         {offers.length===0&&<p className="admin-empty">Agregá un servicio de impresión. Después incorporá las terminaciones que ofrezcas. Si falta un servicio, crealo en Catálogo base.</p>}
@@ -169,20 +176,22 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
           {offerError&&<p className="error-message" role="alert">{offerError}</p>}
           <div className="rate-editor-actions"><button type="button" className="admin-button" onClick={applyOffer}>Guardar servicio al borrador</button><button type="button" className="admin-button secondary" onClick={cancelOffer}>Cancelar edición de servicio</button><p className="admin-note">Confirma este servicio y cierra el formulario para que puedas agregar más. Al terminar con las tarifas y los servicios, pulsá Guardar nueva configuración para publicarlos. El borrador se conserva entre pestañas; se pierde si salís o recargás sin guardar la configuración.</p></div>
         </article>;})}</div>
-      </section>
-      <section className="admin-card catalog-save pricing-section">
+      </section></fieldset>
+      {firstSetup&&(!ratesReady||!offersReady)&&<p className="admin-info">Paso 3 bloqueado: confirmá las tarifas y al menos un servicio de impresión habilitado. Luego podrás guardar la configuración completa.</p>}
+      <fieldset className="admin-fieldset" disabled={firstSetup&&(!ratesReady||!offersReady)}>      <section className="admin-card catalog-save pricing-section">
         <h2>3. Revisá y aplicá los precios</h2><CatalogInfo title="¿Qué se guarda en una configuración?"><p>Una configuración reúne todas las tarifas y servicios de este formulario. Hasta confirmar el guardado, editar, agregar o quitar no cambia los precios vigentes. Estos cambios de trabajo se conservan al cambiar de pestaña, pero se pierden al recargar o salir sin guardar.</p><p>Al aplicar la configuración cambian las nuevas cotizaciones. Las ofertas aceptadas y los pedidos conservan sus importes, y el historial permite consultar los precios anteriores.</p></CatalogInfo>
         <div className="pricing-publish-grid"><label>Cuándo aplicar<select value={scheduled?"scheduled":"now"} onChange={e=>{setScheduled(e.target.value==="scheduled");setSaved(null);}}><option value="now">Al guardar esta configuración</option><option value="scheduled">Programar para más adelante</option></select></label>
         {scheduled&&<label>Fecha y hora de vigencia (UTC)<input type="datetime-local" required value={scheduledFor} onChange={event=>setScheduledFor(event.target.value)}/><small>Hora UTC, no hora argentina. En Argentina (UTC−3), 15:00 UTC equivale a 12:00 local.</small></label>}</div>
         <div className="catalog-field"><label htmlFor="catalog-reason">Motivo de la nueva configuración</label><textarea id="catalog-reason" required maxLength={500} placeholder="Ej.: Actualización de precios de impresión A4 y anillado" value={reason} onChange={e=>{setReason(e.target.value);setSaved(null);}}/></div>
         <p className="admin-note">{scheduled?"La configuración vigente se conserva hasta la fecha elegida. Sólo puede haber una programación comercial pendiente; cancelala para reemplazarla.":"Al pulsar Guardar nueva configuración, los cambios se aplican inmediatamente. El historial anterior se conserva."}</p>
-      </section>
+      </section></fieldset>
     </fieldset>
     {message&&<p className={`form-message ${conflict||uncertain?"admin-warning":"error-message"}`} role="alert">{message}</p>}
     {uncertain&&<div className="admin-warning"><p>No pudimos confirmar el resultado del envío. Conservamos la misma operación y sus datos para reintentar sin crear una configuración duplicada.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>save()}>{busy?"Confirmando…":"Reintentar el mismo envío"}</button></div>}
     {conflict&&<div className="admin-warning"><p>Tus valores siguen en el formulario. Consultá la configuración vigente antes de decidir si querés usarlos sobre la nueva base.</p><button type="button" className="admin-button secondary" disabled={checking} onClick={checkLatest}>{checking?"Consultando…":"Consultar configuración vigente"}</button></div>}
     {comparison&&<div className="admin-card"><h3>Comparar con el catálogo vigente</h3>{comparison.actual?<RevisionView catalog={comparison} revision={comparison.actual}/>:<p>No hay una configuración vigente.</p>}<button type="button" className="admin-button secondary" onClick={adoptBase}>Usar esta base conservando mis valores</button></div>}
-    {saved!==null&&<p className="admin-success" role="status">{saved.estado==="PROGRAMADA"?`Configuración ${saved.numero} programada.`:saved.estado==="VIGENTE"?`Configuración ${saved.numero} guardada y vigente.`:`La configuración ${saved.numero} ya fue procesada; su estado actual es ${saved.estado.toLowerCase()}. Consultá la vigente antes de guardar nuevos cambios.`}</p>}
-    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas ({rates.filter(r=>r.habilitada).reduce((total,r)=>total+r.papeles.length,0)} combinaciones de papel y color) y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict||!!editingRate||!!editingOffer}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva configuración"}</button></div>
+    {prepared&&<SaveNotice title="Preparado · falta guardar la configuración" pending>{prepared}</SaveNotice>}
+    {saved!==null&&<SaveNotice>{saved.estado==="PROGRAMADA"?`Configuración ${saved.numero} programada.`:saved.estado==="VIGENTE"?`Configuración ${saved.numero} guardada y vigente.`:`La configuración ${saved.numero} ya fue procesada; su estado actual es ${saved.estado.toLowerCase()}. Consultá la vigente antes de guardar nuevos cambios.`}</SaveNotice>}
+    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas ({rates.filter(r=>r.habilitada).reduce((total,r)=>total+r.papeles.length,0)} combinaciones de papel y color) y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict||!!editingRate||!!editingOffer||firstSetup&&(!ratesReady||!offersReady)}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva configuración"}</button></div>
   </form></section>;
 }

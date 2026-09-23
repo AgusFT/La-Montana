@@ -30,6 +30,7 @@ import { redirect } from "next/navigation";
 import { roleHome } from "@/lib/roles";
 import { IdentityShell } from "@/components/identity-shell";
 import {AdminShell} from "@/components/admin-shell";
+import {GuidedNavLink} from "@/components/installation-guide";
 import {PreparationMap} from "@/components/preparation-map";
 import {AdminDashboard} from "@/components/admin-dashboard";
 import {getOperationContext} from "@/lib/organization-server";
@@ -49,7 +50,7 @@ export default async function AdministrationPage() {
     <PreparationMap/>
     <div className="dashboard-layout"><div>{context?<AdminDashboard branches={context.sucursales}/>:<p className="admin-error" role="alert">No pudimos consultar las sucursales. <a href="/administracion">Volver a intentar</a></p>}</div>
     <aside className="dashboard-aside"><section className="dashboard-side-card"><h2>Disponibilidad de puntos</h2>{!points?<p role="alert">No pudimos consultar la disponibilidad.</p>:points.deshabilitados>0?<p className="dashboard-notice" role="status">{points.deshabilitados} {points.deshabilitados===1?"punto de entrega deshabilitado":"puntos de entrega deshabilitados"}.</p>:<p>Sin puntos deshabilitados en la configuración consultada.</p>}<a href="/administracion/puntos-entrega">Revisar disponibilidad →</a></section>
-    <section className="dashboard-side-card"><h2>Acciones rápidas</h2><nav aria-label="Acciones rápidas"><a href="/operacion">Pedidos, producción y entregas</a><a href="/administracion/catalogo">Servicios y precios</a><a href="/administracion/configuracion">Configurar la imprenta</a><a href="/administracion/configuracion/historial">Historial de configuraciones</a><a href="/administracion/sucursales">Administrar sucursales</a><a href="/administracion/empleados">Administrar empleados</a></nav></section>
+    <section className="dashboard-side-card"><h2>Acciones rápidas</h2><nav aria-label="Acciones rápidas"><GuidedNavLink area="operacion" href="/operacion">Pedidos, producción y entregas</GuidedNavLink><GuidedNavLink area="catalogo" href="/administracion/catalogo">Servicios y precios</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion">Configurar la imprenta</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion/historial">Historial de configuraciones</GuidedNavLink><GuidedNavLink area="sucursales" href="/administracion/sucursales">Administrar sucursales</GuidedNavLink><GuidedNavLink area="empleados" href="/administracion/empleados">Administrar empleados</GuidedNavLink></nav></section>
     <section className="dashboard-side-card"><h2>Funciones del piloto</h2><p>La producción se registra manualmente y los pagos se verifican por personal autorizado.</p><p><span className="configuration-badge">En construcción</span></p><p>CUPS, pagos en línea, reclamos, gestión de clientes y reportes de facturación.</p></section></aside></div>
   </AdminShell>;
 }

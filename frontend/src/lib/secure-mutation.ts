@@ -5,7 +5,8 @@
  * ========================================================================
  * FUNCIÓN
  * Prepara el token CSRF y envía escrituras autenticadas a la API, representando los errores HTTP y
- * las respuestas inciertas con MutationError.
+ * las respuestas inciertas con MutationError. Notifica escrituras confirmadas para actualizar
+ * los requisitos de la instalación; los errores no producen confirmación visual.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
@@ -24,6 +25,8 @@
  */
 //#endregion
 
+import {installationChanged} from "./installation-types";
+
 export class MutationError extends Error {
   constructor(message: string, readonly status: number, readonly uncertain = false) { super(message); this.name = "MutationError"; }
 }
@@ -41,5 +44,6 @@ export async function secureMutation(path: string, body?: BodyInit, contentType?
     const data = await response.json().catch(() => null);
     throw new MutationError(typeof data?.mensaje === "string" ? data.mensaje : "No fue posible completar la operación.", response.status, response.status >= 500);
   }
+  if(typeof window!=="undefined"&&path.startsWith("/api/admin/")&&!path.endsWith("/simular"))window.dispatchEvent(new Event(installationChanged));
   return response;
 }

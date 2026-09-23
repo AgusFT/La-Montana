@@ -5,7 +5,8 @@
  * ========================================================================
  * FUNCIÓN
  * Construye el mapa de preparación inicial del dashboard a partir del estado real del configurador
- * y del catálogo, señalando pendientes, bloqueos y pasos disponibles.
+ * y del catálogo, señalando pendientes, bloqueos y pasos disponibles. Adjunta una guía de
+ * primera instalación con desbloqueo secuencial y mínimos validados de cada fase.
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
@@ -51,7 +52,7 @@ public class PreparacionController {
     private final JdbcTemplate jdbc;
     public PreparacionController(ConfiguracionService configuracion,RevisionConfiguracionService revision,CatalogoService catalogo,JdbcTemplate jdbc){this.configuracion=configuracion;this.revision=revision;this.catalogo=catalogo;this.jdbc=jdbc;}
     public record Paso(String codigo,String titulo,boolean completo,String estado,String detalle,String enlace,boolean complementario){}
-    public record Preparacion(String origen,Long numero,boolean activa,Long borradorPendiente,List<Paso> pasos){}
+    public record Preparacion(String origen,Long numero,boolean activa,Long borradorPendiente,List<Paso> pasos,GuiaInstalacion.Estado guia){}
     @GetMapping("/api/admin/preparacion")
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Preparacion leer(Principal actor){
@@ -79,7 +80,23 @@ public class PreparacionController {
         boolean publicada=Boolean.TRUE.equals(jdbc.queryForObject("SELECT publicacion IS NOT NULL FROM lamontana.web_borrador WHERE unica",Boolean.class));
         boolean webPreparada=Boolean.TRUE.equals(jdbc.queryForObject("SELECT id_actor IS NOT NULL FROM lamontana.web_borrador WHERE unica",Boolean.class));
         pasos.add(new Paso("web","Página de la imprenta",publicada,publicada?"Publicada":webPreparada?"Borrador sin publicar":"Opcional · sin configurar","Prepará identidad, fichas e imágenes, revisá la vista previa y publicá expresamente. Guardar un borrador no cambia la página pública.","/administracion/pagina-web",true));
-        return new Preparacion(origen,b==null?null:b.numero(),activa,estado.borrador()==null?null:estado.borrador().numero(),List.copyOf(pasos));
+        boolean papelesListos=comercial.papelesHabilitados().stream().anyMatch(s->s.habilitado());
+        boolean servicioBase=comercial.servicios().stream().anyMatch(s->s.tipo()==TipoServicio.IMPRESION);
+        boolean modeloListo=b!=null&&b.modelo()!=null&&bloqueos.stream().noneMatch(h->h.fase()==2);
+        boolean pagosListos=b!=null&&b.pagos()!=null&&bloqueos.stream().noneMatch(h->h.fase()==3);
+        boolean recursosListos=b!=null&&b.recursos().metodoAsignacion()!=null&&!b.recursos().serviciosPorSucursal().isEmpty()
+                &&bloqueos.stream().noneMatch(h->h.fase()==4||h.fase()==0);
+        boolean entregaLista=b!=null&&!b.entrega().modalidades().isEmpty()&&bloqueos.stream().noneMatch(h->h.fase()==5)
+                &&r.hallazgos().stream().noneMatch(h->h.codigo().equals("MODALIDAD_SIN_DESTINO"));
+        var guia=GuiaInstalacion.crear(activa,sucursal,papelesListos,servicioBase,precios,b!=null,modeloListo,pagosListos,
+                recursosListos,entregaLista,b==null?null:b.version(),List.of());
+        var pendientes=new ArrayList<String>();
+        int fase=guia.faseDisponible();
+        bloqueos.stream().filter(h->h.fase()==fase||fase==4&&h.fase()==0).map(RevisionConfiguracionService.Hallazgo::mensaje).distinct().forEach(pendientes::add);
+        if(fase==4&&b!=null&&b.recursos().serviciosPorSucursal().isEmpty())pendientes.add("Guardá la asignación y al menos un servicio de impresión por sucursal que vaya a operar.");
+        if(fase==5&&r!=null)r.hallazgos().stream().filter(h->h.codigo().equals("MODALIDAD_SIN_DESTINO")).map(RevisionConfiguracionService.Hallazgo::mensaje).forEach(pendientes::add);
+        guia=new GuiaInstalacion.Estado(guia.primeraInstalacion(),guia.faseDisponible(),guia.versionBorrador(),guia.etapas(),List.copyOf(pendientes));
+        return new Preparacion(origen,b==null?null:b.numero(),activa,estado.borrador()==null?null:estado.borrador().numero(),List.copyOf(pasos),guia);
     }
     private static String detalle(List<RevisionConfiguracionService.Hallazgo> h,List<Integer> fases,String ayuda){var errores=h.stream().filter(x->fases.contains(x.fase())).map(RevisionConfiguracionService.Hallazgo::mensaje).distinct().limit(3).toList();return errores.isEmpty()?ayuda:String.join(" ",errores);}
     private static void agregar(List<Paso> pasos,String codigo,String titulo,boolean presente,List<RevisionConfiguracionService.Hallazgo> h,List<Integer> fases,String guardada,String ayuda){boolean listo=presente&&h.stream().noneMatch(x->fases.contains(x.fase()));pasos.add(new Paso(codigo,titulo,listo,listo?guardada:"Pendiente",detalle(h,fases,ayuda),"/administracion/configuracion",false));}

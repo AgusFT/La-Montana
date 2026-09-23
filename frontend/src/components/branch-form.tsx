@@ -35,6 +35,8 @@
 //#endregion
 
 "use client";
+import {SaveNotice} from "./save-notice";
+import {useInstallation} from "./installation-guide";
 
 import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -49,6 +51,7 @@ const week = (branch?: Branch): BranchDay[] => weekDays.map((_, i) => branch?.ho
   ?? { dia: i + 1, habilitado: false, apertura: null, cierre: null });
 
 export function BranchForm({ branch, locations }: { branch?: Branch; locations: BranchLocation[] | null }) {
+  const guide=useInstallation();
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [saved, setSaved] = useState(false);
   const [province, setProvince] = useState(() => locations?.find(p => [p.provincia, ...p.alias].some(a => normalize(a) === normalize(branch?.provincia ?? "")))?.provincia ?? "");
   const [locality, setLocality] = useState(branch?.localidad ?? ""), [hours, setHours] = useState(() => week(branch));
@@ -130,7 +133,7 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     </fieldset>
     {branch && <p className="empty-note">El código permanece fijo. No se puede desactivar la última sucursal activa asignada a un empleado activo.</p>}
     {message && <p className="form-message error-message" role="alert">{message}</p>}
-    {saved && <p className="form-message" role="status">Sucursal guardada con su horario de atención. Podés reutilizarlo en el configurador.</p>}
+    {saved && <SaveNotice>{guide.enabled&&!guide.data?.activa?"Sucursal guardada con su horario de atención. Podés continuar con el catálogo base desde la guía de instalación.":"Sucursal guardada con su horario de atención. Podés reutilizarlo en el configurador."}</SaveNotice>}
     <button className="refresh" disabled={busy || !locations}>{busy ? "Guardando…" : branch ? "Guardar sucursal" : "Crear sucursal"}</button>
   </form>;
 }

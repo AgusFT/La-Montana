@@ -38,6 +38,7 @@
 //#endregion
 
 "use client";
+import {useInstallation} from "./installation-guide";
 import {ConfigurationMoney} from "@/components/configuration-money";
 import {parsePesos,pesosDraft} from "@/lib/argentine-money";
 import {ars} from "@/lib/catalog-pricing";
@@ -60,6 +61,7 @@ function initialValues(draft:ConfigurationDraft):FormValues{
 }
 
 export function ConfigurationPayments({draft,onSaved,onBack,onLockChange,onNext}:{draft:ConfigurationDraft;onSaved:(draft:ConfigurationDraft)=>void;onBack:()=>void;onNext:()=>void;onLockChange:(locked:boolean)=>void}){
+  const guide=useInstallation(),firstSetup=guide.enabled&&!guide.data?.activa;
   const [form,setForm]=useState(()=>initialValues(draft)),[baseVersion,setBaseVersion]=useState(draft.version);
   const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(""),[conflict,setConflict]=useState(false),[latest,setLatest]=useState<ConfigurationDraft|null>(null);
   const [total,setTotal]=useState(""),[carillas,setCarillas]=useState(""),[simulation,setSimulation]=useState<Simulation|null>(null),[simulating,setSimulating]=useState(false),[simulationError,setSimulationError]=useState("");
@@ -123,14 +125,14 @@ export function ConfigurationPayments({draft,onSaved,onBack,onLockChange,onNext}
         </div>
       </fieldset>
       {error&&<p role="alert" className="admin-warning">{error}</p>}
-      {uncertain?<div className="admin-warning"><p>La respuesta no pudo confirmarse. Conservamos la misma operación y sus datos para evitar duplicados.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>save()}>Reintentar el mismo guardado</button></div>:<div className="configuration-actions"><button type="button" className="admin-button secondary" disabled={locked} onClick={onBack}>Volver al modelo operativo</button><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":"Guardar pagos y reglas"}</button><button type="button" className="admin-button secondary" disabled={locked||dirty||!draft.pagos||conflict} onClick={onNext}>Continuar a recursos</button></div>}
+      {uncertain?<div className="admin-warning"><p>La respuesta no pudo confirmarse. Conservamos la misma operación y sus datos para evitar duplicados.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>save()}>Reintentar el mismo guardado</button></div>:<div className="configuration-actions"><button type="button" className="admin-button secondary" disabled={locked} onClick={onBack}>Volver al modelo operativo</button><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":"Guardar pagos y reglas"}</button><button type="button" className="admin-button secondary" disabled={locked||dirty||!draft.pagos||conflict||firstSetup&&(guide.loading||guide.error||(guide.data?.guia.faseDisponible??0)<4||guide.data?.guia.versionBorrador!==draft.version)} onClick={onNext}>Continuar a recursos</button></div>}
     </form>
     {conflict&&<div className="admin-warning"><p>El borrador cambió. Conservamos tus datos para que puedas revisar la edición actual.</p><button type="button" className="admin-button secondary" disabled={locked} onClick={consult}>Consultar borrador guardado</button></div>}
     {latest&&<section className="admin-card"><h3>Edición actual · {latest.version}</h3><p>Modelo: {latest.modelo&&modelLabels[latest.modelo]}{latest.criterio&&` · ${criterionLabels[latest.criterio]}`}</p><button type="button" className="admin-button secondary" disabled={locked} onClick={adopt}>{sameModel?"Usar edición actual conservando mis datos":"Cargar el modelo actualizado"}</button></section>}
-    <section className="admin-card payment-simulation"><h3>Ejemplo operativo calculado</h3><p className="admin-note">Evalúa las reglas guardadas de este borrador. No crea un pedido ni registra pagos.</p>
+    <details className="optional-simulation"><summary>Simulación opcional de pagos · no es necesaria para continuar</summary><section className="admin-card payment-simulation"><h3>Ejemplo operativo calculado</h3><p className="admin-note">Evalúa las reglas guardadas de este borrador. No crea un pedido ni registra pagos.</p>
       <form className="admin-form" onSubmit={simulate}><fieldset disabled={locked||dirty||!draft.pagos||conflict} className="admin-fieldset"><div className="admin-form-grid"><ConfigurationMoney id="simulation-total" label="Total del pedido para simular" value={total} onChange={value=>{setTotal(value);setSimulation(null);}} help="Importe final del pedido del ejemplo."/><label>Carillas totales, incluidas copias<input aria-label="Carillas para simular" type="number" required min="1" max="2147483647" step="1" value={carillas} onChange={event=>{setCarillas(event.target.value);setSimulation(null);}}/></label></div><button className="admin-button secondary">{simulating?"Calculando…":"Calcular ejemplo"}</button></fieldset></form>
       {(dirty||!draft.pagos)&&<p className="admin-note">Guardá los pagos y reglas antes de calcular un ejemplo.</p>}{simulationError&&<p role="alert" className="admin-warning">{simulationError}</p>}
       {simulation&&<div className="payment-result"><p><strong>Resultado de la edición {simulation.version}</strong></p><dl className="payment-totals"><div><dt>Total</dt><dd>{ars(Number(simulation.total))}</dd></div><div><dt>Pago total previo</dt><dd>{ars(Number(simulation.pagoPrevioRequerido))}</dd></div><div><dt>Seña requerida</dt><dd>{ars(Number(simulation.senaRequerida))}</dd></div><div><dt>Saldo posterior</dt><dd>{ars(Number(simulation.saldo))}</dd></div></dl><ol className="payment-flow"><li><strong>Borrador preparado</strong><span>Configuración sin activar</span></li><li><strong>{simulation.revisionHumana?"Revisión humana":"Aprobación condicional"}</strong><span>Las validaciones técnicas siguen siendo necesarias</span></li><li><strong>{moments[simulation.momento]??simulation.momento}</strong><span>{simulation.mediosAcreditacion.length?`Medios del requisito: ${simulation.mediosAcreditacion.join(", ")}`:"Sin anticipo requerido"}</span></li></ol><ul>{simulation.instrucciones.map((text,index)=><li key={index}>{text}</li>)}</ul><p>Medios generales: {simulation.mediosGenerales.join(", ")}. {simulation.cargaRequiereAcreditacion?"La carga del PDF requiere acreditación previa.":"La carga del PDF no exige un pago previo."}</p></div>}
-    </section>
+    </section></details>
   </>;
 }
