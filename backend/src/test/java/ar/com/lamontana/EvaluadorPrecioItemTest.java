@@ -4,27 +4,31 @@
  * ARCHIVO: EvaluadorPrecioItemTest.java
  * ========================================================================
  * FUNCIÓN
- * Comprueba el cálculo de precios por copia, hoja y carilla, compatibilidades, preparación mínima,
- * límites monetarios y condiciones de importe cero.
+ * Verifica cálculos anteriores por carilla y nuevos por hoja, valores independientes, adicionales,
+ * porcentajes, redondeo, páginas impares, copias y terminaciones.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - No declara explícitamente.
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
- * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
- * automáticamente no se enumeran.
  * - [private] CatalogoService.Estado catalogo(String precio, String recargo, List<OfertaServicio>
  *   extras)
  * - [private] EvaluadorPrecioItem.Item item(int paginas, int copias, boolean doble, List<UUID>
  *   extras)
- * - [paquete] void basesExactasHojasSeparadasPorCopiaYMinimoMayor()
- *   Caso de prueba.
- * - [paquete] void entradasCompatibilidadYLimiteMonetario()
- *   Caso de prueba.
- * - [paquete] void totalCeroNoRequiereAcreditacionParaCargarPdf()
- *   Caso de prueba.
+ * - [] void basesExactasHojasSeparadasPorCopiaYMinimoMayor()
+ * - [] void entradasCompatibilidadYLimiteMonetario()
+ * - [] void totalCeroNoRequiereAcreditacionParaCargarPdf()
+ * - [private] CatalogoService.Estado porHoja(String simple, ModoDobleFaz modo, String valor,
+ *   List<OfertaServicio> extras)
+ * - [] void precioFinalIndependienteParesImparesYCopias()
+ * - [] void relativosRedondeanPorHojaYSimpleFazNoCambia()
+ * - [] void terminacionesConservanCantidadesConTarifaPorHoja()
  *
  * ------------------------------------------------------------------------
  * TIPOS DECLARADOS
- * - EvaluadorPrecioItemTest (clase).
+ * - EvaluadorPrecioItemTest (class).
  * ========================================================================
  */
 //#endregion
@@ -67,4 +71,35 @@ class EvaluadorPrecioItemTest {
   var pagos=new Pagos(List.of(MedioPago.TRANSFERENCIA),"Cuenta",60,false,null,null,null,null,null);
   var financiero=new EvaluadorFinanciero().evaluar(Modelo.CONDICIONAL,Criterio.PAGO_PREVIO,pagos,1,new BigDecimal(r.subtotal()),r.carillas());assertThat(financiero.cargaRequiereAcreditacion()).isFalse();assertThat(financiero.pagoPrevioRequerido()).isEqualTo("0.00");assertThat(financiero.mediosAcreditacion()).isEmpty();
  }
+ private CatalogoService.Estado porHoja(String simple,ModoDobleFaz modo,String valor,List<OfertaServicio> extras){
+  var c=catalogo(simple,"0",extras);var r=c.actual();
+  var t=new Tarifa(f,p,ModoColor.BLANCO_NEGRO,new BigDecimal(simple),BigDecimal.ZERO,true,UUID.randomUUID(),"Tarifa por hoja",modo,new BigDecimal(valor));
+  var nueva=new CatalogoService.Revision(r.codigoPublico(),r.numero(),r.motivo(),r.creadaEn(),r.actor(),List.of(t),r.servicios(),r.estado(),r.programadaPara(),r.activadaEn());
+  return new CatalogoService.Estado(c.formatos(),c.papeles(),c.servicios(),nueva,c.historial(),c.programada(),c.papelesHabilitados(),c.papelesPredefinidos());
+ }
+ @Test void precioFinalIndependienteParesImparesYCopias(){
+  var c=porHoja("30",ModoDobleFaz.FIJO,"40",List.of());
+  assertThat(precios.calcular(c,item(2,1,true,List.of())).subtotal()).isEqualTo("40.00");
+  var impar=precios.calcular(c,item(3,2,true,List.of()));
+  assertThat(impar.subtotal()).isEqualTo("140.00");assertThat(impar.hojas()).isEqualTo(4);
+  assertThat(impar.lineas()).extracting(EvaluadorPrecioItem.Linea::unidades).containsExactly(2L);
+  assertThat(impar.lineas()).extracting(EvaluadorPrecioItem.Linea::base).containsOnly("POR_COPIA");
+  assertThat(impar.lineas().get(0).detalle()).contains("1 hojas doble faz a ARS 40,00 + 1 hojas simple faz a ARS 30,00");
+  assertThat(precios.calcular(c,item(1,3,true,List.of())).subtotal()).isEqualTo("90.00");
+  assertThat(precios.calcular(c,item(3,2,false,List.of())).subtotal()).isEqualTo("180.00");
+  assertThat(precios.calcular(porHoja("100",ModoDobleFaz.FIJO,"40",List.of()),item(2,1,true,List.of())).subtotal()).isEqualTo("40.00");
+ }
+ @Test void relativosRedondeanPorHojaYSimpleFazNoCambia(){
+  assertThat(precios.calcular(porHoja("30",ModoDobleFaz.ADICIONAL,"10",List.of()),item(3,2,true,List.of())).subtotal()).isEqualTo("140.00");
+  assertThat(precios.calcular(porHoja("30",ModoDobleFaz.PORCENTAJE,"10",List.of()),item(2,1,true,List.of())).subtotal()).isEqualTo("33.00");
+  assertThat(precios.calcular(porHoja("0.05",ModoDobleFaz.PORCENTAJE,"10",List.of()),item(3,2,true,List.of())).subtotal()).isEqualTo("0.22");
+  assertThat(precios.calcular(porHoja("0",ModoDobleFaz.FIJO,"0",List.of()),item(3,2,true,List.of())).subtotal()).isEqualTo("0.00");
+ }
+ @Test void terminacionesConservanCantidadesConTarifaPorHoja(){
+  var extras=new ArrayList<OfertaServicio>();for(var base:BasePrecio.values())extras.add(new OfertaServicio(UUID.randomUUID(),base.name(),base,BigDecimal.ONE,10,true,List.of(new Compatibilidad(f,p))));
+  var r=precios.calcular(porHoja("30",ModoDobleFaz.FIJO,"40",extras),item(3,2,true,extras.stream().map(OfertaServicio::servicio).toList()));
+  assertThat(r.subtotal()).isEqualTo("153.00");
+  assertThat(r.lineas()).extracting(EvaluadorPrecioItem.Linea::unidades).containsExactly(2L,2L,4L,6L,1L);
+ }
+
 }

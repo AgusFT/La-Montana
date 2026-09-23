@@ -4,54 +4,43 @@
  * ARCHIVO: CatalogoController.java
  * ========================================================================
  * FUNCIÓN
- * Expone las operaciones HTTP del catálogo comercial: formatos, papeles, servicios,
- * configuraciones de precios y programación. Valida las entradas y delega la lógica de negocio en
- * CatalogoService.
+ * Expone el catálogo y las configuraciones comerciales, incluidas tarifas agrupadas y precios
+ * finales doble faz por hoja; valida la entrada HTTP y conserva el contrato anterior.
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
  * - [public] CatalogoController(CatalogoService catalogo)
+ * - [public] CatalogoController.Tarifa :: Tarifa(UUID formato, UUID papel, ModoColor color,
+ *   BigDecimal precio, BigDecimal recargoDobleFaz, Boolean habilitada)
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
- * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
- * automáticamente no se enumeran.
  * - [public] CatalogoService.Estado estado()
- *   Consulta el estado del catálogo.
  * - [public] Map<String, String> formato(AltaFormato data, Principal actor)
- *   Solicita crear un formato de papel.
  * - [public] Map<String, String> papel(AltaPapel data, Principal actor)
- *   Solicita crear un material de papel.
  * - [public] Map<String, String> servicio(AltaServicio data, Principal actor)
- *   Solicita crear un servicio.
  * - [public] CatalogoService.Revision guardar(NuevaRevision data, Principal actor)
- *   Solicita guardar una configuración comercial.
  * - [public] CatalogoService.Revision revision(UUID codigo)
- *   Consulta una configuración comercial por su identificador.
  * - [public] CatalogoService.Revision cancelar(UUID codigo, CancelarProgramacion data, Principal
  *   actor)
- *   Solicita cancelar una configuración comercial programada.
  * - [public] Map<String, String> predefinido(HabilitarPredefinido data, Principal actor)
- *   Habilita un papel del catálogo precargado.
  * - [public] Map<String, String> todosPredefinidos(Principal actor)
- *   Habilita todos los papeles precargados.
  * - [public] Map<String, String> personalizado(PapelPersonalizado data, Principal actor)
- *   Solicita guardar un papel con especificaciones propias.
  * - [public] Map<String, String> seleccion(SeleccionPapel data, Principal actor)
- *   Habilita o deshabilita una combinación de formato y papel.
  *
  * ------------------------------------------------------------------------
  * TIPOS DECLARADOS
- * - CatalogoController (clase).
+ * - CatalogoController (class).
  * - CatalogoController.HabilitarPredefinido (record).
  * - CatalogoController.SeleccionPapel (record).
  * - CatalogoController.PapelPersonalizado (record).
  * - CatalogoController.AltaFormato (record).
  * - CatalogoController.AltaPapel (record).
  * - CatalogoController.AltaServicio (record).
- * - CatalogoController.TipoServicio (enumeración).
- * - CatalogoController.ModoColor (enumeración).
- * - CatalogoController.BasePrecio (enumeración).
+ * - CatalogoController.TipoServicio (enum).
+ * - CatalogoController.ModoColor (enum).
+ * - CatalogoController.BasePrecio (enum).
+ * - CatalogoController.ModoDobleFaz (enum).
  * - CatalogoController.Tarifa (record).
  * - CatalogoController.Compatibilidad (record).
  * - CatalogoController.OfertaServicio (record).
@@ -64,6 +53,7 @@
 package ar.com.lamontana.catalogo;
 
 import jakarta.validation.Valid;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.security.Principal;
@@ -117,9 +107,20 @@ public class CatalogoController {
     public enum TipoServicio { IMPRESION, TERMINACION }
     public enum ModoColor { BLANCO_NEGRO, COLOR }
     public enum BasePrecio { POR_COPIA, POR_HOJA, POR_CARILLA, FIJO_POR_ITEM }
+    public enum ModoDobleFaz { FIJO, ADICIONAL, PORCENTAJE }
     public record Tarifa(@NotNull UUID formato, @NotNull UUID papel, @NotNull ModoColor color,
                          @NotNull @DecimalMin("0.00") @Digits(integer=12,fraction=2) BigDecimal precio,
-                         @NotNull @DecimalMin("0.00") @Digits(integer=12,fraction=2) BigDecimal recargoDobleFaz, @NotNull Boolean habilitada) {}
+                         @NotNull @DecimalMin("0.00") @Digits(integer=12,fraction=2) BigDecimal recargoDobleFaz,
+                         @NotNull Boolean habilitada,
+                         @JsonInclude(JsonInclude.Include.NON_NULL) UUID grupo,
+                         @JsonInclude(JsonInclude.Include.NON_NULL) @Size(max=140) String nombre,
+                         @JsonInclude(JsonInclude.Include.NON_NULL) ModoDobleFaz modoDobleFaz,
+                         @JsonInclude(JsonInclude.Include.NON_NULL) @DecimalMin("0.00") @Digits(integer=12,fraction=2) BigDecimal valorDobleFaz) {
+        // Los comandos e historiales anteriores siguen representando cobro por carilla.
+        public Tarifa(UUID formato,UUID papel,ModoColor color,BigDecimal precio,BigDecimal recargoDobleFaz,Boolean habilitada) {
+            this(formato,papel,color,precio,recargoDobleFaz,habilitada,null,null,null,null);
+        }
+    }
     public record Compatibilidad(@NotNull UUID formato, @NotNull UUID papel) {}
     public record OfertaServicio(@NotNull UUID servicio, @NotBlank @Size(max=140) String nombreVisible, @NotNull BasePrecio basePrecio,
                                  @NotNull @DecimalMin("0.00") @Digits(integer=12,fraction=2) BigDecimal precio,

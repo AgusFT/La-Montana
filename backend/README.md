@@ -20,4 +20,4 @@ Al agregar, quitar o modificar una declaración, actualizar también su entrada 
 
 Dockerfile, `.dockerignore`, `pom.xml` y `application.yaml` describen su función y sus secciones con comentarios de su propio formato. El plegado en esos formatos depende del soporte de lenguaje del editor; los marcadores Java se usan sólo en `.java`.
 
-Las [37 migraciones SQL](src/main/resources/db/migration/README.md) se documentan aparte para conservar sus checksums de Flyway. La [imagen WebP de prueba](src/test/resources/web/README.md) también se conserva intacta porque es binaria.
+Las [migraciones SQL](src/main/resources/db/migration/README.md) tienen un índice separado. V1–V37 se conservan intactas; V38 incorpora su encabezado desde su creación. Ninguna migración ya aplicada debe editarse, para conservar sus checksums de Flyway. La [imagen WebP de prueba](src/test/resources/web/README.md) también se conserva intacta porque es binaria.

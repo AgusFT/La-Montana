@@ -38,6 +38,8 @@
  * - secondary: .secondary
  * - three: .three
  *
+ * - quote: .quote-price-detail.
+ *
  * CONDICIONES Y DIRECTIVAS CSS
  * - @media (max-width:1000px)
  * - @media (max-width:760px)
@@ -126,3 +128,6 @@
 @media(max-width:1150px){.client-dashboard{grid-template-columns:1fr}.client-dashboard-aside{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:18px}.client-dashboard-aside .client-card{margin:0}.client-dashboard-aside .client-card{padding:20px}.client-dashboard-aside .client-card h2{line-height:1.35}}@media(max-width:700px){.client-dashboard{gap:18px}.client-dashboard-aside{grid-template-columns:1fr}.client-current-order{padding:22px 20px}.client-current-grid{grid-template-columns:1fr;gap:24px}.client-current-grid ol{padding-left:24px}.client-current-order header{flex-direction:column}.client-dashboard-orders header{align-items:flex-start}.client-dashboard-counts>div{margin:16px 0}}
 
 .client-dashboard-aside .client-card{overflow-wrap:anywhere}
+
+/* Desglose por hoja dentro del único servicio de impresión cotizado. */
+.quote-price-detail{display:block;white-space:normal;min-width:190px;max-width:350px;margin-top:6px;font-size:12px;line-height:1.6}

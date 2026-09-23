@@ -4,13 +4,11 @@
  * ARCHIVO: src/lib/catalog-types.ts
  * ========================================================================
  * FUNCIÓN
- * Define estructuras del catálogo, tarifas y configuraciones comerciales, con validadores de
- * respuestas en tiempo de ejecución y formatos de fecha e importe.
+ * Define estructuras y validadores del catálogo, tarifas por carilla y por hoja, servicios y
+ * configuraciones comerciales, además de formatos de fecha e importe.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
- * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
- * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
  * - record(value: unknown): value is Record<string, unknown>
  * - strings(value: Record<string, unknown>, keys: string[]): boolean
  * - number(value: unknown): value is number
@@ -19,36 +17,35 @@
  * - offer(value: unknown): value is ServiceOffer
  * - summary(value: unknown): value is RevisionSummary
  * - [export] isCatalogRevision(value: unknown): value is CatalogRevision
- *   Validador de datos recibidos en tiempo de ejecución.
  * - selection(value: unknown): value is PaperSelection
  * - preset(value: unknown): value is PaperPreset
  * - [export] isCatalogState(value: unknown): value is CatalogState
- *   Validador de datos recibidos en tiempo de ejecución.
  * - [export] catalogDate(value: string): string
  * - [export] catalogMoney(value: number): string
  *
  * ------------------------------------------------------------------------
  * TIPOS DECLARADOS
- * - Format (tipo).
- * - Paper (tipo).
- * - CatalogService (tipo).
- * - ColorMode (tipo).
- * - PriceBase (tipo).
- * - Compatibility (tipo).
- * - PrintRate (tipo).
- * - ServiceOffer (tipo).
- * - CommercialStatus (tipo).
- * - RevisionSummary (tipo).
- * - CatalogRevision (tipo).
- * - PaperSelection (tipo).
- * - PaperPreset (tipo).
- * - CatalogState (tipo).
- * - NewRevision (tipo).
+ * - Format (TypeAliasDeclaration).
+ * - Paper (TypeAliasDeclaration).
+ * - CatalogService (TypeAliasDeclaration).
+ * - ColorMode (TypeAliasDeclaration).
+ * - PriceBase (TypeAliasDeclaration).
+ * - Compatibility (TypeAliasDeclaration).
+ * - DuplexMode (TypeAliasDeclaration).
+ * - PrintRate (TypeAliasDeclaration).
+ * - ServiceOffer (TypeAliasDeclaration).
+ * - CommercialStatus (TypeAliasDeclaration).
+ * - RevisionSummary (TypeAliasDeclaration).
+ * - CatalogRevision (TypeAliasDeclaration).
+ * - PaperSelection (TypeAliasDeclaration).
+ * - PaperPreset (TypeAliasDeclaration).
+ * - CatalogState (TypeAliasDeclaration).
+ * - NewRevision (TypeAliasDeclaration).
  *
  * ------------------------------------------------------------------------
- * VALORES DE MÓDULO Y REEXPORTACIONES
- * - colorLabels [const, exportado].
- * - priceLabels [const, exportado].
+ * VALORES DE MÓDULO
+ * - colorLabels [const].
+ * - priceLabels [const].
  * ========================================================================
  */
 //#endregion
@@ -61,7 +58,8 @@ export const priceLabels = { POR_COPIA: "Por copia", POR_HOJA: "Por hoja", POR_C
 export type ColorMode = keyof typeof colorLabels;
 export type PriceBase = keyof typeof priceLabels;
 export type Compatibility = { formato: string; papel: string };
-export type PrintRate = Compatibility & { color: ColorMode; precio: number; recargoDobleFaz: number; habilitada: boolean };
+export type DuplexMode = "FIJO" | "ADICIONAL" | "PORCENTAJE";
+export type PrintRate = Compatibility & { color: ColorMode; precio: number; recargoDobleFaz: number; habilitada: boolean; grupo?:string; nombre?:string; modoDobleFaz?:DuplexMode; valorDobleFaz?:number };
 export type ServiceOffer = { servicio: string; nombreVisible: string; basePrecio: PriceBase; precio: number; preparacionMinutos: number; habilitado: boolean; compatibilidades: Compatibility[] };
 export type CommercialStatus = "VIGENTE" | "HISTORICA" | "PROGRAMADA" | "CANCELADA";
 export type RevisionSummary = { codigoPublico: string; numero: number; motivo: string; creadaEn: string; actor: string; estado: CommercialStatus; programadaPara: string | null; activadaEn: string | null };
@@ -75,7 +73,9 @@ function record(value: unknown): value is Record<string, unknown> { return !!val
 function strings(value: Record<string, unknown>, keys: string[]): boolean { return keys.every(key => typeof value[key] === "string"); }
 function number(value: unknown): value is number { return typeof value === "number" && Number.isFinite(value); }
 function compatibility(value: unknown): value is Compatibility { return record(value) && strings(value, ["formato", "papel"]); }
-function rate(value: unknown): value is PrintRate { return record(value) && strings(value,["formato","papel"]) && typeof value.color === "string" && Object.hasOwn(colorLabels,value.color) && number(value.precio) && number(value.recargoDobleFaz) && typeof value.habilitada === "boolean"; }
+function rate(value: unknown): value is PrintRate { return record(value) && strings(value,["formato","papel"]) && typeof value.color === "string" && Object.hasOwn(colorLabels,value.color) && number(value.precio) && number(value.recargoDobleFaz) && typeof value.habilitada === "boolean" &&
+  (value.grupo===undefined||typeof value.grupo==="string") && (value.nombre===undefined||typeof value.nombre==="string") &&
+  (value.modoDobleFaz===undefined||(["FIJO","ADICIONAL","PORCENTAJE"].includes(String(value.modoDobleFaz))&&number(value.valorDobleFaz))); }
 function offer(value: unknown): value is ServiceOffer { return record(value) && strings(value,["servicio","nombreVisible"]) && typeof value.basePrecio === "string" && Object.hasOwn(priceLabels,value.basePrecio) && number(value.precio) && number(value.preparacionMinutos) && typeof value.habilitado === "boolean" && Array.isArray(value.compatibilidades) && value.compatibilidades.every(compatibility); }
 function summary(value: unknown): value is RevisionSummary { return record(value) && strings(value,["codigoPublico","motivo","creadaEn","actor"]) && number(value.numero) && ["VIGENTE","HISTORICA","PROGRAMADA","CANCELADA"].includes(String(value.estado)) && (value.programadaPara===null||typeof value.programadaPara==="string") && (value.activadaEn===null||typeof value.activadaEn==="string"); }
 export function isCatalogRevision(value: unknown): value is CatalogRevision { return record(value) && Array.isArray(value.tarifas) && value.tarifas.every(rate) && Array.isArray(value.servicios) && value.servicios.every(offer) && summary(value); }

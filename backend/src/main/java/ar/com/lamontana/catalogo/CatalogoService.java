@@ -4,9 +4,8 @@
  * ARCHIVO: CatalogoService.java
  * ========================================================================
  * FUNCIÓN
- * Gestiona el catálogo base y las configuraciones comerciales de tarifas y servicios. Valida
- * combinaciones, conserva versiones e idempotencia y coordina publicación inmediata, programación
- * y cancelación.
+ * Guarda, consulta y programa configuraciones comerciales de forma atómica e idempotente. Valida
+ * variantes, reglas comunes del grupo, servicios y precios sin modificar el historial.
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
@@ -14,8 +13,6 @@
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
- * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
- * automáticamente no se enumeran.
  * - [public] Estado estado()
  * - [public] Estado leerEstado()
  * - [private] List<Formato> formatos()
@@ -35,7 +32,6 @@
  * - [public] Revision cancelar(UUID codigo, CancelarProgramacion in, String actor)
  * - [public] void reconciliarProgramaciones()
  * - [private] void bloquear()
- *   Toma el bloqueo transaccional de PostgreSQL.
  * - [private] Instant ahora()
  * - [private] Timestamp timestamp(Instant instante)
  * - [private] void publicar(long id)
@@ -48,17 +44,15 @@
  * - [private] Resumen resumen(ResultSet rs, int row) throws SQLException
  * - [private] Revision cargarRevision(UUID codigo)
  * - [private] ResponseStatusException error(HttpStatus status, String message)
- *   Construye un error HTTP controlado.
  * - [private] String hash(String text)
- *   Calcula o prepara la huella SHA-256 del contenido.
  *
  * ------------------------------------------------------------------------
  * TIPOS DECLARADOS
- * - CatalogoService (clase).
+ * - CatalogoService (class).
  * - CatalogoService.Formato (record).
  * - CatalogoService.Papel (record).
  * - CatalogoService.Servicio (record).
- * - CatalogoService.EstadoRevision (enumeración).
+ * - CatalogoService.EstadoRevision (enum).
  * - CatalogoService.Resumen (record).
  * - CatalogoService.Revision (record).
  * - CatalogoService.Estado (record).
@@ -183,9 +177,9 @@ public class CatalogoService {
                 """,Long.class,codigo,base,in.operacion(),fingerprint,in.motivo().strip(),actor,
                 in.programadaPara()==null?"HISTORICA":"PROGRAMADA",timestamp(in.programadaPara()),in.programadaPara()==null?timestamp(ahora()):null);
         for(Tarifa t:in.tarifas()) jdbc.update("""
-                INSERT INTO lamontana.tarifa_impresion(id_catalogo_revision,id_formato,id_papel,modo_color,precio_por_carilla,recargo_doble_faz,habilitada)
-                VALUES (?,(SELECT id_formato FROM lamontana.formato WHERE codigo_publico=?),(SELECT id_papel FROM lamontana.papel WHERE codigo_publico=?),?,?,?,?)
-                """,id,t.formato(),t.papel(),t.color().name(),t.precio(),t.recargoDobleFaz(),t.habilitada());
+                INSERT INTO lamontana.tarifa_impresion(id_catalogo_revision,id_formato,id_papel,modo_color,precio_por_carilla,recargo_doble_faz,habilitada,grupo,nombre,modo_doble_faz,valor_doble_faz)
+                VALUES (?,(SELECT id_formato FROM lamontana.formato WHERE codigo_publico=?),(SELECT id_papel FROM lamontana.papel WHERE codigo_publico=?),?,?,?,?,?,?,?,?)
+                """,id,t.formato(),t.papel(),t.color().name(),t.precio(),t.recargoDobleFaz(),t.habilitada(),t.grupo(),t.nombre()==null?null:t.nombre().strip(),t.modoDobleFaz()==null?null:t.modoDobleFaz().name(),t.valorDobleFaz());
         for(OfertaServicio s:in.servicios()) {
             Long configuracion=jdbc.queryForObject("""
                     INSERT INTO lamontana.configuracion_servicio(id_catalogo_revision,id_servicio,nombre_visible,base_precio,precio_unitario,preparacion_minutos,habilitado)
@@ -259,7 +253,14 @@ public class CatalogoService {
         var seleccionados=new HashSet<Compatibilidad>();
         new PapelesCatalogo(jdbc).seleccion().stream().filter(PapelesCatalogo.Seleccion::habilitado).forEach(p->seleccionados.add(new Compatibilidad(p.formato(),p.papel())));
         var combinaciones=new HashSet<String>();var disponibles=new HashSet<Compatibilidad>();
+        var grupos=new HashMap<UUID,List<Object>>();
         for(Tarifa t:in.tarifas()) {
+            PreciosTarifa.validar(t);
+            if(t.grupo()!=null) {
+                var firma=PreciosTarifa.firma(t);
+                var anterior=grupos.putIfAbsent(t.grupo(),firma);
+                existe(anterior==null||anterior.equals(firma),"Las variantes de una tarifa deben compartir nombre, color, precios y estado.");
+            }
             existe(combinacionExiste(formatos,papeles,t.formato(),t.papel()),"La tarifa debe referir a un formato y papel existentes.");
             existe(combinaciones.add(t.formato()+"/"+t.papel()+"/"+t.color()),"Hay tarifas duplicadas para la misma combinación.");
             if(t.habilitada()) {
@@ -274,7 +275,7 @@ public class CatalogoService {
             existe(tipo!=null,"El servicio no existe en el catálogo.");
             existe(usados.add(s.servicio()),"Hay servicios duplicados en esta revisión.");
             if(tipo==TipoServicio.IMPRESION) {
-                existe(s.basePrecio()==BasePrecio.POR_CARILLA && s.precio().signum()==0,"El precio de impresión se toma de las tarifas por carilla; no admite un segundo cargo de servicio.");
+                existe(s.basePrecio()==BasePrecio.POR_CARILLA && s.precio().signum()==0,"El precio de impresión se toma de las tarifas; no admite un segundo cargo de servicio.");
                 existe(s.compatibilidades().isEmpty(),"Las combinaciones de impresión se configuran en las tarifas.");
                 if(s.habilitado()) impresiones++;
             } else {
@@ -307,10 +308,10 @@ public class CatalogoService {
         if(result.isEmpty()) throw error(HttpStatus.NOT_FOUND,"La revisión comercial no existe.");
         Resumen r=result.get(0);long id=r.numero();
         var tarifas=jdbc.query("""
-                SELECT f.codigo_publico,p.codigo_publico,t.modo_color,t.precio_por_carilla,t.recargo_doble_faz,t.habilitada
+                SELECT f.codigo_publico,p.codigo_publico,t.modo_color,t.precio_por_carilla,t.recargo_doble_faz,t.habilitada,t.grupo,t.nombre,t.modo_doble_faz,t.valor_doble_faz
                 FROM lamontana.tarifa_impresion t JOIN lamontana.formato f USING(id_formato) JOIN lamontana.papel p USING(id_papel)
                 WHERE t.id_catalogo_revision=? ORDER BY f.codigo,p.codigo,t.modo_color
-                """,(rs,row)->new Tarifa(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),ModoColor.valueOf(rs.getString(3)),rs.getBigDecimal(4),rs.getBigDecimal(5),rs.getBoolean(6)),id);
+                """,(rs,row)->new Tarifa(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),ModoColor.valueOf(rs.getString(3)),rs.getBigDecimal(4),rs.getBigDecimal(5),rs.getBoolean(6),rs.getObject(7,UUID.class),rs.getString(8),rs.getString(9)==null?null:ModoDobleFaz.valueOf(rs.getString(9)),rs.getBigDecimal(10)),id);
         var ofertas=jdbc.query("""
                 SELECT c.id_configuracion_servicio,s.codigo_publico,c.nombre_visible,c.base_precio,c.precio_unitario,c.preparacion_minutos,c.habilitado
                 FROM lamontana.configuracion_servicio c JOIN lamontana.servicio s USING(id_servicio)

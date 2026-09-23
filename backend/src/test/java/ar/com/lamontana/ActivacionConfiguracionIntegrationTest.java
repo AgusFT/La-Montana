@@ -270,6 +270,8 @@
  * - [paquete] void cotizacionesDisponibilidadPermisosYValidacionesNoExponenAdministracion() throws
  *   Exception
  *   Caso de prueba.
+ * - [paquete] void cotizacionesPorHojaGuardanUnServicioYCongelanElDesglose() throws Exception
+ *   Verifica cotizaciones reales por hoja, detalle congelado y persistencia.
  * - [paquete] void cotizacionesMultiplesCalculoAutoritativoPrecioCongeladoAceptacionYReinicio()
  *   throws Exception
  *   Caso de prueba.
@@ -1119,6 +1121,26 @@ class ActivacionConfiguracionIntegrationTest {
         input=ofertaCliente();input.put("sucursal",b);status(post(c,"/api/cliente/cotizaciones",input),409);
         input=ofertaCliente();var invalidItems=JSON.readTree(JSON.writeValueAsString(input));((tools.jackson.databind.node.ObjectNode)invalidItems.get("items").get(0).get("documento")).put("nombre","a\nb\n.pdf");status(post(c,"/api/cliente/cotizaciones",invalidItems),400);
         input=ofertaCliente();var item=((List<?>)input.get("items")).get(0);input.put("items",List.of(item,item));status(post(c,"/api/cliente/cotizaciones",input),400);assertThat(contar("cotizacion")).isZero();assertThat(contar("cotizacion_item")).isZero();
+    }
+    @Test void cotizacionesPorHojaGuardanUnServicioYCongelanElDesglose()throws Exception{
+        preparar();activar();var cliente=particularCotizacion("hojas");var anterior=cotizar(cliente,ofertaCliente());
+        assertThat(anterior.get("oferta").get("total").asString()).isEqualTo("32.00");
+        var tarifa=new HashMap<String,Object>(Map.of("formato",formato,"papel",papel,"color","BLANCO_NEGRO","precio","30","recargoDobleFaz","0","habilitada",true,"grupo",UUID.randomUUID(),"nombre","Tarifa hojas","modoDobleFaz","FIJO","valorDobleFaz","40"));
+        var datos=new HashMap<String,Object>();datos.put("operacion",UUID.randomUUID());datos.put("versionBase",comercial);datos.put("motivo","Cobro por hoja");datos.put("tarifas",List.of(tarifa));datos.put("servicios",List.of(oferta(servicio,"POR_CARILLA","0",30,true),oferta(terminacion,"POR_HOJA","1.25",120,true)));
+        var revision=post(admin,"/api/admin/catalogo/revisiones",datos);status(revision,200);comercial=JSON.readTree(revision.body()).get("codigoPublico").asString();
+        var input=ofertaCliente();var nueva=cotizar(cliente,input);String codigo=nueva.get("codigoPublico").asString();
+        assertThat(nueva.get("oferta").get("total").asString()).isEqualTo("325.00");
+        var precio=nueva.get("oferta").get("items").get(0).get("precio");assertThat(precio.get("subtotal").asString()).isEqualTo("145.00");
+        assertThat(precio.get("lineas").size()).isEqualTo(2);var impresion=precio.get("lineas").get(0);
+        assertThat(impresion.get("base").asString()).isEqualTo("POR_COPIA");assertThat(impresion.get("unidades").asInt()).isEqualTo(2);
+        assertThat(impresion.get("precioUnitario").asString()).isEqualTo("70.00");assertThat(impresion.get("importe").asString()).isEqualTo("140.00");assertThat(impresion.get("detalle").asString()).contains("doble faz a ARS 40,00","simple faz a ARS 30,00");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.cotizacion_item_servicio s JOIN lamontana.cotizacion_item i USING(id_cotizacion_item) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE c.codigo_publico=? AND s.tipo_servicio='IMPRESION'",Integer.class,UUID.fromString(codigo))).isEqualTo(2);
+        assertThat(cotizar(cliente,input)).isEqualTo(nueva);
+        var aceptar=decisionCotizacion(nueva);status(post(cliente,"/api/cliente/cotizaciones/"+codigo+"/aceptar",aceptar),200);var aceptada=cotizacion(cliente,codigo);
+        tarifa.put("modoDobleFaz","PORCENTAJE");tarifa.put("valorDobleFaz","10");datos.put("versionBase",comercial);datos.put("operacion",UUID.randomUUID());revision=post(admin,"/api/admin/catalogo/revisiones",datos);status(revision,200);comercial=JSON.readTree(revision.body()).get("codigoPublico").asString();
+        assertThat(cotizar(cliente,ofertaCliente()).get("oferta").get("total").asString()).isEqualTo("311.00");
+        assertThat(cotizacion(cliente,codigo)).isEqualTo(aceptada);assertThat(cotizacion(cliente,anterior.get("codigoPublico").asString())).isEqualTo(anterior);
+        app.close();arrancar();assertThat(cotizacion(cliente,codigo)).isEqualTo(aceptada);assertThat(cotizacion(cliente,anterior.get("codigoPublico").asString())).isEqualTo(anterior);
     }
     @Test void cotizacionesMultiplesCalculoAutoritativoPrecioCongeladoAceptacionYReinicio()throws Exception{
         preparar();activar();var c=particularCotizacion("precios");var input=ofertaCliente();input.put("total","0.01");var q=cotizar(c,input);String codigo=q.get("codigoPublico").asString();var o=q.get("oferta");

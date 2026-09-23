@@ -1,6 +1,6 @@
 <!--
 FUNCIÓN: índice de lectura de migraciones históricas; no es una migración ejecutable.
-CONTENIDO: propósito, funciones, tablas y disparadores de V1 a V37.
+CONTENIDO: propósito, funciones, tablas y disparadores de V1 a V38.
 MÉTODOS: no declara código ejecutable.
 -->
 # Índice de migraciones del backend
@@ -1017,3 +1017,18 @@ Crea la selección explícita de combinaciones de formato y papel; conserva las 
 - `lamontana.catalogo_papel`.
 
 ---
+
+
+---
+
+## V38__tarifas_agrupadas_por_hoja.sql
+
+Agrega grupo y nombre de tarifa y el modo/valor para calcular el precio final doble faz por hoja. Los campos nulos conservan el cálculo anterior por carilla. No reescribe tarifas, importes ni huellas de solicitudes. El encabezado se incorpora al crear la migración.
+
+[Abrir SQL](V38__tarifas_agrupadas_por_hoja.sql)
+
+**Tabla modificada:** `lamontana.tarifa_impresion`.
+
+**Restricciones:** grupo/nombre completos, modo/valor completos y válidos, importes no negativos y ausencia del recargo antiguo en tarifas por hoja.
+
+**Funciones declaradas:** ninguna.
