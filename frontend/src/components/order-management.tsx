@@ -5,8 +5,8 @@ import {isOrder,orderState,type Order} from "@/lib/order-types";
 import {secureMutation,MutationError} from "@/lib/secure-mutation";
 
 type Action="REVISAR"|"APROBAR"|"RECHAZAR"|"CANCELAR"|"OBSERVAR";
-type Management={version:number;cliente:string;correo:string;revisadaEn:string|null;revisor:string|null;aprobador:string|null;puedeObservar:boolean;acciones:{accion:Action;habilitada:boolean;motivo:string|null}[];observaciones:{codigoPublico:string;autor:string;importancia:string;texto:string;fecha:string}[];historial:{accion:Action;estadoOrigen:string;estadoDestino:string;actor:string;motivo:string;mensajeCliente:string;fecha:string}[]};
-const labels:Record<Action,string>={REVISAR:"Registrar revisión",APROBAR:"Aprobar pedido",RECHAZAR:"Rechazar pedido",CANCELAR:"Cancelar pedido",OBSERVAR:"Guardar observación interna"};
+type Management={version:number;cliente:string;correo:string;revisadaEn:string|null;revisor:string|null;aprobador:string|null;puedeObservar:boolean;acciones:{accion:Action;habilitada:boolean;motivo:string|null}[];observaciones:{codigoPublico:string;autor:string;importancia:string;texto:string;fecha:string}[];historial:{accion:Action|"PEDIR_CORRECCION"|"RESPONDER_CORRECCION";estadoOrigen:string;estadoDestino:string;actor:string;motivo:string;mensajeCliente:string;fecha:string}[]};
+const labels:Record<Action|"PEDIR_CORRECCION"|"RESPONDER_CORRECCION",string>={PEDIR_CORRECCION:"Solicitar corrección",RESPONDER_CORRECCION:"Responder corrección",REVISAR:"Registrar revisión",APROBAR:"Aprobar pedido",RECHAZAR:"Rechazar pedido",CANCELAR:"Cancelar pedido",OBSERVAR:"Guardar observación interna"};
 function isManagement(v:unknown):v is Management {if(!v||typeof v!=="object")return false;const x=v as Record<string,unknown>;return Number.isSafeInteger(x.version)&&typeof x.cliente==="string"&&typeof x.puedeObservar==="boolean"&&Array.isArray(x.acciones)&&Array.isArray(x.observaciones)&&Array.isArray(x.historial);}
 
 export function OrderManagement({order,internal,onSaved}:{order:Order;internal:boolean;onSaved:()=>void}){
@@ -33,14 +33,14 @@ export function OrderManagement({order,internal,onSaved}:{order:Order;internal:b
   }catch(e){setError(e instanceof Error?e.message:"No se pudo registrar la operación.");if(e instanceof MutationError&&!e.uncertain){pending.current=null;setUncertain(false);}else setUncertain(true);}
   finally{running.current=false;setBusy(false);}
  }
- const active=["PENDIENTE_REVISION","APROBADO"].includes(order.estado),financialNotice="La cancelación o el rechazo libera la reserva. El dinero recibido y los PDF se conservan; una devolución exige su registro por personal autorizado.";
+ const active=["PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO"].includes(order.estado),financialNotice="La cancelación o el rechazo libera la reserva. El dinero recibido y los PDF se conservan; una devolución exige su registro por personal autorizado.";
  return <section className="client-card order-management" aria-label={internal?"Revisión administrativa":"Gestión de mi pedido"}>
   <header className="order-management-heading"><h2>{internal?"Revisión administrativa":"Gestión de tu pedido"}</h2><span>{orderState(order.estado)}</span></header>
   {loading&&<p role="status">Consultando acciones y observaciones…</p>}
   {internal&&data&&<><div className="client-grid"><section><h3>Cliente</h3><p>{data.cliente}<br/>{data.correo}</p></section><section><h3>Revisión y decisión</h3><p>{data.revisadaEn?`Revisado por ${data.revisor} · ${date(data.revisadaEn)}`:"Sin revisión humana registrada."}</p>{order.aprobadaEn&&<p>Aprobado {data.aprobador?`por ${data.aprobador}`:"según las reglas configuradas"} · {date(order.aprobadaEn)}</p>}</section></div>
    <p><a href="#pedido-pdf">Ver los PDF confirmados</a>. Revisá los PDF privados, las opciones de impresión y los datos de entrega. Aprobar no inicia producción ni registra pagos.</p>
    <div className="order-decision-grid">{data.acciones.map(a=><div key={a.accion}><button className={`client-button ${a.accion==="APROBAR"?"order-approve":["RECHAZAR","CANCELAR"].includes(a.accion)?"order-danger":"secondary"}`} disabled={locked||!a.habilitada||!!action} onClick={()=>choose(a.accion)}>{labels[a.accion]}</button>{a.motivo&&<p className="client-muted">{a.motivo}</p>}</div>)}</div>
-   <p><span className="client-construction">En construcción</span> Solicitar corrección, reenviar PDF y aceptar una nueva cotización por cambios del trabajo se están integrando.</p>
+   <p><a href="#pedido-correcciones">Consultar o solicitar correcciones del trabajo</a>.</p>
   </>}
   {!internal&&<><p>{active?"Podés cancelar este pedido antes de que comience la producción.":"El pedido finalizó su recorrido operativo."}</p><p>{financialNotice}</p>{active&&<button className="client-button order-danger" disabled={locked||!!action} onClick={()=>choose("CANCELAR")}>Cancelar pedido</button>}</>}
   {action&&<form ref={form} key={action} className="client-form order-decision-form" onSubmit={e=>{e.preventDefault();void save();}}><h3>{labels[action]}</h3><fieldset disabled={locked}>

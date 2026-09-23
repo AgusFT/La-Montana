@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class ArchivoController {
     private final ArchivoService archivos;
     public ArchivoController(ArchivoService archivos){this.archivos=archivos;}
-    public record Inicio(@NotNull UUID operacion,@NotNull UUID item,@Min(0)long version){}
+    public record Inicio(@NotNull UUID operacion,@NotNull UUID item,@Min(0)long version,UUID correccion){}
     public record Aceptacion(@NotNull UUID operacion,@NotBlank @Pattern(regexp="[a-f0-9]{64}")String sha256){}
     @GetMapping("/api/operacion/sucursales/{branch}/archivos")
     ArchivoService.Bandeja bandeja(@PathVariable UUID branch,@RequestParam(defaultValue="0")int pagina,Principal principal){return archivos.bandeja(branch,pagina,principal.getName());}
@@ -25,7 +25,7 @@ public class ArchivoController {
     @GetMapping("/api/cliente/cotizaciones/{quote}/archivos/{file}/carga")
     ArchivoService.Acceso habilitada(@PathVariable UUID quote,@PathVariable UUID file,Principal principal){return archivos.puedeEnviar(quote,file,principal.getName());}
     @PostMapping("/api/cliente/cotizaciones/{quote}/archivos")
-    ArchivoService.Archivo crear(@PathVariable UUID quote,@Valid @RequestBody Inicio in,Principal principal){return archivos.crear(quote,in.item(),in.operacion(),in.version(),principal.getName());}
+    ArchivoService.Archivo crear(@PathVariable UUID quote,@Valid @RequestBody Inicio in,Principal principal){return archivos.crear(quote,in.item(),in.operacion(),in.version(),in.correccion(),principal.getName());}
     @PutMapping(value="/api/cliente/cotizaciones/{quote}/archivos/{file}/contenido",consumes="application/pdf")
     ArchivoService.Archivo cargar(@PathVariable UUID quote,@PathVariable UUID file,Principal principal,HttpServletRequest request)throws IOException{return archivos.recibir(quote,file,principal.getName(),request.getInputStream(),request.getContentLengthLong());}
     @PostMapping("/api/cliente/cotizaciones/{quote}/archivos/{file}/aceptar")

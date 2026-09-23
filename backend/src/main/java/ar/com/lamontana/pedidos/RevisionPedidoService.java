@@ -66,7 +66,7 @@ public class RevisionPedidoService {
   bloquear();var d=pedidos.detalle(id,correo,false);var a=actor(correo);String hash=huella(List.of(id,"CANCELACION_CLIENTE",in));
   if(recuperar(in.operacion(),hash,d,a))return d;
   version(d,in.version());texto(in.motivo(),500);
-  if(!Set.of("PENDIENTE_REVISION","APROBADO").contains(d.estado()))throw conflicto("El pedido ya no admite cancelación directa antes de producción.");
+  if(!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO").contains(d.estado()))throw conflicto("El pedido ya no admite cancelación directa antes de producción.");
   transicion(d,a,in.operacion(),hash,Accion.CANCELAR,in.motivo().strip(),in.motivo().strip());
   return pedidos.detalle(id,correo,false);
  }
@@ -84,20 +84,23 @@ public class RevisionPedidoService {
    case APROBAR -> jdbc.update("UPDATE lamontana.pedido SET estado='APROBADO',aprobada_en=?,id_aprobador=?,version=version+1 WHERE id_pedido=?",Timestamp.from(ahora),a.id(),d.numero());
    case RECHAZAR,CANCELAR -> {
     jdbc.update("UPDATE lamontana.pedido SET estado=?,finalizada_en=?,version=version+1 WHERE id_pedido=?",destino,Timestamp.from(ahora),d.numero());
-    jdbc.update("UPDATE lamontana.reserva_entrega SET estado='LIBERADA' WHERE id_pedido=?",d.numero());
+    jdbc.update("UPDATE lamontana.reserva_entrega SET estado='LIBERADA' WHERE id_pedido=? AND estado='ACTIVA'",d.numero());
    }
   }
+  if(accion==Accion.APROBAR)jdbc.update("UPDATE lamontana.solicitud_correccion SET estado='CERRADA',fecha_cierre=? WHERE id_pedido=? AND estado='RESPONDIDA'",Timestamp.from(ahora),d.numero());
+  if(accion==Accion.RECHAZAR||accion==Accion.CANCELAR)jdbc.update("UPDATE lamontana.solicitud_correccion SET estado='CANCELADA',fecha_cierre=? WHERE id_pedido=? AND estado IN ('PENDIENTE','RESPONDIDA')",Timestamp.from(ahora),d.numero());
   jdbc.update("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha,estado_origen,version_pedido,accion,mensaje_cliente,actor_nombre,actor_tipo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
    d.numero(),a.id(),op,hash,destino,motivo,Timestamp.from(ahora),d.estado(),d.version()+1,accion.name(),publico,a.nombre(),a.rol());
  }
  private String bloqueo(PedidoService.Detalle d,Estado e,Accion accion,boolean permiso){
   if(!permiso)return "Se requiere el permiso de gestión de pedidos en esta sucursal.";
-  if(!Set.of("PENDIENTE_REVISION","APROBADO").contains(d.estado()))return "El pedido terminó su recorrido operativo. Se conservan el historial, los archivos y los pagos.";
+  if(!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO").contains(d.estado()))return "El pedido terminó su recorrido operativo. Se conservan el historial, los archivos y los pagos.";
   if((accion==Accion.REVISAR||accion==Accion.APROBAR)&&!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,d.oferta().sucursal().codigoPublico()))return "La sucursal está desactivada. No admite revisión ni aprobación; el administrador conserva consulta, notas y cancelación.";
+  if(d.estado().equals("CORRECCION_SOLICITADA")&&(accion==Accion.REVISAR||accion==Accion.APROBAR))return "Esperá la respuesta explícita del cliente a la corrección solicitada.";
   return switch(accion){
    case REVISAR -> !d.estado().equals("PENDIENTE_REVISION")?"La aprobación ya fue registrada.":e.revisada()!=null?"La revisión de estos PDF ya está registrada.":null;
    case APROBAR -> !d.estado().equals("PENDIENTE_REVISION")?"El pedido ya está aprobado.":e.revisada()==null?"Registrá primero la revisión de los PDF y los datos.":null;
-   case RECHAZAR -> !d.estado().equals("PENDIENTE_REVISION")?"El rechazo corresponde a la etapa de revisión. Antes de producción podés cancelar con motivo.":null;
+   case RECHAZAR -> !Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA").contains(d.estado())?"El rechazo corresponde a la etapa de revisión. Antes de producción podés cancelar con motivo.":null;
    case CANCELAR -> null;
   };
  }

@@ -24,3 +24,13 @@
 .order-private-note { padding: .8rem; margin-top: .8rem; background: #f5f7fb; border-left: 3px solid #61769e; border-radius: 3px; }
 .order-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 @media(max-width: 650px) { .order-decision-grid { grid-template-columns: 1fr; } }
+
+.order-correction-entry {padding:1rem 0;border-top:1px solid #dce4ef;}
+.order-correction-response {margin-top:1.25rem;}
+.order-corrections > .client-card {margin-top:1rem;}
+.order-corrections details {margin:1rem 0;}
+
+.correction-form-grid {grid-template-columns:minmax(240px,1fr) minmax(0,2fr);}
+.correction-work-card {padding:1rem;border:1px solid #dce4ef;border-radius:10px;}
+.order-corrections textarea {min-height:110px;}
+@media(max-width:700px){.correction-form-grid {grid-template-columns:minmax(0,1fr);}}

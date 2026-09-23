@@ -34,8 +34,9 @@ public class ArchivoService {
     public record Acceso(boolean habilitada,String motivo){}
     public record Archivo(UUID codigoPublico,UUID item,String nombre,String estado,boolean activo,Instant creadoEn,Instant cargarHasta,
                           Long bytes,String sha256,Integer paginas,String codigoResultado,String mensaje,Instant aceptadaEn){}
-    public record Item(UUID codigoPublico,String nombre,List<Archivo> archivos){}
-    public record Vista(UUID cotizacion,String sucursal,Acceso carga,List<Item> items){}
+    public record Item(UUID codigoPublico,String nombre,List<Archivo> archivos,boolean admiteCarga){}
+    public record Vista(UUID cotizacion,String sucursal,Acceso carga,List<Item> items,long version,UUID correccion){}
+    private record Correccion(long id,UUID codigo,long version){}
     private record Cotizacion(long id,long propietario,CotizacionService.Oferta oferta,String estado,Instant vence,Instant aceptada,long version){}
     private record Contexto(Cotizacion cotizacion,long usuario,String rol){}
     public record Contenido(byte[] bytes,String tipo,String nombre){}
@@ -55,25 +56,27 @@ public class ArchivoService {
 
     public Vista listar(UUID quote,String correo,boolean interno){return tx.execute(s->{var c=autorizar(quote,correo,interno);return vista(quote,c,interno);});}
     public Archivo consultar(UUID quote,UUID file,String correo,boolean interno){return tx.execute(s->{autorizar(quote,correo,interno);return archivo(quote,file);});}
-    public Acceso puedeEnviar(UUID quote,UUID file,String correo){return tx.execute(s->{var c=autorizar(quote,correo,false);var f=archivo(quote,file);if(!f.estado().equals("PENDIENTE"))return new Acceso(false,"El intento ya fue procesado; consultá su resultado.");if(!clock.instant().isBefore(f.cargarHasta()))return new Acceso(false,"El plazo de carga venció. Iniciá otra carga.");return gate(c.cotizacion());});}
+    public Acceso puedeEnviar(UUID quote,UUID file,String correo){return tx.execute(s->{var c=autorizar(quote,correo,false);var f=archivo(quote,file);if(!f.estado().equals("PENDIENTE"))return new Acceso(false,"El intento ya fue procesado; consultá su resultado.");if(!clock.instant().isBefore(f.cargarHasta()))return new Acceso(false,"El plazo de carga venció. Iniciá otra carga.");var gate=gate(c.cotizacion());if(!gate.habilitada())return gate;return coincideCorreccion(c.cotizacion(),file)?gate:new Acceso(false,"El intento pertenece a otra revisión. Iniciá una carga para la solicitud actual.");});}
 
-    public Archivo crear(UUID quote,UUID item,UUID operation,long version,String correo){return tx.execute(s->{
+    public Archivo crear(UUID quote,UUID item,UUID operation,long version,UUID correccion,String correo){return tx.execute(s->{
         bloquear();var c=autorizar(quote,correo,false);
-        var prev=jdbc.query("SELECT a.codigo_publico,t.id_cotizacion_item FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) WHERE a.id_operacion=?",(r,n)->new Object[]{r.getObject(1,UUID.class),r.getLong(2)},operation);
+        var prev=jdbc.query("SELECT a.codigo_publico,t.id_cotizacion_item,sc.codigo_publico FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) LEFT JOIN lamontana.solicitud_correccion sc USING(id_solicitud_correccion) WHERE a.id_operacion=?",(r,n)->new Object[]{r.getObject(1,UUID.class),r.getLong(2),r.getObject(3,UUID.class)},operation);
         long idItem=itemId(c.cotizacion().id(),item);
         if(!prev.isEmpty()){
-            if((long)prev.get(0)[1]!=idItem)throw conflicto("La operación ya se usó con otro archivo.");
+            if((long)prev.get(0)[1]!=idItem||!Objects.equals(correccion,prev.get(0)[2]))throw conflicto("La operación ya se usó con otro archivo o solicitud de corrección.");
             return archivo(quote,(UUID)prev.get(0)[0]);
         }
         if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.archivo_almacenado WHERE id_operacion=?)",Boolean.class,operation))throw conflicto("La operación ya se usó con un archivo de otra finalidad.");
-        if(c.cotizacion().version()!=version)throw conflicto("La cotización cambió. Actualizá su estado.");
-        exigirCarga(c.cotizacion());
+        var solicitud=correccion(c.cotizacion());
+        if(!Objects.equals(correccion,solicitud==null?null:solicitud.codigo()))throw conflicto("La corrección cambió. Actualizá el pedido antes de cargar.");
+        if((solicitud==null?c.cotizacion().version():solicitud.version())!=version)throw conflicto("La cotización o el pedido cambió. Actualizá su estado.");
+        exigirCarga(c.cotizacion());if(solicitud!=null&&!itemSolicitado(solicitud.id(),item))throw conflicto("Este ítem no fue solicitado para reemplazo.");
         jdbc.update("UPDATE lamontana.archivo_almacenado a SET estado='FALLIDO',fecha_fin=now(),codigo_resultado='CARGA_VENCIDA',mensaje='El plazo para enviar este archivo venció. Iniciá otra carga.' FROM lamontana.archivo_trabajo t WHERE t.id_archivo_almacenado=a.id_archivo_almacenado AND t.id_cotizacion_item=? AND a.estado='PENDIENTE' AND a.cargar_hasta<=now()",idItem);
         if(jdbc.queryForObject("SELECT count(*) FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) WHERE t.id_cotizacion_item=? AND a.estado IN ('PENDIENTE','VALIDANDO')",Integer.class,idItem)>0)throw conflicto("Ya hay una carga pendiente para este ítem. Recuperá su resultado.");
         if(jdbc.queryForObject("SELECT count(*) FROM lamontana.archivo_almacenado WHERE id_usuario_cargador=? AND fecha_creacion>now()-interval '1 hour'",Integer.class,c.usuario())>=60)throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,"Se alcanzó el límite de cargas por hora. Conservá el PDF e intentá más tarde.");
         String name=c.cotizacion().oferta().items().stream().filter(i->i.codigoPublico().equals(item)).findFirst().orElseThrow().documento().nombre();
         UUID file=UUID.randomUUID();long id=jdbc.queryForObject("INSERT INTO lamontana.archivo_almacenado(codigo_publico,id_usuario_cargador,id_operacion,nombre_original,estado,cargar_hasta) VALUES (?,?,?,?,'PENDIENTE',now()+interval '10 minutes') RETURNING id_archivo_almacenado",Long.class,file,c.usuario(),operation,name);
-        jdbc.update("INSERT INTO lamontana.archivo_trabajo(id_archivo_almacenado,id_cotizacion_item,id_archivo_trabajo_reemplazado) VALUES (?,?,(SELECT id_archivo_trabajo FROM lamontana.archivo_trabajo WHERE id_cotizacion_item=? AND activo))",id,idItem,idItem);
+        jdbc.update("INSERT INTO lamontana.archivo_trabajo(id_archivo_almacenado,id_cotizacion_item,id_archivo_trabajo_reemplazado,id_solicitud_correccion) VALUES (?,?,(SELECT id_archivo_trabajo FROM lamontana.archivo_trabajo WHERE id_cotizacion_item=? AND activo),?)",id,idItem,idItem,solicitud==null?null:solicitud.id());
         return archivo(quote,file);
     });}
 
@@ -81,7 +84,7 @@ public class ArchivoService {
         boolean start=Boolean.TRUE.equals(tx.execute(s->{
             bloquear();var c=autorizar(quote,correo,false);var f=archivo(quote,file);
             if(!f.estado().equals("PENDIENTE"))return false;
-            exigirCarga(c.cotizacion());
+            exigirCarga(c.cotizacion());exigirCorreccion(c.cotizacion(),file);
             if(!clock.instant().isBefore(f.cargarHasta()))throw conflicto("El plazo de carga venció. Iniciá otra carga.");
             if(declaredLength>ArchivosPrivados.MAX_BYTES)throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,"El PDF supera el máximo de 10 MiB.");
             jdbc.update("UPDATE lamontana.archivo_almacenado SET estado='VALIDANDO',fecha_inicio=now() WHERE codigo_publico=?",file);return true;
@@ -94,7 +97,7 @@ public class ArchivoService {
             storage.publicar(file);
             final var original=received;final var engineVersion=engine;
             return tx.execute(s->{
-                bloquear();var c=autorizar(quote,correo,false);exigirCarga(c.cotizacion());var f=archivo(quote,file);
+                bloquear();var c=autorizar(quote,correo,false);exigirCarga(c.cotizacion());exigirCorreccion(c.cotizacion(),file);var f=archivo(quote,file);
                 if(!f.estado().equals("VALIDANDO"))throw conflicto("El análisis fue interrumpido. Iniciá otra carga.");
                 var expected=c.cotizacion().oferta().items().stream().filter(i->i.codigoPublico().equals(f.item())).findFirst().orElseThrow();
                 boolean same=expected.trabajo().paginas()==pages;
@@ -120,7 +123,7 @@ public class ArchivoService {
         bloquear();var c=autorizar(quote,correo,false);var f=archivo(quote,file);
         var previous=jdbc.query("SELECT a.codigo_publico,p.sha256 FROM lamontana.aceptacion_vista_previa p JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) WHERE p.id_operacion=?",(r,n)->new String[]{r.getString(1),r.getString(2)},operation);
         if(!previous.isEmpty()){if(!previous.get(0)[0].equals(file.toString())||!previous.get(0)[1].equals(hash))throw conflicto("La operación ya se usó para otra vista previa.");return f;}
-        exigirCarga(c.cotizacion());
+        exigirCarga(c.cotizacion());exigirCorreccion(c.cotizacion(),file);
         if(!f.activo()||!f.estado().equals("VALIDO")||!Objects.equals(f.sha256(),hash))throw conflicto("Sólo se acepta la vista previa vigente de un PDF que coincide con esta cotización.");
         if(f.aceptadaEn()!=null)throw conflicto("La vista previa ya fue aceptada. Consultá el estado guardado.");
         try{storage.original(file,f.sha256(),f.bytes());}catch(IOException e){throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"No se pudo comprobar la integridad del PDF privado. La vista previa no fue aceptada.");}
@@ -144,8 +147,9 @@ public class ArchivoService {
     @EventListener(ApplicationReadyEvent.class)
     public void recuperar(){var interrupted=tx.execute(s->{bloquear();return jdbc.query("UPDATE lamontana.archivo_almacenado SET estado='FALLIDO',fecha_fin=now(),codigo_resultado='SERVICIO_REINICIADO',mensaje='El servicio se reinició durante la carga. Iniciá otra carga para continuar.' WHERE estado='VALIDANDO' RETURNING codigo_publico",(r,n)->r.getObject(1,UUID.class));});for(UUID id:interrupted)try{storage.descartar(id);}catch(IOException ignored){}}
     private Vista vista(UUID quote,Contexto c,boolean interno){
-        var items=c.cotizacion().oferta().items().stream().map(i->{var ids=jdbc.query("SELECT a.codigo_publico FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) WHERE ci.codigo_publico=? ORDER BY t.activo DESC,a.id_archivo_almacenado DESC LIMIT 10",(r,n)->r.getObject(1,UUID.class),i.codigoPublico());return new Item(i.codigoPublico(),i.documento().nombre(),ids.stream().map(id->archivo(quote,id)).toList());}).toList();
-        return new Vista(quote,c.cotizacion().oferta().sucursal().nombre(),interno?new Acceso(false,"Consulta interna de archivos recibidos; la aprobación operativa se integra con los pedidos."):gate(c.cotizacion()),items);
+        var items=c.cotizacion().oferta().items().stream().map(i->{var ids=jdbc.query("SELECT a.codigo_publico FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) WHERE ci.codigo_publico=? ORDER BY t.activo DESC,a.id_archivo_almacenado DESC LIMIT 10",(r,n)->r.getObject(1,UUID.class),i.codigoPublico());return new Item(i.codigoPublico(),i.documento().nombre(),ids.stream().map(id->archivo(quote,id)).toList(),gate(c.cotizacion()).habilitada()&&(correccion(c.cotizacion())==null||itemSolicitado(correccion(c.cotizacion()).id(),i.codigoPublico())));}).toList();
+        var correccion=correccion(c.cotizacion());
+        return new Vista(quote,c.cotizacion().oferta().sucursal().nombre(),interno?new Acceso(false,"Consulta interna de archivos recibidos. La versión del trabajo se confirma al responder desde el pedido."):gate(c.cotizacion()),items,correccion==null?c.cotizacion().version():correccion.version(),correccion==null?null:correccion.codigo());
     }
     private Contexto autorizar(UUID quote,String correo,boolean interno){
         var users=jdbc.query("SELECT u.id_usuario,r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND r.activo",(r,n)->new Object[]{r.getLong(1),r.getString(2)},correo);
@@ -156,7 +160,8 @@ public class ArchivoService {
         if(interno&&!role.equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,c.oferta().sucursal().codigoPublico());return new Contexto(c,user,role);
     }
     private Acceso gate(Cotizacion c){
-        if(c.estado().equals("CONFIRMADA"))return new Acceso(false,"Los PDF ya están vinculados al pedido confirmado. Las correcciones se gestionan desde su recorrido operativo.");
+        if(c.estado().equals("CONFIRMADA"))return gateCorreccion(c);
+        if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc JOIN lamontana.solicitud_correccion s USING(id_solicitud_correccion) JOIN lamontana.pedido p USING(id_pedido) WHERE cc.id_cotizacion=? AND (s.estado<>'PENDIENTE' OR p.estado<>'CORRECCION_SOLICITADA'))",Boolean.class,c.id()))return new Acceso(false,"La corrección de esta oferta ya terminó. Consultá la versión guardada en el pedido.");
         if(!c.estado().equals("VIGENTE")||!clock.instant().isBefore(c.vence()))return new Acceso(false,"La cotización dejó de estar vigente. Solicitá una nueva oferta para continuar.");
         if(c.aceptada()==null)return new Acceso(false,"Aceptá la cotización antes de enviar los PDF.");
         var current=operativa.leer();var b=current.configuracion();
@@ -168,6 +173,24 @@ public class ArchivoService {
             ||actual.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),actual.pagoPrevioRequerido(),actual.senaRequerida(),actual.mediosAcreditacion()))
             return new Acceso(false,"Falta acreditar y aplicar el anticipo requerido mediante los medios admitidos. Informar una transferencia no acredita dinero.");
         return new Acceso(true,"Podés enviar los PDF para su análisis y vista previa. La seña exigible después de aprobar sigue siendo un requisito independiente.");
+    }
+    private Correccion correccion(Cotizacion c){
+        if(!c.estado().equals("CONFIRMADA"))return null;
+        var rows=jdbc.query("SELECT s.id_solicitud_correccion,s.codigo_publico,p.version FROM lamontana.solicitud_correccion s JOIN lamontana.pedido_actual p USING(id_pedido) WHERE s.id_cotizacion_base=? AND p.id_cotizacion=? AND s.estado='PENDIENTE' AND p.estado='CORRECCION_SOLICITADA'",(r,n)->new Correccion(r.getLong(1),r.getObject(2,UUID.class),r.getLong(3)),c.id(),c.id());return rows.isEmpty()?null:rows.get(0);
+    }
+    private boolean itemSolicitado(long solicitud,UUID item){return jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.solicitud_correccion_item s JOIN lamontana.cotizacion_item i USING(id_cotizacion_item) WHERE s.id_solicitud_correccion=? AND s.requiere_reemplazo AND i.codigo_publico=?)",Boolean.class,solicitud,item);}
+    private boolean coincideCorreccion(Cotizacion c,UUID file){
+        if(!c.estado().equals("CONFIRMADA"))return true;var s=correccion(c);return s!=null&&jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.archivo_trabajo t JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) JOIN lamontana.solicitud_correccion_item i ON i.id_cotizacion_item=t.id_cotizacion_item AND i.id_solicitud_correccion=t.id_solicitud_correccion WHERE a.codigo_publico=? AND t.id_solicitud_correccion=? AND i.requiere_reemplazo)",Boolean.class,file,s.id());
+    }
+    private void exigirCorreccion(Cotizacion c,UUID file){if(!coincideCorreccion(c,file))throw conflicto("El archivo no corresponde a la solicitud de corrección actual.");}
+    private Acceso gateCorreccion(Cotizacion c){
+        var s=correccion(c);if(s==null)return new Acceso(false,"Los originales confirmados se conservan. Para reemplazarlos debe existir una solicitud de corrección pendiente.");
+        if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_solicitud_correccion=?)",Boolean.class,s.id()))return new Acceso(false,"Ya hay una nueva oferta para la corrección. Cargá los PDF en esa cotización y respondé desde el pedido.");
+        if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,c.oferta().sucursal().codigoPublico()))return new Acceso(false,"La sucursal está desactivada.");
+        if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.solicitud_correccion_item WHERE id_solicitud_correccion=? AND requiere_reemplazo)",Boolean.class,s.id()))return new Acceso(false,"Esta solicitud no requiere reemplazar PDF. Corregí los datos al responder desde el pedido.");
+        var fin=jdbc.queryForObject("SELECT condiciones_finales FROM lamontana.pedido_actual WHERE id_cotizacion=?",(r,n)->json.readValue(r.getString(1),ar.com.lamontana.pedidos.PedidoService.Condiciones.class),c.id());var a=fin.cotizadas();var b=fin.actuales();
+        if(a.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),a.pagoPrevioRequerido(),a.senaRequerida(),a.mediosAcreditacion())||b.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),b.pagoPrevioRequerido(),b.senaRequerida(),b.mediosAcreditacion()))return new Acceso(false,"Falta cobertura acreditada del anticipo aceptado para la carga.");
+        return new Acceso(true,"Cargá sólo los PDF solicitados, aceptá cada vista previa y enviá tu respuesta desde el pedido. Los originales siguen en su historial.");
     }
     private void exigirCarga(Cotizacion c){var a=gate(c);if(!a.habilitada())throw conflicto(a.motivo());}
     private long itemId(long quote,UUID item){var ids=jdbc.query("SELECT id_cotizacion_item FROM lamontana.cotizacion_item WHERE id_cotizacion=? AND codigo_publico=?",(r,n)->r.getLong(1),quote,item);if(ids.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"El ítem no está disponible.");return ids.get(0);}

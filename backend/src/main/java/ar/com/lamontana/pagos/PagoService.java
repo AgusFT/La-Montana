@@ -37,7 +37,7 @@ public class PagoService {
     public record Evento(String tipo,String actor,String rol,Instant fecha,String motivo){}
     public record Vista(UUID cotizacion,long numero,String cliente,String sucursal,String estado,boolean aceptada,String total,String aplicado,String pendiente,
         String anticipoOfertado,String coberturaAnticipoOfertado,String anticipoActual,String coberturaAnticipoActual,List<MedioPago> mediosAnticipo,
-        boolean puedeInformar,List<MedioPago> mediosRecepcion,List<String> permisos,List<Intento> intentos,List<Pago> pagos,List<OfertaRelacionada> relacionadas,List<Evento> historial,boolean pedidoFinalizado){}
+        boolean puedeInformar,List<MedioPago> mediosRecepcion,List<String> permisos,List<Intento> intentos,List<Pago> pagos,List<OfertaRelacionada> relacionadas,List<Evento> historial,boolean pedidoFinalizado,boolean cotizacionSustituida){}
     public record Fila(UUID cotizacion,long numero,String cliente,String estado,String total,String aplicado,long pendientes){}
     public record Bandeja(List<Fila> elementos,long total,int pagina){}
 
@@ -66,7 +66,7 @@ public class PagoService {
     @Transactional public Vista informar(UUID quote,Informar in,String correo){
         bloquear();var a=actor(correo,false);var q=autorizar(quote,a,correo);String hash=huella(quote,in);
         if(replay(in.operacion(),"INFORMAR",hash,a))return leer(q,a,correo,false);
-        if(pedidoFinalizado(q))throw conflicto("El pedido finalizó. Contactá a la imprenta para registrar un pago efectivamente recibido o su devolución.");
+        if(pedidoFinalizado(q)||cotizacionSustituida(q))throw conflicto("El pedido finalizó o esta cotización fue sustituida. Continuá desde su versión actual; un interno puede registrar dinero efectivamente recibido o su devolución.");
         exigir(q.aceptada()!=null,"Aceptá la oferta antes de informar una transferencia.");exigir(admite(q,MedioPago.TRANSFERENCIA),"Esta cotización no admite transferencia.");
         BigDecimal importe=importe(in.importe());texto(in.referencia());texto(in.motivo());
         if(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_pago i LEFT JOIN lamontana.resolucion_intento_pago r USING(id_intento_pago) WHERE i.id_cotizacion=? AND r.id_intento_pago IS NULL",Integer.class,q.id())>=20)throw conflicto("Hay veinte transferencias pendientes de verificar. Revisá las existentes antes de informar otra.");
@@ -103,7 +103,7 @@ public class PagoService {
         BigDecimal cantidad=importe(in.importe());texto(in.motivo());var liberar=new ArrayList<Asignacion>();BigDecimal disponible=p.disponible();
         for(var asignacion:asignaciones(p.id()))if(asignacion.cotizacion()!=q.id()){
             var vieja=autorizar(asignacion.codigo(),a,correo);
-            if(vigente(vieja)||vieja.estado().equals("CONFIRMADA")||!descendiente(q.id(),vieja.id()))throw conflicto("El pago todavía cubre una oferta vigente, un pedido o una cotización ajena a esta sucesión.");
+            if(!puedeLiberarHacia(vieja,q))throw conflicto("El pago todavía cubre una oferta vigente, un pedido o una cotización ajena a esta sucesión.");
             liberar.add(asignacion);disponible=disponible.add(asignacion.neto());
         }
         if(cantidad.compareTo(disponible)>0)throw conflicto("El importe supera el dinero disponible después de las devoluciones y aplicaciones.");
@@ -141,7 +141,7 @@ public class PagoService {
             throw conflicto("Este medio sólo puede cubrir el saldo posterior al anticipo. Conservá o devolvé el excedente; el anticipo requiere los medios configurados.");
     }
     private Vista leer(Oferta q,Actor a,String correo,boolean interno){
-        boolean terminado=pedidoFinalizado(q);
+        boolean terminado=pedidoFinalizado(q),sustituida=cotizacionSustituida(q);
         if(interno)permisoFinanciero(correo);var permisos=interno?organizacion.contexto(correo).permisos():List.<String>of();
         var asignado=cobertura.acreditado(q.id(),List.of(MedioPago.values()));var c=q.datos().condiciones();String anticipo=dinero(new BigDecimal(c.pagoPrevioRequerido()).add(new BigDecimal(c.senaRequerida())));
         var actual=condicionesFinales(q);
@@ -158,12 +158,12 @@ public class PagoService {
         var relacionadas=jdbc.query("SELECT codigo_publico FROM lamontana.cotizacion WHERE id_cotizacion<>? AND (lamontana.cotizacion_descendiente(id_cotizacion,?) OR lamontana.cotizacion_descendiente(?,id_cotizacion)) ORDER BY id_cotizacion",(r,n)->r.getObject(1,UUID.class),q.id(),q.id(),q.id()).stream().map(this::oferta).filter(o->!interno||acceso(o,a,correo)).map(o->new OfertaRelacionada(o.codigo(),o.id(),o.datos().total(),estado(o.estado(),o.vence()),o.aceptada()!=null,o.datos().sucursal().nombre())).toList();
         var eventos=jdbc.query("SELECT tipo,actor_nombre,actor_rol,fecha,motivo FROM lamontana.evento_financiero WHERE id_cotizacion=? ORDER BY id_evento DESC LIMIT 100",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5)),q.id());
         String cliente=jdbc.queryForObject("SELECT nombre||' '||apellido FROM lamontana.usuario WHERE id_usuario=?",String.class,q.cliente());
-        return new Vista(q.codigo(),q.id(),cliente,q.datos().sucursal().nombre(),estado(q.estado(),q.vence()),q.aceptada()!=null,q.datos().total(),dinero(asignado),terminado?"0.00":dinero(new BigDecimal(q.datos().total()).subtract(asignado)),anticipo,dinero(cobertura.acreditado(q.id(),c.mediosAcreditacion())),actual==null?null:dinero(new BigDecimal(actual.pagoPrevioRequerido()).add(new BigDecimal(actual.senaRequerida()))),actual==null?null:dinero(cobertura.acreditado(q.id(),actual.mediosAcreditacion())),actual==null?List.of():actual.mediosAcreditacion(),!terminado&&!interno&&q.aceptada()!=null&&admite(q,MedioPago.TRANSFERENCIA),Arrays.stream(MedioPago.values()).filter(m->admite(q,m)).toList(),permisos,intentos,pagos,relacionadas,eventos,terminado);
+        return new Vista(q.codigo(),q.id(),cliente,q.datos().sucursal().nombre(),estado(q.estado(),q.vence()),q.aceptada()!=null,q.datos().total(),dinero(asignado),(terminado||sustituida)?"0.00":dinero(new BigDecimal(q.datos().total()).subtract(asignado)),anticipo,dinero(cobertura.acreditado(q.id(),c.mediosAcreditacion())),actual==null?null:dinero(new BigDecimal(actual.pagoPrevioRequerido()).add(new BigDecimal(actual.senaRequerida()))),actual==null?null:dinero(cobertura.acreditado(q.id(),actual.mediosAcreditacion())),actual==null?List.of():actual.mediosAcreditacion(),!terminado&&!sustituida&&!interno&&q.aceptada()!=null&&admite(q,MedioPago.TRANSFERENCIA),Arrays.stream(MedioPago.values()).filter(m->admite(q,m)).toList(),permisos,intentos,pagos,relacionadas,eventos,terminado,sustituida);
     }
     private BigDecimal maximoAplicable(Oferta q,Fondos p,Actor a,String correo,boolean interno){
         if(!interno||!organizacion.contexto(correo).permisos().contains(permiso(p.medio()))||!admiteAplicacion(q)||q.aceptada()==null||!q.activa())return BigDecimal.ZERO;
         BigDecimal disponible=p.disponible();for(var x:asignaciones(p.id()))if(x.cotizacion()!=q.id()){
-            var origen=oferta(x.codigo());if(!acceso(origen,a,correo)||vigente(origen)||origen.estado().equals("CONFIRMADA")||!descendiente(q.id(),origen.id()))return BigDecimal.ZERO;disponible=disponible.add(x.neto());
+            var origen=oferta(x.codigo());if(!acceso(origen,a,correo)||!puedeLiberarHacia(origen,q))return BigDecimal.ZERO;disponible=disponible.add(x.neto());
         }
         BigDecimal pendiente=new BigDecimal(q.datos().total()).subtract(cobertura.acreditado(q.id(),List.of(MedioPago.values())));
         var c=q.datos().condiciones();BigDecimal maximo=disponible.min(pendiente).min(topeMedios(q,p.medio(),c.pagoPrevioRequerido(),c.senaRequerida(),c.mediosAcreditacion()));
@@ -191,10 +191,32 @@ public class PagoService {
     private boolean admite(Oferta q,MedioPago medio){var finalizadas=condicionesFinales(q);return q.datos().medioPago()==medio||q.datos().mediosGenerales()!=null&&q.datos().mediosGenerales().contains(medio)||q.datos().condiciones().mediosAcreditacion().contains(medio)||finalizadas!=null&&(finalizadas.mediosGenerales().contains(medio)||finalizadas.mediosAcreditacion().contains(medio));}
     private String clave(Oferta q,MedioPago medio,String ref){return medio.name()+":"+(medio==MedioPago.EFECTIVO?q.sucursal()+":":"")+huella(null,ref.strip().toUpperCase(Locale.ROOT).replaceAll("\\s+"," "));}
     private String permiso(MedioPago medio){return medio==MedioPago.EFECTIVO?"REGISTRAR_COBRO":"ACREDITAR_PAGO";}
-    private boolean pedidoFinalizado(Oferta q){return q.estado().equals("CONFIRMADA")&&jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pedido WHERE id_cotizacion=? AND estado IN ('CANCELADO','RECHAZADO'))",Boolean.class,q.id());}
-    private boolean admiteAplicacion(Oferta q){return vigente(q)||q.estado().equals("CONFIRMADA")&&jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pedido WHERE id_cotizacion=? AND estado NOT IN ('CANCELADO','RECHAZADO'))",Boolean.class,q.id());}
+    private Long pedidoVinculado(Oferta q){
+        var ids=jdbc.query("SELECT id_pedido FROM lamontana.pedido WHERE id_cotizacion=? UNION SELECT s.id_pedido FROM lamontana.cotizacion_correccion c JOIN lamontana.solicitud_correccion s USING(id_solicitud_correccion) WHERE c.id_cotizacion=?",(r,n)->r.getLong(1),q.id(),q.id());
+        return ids.isEmpty()?null:ids.get(0);
+    }
+    private boolean pedidoFinalizado(Oferta q){var pedido=pedidoVinculado(q);return pedido!=null&&jdbc.queryForObject("SELECT estado IN ('CANCELADO','RECHAZADO') FROM lamontana.pedido WHERE id_pedido=?",Boolean.class,pedido);}
+    private boolean cotizacionSustituida(Oferta q){
+        var pedido=pedidoVinculado(q);if(pedido==null)return false;
+        return jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pedido_actual WHERE id_pedido=? AND id_cotizacion<>? AND lamontana.cotizacion_descendiente(id_cotizacion,?)) OR EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc JOIN lamontana.solicitud_correccion s USING(id_solicitud_correccion) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE s.id_pedido=? AND s.estado='PENDIENTE' AND c.id_cotizacion<>? AND lamontana.cotizacion_descendiente(c.id_cotizacion,?))",Boolean.class,pedido,q.id(),q.id(),pedido,q.id(),q.id());
+    }
+    private boolean admiteAplicacion(Oferta q){
+        if(pedidoFinalizado(q)||cotizacionSustituida(q))return false;
+        var pedido=pedidoVinculado(q);if(pedido==null)return vigente(q);
+        if(q.estado().equals("CONFIRMADA"))return jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pedido_actual WHERE id_pedido=? AND id_cotizacion=?)",Boolean.class,pedido,q.id());
+        return vigente(q)&&jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion c JOIN lamontana.solicitud_correccion s USING(id_solicitud_correccion) JOIN lamontana.pedido p USING(id_pedido) WHERE c.id_cotizacion=? AND s.estado='PENDIENTE' AND p.estado='CORRECCION_SOLICITADA')",Boolean.class,q.id());
+    }
+    private boolean puedeLiberarHacia(Oferta origen,Oferta destino){
+        if(!descendiente(destino.id(),origen.id())||vigente(origen))return false;
+        if(!origen.estado().equals("CONFIRMADA"))return true;
+        // Única excepción para dinero de un pedido: una corrección aceptada del mismo
+        // pedido, o su versión ya respondida. La aplicación sigue siendo explícita.
+        var pedido=pedidoVinculado(origen);
+        return pedido!=null&&Objects.equals(pedido,pedidoVinculado(destino))&&admiteAplicacion(destino)
+            &&jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_cotizacion=?)",Boolean.class,destino.id());
+    }
     private EvaluadorFinanciero.Simulacion condicionesFinales(Oferta q){
-        if(q.estado().equals("CONFIRMADA"))return jdbc.queryForObject("SELECT condiciones_finales->'actuales' FROM lamontana.pedido WHERE id_cotizacion=?",(r,n)->json.readValue(r.getString(1),EvaluadorFinanciero.Simulacion.class),q.id());
+        if(q.estado().equals("CONFIRMADA"))return jdbc.queryForObject("SELECT condiciones_finales->'actuales' FROM (SELECT condiciones_finales,version_pedido AS version FROM lamontana.respuesta_correccion WHERE id_cotizacion=? UNION ALL SELECT condiciones_finales,1 FROM lamontana.pedido WHERE id_cotizacion=?) v ORDER BY version DESC LIMIT 1",(r,n)->json.readValue(r.getString(1),EvaluadorFinanciero.Simulacion.class),q.id(),q.id());
         var b=operativa.leer().configuracion();return b==null?null:reglas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),new BigDecimal(q.datos().total()),q.datos().items().stream().mapToInt(i->i.precio().carillas()).sum());
     }
     private boolean vigente(Oferta q){return q.estado().equals("VIGENTE")&&clock.instant().isBefore(q.vence());}
