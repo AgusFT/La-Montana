@@ -329,3 +329,12 @@ Cada servicio ofrecido tiene su propio botón **Guardar servicio al borrador**. 
 Se pueden preparar varias tarifas y servicios antes de **Guardar nueva configuración**, que publica o programa el conjunto. No se puede publicar con un servicio o tarifa abierto sin confirmar. El borrador se conserva entre pestañas y salir con cambios muestra una advertencia; no persiste si se abandona o recarga sin guardar la configuración.
 
 Verificación: build de producción y tipos correctos; siete escenarios de navegador con tres servicios confirmados antes de una única publicación. Validación, cancelación, edición, selección completa de papeles, conservación entre pestañas, advertencia al salir, recarga y reintento sin duplicados comprobados. Ocho revisiones de presentación del editor y los resúmenes a 320/390/768/1440 px, sin desbordamientos ni errores JavaScript. Pruebas sólo en instancia aislada; backend, API y migraciones sin cambios.
+
+
+### Apariencia clara y oscura
+
+El menú administrativo y operativo incluye sol y luna debajo del aviso de funciones en construcción. **Claro** conserva la apariencia original y es el valor predeterminado, independientemente del tema del sistema operativo. **Oscuro** usa fondos gris azulados y un menú azul petróleo diferenciado; adapta texto, formularios, tablas, botones, avisos, ayudas y estados. No modifica distribuciones, precios ni configuraciones de negocio.
+
+La elección se recuerda en este navegador y se sincroniza entre sus pestañas; se aplica al abrir la página para evitar un destello claro. Si el navegador bloquea el almacenamiento, los botones siguen funcionando para la página actual. En ventanas bajas el aviso decorativo puede ocultarse, pero los controles permanecen accesibles sin scroll propio del menú. La página pública de la imprenta conserva su identidad y colores.
+
+Verificación: build de producción y tipos correctos; siete escenarios de navegador, catorce comprobaciones responsive (incluidos ocho tamaños de escritorio con nueve enlaces y dos controles visibles) y revisión de contraste de textos/controles activos en 19 vistas y estados. Teclado, persistencia, sincronización entre pestañas, almacenamiento bloqueado y conservación de formularios comprobados. Cero errores JavaScript y cero mutaciones de configuración. Capturas inspeccionadas; pruebas sólo en instancia aislada.

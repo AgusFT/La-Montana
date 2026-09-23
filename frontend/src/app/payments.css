@@ -7,6 +7,9 @@
  * a pantallas pequeñas.
  *
  * ------------------------------------------------------------------------
+ * Los colores usan tokens semánticos con el valor claro original como respaldo.
+ * La paleta oscura se define en theme.css; no altera medidas ni distribución.
+ *
  * CONTENIDO DECLARADO
  * - Hoja de estilos; no declara funciones ni métodos JavaScript.
  *
@@ -22,12 +25,12 @@
  * #endregion
  */
 
-.payment-panel{border:1px solid #cad8e4;border-radius:14px;background:#fff;margin:24px 0;padding:22px;color:#18334d;overflow-wrap:anywhere}
-.payment-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;background:linear-gradient(110deg,#0060dd,#0754c7);color:white;padding:22px;margin:-22px -22px 20px;border-radius:13px 13px 0 0}
+.payment-panel{border:1px solid var(--ui-border,#cad8e4);border-radius:14px;background:var(--ui-surface,#fff);margin:24px 0;padding:22px;color:var(--ui-text,#18334d);overflow-wrap:anywhere}
+.payment-heading{display:flex;justify-content:space-between;align-items:center;gap:18px;background:linear-gradient(110deg,var(--ui-accent,#0060dd),var(--ui-accent,#0754c7));color:white;padding:22px;margin:-22px -22px 20px;border-radius:13px 13px 0 0}
 .payment-heading span{font-size:.73rem;letter-spacing:.09em}.payment-heading h2{color:white!important;font-size:1.4rem;margin:7px 0 0}.payment-heading button{flex-shrink:0}
-.payment-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}.payment-totals>div{background:#eff5fa;border-radius:9px;padding:16px;display:flex;flex-direction:column;gap:8px}.payment-totals strong{font-size:1.5rem}.payment-pending strong{color:#a83535}.payment-totals span{font-size:.9rem}
-.client-button.payment-confirm{background:#238352;border-color:#238352;color:#fff}.payment-form{border:2px solid #4294b8;background:#f3f8fc;padding:20px;border-radius:12px;margin:22px 0}.payment-form fieldset{border:0;padding:0;min-width:0}.payment-panel small{display:block;margin-top:5px;color:#5c6d7b}.payment-panel details{padding:12px 0}.payment-panel summary{cursor:pointer;font-weight:600}.payment-panel h4{font-size:1.1rem;margin:0 0 12px}
+.payment-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}.payment-totals>div{background:var(--ui-surface,#eff5fa);border-radius:9px;padding:16px;display:flex;flex-direction:column;gap:8px}.payment-totals strong{font-size:1.5rem}.payment-pending strong{color:var(--ui-danger-text,#a83535)}.payment-totals span{font-size:.9rem}
+.client-button.payment-confirm{background:var(--ui-success-solid,#238352);border-color:var(--ui-success-border,#238352);color:#fff}.payment-form{border:2px solid var(--ui-border,#4294b8);background:var(--ui-surface,#f3f8fc);padding:20px;border-radius:12px;margin:22px 0}.payment-form fieldset{border:0;padding:0;min-width:0}.payment-panel small{display:block;margin-top:5px;color:var(--ui-muted,#5c6d7b)}.payment-panel details{padding:12px 0}.payment-panel summary{cursor:pointer;font-weight:600}.payment-panel h4{font-size:1.1rem;margin:0 0 12px}
 @media(max-width:640px){.payment-panel{padding:16px}.payment-heading{margin:-16px -16px 16px;padding:18px 16px;align-items:flex-start;flex-direction:column}.payment-totals{grid-template-columns:1fr}.payment-form{padding:12px}.payment-totals strong{font-size:1.35rem}.payment-panel .client-actions{align-items:stretch}.payment-panel .client-actions button{white-space:normal}}
-.payment-evidence{margin-top:22px!important;border:2px solid #b5cce9!important;scroll-margin-top:20px}.payment-evidence h3{margin:0;flex:1}.evidence-record{border-top:1px solid #dce6ef;padding:18px 0;margin-top:16px}.evidence-preview{padding:16px;background:#f0f4f8;border-radius:10px;margin-top:18px}.evidence-preview img{display:block;width:100%;height:auto;max-width:900px;margin:16px auto;background:white;border:1px solid #ccd9e4}.evidence-preview .client-actions{align-items:center}
+.payment-evidence{margin-top:22px!important;border:2px solid var(--ui-border,#b5cce9)!important;scroll-margin-top:20px}.payment-evidence h3{margin:0;flex:1}.evidence-record{border-top:1px solid var(--ui-border,#dce6ef);padding:18px 0;margin-top:16px}.evidence-preview{padding:16px;background:var(--ui-surface,#f0f4f8);border-radius:10px;margin-top:18px}.evidence-preview img{display:block;width:100%;height:auto;max-width:900px;margin:16px auto;background:var(--ui-surface,white);border:1px solid var(--ui-border,#ccd9e4)}.evidence-preview .client-actions{align-items:center}
 
 @media(max-width:640px){.payment-evidence .client-actions>*{flex:1 1 9rem;overflow-wrap:normal}.payment-evidence .client-actions>h3,.evidence-preview .client-actions>span{flex-basis:100%}.evidence-preview .client-actions>span{text-align:center}}

@@ -7,6 +7,9 @@
  * adaptación a pantallas pequeñas.
  *
  * ------------------------------------------------------------------------
+ * Los colores usan tokens semánticos con el valor claro original como respaldo.
+ * La paleta oscura se define en theme.css; no altera medidas ni distribución.
+ *
  * CONTENIDO DECLARADO
  * - Hoja de estilos; no declara funciones ni métodos JavaScript.
  *
@@ -25,12 +28,12 @@
  * #endregion
  */
 
-.access-layout{min-height:100vh;display:flex;flex-direction:column;background:#e8edf1;color:#294155}
-.access-header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px max(28px,calc((100vw - 1280px)/2));background:#293f51;color:#fff}
-.access-header .brand{color:#fff;font-size:34px;letter-spacing:.5px}.access-header .brand small{color:#f3973d;letter-spacing:7px;text-transform:lowercase;font-size:14px;font-weight:400}.access-header .mountain-mark{width:65px;height:62px}.access-header .mountain-snow{fill:#293f51}.access-header nav{display:flex;gap:25px}.access-header nav a{color:#fff;text-decoration:none;font-size:15px}
-.access-main{flex:1;display:grid;place-items:center;padding:58px 20px 68px;background:linear-gradient(#e7ebef80,#e7ebef40),url('/mountains.svg') center bottom/cover no-repeat}
-.access-card{width:100%;max-width:490px;background:#ffffffed;border:1px solid #e2e5e9;border-radius:16px;box-shadow:0 12px 34px #233c512b;padding:28px 44px 35px}
-.access-card .mountain-signature{display:block;width:212px;height:171px;margin:0 auto 18px;color:#293f51}.access-card h1{font-size:25px;letter-spacing:-.4px;text-align:center;margin:4px 0 10px}.access-description{text-align:center;line-height:1.5;font-size:14px;color:#5a6c7b;margin:0 0 24px}
-.access-card .identity-form{gap:18px}.access-card .identity-form input{min-height:49px;border-color:#c9d0d8}.access-card .refresh{background:#ee7c16;min-height:49px;font-size:15px}.access-card .refresh:hover{background:#d26b0d}.access-card .secondary-link{text-align:center}.access-card .access-register{background:#927650;color:#fff;display:flex;align-items:center;justify-content:center;min-height:49px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px}.access-card .access-register:hover{background:#79613f}.access-recovery{margin-top:6px}
-.access-footer{margin:0;padding:25px 24px;background:#344e64;color:#e3ebf3;display:flex;justify-content:center;gap:60px;flex-wrap:wrap;font-size:13px}.access-footer p{margin:0;line-height:1.8}.access-footer strong{display:block;color:#fff;font-size:14px}.access-footer a{color:#fff}
+.access-layout{min-height:100vh;display:flex;flex-direction:column;background:var(--ui-soft,#e8edf1);color:var(--ui-text,#294155)}
+.access-header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:24px max(28px,calc((100vw - 1280px)/2));background:var(--ui-overlay,#293f51);color:#fff}
+.access-header .brand{color:#fff;font-size:34px;letter-spacing:.5px}.access-header .brand small{color:var(--ui-warning-text,#f3973d);letter-spacing:7px;text-transform:lowercase;font-size:14px;font-weight:400}.access-header .mountain-mark{width:65px;height:62px}.access-header .mountain-snow{fill:var(--ui-text,#293f51)}.access-header nav{display:flex;gap:25px}.access-header nav a{color:#fff;text-decoration:none;font-size:15px}
+.access-main{flex:1;display:grid;place-items:center;padding:58px 20px 68px;background:linear-gradient(var(--ui-soft,#e7ebef80),var(--ui-soft,#e7ebef40)),url('/mountains.svg') center bottom/cover no-repeat}
+.access-card{width:100%;max-width:490px;background:var(--ui-surface,#ffffffed);border:1px solid var(--ui-border,#e2e5e9);border-radius:16px;box-shadow:0 12px 34px var(--ui-shadow,#233c512b);padding:28px 44px 35px}
+.access-card .mountain-signature{display:block;width:212px;height:171px;margin:0 auto 18px;color:var(--ui-text,#293f51)}.access-card h1{font-size:25px;letter-spacing:-.4px;text-align:center;margin:4px 0 10px}.access-description{text-align:center;line-height:1.5;font-size:14px;color:var(--ui-muted,#5a6c7b);margin:0 0 24px}
+.access-card .identity-form{gap:18px}.access-card .identity-form input{min-height:49px;border-color:var(--ui-border,#c9d0d8)}.access-card .refresh{background:var(--ui-warning-solid,#ee7c16);min-height:49px;font-size:15px}.access-card .refresh:hover{background:var(--ui-warning-solid,#d26b0d)}.access-card .secondary-link{text-align:center}.access-card .access-register{background:var(--ui-warning-solid,#927650);color:#fff;display:flex;align-items:center;justify-content:center;min-height:49px;border-radius:7px;text-decoration:none;font-weight:600;font-size:15px}.access-card .access-register:hover{background:var(--ui-warning-solid,#79613f)}.access-recovery{margin-top:6px}
+.access-footer{margin:0;padding:25px 24px;background:var(--ui-overlay,#344e64);color:var(--ui-muted,#e3ebf3);display:flex;justify-content:center;gap:60px;flex-wrap:wrap;font-size:13px}.access-footer p{margin:0;line-height:1.8}.access-footer strong{display:block;color:#fff;font-size:14px}.access-footer a{color:#fff}
 @media(max-width:600px){.access-header{padding:17px 20px;gap:16px}.access-header .brand{font-size:22px;gap:7px}.access-header .brand small{font-size:9px;letter-spacing:4px}.access-header .mountain-mark{width:44px;height:43px}.access-header nav{gap:12px}.access-header nav a{font-size:12px}.access-main{padding:28px 16px 36px}.access-card{padding:22px 24px 28px}.access-card .mountain-signature{width:185px;height:150px}.access-card h1{font-size:23px}.access-footer{justify-content:flex-start;gap:20px 36px;padding:24px}.access-footer p{flex:1 1 110px}}

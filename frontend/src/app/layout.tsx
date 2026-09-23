@@ -5,7 +5,7 @@
  * ========================================================================
  * FUNCIÓN
  * Define el documento HTML raíz, el idioma español argentino, los metadatos generales y los
- * estilos globales compartidos por las páginas.
+ * estilos globales y la preferencia visual antes del primer pintado.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
@@ -27,6 +27,8 @@
 
 import type { Metadata } from "next";
 import "./globals.css";
+import "./theme.css";
+import {themeBootstrap} from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "La Montaña · Impresiones",
@@ -35,5 +37,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es-AR"><body>{children}</body></html>;
+  return <html lang="es-AR" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:themeBootstrap}}/></head><body>{children}</body></html>;
 }
