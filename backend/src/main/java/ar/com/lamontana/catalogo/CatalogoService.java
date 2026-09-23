@@ -50,6 +50,10 @@ public class CatalogoService {
     private List<Servicio> servicios() { return jdbc.query("SELECT codigo_publico,codigo,nombre,tipo,descripcion FROM lamontana.servicio ORDER BY codigo",(r,n)->new Servicio(r.getObject(1,UUID.class),r.getString(2),r.getString(3),TipoServicio.valueOf(r.getString(4)),r.getString(5))); }
 
     @Transactional public void predefinido(String codigo,String actor) { bloquear();new PapelesCatalogo(jdbc).predefinido(codigo,actor); }
+    @Transactional public void todosPredefinidos(String actor) {
+        bloquear();var papeles=new PapelesCatalogo(jdbc);
+        for(var predefinido:PapelesCatalogo.PREDEFINIDOS)papeles.predefinido(predefinido.codigo(),actor);
+    }
     @Transactional public void personalizado(PapelPersonalizado in,String actor) { bloquear();new PapelesCatalogo(jdbc).personalizado(in,actor); }
     @Transactional public void seleccion(SeleccionPapel in,String actor) { bloquear();new PapelesCatalogo(jdbc).cambiar(in,actor); }
 

@@ -41,7 +41,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/admin/empleados").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/empleados").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/catalogo", "/api/admin/catalogo/revisiones/*").hasRole("ADMIN_ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/papeles-predefinidos", "/api/admin/catalogo/papeles-personalizados", "/api/admin/catalogo/formatos", "/api/admin/catalogo/papeles", "/api/admin/catalogo/servicios", "/api/admin/catalogo/revisiones").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/papeles-predefinidos/habilitar-todos", "/api/admin/catalogo/papeles-predefinidos", "/api/admin/catalogo/papeles-personalizados", "/api/admin/catalogo/formatos", "/api/admin/catalogo/papeles", "/api/admin/catalogo/servicios", "/api/admin/catalogo/revisiones").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/catalogo/papeles-habilitados").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/programaciones/*/cancelar").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/admin/puntos-entrega/disponibilidad").hasRole("ADMIN_ADMIN")

@@ -32,6 +32,8 @@ public class CatalogoController {
 
     @PostMapping("/papeles-predefinidos")
     public Map<String,String> predefinido(@Valid @RequestBody HabilitarPredefinido data,Principal actor) { catalogo.predefinido(data.codigo(),actor.getName());return Map.of("mensaje","Papel habilitado en el catálogo base."); }
+    @PostMapping("/papeles-predefinidos/habilitar-todos")
+    public Map<String,String> todosPredefinidos(Principal actor) { catalogo.todosPredefinidos(actor.getName());return Map.of("mensaje","Todos los papeles precargados están habilitados."); }
     @PostMapping("/papeles-personalizados")
     public Map<String,String> personalizado(@Valid @RequestBody PapelPersonalizado data,Principal actor) { catalogo.personalizado(data,actor.getName());return Map.of("mensaje","Papel personalizado guardado."); }
     @PutMapping("/papeles-habilitados")

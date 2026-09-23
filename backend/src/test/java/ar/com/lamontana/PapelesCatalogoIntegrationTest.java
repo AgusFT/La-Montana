@@ -62,6 +62,23 @@ class PapelesCatalogoIntegrationTest {
                 var publicUser=cliente();status(post(publicUser,"/api/admin/catalogo/papeles-predefinidos",pre),401);
                 status(post(publicUser,"/api/auth/registro",Map.of("nombre","Cliente","apellido","Test","correo","cliente@example.test","contrasena",CLAVE)),201);login(publicUser,"cliente@example.test");
                 status(post(publicUser,"/api/admin/catalogo/papeles-predefinidos",pre),403);status(post(publicUser,"/api/admin/catalogo/papeles-personalizados",custom),403);status(put(publicUser,"/api/admin/catalogo/papeles-habilitados",toggle),403);
+                String bulk="/api/admin/catalogo/papeles-predefinidos/habilitar-todos";
+                status(post(cliente(),bulk,Map.of()),401);status(post(publicUser,bulk,Map.of()),403);
+                status(admin.send(HttpRequest.newBuilder(uri(bulk)).POST(HttpRequest.BodyPublishers.noBody()).build(),HttpResponse.BodyHandlers.ofString()),403);
+                var personal=catalog.estado().papelesHabilitados().stream().filter(p->p.predefinido()==null).findFirst().orElseThrow();
+                status(put(admin,"/api/admin/catalogo/papeles-habilitados",Map.of("formato",personal.formato(),"papel",personal.papel(),"habilitado",false)),200);
+                status(put(admin,"/api/admin/catalogo/papeles-habilitados",toggle),200);
+                var beforeBatch=catalog.estado();int events=count(jdbc,"evento_catalogo");
+                jdbc.execute("CREATE FUNCTION lamontana.fallar_lote_papeles() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.predefinido='A5-COMUN-75' THEN RAISE EXCEPTION 'fallo de prueba en lote'; END IF; RETURN NEW; END $$");
+                jdbc.execute("CREATE TRIGGER fallar_lote_papeles BEFORE INSERT ON lamontana.catalogo_papel FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_lote_papeles()");
+                status(post(admin,bulk,Map.of()),500);
+                assertThat(catalog.estado()).isEqualTo(beforeBatch);assertThat(count(jdbc,"evento_catalogo")).isEqualTo(events);
+                jdbc.execute("DROP TRIGGER fallar_lote_papeles ON lamontana.catalogo_papel");jdbc.execute("DROP FUNCTION lamontana.fallar_lote_papeles()");
+                status(post(admin,bulk,Map.of()),200);var complete=catalog.estado();
+                assertThat(complete.papelesHabilitados().stream().filter(p->p.predefinido()!=null&&p.habilitado()).count()).isEqualTo(21);
+                assertThat(complete.papelesHabilitados()).contains(new ar.com.lamontana.catalogo.PapelesCatalogo.Seleccion(personal.formato(),personal.papel(),false,null));
+                assertThat(complete.actual()).isEqualTo(beforeBatch.actual());
+                events=count(jdbc,"evento_catalogo");status(post(admin,bulk,Map.of()),200);assertThat(catalog.estado()).isEqualTo(complete);assertThat(count(jdbc,"evento_catalogo")).isEqualTo(events);
                 String before=get(admin,"/api/admin/catalogo").body();app.close();app=iniciar(props);assertThat(get(admin,"/api/admin/catalogo").body()).isEqualTo(before);
             }finally{app.close();}
         }finally{Files.deleteIfExists(files);}

@@ -36,6 +36,15 @@ function MasterForm({kind,onCreated}:{kind:"papel"|"servicio";onCreated:()=>Prom
 }
 export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreated:()=>Promise<void>}){
   const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState(""),[weight,setWeight]=useState("80");
+  const [addingAll,setAddingAll]=useState(false);
+  const allEnabled=catalog.papelesPredefinidos.length>0&&catalog.papelesPredefinidos.every(p=>catalog.papelesHabilitados.some(s=>s.predefinido===p.codigo&&s.habilitado));
+  async function addAll(){
+    if(busy||allEnabled)return;setBusy(true);setAddingAll(true);setError("");setNotice("");
+    try{
+      await secureMutation("/api/admin/catalogo/papeles-predefinidos/habilitar-todos");
+      await onCreated();setNotice(`Los ${catalog.papelesPredefinidos.length} papeles precargados están habilitados. Ya podés elegirlos al preparar tarifas.`);
+    }catch(e){setError((e instanceof TypeError?"No pudimos comunicarnos con el servidor.":e instanceof Error?e.message:"No pudimos habilitar los papeles.")+" Podés reintentar sin duplicar registros.");}finally{setBusy(false);setAddingAll(false);}
+  }
   async function change(selection:PaperSelection|null,preset?:string){
     if(busy)return;setBusy(true);setError("");setNotice("");
     try{
@@ -50,6 +59,7 @@ export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreat
     <p className="admin-note">Habilitar un papel lo deja disponible para preparar precios. Para ofrecerlo a tus clientes, guardá una revisión en «Tarifas y servicios». Deshabilitarlo aquí no modifica revisiones vigentes, programadas ni pedidos.</p>
     <div className="catalog-paper-heading"><h3>Papeles habituales precargados</h3><label>Mostrar gramaje<select value={weight} onChange={e=>setWeight(e.target.value)}><option value="80">80 g/m²</option><option value="75">75 g/m²</option><option value="90">90 g/m²</option><option value="">Todos</option></select></label></div>
     <p className="admin-note">Papel común blanco, sin estucar. Elegí el gramaje indicado en tu resma. Oficio/Folio (8½ × 13) y Legal (8½ × 14) son tamaños diferentes; verificá las medidas de tu papel.</p>
+    <div className="catalog-add-all"><button type="button" className="admin-button" disabled={busy||allEnabled||catalog.papelesPredefinidos.length===0} aria-describedby="catalog-add-all-help" onClick={addAll}>{addingAll?"Habilitando todos…":allEnabled?"Todos los papeles están habilitados":`Agregar todos los papeles (${catalog.papelesPredefinidos.length})`}</button><p id="catalog-add-all-help" className="admin-note">Incluye todos los tamaños y gramajes precargados, aunque estés filtrando la lista. Los que ya agregaste se conservan sin duplicarse. Después podés deshabilitar cualquiera por separado.</p></div>
     {error&&<p className="form-message error-message" role="alert">{error}</p>}{notice&&<p className="admin-success" role="status">{notice}</p>}
     <div className="catalog-paper-grid" aria-busy={busy}>{catalog.papelesPredefinidos.filter(p=>!weight||p.gramaje===Number(weight)).map(p=>{
       const selection=catalog.papelesHabilitados.find(s=>s.predefinido===p.codigo)??null,enabled=!!selection?.habilitado;
