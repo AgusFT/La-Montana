@@ -2,7 +2,7 @@
 
 Piloto local en construcción con Spring Boot, Next.js y PostgreSQL. Esta rama `desarrollo` reemplaza la implementación deprecada; el código anterior sigue disponible en el historial Git.
 
-## Estado actual · entrega 34
+## Estado actual · entrega 35
 
 Funcionan el alta única del propietario sin credenciales predeterminadas, registro de particulares, acceso/sesiones y recuperación por correo local; sucursales, empleados y permisos; catálogo y tarifas con revisiones propias; y configurador de fases 1–8 con validación, simulación, activación inmediata/programada, cancelación, historial/comparación, uso como base y reversión auditable. Las capacidades de impresión se declaran para operación manual, sin CUPS. La Fase 5 incluye horarios y franjas de retiro con cupos explícitos por sucursal, además de puntos y zonas domiciliarias.
 
@@ -22,7 +22,9 @@ El cliente puede guardar cotizaciones de varios PDF, recuperar su historial, ace
 
 **Funcionan logística, entrega y cierre:** preparación, salida y llegada al punto separadas, código privado del cliente, validación por el empleado, entrega física con saldo cubierto y cierre administrativo explícito. El retiro local nunca pasa por En viaje.
 
-**Siguen En construcción:** reprogramación; adjuntos de referencia opcionales del interno en una corrección; corrección administrativa posterior al cierre. Las variantes manual y D1 permiten cargar según sus reglas, sin exigir la seña antes de la revisión. La aceptación de una oferta o preview no crea un pedido ni acredita dinero. No hay cuentas, precios ni reglas comerciales precargados. Compose está preparado, pero su ejecución y persistencia conjunta aún no están certificadas en este equipo.
+**Funciona la reprogramación con aceptación del cliente:** el personal autorizado propone otra fecha/franja del mismo destino; hasta aceptarla se conserva la reserva anterior. El cliente puede rechazarla y el interno retirarla. Al aceptar se revalidan disponibilidad y cupo, se conserva el precio y el recorrido físico, y se revoca el código anterior.
+
+**Siguen En construcción:** adjuntos de referencia opcionales del interno en una corrección; corrección administrativa posterior al cierre. Las variantes manual y D1 permiten cargar según sus reglas, sin exigir la seña antes de la revisión. La aceptación de una oferta o preview no crea un pedido ni acredita dinero. No hay cuentas, precios ni reglas comerciales precargados. Compose está preparado, pero su ejecución y persistencia conjunta aún no están certificadas en este equipo.
 
 Las secciones por entrega conservan el historial técnico; los pendientes indicados en una entrega anterior se interpretan según este estado actual y las entregas posteriores.
 
@@ -692,3 +694,20 @@ La vista utiliza la estructura y los estados de MC-ADM-009/011/012: cabecera azu
 Validación del bloque: cinco pruebas integradas aprobadas con PostgreSQL real (tres de entrega más regresiones de producción y corrección PDF), incluyendo las tres modalidades, vencimiento/intentos, regeneración, permisos/CSRF/sucursales/revocación, versión y actor, saldo/excedentes/informes, carrera, rollback de entrega, replay, reinicio e inmutabilidad del cierre. El primer pase detectó una restricción de reserva anterior que no contemplaba CUMPLIDA; se corrigió antes de integrar. Build y tipado de frontend aprobados. Navegador con Next/Spring/PostgreSQL/Mailpit/ClamAV reales desde instalación vacía: tres pedidos hasta cierre, recuperación de respuesta perdida sin duplicar, formularios obligatorios y privacidad. Se revisaron los mocks y capturas de 1536/390 px; se corrigieron contraste del diálogo y dirección repetida.
 
 **Siguiente paso:** reprogramar la reserva con aceptación del cliente, motivo, historial y cupo validado; invalidar códigos/validaciones cuando cambie la reserva. Luego certificar arranque persistente reproducible y ejecutar la pasada E2E/visual final de los once criterios. Compose todavía no está certificado en este equipo. Esta entrega no declara terminada la demo completa.
+
+
+## Reprogramación aceptada · entrega 35
+
+Desde el detalle de un pedido, un administrador o empleado de su sucursal con permiso `GESTIONAR_ENTREGAS` puede proponer una nueva fecha y consultar sus franjas configuradas. Completa un mensaje para el cliente, un motivo interno y confirma. La propuesta no ocupa cupo ni modifica la reserva actual; sólo se permite una pendiente por pedido.
+
+El cliente ve las dos fechas y puede aceptar o rechazar con confirmación explícita. El interno puede retirar la propuesta, incluso si perdió vigencia. El historial conserva propuesta, responsables y decisión; los motivos internos y del retiro no se revelan al cliente. Una respuesta de red perdida se recupera con la misma operación, sin repetir el cambio.
+
+La aceptación vuelve a verificar la configuración activa, sucursal, modalidad, destino, horario y capacidad. Si la configuración cambió, la franja terminó o se agotó su cupo, mantiene la reserva original. No se permite aceptar mientras el pedido esté en corrección, cancelado, rechazado, entregado o cerrado. Una propuesta que perdió vigencia sigue disponible para rechazarla o retirarla.
+
+Sólo cambia la fecha/franja: permanecen sucursal, modalidad, dirección, PDF, precio y pagos. Un pedido en viaje continúa en viaje, y uno llegado al punto continúa disponible allí. Cambiar el trabajo o el destino corresponde al circuito de corrección material. Al aceptar se revoca el código anterior y su validación; el cliente debe generar otro para recibirlo, respetando la espera de 30 segundos entre emisiones.
+
+V33 agrega propuesta y resolución inmutables, la relación entre reservas y la configuración usada para la nueva franja. La reserva anterior queda `REPROGRAMADA` y sólo la nueva `ACTIVA` ocupa capacidad. El cambio y su historial son atómicos; ante un fallo se conserva íntegramente el estado anterior.
+
+La interfaz toma la acción de reprogramar de MC-ADM-009 y conserva los encabezados azules, tarjetas y acciones rojas/verdes de los mocks. El formulario de propuesta y la respuesta del cliente desarrollan el contrato de aceptación del DER §7.6; no existe un mock específico de ese diálogo en main.
+
+**Pendiente de cierre del piloto:** certificar arranque conjunto y persistencia local; completar la pasada E2E de los once criterios, validaciones de pantallas, consistencia y comparación integral con los mocks. La demo completa sigue en implementación.

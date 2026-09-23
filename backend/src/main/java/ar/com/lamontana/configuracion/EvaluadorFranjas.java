@@ -24,6 +24,10 @@ public class EvaluadorFranjas {
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"No hay una franja utilizable dentro del horizonte técnico de cinco años. Revisá el calendario del destino.");
     }
+    public List<Ventana> dia(LocalDate fecha,String zonaHoraria,List<PuntoEntregaController.Franja> franjas){
+        return franjas.stream().filter(f->Boolean.TRUE.equals(f.habilitada())&&f.capacidadPedidos()>0&&f.dia()==fecha.getDayOfWeek().getValue())
+            .flatMap(f->ventanas(fecha,ZoneId.of(zonaHoraria),f).stream()).sorted(Comparator.comparing(Ventana::desde).thenComparing(Ventana::hasta)).toList();
+    }
     private List<Ventana> ventanas(LocalDate fecha,ZoneId zona,PuntoEntregaController.Franja franja){
         return VentanasLocales.calcular(fecha,zona,franja.apertura(),franja.cierre()).stream()
             .map(v->new Ventana(fecha,franja.apertura(),franja.cierre(),v.desde(),v.hasta(),franja.capacidadPedidos())).toList();

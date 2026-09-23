@@ -58,3 +58,9 @@
 .delivery-panel>.order-management-heading,.delivery-dialog .order-management-heading{background:linear-gradient(110deg,#0d51bd,#073c9c)}
 .delivery-dialog .order-management-heading h3{color:#fff}
 .delivery-dialog .client-button:not(.order-approve):not(.order-danger){background:#074bba;color:#fff}
+
+.reschedule-panel>.order-management-heading{background:linear-gradient(110deg,#0d51bd,#073c9c)}
+.reschedule-proposal{margin:1rem 0;padding:1rem;border:1px solid #c4d5ec;border-radius:.5rem;background:#f7faff}
+.reschedule-window{padding:1rem;border:1px solid #cfdcec;border-radius:.5rem;background:white;min-width:0;overflow-wrap:anywhere}
+.reschedule-window h4{margin:0;color:#16365b}.reschedule-window p{margin-bottom:0}
+.reschedule-dialog .client-grid{margin-bottom:1rem}.reschedule-panel details{margin-top:1rem}

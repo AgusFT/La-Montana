@@ -15,6 +15,7 @@ public class OfertaOperativaService {
     public OfertaOperativaService(ConfiguracionService configuracion,CatalogoService catalogo,EntregaConfiguracionService entrega,JdbcTemplate jdbc){this.configuracion=configuracion;this.catalogo=catalogo;this.entrega=entrega;this.jdbc=jdbc;}
     public record Sucursal(UUID codigoPublico,String nombre,String direccion){}
     public record Contexto(ConfiguracionService.Borrador configuracion,CatalogoService.Estado catalogo,List<Sucursal> sucursales,List<RevisionConfiguracionService.Opcion> opciones,List<EntregaConfiguracionService.PuntoDisponible> puntos){}
+    public ConfiguracionService.Borrador configuracionActiva(){var activa=configuracion.activa();return activa==null?null:activa.configuracion();}
     public Contexto leer(){
         var activa=configuracion.activa();var comercial=catalogo.leerEstado();
         if(activa==null)return new Contexto(null,comercial,List.of(),List.of(),List.of());
