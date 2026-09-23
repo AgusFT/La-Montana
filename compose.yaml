@@ -69,6 +69,12 @@ services:
     networks: [analisis]
     volumes:
       - antivirus_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "clamdscan", "--config-file=/etc/clamav/clamd.conf", "--ping=1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 360s
     mem_limit: 4g
     restart: unless-stopped
 
