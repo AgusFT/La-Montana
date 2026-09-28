@@ -63,9 +63,9 @@ function MasterForm({kind,onCreated,serviceCodes=[]}:{kind:"papel"|"servicio";on
       <label>Gramaje (g/m²)<input name="gramaje" type="number" required min="0.01" max="999999.99" step="0.01"/><small>Buscalo en el paquete: expresa el peso del papel por metro cuadrado.</small></label>
       <label>Terminación del papel<input name="terminacion" required maxLength={100} placeholder="Ej.: Mate, brillante o sin estucar"/><small>Indica cómo es su superficie, según el fabricante.</small></label>
     </>:<CatalogServiceFields key={formEpoch} existingCodes={serviceCodes} disabled={busy}/>}
-  </div></fieldset>{error&&<p className="form-message error-message" role="alert">{error}</p>}{saved&&<SaveNotice>{paper?"Papel habilitado en el catálogo base. Podés continuar con los servicios.":"Servicio base guardado. Cuando tengas uno de impresión, continuá a tarifas y servicios para definir sus precios."}</SaveNotice>}<button className="admin-button" disabled={busy}>{busy?"Guardando…":paper?"Guardar papel personalizado":"Crear servicio"}</button></form>;
+  </div></fieldset>{error&&<p className="form-message error-message" role="alert">{error}</p>}{saved&&<SaveNotice>{paper?"Papel habilitado en el catálogo base. Podés continuar con los servicios.":"Servicio base guardado. Continuá a Tarifas para definir los precios; para publicarlos necesitás ofrecer un servicio de impresión."}</SaveNotice>}<button className="admin-button" disabled={busy}>{busy?"Guardando…":paper?"Guardar papel personalizado":"Crear servicio"}</button></form>;
 }
-export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreated:()=>Promise<void>}){
+export function CatalogMasters({catalog,onCreated,activeBlock="papeles"}:{catalog:CatalogState;onCreated:()=>Promise<void>;activeBlock?:"papeles"|"servicios"}){
   const guide=useInstallation(),papersReady=catalog.papelesHabilitados.some(p=>p.habilitado),firstSetup=guide.enabled&&!guide.data?.activa;
   const [busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
   const [addingAll,setAddingAll]=useState(false);
@@ -87,9 +87,10 @@ export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreat
     }catch(e){setError((e instanceof TypeError?"No pudimos comunicarnos con el servidor.":e instanceof Error?e.message:"No pudimos actualizar el catálogo.")+" Podés reintentar la misma acción para confirmar el resultado.");}finally{setBusy(false);}
   }
   return <section id="catalogo-base" className="admin-card catalog-master-section">
-    <div className="admin-section-title"><div><h2>Primero, elegí los papeles de tu imprenta</h2><p>Habilitá las opciones que usás y que admite tu equipo. Luego creá los servicios y pasá a sus tarifas.</p></div><span className="admin-count">{catalog.papelesHabilitados.filter(p=>p.habilitado).length} variantes habilitadas</span></div>
+    <div id="catalog-papers" hidden={activeBlock!=="papeles"}>
+    <div className="admin-section-title"><div><h2>Papeles de tu imprenta</h2><p>Definí qué variantes de papel ofrece tu imprenta. Habilitá las que usás y admite tu equipo.</p></div><span className="admin-count">{catalog.papelesHabilitados.filter(p=>p.habilitado).length} variantes habilitadas</span></div>
     <div className="admin-info"><strong>El tamaño ya viene incluido</strong><p>A4 o A3 indican las medidas de la hoja. El gramaje y la terminación describen el material: un mismo tamaño puede tener distintos papeles. Aquí los elegís juntos, sin crear un formato por separado.</p></div>
-    <p className="admin-note">Habilitar un papel lo deja disponible para preparar precios. Para ofrecerlo a tus clientes, guardá una configuración en «Tarifas y servicios». Deshabilitarlo aquí no modifica configuraciones vigentes, programadas ni pedidos.</p>
+    <p className="admin-note">Habilitar un papel lo deja disponible para preparar precios. Para ofrecerlo a tus clientes, guardá una configuración en «Tarifas». Deshabilitarlo aquí no modifica configuraciones vigentes, programadas ni pedidos.</p>
     <div className="catalog-paper-heading"><h3>Papeles habituales precargados</h3><span>{presetGroups.length} tamaños · {catalog.papelesPredefinidos.length} variantes disponibles</span></div>
     <p className="admin-note">Papel común blanco, sin estucar. Cada tarjeta reúne un tamaño de hoja. Marcá o desmarcá sus gramajes por separado, según la resma que uses. Oficio/Folio (8½ × 13) y Legal (8½ × 14) son tamaños diferentes; verificá las medidas de tu papel.</p>
     <div className="catalog-add-all"><button type="button" className="admin-button" disabled={busy||allEnabled||catalog.papelesPredefinidos.length===0} aria-describedby="catalog-add-all-help" onClick={addAll}>{addingAll?"Habilitando variantes…":allEnabled?"Todas las variantes están habilitadas":"Agregar todos los papeles"}</button><p id="catalog-add-all-help" className="admin-note">Incluye los {presetGroups.length} tamaños con sus {catalog.papelesPredefinidos.length} variantes de gramaje. Los que ya agregaste se conservan sin duplicarse. Después podés desmarcar cualquier gramaje sin afectar a los demás.</p></div>
@@ -123,8 +124,9 @@ export function CatalogMasters({catalog,onCreated}:{catalog:CatalogState;onCreat
         })}</fieldset>
       </details>)}</div>}
     </details>
-    <section className="catalog-services"><h3>Después, agregá tus servicios <span className="admin-count">{catalog.servicios.length}</span></h3><p className="admin-note">Impresión es pasar el documento al papel. Terminación es un trabajo adicional, como anillado o plastificado. Sus precios se definen en el paso siguiente.</p>
-      {catalog.servicios.length===0?<p className="admin-empty">Todavía no creaste servicios. Necesitarás al menos uno de impresión.</p>:<ul className="catalog-master-list">{catalog.servicios.map(s=><li key={s.codigoPublico}><strong>{s.nombre}</strong><small>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</small>{s.descripcion&&<small>{s.descripcion}</small>}</li>)}</ul>}
+    </div>
+    <section id="catalog-services" className="catalog-services" hidden={activeBlock!=="servicios"}><h2>Servicios de tu imprenta <span className="admin-count">{catalog.servicios.length}</span></h2><p className="admin-note">Definí qué trabajos o prestaciones ofrece tu imprenta. Impresión es pasar el documento al papel; terminación es un trabajo adicional, como anillado o plastificado. Sus precios se definen en Tarifas.</p>
+      {catalog.servicios.length===0?<p className="admin-empty">Todavía no creaste servicios. Para publicar precios vas a necesitar al menos uno de impresión.</p>:<ul className="catalog-master-list">{catalog.servicios.map(s=><li key={s.codigoPublico}><strong>{s.nombre}</strong><small>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</small>{s.descripcion&&<small>{s.descripcion}</small>}</li>)}</ul>}
       {firstSetup&&!papersReady?<p className="admin-info">Paso 2 bloqueado: primero habilitá al menos un papel. Después podrás crear los servicios base.</p>:<details className="catalog-custom"><summary>Agregar servicio</summary><MasterForm kind="servicio" serviceCodes={catalog.servicios.map(s=>s.codigo)} onCreated={onCreated}/></details>}
     </section>
   </section>;

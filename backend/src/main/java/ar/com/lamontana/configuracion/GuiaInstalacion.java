@@ -23,7 +23,7 @@ public final class GuiaInstalacion {
                                boolean borrador,boolean modelo,boolean pagos,boolean recursos,boolean entrega,
                                Long version,List<String> pendientes) {
         String[] codigos={"sucursal","papeles","servicios","precios","modelo","pagos","recursos","entrega","activacion"};
-        String[] titulos={"Crear una sucursal","Elegir papeles","Crear servicios base","Guardar tarifas y servicios",
+        String[] titulos={"Crear una sucursal","Elegir papeles","Crear al menos un servicio base","Guardar tarifas y servicios",
                 "Guardar modelo operativo","Guardar pagos y reglas","Configurar impresoras y asignación","Completar horarios y entrega","Revisar y activar"};
         String[] enlaces={"/administracion/sucursales","/administracion/catalogo#catalogo-base","/administracion/catalogo#catalogo-base",
                 "/administracion/catalogo#revision-comercial","/administracion/configuracion","/administracion/configuracion",

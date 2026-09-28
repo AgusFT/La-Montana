@@ -42,6 +42,6 @@ export default async function CatalogPage() {
   if(session.profile.rol!=="ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const catalog=await getCatalog();
   return <AdminShell title="Servicios y precios" description="Gestión del catálogo comercial de tu imprenta" name={`${session.profile.nombre} ${session.profile.apellido}`}>
-    {catalog ? <CatalogWorkspace initial={catalog}/> : <div className="admin-card"><p className="form-message error-message" role="alert">No pudimos consultar el catálogo. Tus datos no se han modificado.</p><a className="admin-button" href="/administracion/catalogo">Volver a intentar</a></div>}
+    {catalog ? <CatalogWorkspace initial={catalog} tourOwner={session.profile.codigoPublico}/> : <div className="admin-card"><p className="form-message error-message" role="alert">No pudimos consultar el catálogo. Tus datos no se han modificado.</p><a className="admin-button" href="/administracion/catalogo">Volver a intentar</a></div>}
   </AdminShell>;
 }

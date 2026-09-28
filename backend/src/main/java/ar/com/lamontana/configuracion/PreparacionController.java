@@ -81,7 +81,7 @@ public class PreparacionController {
         boolean webPreparada=Boolean.TRUE.equals(jdbc.queryForObject("SELECT id_actor IS NOT NULL FROM lamontana.web_borrador WHERE unica",Boolean.class));
         pasos.add(new Paso("web","Página de la imprenta",publicada,publicada?"Publicada":webPreparada?"Borrador sin publicar":"Opcional · sin configurar","Prepará identidad, fichas e imágenes, revisá la vista previa y publicá expresamente. Guardar un borrador no cambia la página pública.","/administracion/pagina-web",true));
         boolean papelesListos=comercial.papelesHabilitados().stream().anyMatch(s->s.habilitado());
-        boolean servicioBase=comercial.servicios().stream().anyMatch(s->s.tipo()==TipoServicio.IMPRESION);
+        boolean servicioBase=!comercial.servicios().isEmpty();
         boolean modeloListo=b!=null&&b.modelo()!=null&&bloqueos.stream().noneMatch(h->h.fase()==2);
         boolean pagosListos=b!=null&&b.pagos()!=null&&bloqueos.stream().noneMatch(h->h.fase()==3);
         boolean recursosListos=b!=null&&b.recursos().metodoAsignacion()!=null&&!b.recursos().serviciosPorSucursal().isEmpty()
