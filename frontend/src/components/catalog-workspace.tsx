@@ -45,10 +45,18 @@ const catalogTour:TourStep[]=[
   {target:"catalog-services-tab",title:"Después, agregá tus servicios",description:"Creá al menos un servicio base, como impresión blanco y negro, color o terminaciones. Luego vas a poder asignarles precios en la sección Tarifas."},
 ];
 const catalogTourCompletion={title:"¡Listo! Ya entendés cómo armar el catálogo base",description:"Primero definí papeles y servicios. Después continuá en Tarifas para completar los precios. Más adelante vas a poder volver a esta pantalla y seguir ajustando tu catálogo cuando lo necesites."};
+const tariffTour:TourStep[]=[
+  {target:"tariff-tour-service",title:"Primero, elegí el servicio",description:"Los servicios de impresión de tu catálogo usan estas tarifas. Primero elegís el modo de impresión, blanco y negro o color; después configurás a qué papeles y variantes se aplica. Los servicios ofrecidos se completan más abajo."},
+  {target:"tariff-tour-papers",title:"Después, seleccioná las hojas y sus variantes",description:"Elegí el tamaño de hoja y sus variantes, como gramaje o tipo de papel. La tarifa que estás armando se aplicará solamente a las variantes que selecciones acá. Si necesitás precios diferentes para otros papeles o gramajes, podés crear otra tarifa."},
+  {target:"tariff-tour-prices",title:"Ahora definí los precios",description:"Primero cargás el valor de impresión simple faz. Después configurás cómo se calcula la doble faz, según la regla comercial que use tu imprenta. El sistema va a utilizar estos importes como base para calcular nuevas cotizaciones."},
+  {target:"tariff-tour-apply",secondaryTarget:"tariff-tour-publish",secondaryLabel:"Ver dónde se guarda la configuración →",title:"Aplicá la tarifa y guardá la configuración",description:"Cuando terminás este formulario, aplicás la tarifa al borrador. Después, al guardar la configuración completa, estos precios quedan listos para utilizarse en nuevas cotizaciones. Los cambios nuevos afectan cotizaciones futuras. Los pedidos ya aceptados conservan sus condiciones anteriores."},
+];
+const tariffTourCompletion={title:"¡Listo! Ya configuraste una tarifa base",description:"Primero elegiste el servicio, después seleccionaste las hojas y sus variantes, y finalmente definiste el precio simple faz y la regla de doble faz. Si necesitás más combinaciones, podés crear nuevas tarifas."};
 
 export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourOwner:string}){
   const sections=["catalogo-base","revision-comercial","historial-comercial"] as const;
   const [tab,setTab]=useState<string>("catalogo-base");
+  const [tariffTourActive,setTariffTourActive]=useState(false);
   const [block,setBlock]=useState<"papeles"|"servicios">("papeles");
 
   const guide=useInstallation(),firstSetup=guide.enabled&&!guide.data?.activa;
@@ -76,7 +84,7 @@ export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourO
     <div id="panel-revision-comercial" role="tabpanel" aria-labelledby="tab-revision-comercial" hidden={tab!=="revision-comercial"}>
     <p className="catalog-context-note">Definí cuánto cuestan los servicios creados. Para publicar necesitás una tarifa habilitada y ofrecer al menos un servicio de impresión. Los cambios se aplican a nuevas cotizaciones al guardar una configuración.</p>
     {catalog.programada&&<CatalogSchedule key={catalog.programada.codigoPublico} revision={catalog.programada} onChanged={refresh}/>}
-    <CatalogEditor key={editorEpoch} catalog={catalog} onSaved={saved}/>
+    <CatalogEditor key={editorEpoch} catalog={catalog} onSaved={saved} tourActive={tab==="revision-comercial"&&tariffTourActive}/>
     </div>
     <div id="panel-historial-comercial" role="tabpanel" aria-labelledby="tab-historial-comercial" hidden={tab!=="historial-comercial"}>
     <section id="historial-comercial" className="admin-card"><div className="admin-section-title"><div><h2>Historial de configuraciones</h2><p>Consultá los cambios guardados. Las configuraciones anteriores son de solo lectura.</p></div></div>
@@ -85,6 +93,7 @@ export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourO
     </section>
     </div>
     <div className="admin-page-footer"><a href="/administracion">← Volver al dashboard</a><span>Configuraciones comerciales independientes del configurador</span></div>
-    <GuidedTour steps={catalogTour} completion={catalogTourCompletion} storageKey={`lamontana:catalog-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error} onStepChange={index=>{setTab("catalogo-base");window.history.replaceState(null,"","#catalogo-base");setBlock(index===2?"servicios":"papeles");}}/>
+    {tab==="catalogo-base"&&<GuidedTour steps={catalogTour} completion={catalogTourCompletion} storageKey={`lamontana:catalog-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error} helpLabel="Guía del catálogo base" onStepChange={index=>setBlock(index===2?"servicios":"papeles")}/>}
+    {tab==="revision-comercial"&&<GuidedTour steps={tariffTour} completion={tariffTourCompletion} storageKey={`lamontana:tarifas-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error} helpLabel="Guía de Tarifas" onActiveChange={setTariffTourActive}/>}
   </>;
 }

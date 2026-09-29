@@ -64,7 +64,7 @@ import {seedOffers,offerSignature,validateOffer,type OfferDraft,type PairDraft} 
 function rateSignature(rate:RateDraft){const {id,nombrePersonalizado,papeles,...fields}=rate;return JSON.stringify({...fields,papeles:papeles.map(paperKey).sort()});}
 
 
-export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(revision:CatalogRevision)=>void}){
+export function CatalogEditor({catalog,onSaved,tourActive=false}:{catalog:CatalogState;onSaved:(revision:CatalogRevision)=>void;tourActive?:boolean}){
   const [rates,setRates]=useState(()=>seedRates(catalog.actual)),[offers,setOffers]=useState(()=>seedOffers(catalog.actual));
   const [editingRate,setEditingRate]=useState<{id:string;previous:RateDraft|null}|null>(null),[rateError,setRateError]=useState("");
   const [editingOffer,setEditingOffer]=useState<{id:string;previous:OfferDraft|null}|null>(null),[offerError,setOfferError]=useState("");
@@ -102,6 +102,9 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
   function removeOffer(id:string){setPrepared("");setSaved(null);setOffers(current=>current.filter(offer=>offer.id!==id));if(editingOffer?.id===id){setEditingOffer(null);setOfferError("");}}
   function pairChange(row:OfferDraft,id:string,change:Partial<PairDraft>){changeOffer(row.id,{compatibilidades:row.compatibilidades.map(pair=>pair.id===id?{...pair,...change}:pair)});}
   const enabledPapers=catalog.papelesHabilitados.filter(p=>p.habilitado);
+  const exampleRate:RateDraft={id:"tariff-tour-example",nombre:"Tarifa de ejemplo · Blanco y negro",nombrePersonalizado:false,color:"BLANCO_NEGRO",papeles:enabledPapers.slice(0,1).map(({formato,papel})=>({formato,papel})),precio:"1000",modoDobleFaz:"FIJO",valorDobleFaz:"1800",habilitada:true};
+  const editedRate=rates.find(rate=>rate.id===editingRate?.id);
+  const tourUsesExample=tourActive&&!editedRate?.color;
   function addAllCompatiblePapers(offer:OfferDraft){
     if(locked)return;
     const pairs=new Map(offer.compatibilidades.filter(p=>p.formato&&p.papel).map(p=>[paperKey(p),p]));
@@ -145,7 +148,8 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
         <CatalogInfo title="¿Qué es una tarifa?"><p>Es una regla de precios para imprimir en color o blanco y negro sobre una o varias hojas y variantes. Primero elegí el color, después seleccioná los papeles y completá sus precios.</p><p>Simple faz es el precio de una hoja con una cara impresa. Doble faz es el precio final de una hoja con sus dos caras impresas. Si sobra una página impar, esa última hoja se cobra a simple faz, por cada copia del documento.</p><p>Los servicios de impresión usan estas tarifas sin sumar un segundo cargo. Una variante sólo puede estar en una tarifa por color. El nombre es una referencia interna editable con el lápiz.</p></CatalogInfo>
         {rates.length===0&&<p className="admin-empty">Agregá tu primera tarifa. Si no hay papeles disponibles, habilitalos primero en Catálogo base.</p>}
         {editingRate&&<p className="admin-info">Terminá esta tarifa con «Aplicar tarifa al borrador» o cancelá su edición. Después podrás editar otra o guardar la configuración completa.</p>}
-        <div className="pricing-card-list">{rates.map((rate,index)=>editingRate?.id===rate.id?<CatalogRateEditor key={rate.id} rate={rate} index={index} rates={rates} catalog={catalog} error={rateError} onApply={applyRate} onCancel={cancelRate} onChange={change=>changeRate(rate.id,change)} onRemove={()=>removeRate(rate.id)}/>:<CatalogRateSummary key={rate.id} rate={rate} index={index} catalog={catalog} state={baselineRates.some(savedRate=>rateSignature(savedRate)===rateSignature(rate))?(baseline?.estado==="PROGRAMADA"?"PROGRAMADA":"VIGENTE"):"PENDIENTE"} disabled={!!editingRate} onEdit={()=>editRate(rate)} onRemove={()=>removeRate(rate.id)}/>)}</div>
+        {tourUsesExample&&<div className="tariff-tour-example" inert><p><strong>Vista de ejemplo para la guía.</strong> Sus importes son ilustrativos y no se agregan al borrador.</p><CatalogRateEditor rate={exampleRate} index={0} rates={[exampleRate]} catalog={catalog} error="" onApply={()=>{}} onCancel={()=>{}} onChange={()=>{}} onRemove={()=>{}} tutorialTargets/></div>}
+        <div className="pricing-card-list">{rates.map((rate,index)=>editingRate?.id===rate.id?<CatalogRateEditor key={rate.id} rate={rate} index={index} rates={rates} catalog={catalog} error={rateError} onApply={applyRate} onCancel={cancelRate} onChange={change=>changeRate(rate.id,change)} onRemove={()=>removeRate(rate.id)} tutorialTargets={tourActive&&!tourUsesExample}/>:<CatalogRateSummary key={rate.id} rate={rate} index={index} catalog={catalog} state={baselineRates.some(savedRate=>rateSignature(savedRate)===rateSignature(rate))?(baseline?.estado==="PROGRAMADA"?"PROGRAMADA":"VIGENTE"):"PENDIENTE"} disabled={!!editingRate} onEdit={()=>editRate(rate)} onRemove={()=>removeRate(rate.id)}/>)}</div>
       </section>
       {firstSetup&&!ratesReady&&<p className="admin-info">Paso 2 bloqueado: aplicá al borrador al menos una tarifa habilitada antes de configurar los servicios.</p>}
       <fieldset className="admin-fieldset" disabled={firstSetup&&!ratesReady}>      <section className="admin-card pricing-section" aria-labelledby="pricing-offers-title">
@@ -192,6 +196,6 @@ export function CatalogEditor({catalog,onSaved}:{catalog:CatalogState;onSaved:(r
     {comparison&&<div className="admin-card"><h3>Comparar con el catálogo vigente</h3>{comparison.actual?<RevisionView catalog={comparison} revision={comparison.actual}/>:<p>No hay una configuración vigente.</p>}<button type="button" className="admin-button secondary" onClick={adoptBase}>Usar esta base conservando mis valores</button></div>}
     {prepared&&<SaveNotice title="Preparado · falta guardar la configuración" pending>{prepared}</SaveNotice>}
     {saved!==null&&<SaveNotice>{saved.estado==="PROGRAMADA"?`Configuración ${saved.numero} programada.`:saved.estado==="VIGENTE"?`Configuración ${saved.numero} guardada y vigente.`:`La configuración ${saved.numero} ya fue procesada; su estado actual es ${saved.estado.toLowerCase()}. Consultá la vigente antes de guardar nuevos cambios.`}</SaveNotice>}
-    <div className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas ({rates.filter(r=>r.habilitada).reduce((total,r)=>total+r.papeles.length,0)} combinaciones de papel y color) y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict||!!editingRate||!!editingOffer||firstSetup&&(!ratesReady||!offersReady)}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva configuración"}</button></div>
+    <div id="tariff-tour-publish" className="catalog-save-actions"><span>{rates.filter(r=>r.habilitada).length} tarifas ({rates.filter(r=>r.habilitada).reduce((total,r)=>total+r.papeles.length,0)} combinaciones de papel y color) y {offers.filter(o=>o.habilitado).length} servicios habilitados en el formulario</span><button className="admin-button" disabled={locked||conflict||!!editingRate||!!editingOffer||firstSetup&&(!ratesReady||!offersReady)}>{busy?"Guardando…":scheduled?"Confirmar programación":"Guardar nueva configuración"}</button></div>
   </form></section>;
 }

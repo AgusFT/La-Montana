@@ -2,18 +2,24 @@
 
 import {useCallback,useEffect,useRef,useState} from "react";
 
-export type TourStep={target:string;title:string;description:string};
+export type TourStep={target:string;title:string;description:string;secondaryTarget?:string;secondaryLabel?:string};
 
 /** A small reusable spotlight tour. It never changes the underlying form or navigation. */
-export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Guía del catálogo comercial",onStepChange}:{steps:TourStep[];storageKey:string;autoStart:boolean;completion?:{title:string;description:string};helpLabel?:string;onStepChange?:(step:number)=>void}){
+export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Guía del catálogo comercial",onStepChange,onActiveChange}:{steps:TourStep[];storageKey:string;autoStart:boolean;completion?:{title:string;description:string};helpLabel?:string;onStepChange?:(step:number)=>void;onActiveChange?:(active:boolean)=>void}){
   const [step,setStep]=useState<number|null>(null);
+  const [showSecondary,setShowSecondary]=useState(false);
   const [rect,setRect]=useState<DOMRect|null>(null);
   const button=useRef<HTMLButtonElement>(null);
   const help=useRef<HTMLButtonElement>(null);
   const onStepChangeRef=useRef(onStepChange);
   onStepChangeRef.current=onStepChange;
+  const onActiveChangeRef=useRef(onActiveChange);
+  onActiveChangeRef.current=onActiveChange;
   const active=step!==null;
+  const begin=useCallback(()=>{setShowSecondary(false);onActiveChangeRef.current?.(true);setStep(0);},[]);
   const finish=useCallback(()=>{
+    onActiveChangeRef.current?.(false);
+    setShowSecondary(false);
     setStep(null);
     try{localStorage.setItem(storageKey,"seen");}catch{/* La guía puede reabrirse igualmente. */}
     requestAnimationFrame(()=>help.current?.focus());
@@ -22,13 +28,14 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu�
   useEffect(()=>{
     if(!autoStart)return;
     try{if(localStorage.getItem(storageKey)==="seen")return;}catch{/* Sin almacenamiento, se ofrece la guía en esta visita. */}
-    setStep(0);
-  },[autoStart,storageKey]);
+    begin();
+  },[autoStart,storageKey,begin]);
   useEffect(()=>{
     if(!active)return;
     if(step===steps.length){setRect(null);return;}
     onStepChangeRef.current?.(step!);
-    const target=document.getElementById(steps[step!].target);
+    const current=steps[step!];
+    const target=document.getElementById(showSecondary&&current.secondaryTarget?current.secondaryTarget:current.target);
     if(!target)return;
     target.scrollIntoView({block:"center",behavior:"instant"});
     const update=()=>setRect(target.getBoundingClientRect());
@@ -36,7 +43,7 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu�
     window.addEventListener("resize",update);
     window.addEventListener("scroll",update,true);
     return()=>{window.removeEventListener("resize",update);window.removeEventListener("scroll",update,true);};
-  },[active,step,steps]);
+  },[active,step,steps,showSecondary]);
   useEffect(()=>{if(active)button.current?.focus();},[active,step]);
   useEffect(()=>{
     if(!active)return;
@@ -54,7 +61,7 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu�
     top:nearBottom?Math.max(12,padded.top-235):Math.min(innerHeight-245,padded.bottom+14),
   }:undefined;
   return <>
-    {!active&&<button ref={help} type="button" className="guided-tour-help" aria-label={`Abrir ${helpLabel.toLowerCase()}`} title={helpLabel} onClick={()=>setStep(0)}>?</button>}
+    {!active&&<button ref={help} type="button" className="guided-tour-help" aria-label={`Abrir ${helpLabel.toLowerCase()}`} title={helpLabel} onClick={begin}>?</button>}
     {active&&<div className="guided-tour" role="dialog" aria-modal="true" aria-labelledby="guided-tour-title" aria-describedby="guided-tour-description" onKeyDown={event=>{if(event.key!=="Tab")return;const controls=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(".guided-tour-card button"));if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1)?.focus();}else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0]?.focus();}}}>
       {final&&<div className="guided-tour-shade" style={{inset:0}}/>}
       {padded&&<>
@@ -67,7 +74,8 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu�
       <div className={`guided-tour-card${final?" is-final":""}`} style={popupStyle}>
         <div className="guided-tour-top"><span>{final?"Recorrido completo":`Paso ${step!+1} de ${steps.length}`}</span><button ref={button} type="button" className="guided-tour-close" aria-label="Cerrar guía" onClick={finish}>×</button></div>
         <h2 id="guided-tour-title">{content?.title}</h2><p id="guided-tour-description">{content?.description}</p>
-        <div className="guided-tour-actions"><button type="button" className="admin-button secondary" onClick={finish}>Omitir</button><button type="button" className="admin-button" onClick={()=>final||step===steps.length-1&&!completion?finish():setStep(step!+1)}>{final?"Aceptar":step===steps.length-1?"Finalizar":"Siguiente →"}</button></div>
+        {!final&&step!==null&&steps[step].secondaryTarget&&<button type="button" className="admin-link-button guided-tour-secondary" onClick={()=>setShowSecondary(value=>!value)}>{showSecondary?"← Volver a aplicar la tarifa":steps[step].secondaryLabel??"Ver siguiente bloque →"}</button>}
+        <div className="guided-tour-actions"><button type="button" className="admin-button secondary" onClick={finish}>Omitir</button><button type="button" className="admin-button" onClick={()=>{if(final||step===steps.length-1&&!completion)finish();else{setShowSecondary(false);setStep(step!+1);}}}>{final?"Aceptar":step===steps.length-1?"Finalizar":"Siguiente →"}</button></div>
       </div>
     </div>}
   </>;

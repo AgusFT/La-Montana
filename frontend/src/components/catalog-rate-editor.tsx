@@ -28,7 +28,7 @@ import {amountDraft,amountPattern,ars,parseAmount,validAmount} from "@/lib/catal
 import {duplexPrice,rateName,type RateDraft} from "@/lib/catalog-rate-draft";
 import {colorLabels,type CatalogState,type ColorMode,type DuplexMode} from "@/lib/catalog-types";
 
-export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove,onApply,onCancel,error}:{rate:RateDraft;index:number;rates:RateDraft[];catalog:CatalogState;onChange:(change:Partial<RateDraft>)=>void;onRemove:()=>void;onApply:()=>void;onCancel:()=>void;error:string}){
+export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove,onApply,onCancel,error,tutorialTargets=false}:{rate:RateDraft;index:number;rates:RateDraft[];catalog:CatalogState;onChange:(change:Partial<RateDraft>)=>void;onRemove:()=>void;onApply:()=>void;onCancel:()=>void;error:string;tutorialTargets?:boolean}){
   const [editingName,setEditingName]=useState(false),[oldName,setOldName]=useState(rate.nombre);
   const legacy=rate.recargoAnterior!==undefined,final=duplexPrice(rate.precio,rate.modoDobleFaz,rate.valorDobleFaz);
   const simple=validAmount(rate.precio)?parseAmount(rate.precio,"Simple faz"):null;
@@ -45,14 +45,14 @@ export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove,on
       <span className="pricing-state is-editing">En edición · sin confirmar</span>
       <button type="button" className="admin-link-button" onClick={onRemove}>Quitar tarifa {index+1}</button>
     </header>
-    <fieldset className="rate-step"><legend>1. Elegí el modo de impresión</legend>
+    <fieldset id={tutorialTargets?"tariff-tour-service":undefined} className="rate-step"><legend>1. Elegí el modo de impresión</legend>
       <label className="rate-color">Color de tarifa {index+1}<select data-rate-color required value={rate.color} onChange={e=>changeColor(e.target.value as ColorMode)}><option value="" disabled>Elegir color o blanco y negro</option>{Object.entries(colorLabels).map(([key,label])=><option value={key} key={key}>{label}</option>)}</select></label>
     </fieldset>
     {rate.color&&<>
-      <fieldset className="rate-step"><legend>2. Seleccioná las hojas y sus variantes</legend>
+      <fieldset id={tutorialTargets?"tariff-tour-papers":undefined} className="rate-step"><legend>2. Seleccioná las hojas y sus variantes</legend>
         <CatalogRatePapers catalog={catalog} value={rate.papeles} occupied={occupied} label={`Papeles de tarifa ${index+1}`} onChange={papeles=>onChange({papeles})}/>
       </fieldset>
-      <fieldset className="rate-step"><legend>3. Definí los precios para la selección</legend>
+      <fieldset id={tutorialTargets?"tariff-tour-prices":undefined} className="rate-step"><legend>3. Definí los precios para la selección</legend>
         <p className="admin-note">La misma regla se aplicará a las {rate.papeles.length} variantes seleccionadas. Para otros precios, creá otra tarifa con esas variantes.</p>
         {legacy?<div className="admin-warning">
           <strong>Tarifa anterior: conserva el cobro por cada cara impresa.</strong>
@@ -77,6 +77,8 @@ export function CatalogRateEditor({rate,index,rates,catalog,onChange,onRemove,on
     </>}
     <label className="admin-check pricing-enable"><input type="checkbox" checked={rate.habilitada} onChange={e=>onChange({habilitada:e.target.checked})}/>Habilitar tarifa {index+1} al guardar esta configuración</label>
     {error&&<p className="error-message" role="alert">{error}</p>}
-    <div className="rate-editor-actions"><button type="button" className="admin-button" onClick={onApply}>Aplicar tarifa al borrador</button><button type="button" className="admin-button secondary" onClick={onCancel}>Cancelar edición de tarifa</button><p className="admin-note">Aplicar cierra este formulario y prepara la tarifa. Para publicar los precios, guardá la configuración completa al final de la página.</p></div>
+    <div id={tutorialTargets?"tariff-tour-apply":undefined} className="tariff-tour-apply"><div className="rate-editor-actions"><button type="button" className="admin-button" onClick={onApply}>Aplicar tarifa al borrador</button><button type="button" className="admin-button secondary" onClick={onCancel}>Cancelar edición de tarifa</button><p className="admin-note">Aplicar cierra este formulario y prepara la tarifa. Para publicar los precios, guardá la configuración completa al final de la página.</p></div>
+      {tutorialTargets&&<p className="tariff-tour-save-hint">Después de aplicar la tarifa, completá los servicios ofrecidos y usá <strong>Guardar nueva configuración</strong> en la sección de publicación, al final de esta pestaña. Hasta entonces los precios vigentes no cambian.</p>}
+    </div>
   </article>;
 }
