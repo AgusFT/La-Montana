@@ -42,30 +42,38 @@ import { catalogDate, isCatalogRevision, type CatalogState, type CatalogRevision
 const catalogTour:TourStep[]=[
   {target:"tab-catalogo-base",title:"Configurá tu catálogo base",description:"Acá definís la base comercial de tu imprenta. Primero elegís los papeles que usás y después creás los servicios que ofrecés. Esta base será la referencia para las futuras cotizaciones."},
   {target:"catalog-papers-tab",title:"Primero, elegí los papeles de tu imprenta",description:"Habilitá los tamaños y gramajes que realmente usás. Necesitás al menos un papel activo para poder armar tu catálogo comercial."},
-  {target:"catalog-services-tab",title:"Después, agregá tus servicios",description:"Creá al menos un servicio base, como impresión blanco y negro, color o terminaciones. Luego vas a poder asignarles precios en la sección Tarifas."},
+  {target:"catalog-services-tab",title:"Después, agregá tus servicios",description:"Creá los trabajos que ofrece tu imprenta, por ejemplo Impresión o Anillado. Blanco y negro y Color se configuran dentro de Tarifas de impresión."},
 ];
 const catalogTourCompletion={title:"¡Listo! Ya entendés cómo armar el catálogo base",description:"Primero definí papeles y servicios. Después continuá en Tarifas para completar los precios. Más adelante vas a poder volver a esta pantalla y seguir ajustando tu catálogo cuando lo necesites."};
-const tariffTour:TourStep[]=[
-  {target:"tariff-tour-service",title:"Primero, elegí el servicio",description:"Los servicios de impresión de tu catálogo usan estas tarifas. Primero elegís el modo de impresión, blanco y negro o color; después configurás a qué papeles y variantes se aplica. Los servicios ofrecidos se completan más abajo."},
+const printingTour:TourStep[]=[
+  {target:"tariff-tour-service",title:"Elegí el tipo de impresión",description:"Elegí si esta tarifa corresponde a impresión blanco y negro o color. Después vas a definir sobre qué hojas y variantes se aplica."},
   {target:"tariff-tour-papers",title:"Después, seleccioná las hojas y sus variantes",description:"Elegí el tamaño de hoja y sus variantes, como gramaje o tipo de papel. La tarifa que estás armando se aplicará solamente a las variantes que selecciones acá. Si necesitás precios diferentes para otros papeles o gramajes, podés crear otra tarifa."},
   {target:"tariff-tour-prices",title:"Ahora definí los precios",description:"Primero cargás el valor de impresión simple faz. Después configurás cómo se calcula la doble faz, según la regla comercial que use tu imprenta. El sistema va a utilizar estos importes como base para calcular nuevas cotizaciones."},
-  {target:"tariff-tour-apply",secondaryTarget:"tariff-tour-publish",secondaryLabel:"Ver dónde se guarda la configuración →",title:"Aplicá la tarifa y guardá la configuración",description:"Cuando terminás este formulario, aplicás la tarifa al borrador. Después, al guardar la configuración completa, estos precios quedan listos para utilizarse en nuevas cotizaciones. Los cambios nuevos afectan cotizaciones futuras. Los pedidos ya aceptados conservan sus condiciones anteriores."},
+  {target:"tariff-tour-coverage",title:"Revisá la cobertura de tus tarifas",description:"Revisá que las hojas y variantes que quieras ofrecer tengan precio para cada tipo de impresión habilitado. El sistema muestra cuántas combinaciones están cotizadas y cuáles faltan."},
+  {target:"tariff-tour-apply",secondaryTarget:"tariff-tour-publish",secondaryLabel:"Ver dónde se guarda la configuración →",title:"Aplicá la tarifa al borrador",description:"Aplicar tarifa al borrador todavía no publica. La publicación final ocurre con Guardar nueva configuración. Los pedidos aceptados conservan sus condiciones anteriores."},
 ];
-const tariffTourCompletion={title:"¡Listo! Ya configuraste una tarifa base",description:"Primero elegiste el servicio, después seleccionaste las hojas y sus variantes, y finalmente definiste el precio simple faz y la regla de doble faz. Si necesitás más combinaciones, podés crear nuevas tarifas."};
+const printingTourCompletion={title:"¡Listo! Ya conocés las tarifas de impresión",description:"Elegí B/N o Color, seleccioná las hojas y variantes, definí simple y doble faz y revisá la cobertura. Podés crear más tarifas antes de publicar."};
+const serviceTour:TourStep[]=[
+  {target:"service-tour-coverage",title:"Revisá los servicios de tu catálogo",description:"Acá ves cuántos servicios existen, cuáles se ofrecen y cuáles todavía necesitan configurar precio. Impresión hereda los precios de Tarifas de impresión."},
+  {target:"service-tour-prices",title:"Configurá el precio del servicio",description:"Para terminaciones y adicionales, elegí la forma de cobro y el importe. Impresión toma su precio de las tarifas anteriores y no agrega otro cargo."},
+  {target:"service-tour-compat",title:"Definí preparación y compatibilidades",description:"Indicá el tiempo estimado y los papeles compatibles cuando correspondan al trabajo. Un servicio sin papeles asociados, como una prestación independiente, también puede configurarse."},
+  {target:"service-tour-apply",secondaryTarget:"tariff-tour-publish",secondaryLabel:"Ver publicación →",title:"Habilitalo y agregalo al borrador",description:"Al guardar este servicio lo preparás en el borrador. Guardar nueva configuración publica el conjunto; los servicios del catálogo que no habilites no se ofrecen."},
+];
+const serviceTourCompletion={title:"¡Listo! Ya conocés las tarifas de servicios",description:"Podés configurar cada prestación y elegir cuáles ofrecer. Después guardá una nueva configuración para publicar los cambios."};
 
 export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourOwner:string}){
   const sections=["catalogo-base","revision-comercial","historial-comercial"] as const;
   const [tab,setTab]=useState<string>("catalogo-base");
   const [tariffTourActive,setTariffTourActive]=useState(false);
+  const [tariffBlock,setTariffBlock]=useState<"impresion"|"servicios">(()=>initial.servicios.some(s=>s.tipo==="IMPRESION"&&s.activo)?"impresion":"servicios");
   const [block,setBlock]=useState<"papeles"|"servicios">("papeles");
 
   const guide=useInstallation(),firstSetup=guide.enabled&&!guide.data?.activa;
   function selectTab(id:string){if(!tabAllowed(id))return;setTab(id);window.history.replaceState(null,"",`#${id}`);}
   const [editorEpoch,setEditorEpoch]=useState(0);
   const [catalog,setCatalog]=useState(initial),[history,setHistory]=useState<CatalogRevision|null>(null),[historyError,setHistoryError]=useState(""),[loadingHistory,setLoadingHistory]=useState(false);
-  const papersReady=catalog.papelesHabilitados.some(p=>p.habilitado),servicesReady=catalog.servicios.length>0,baseReady=papersReady&&servicesReady;
-  const printingReady=catalog.servicios.some(s=>s.tipo==="IMPRESION");
-  const commercialReady=baseReady&&!!catalog.actual?.tarifas.some(t=>t.habilitada)&&!!catalog.actual?.servicios.some(o=>o.habilitado&&catalog.servicios.some(s=>s.codigoPublico===o.servicio&&s.tipo==="IMPRESION"));
+  const papersReady=catalog.papelesHabilitados.some(p=>p.habilitado),servicesReady=catalog.servicios.some(s=>s.activo),baseReady=papersReady&&servicesReady;
+  const commercialReady=baseReady&&!!catalog.actual?.servicios.some(o=>o.habilitado)&&(!catalog.actual?.servicios.some(o=>o.habilitado&&catalog.servicios.some(s=>s.codigoPublico===o.servicio&&s.tipo==="IMPRESION"))||!!catalog.actual?.tarifas.some(t=>t.habilitada));
   function tabAllowed(id:string){return !firstSetup||id!=="revision-comercial"||baseReady;}
   useEffect(()=>{const sync=()=>{const hash=location.hash.slice(1),next=sections.includes(hash as typeof sections[number])?hash:"catalogo-base";const allowed=tabAllowed(next)?next:"catalogo-base";setTab(allowed);if(allowed!==next)window.history.replaceState(null,"",`#${allowed}`);};sync();window.addEventListener("hashchange",sync);return()=>window.removeEventListener("hashchange",sync);},[firstSetup,baseReady,!!catalog.actual]);
   async function refresh(){const next=await readCatalog();if(catalog.programada&&!next.programada&&next.actual?.codigoPublico!==catalog.actual?.codigoPublico)setEditorEpoch(value=>value+1);setCatalog(next);}
@@ -79,12 +87,13 @@ export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourO
       <div className="catalog-base-intro"><div><h2>Catálogo base</h2><p>Primero configurá los papeles de tu imprenta y luego creá los servicios. Ambos forman la base de tus futuras cotizaciones.</p></div><div className="catalog-base-progress"><strong>Progreso del catálogo base · {[papersReady,servicesReady].filter(Boolean).length} de 2</strong><progress max="2" value={Number(papersReady)+Number(servicesReady)} aria-label="Progreso del catálogo base"/><ol><li className={papersReady?"complete":""}>{papersReady?"✓":"○"} 1. Habilitar al menos un papel</li><li className={servicesReady?"complete":""}>{servicesReady?"✓":"○"} 2. Crear al menos un servicio</li><li className={commercialReady?"complete":""}>{commercialReady?"✓":"○"} 3. Guardar una tarifa y configuración comercial válida</li></ol></div></div>
       <nav className="catalog-subnav" aria-label="Pasos del catálogo base"><button id="catalog-papers-tab" type="button" className={block==="papeles"?"active":""} aria-current={block==="papeles"?"step":undefined} onClick={()=>setBlock("papeles")}>1. Papeles {papersReady&&<span aria-label="completo">✓</span>}</button><button id="catalog-services-tab" type="button" className={block==="servicios"?"active":""} aria-current={block==="servicios"?"step":undefined} onClick={()=>setBlock("servicios")}>2. Servicios {servicesReady&&<span aria-label="completo">✓</span>}</button></nav>
       <CatalogMasters catalog={catalog} onCreated={refresh} activeBlock={block}/>
-      <div className="catalog-next"><p>{!papersReady?"Habilitá al menos un papel para continuar.":!servicesReady?"Ahora creá un servicio base.":!printingReady?"Ya podés abrir Tarifas. Para publicar precios necesitás además un servicio de impresión.":"Catálogo base completo. Ahora definí cuánto cuestan tus servicios."}</p>{block==="papeles"?<button type="button" className="admin-button" disabled={firstSetup&&!papersReady} onClick={()=>setBlock("servicios")}>Continuar a Servicios →</button>:<button type="button" className="admin-button" disabled={firstSetup&&!baseReady} onClick={()=>selectTab("revision-comercial")}>Continuar a Tarifas →</button>}</div>
+      <div className="catalog-next"><p>{!papersReady?"Habilitá al menos un papel para continuar.":!servicesReady?"Ahora creá un servicio base.":"Catálogo base completo. En Tarifas definí los precios de los trabajos que vas a ofrecer."}</p>{block==="papeles"?<button type="button" className="admin-button" disabled={firstSetup&&!papersReady} onClick={()=>setBlock("servicios")}>Continuar a Servicios →</button>:<button type="button" className="admin-button" disabled={firstSetup&&!baseReady} onClick={()=>selectTab("revision-comercial")}>Continuar a Tarifas →</button>}</div>
     </div>
     <div id="panel-revision-comercial" role="tabpanel" aria-labelledby="tab-revision-comercial" hidden={tab!=="revision-comercial"}>
-    <p className="catalog-context-note">Definí cuánto cuestan los servicios creados. Para publicar necesitás una tarifa habilitada y ofrecer al menos un servicio de impresión. Los cambios se aplican a nuevas cotizaciones al guardar una configuración.</p>
+    <p className="catalog-context-note">Definí precios solo para los servicios que vas a ofrecer. Impresión usa tarifas por papel y color; los demás servicios tienen su propia tarifa. Los cambios se aplican a nuevas cotizaciones al guardar.</p>
     {catalog.programada&&<CatalogSchedule key={catalog.programada.codigoPublico} revision={catalog.programada} onChanged={refresh}/>}
-    <CatalogEditor key={editorEpoch} catalog={catalog} onSaved={saved} tourActive={tab==="revision-comercial"&&tariffTourActive}/>
+    <nav className="catalog-subnav" aria-label="Tipos de tarifas"><button id="tariff-printing-tab" type="button" className={tariffBlock==="impresion"?"active":""} onClick={()=>setTariffBlock("impresion")}>1. Tarifas de impresión</button><button id="tariff-services-tab" type="button" className={tariffBlock==="servicios"?"active":""} onClick={()=>setTariffBlock("servicios")}>2. Tarifas de servicios</button></nav>
+    <CatalogEditor key={editorEpoch} catalog={catalog} onSaved={saved} activeBlock={tariffBlock} tourActive={tab==="revision-comercial"&&tariffTourActive}/>
     </div>
     <div id="panel-historial-comercial" role="tabpanel" aria-labelledby="tab-historial-comercial" hidden={tab!=="historial-comercial"}>
     <section id="historial-comercial" className="admin-card"><div className="admin-section-title"><div><h2>Historial de configuraciones</h2><p>Consultá los cambios guardados. Las configuraciones anteriores son de solo lectura.</p></div></div>
@@ -94,6 +103,7 @@ export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourO
     </div>
     <div className="admin-page-footer"><a href="/administracion">← Volver al dashboard</a><span>Configuraciones comerciales independientes del configurador</span></div>
     {tab==="catalogo-base"&&<GuidedTour steps={catalogTour} completion={catalogTourCompletion} storageKey={`lamontana:catalog-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error} helpLabel="Guía del catálogo base" onStepChange={index=>setBlock(index===2?"servicios":"papeles")}/>}
-    {tab==="revision-comercial"&&<GuidedTour steps={tariffTour} completion={tariffTourCompletion} storageKey={`lamontana:tarifas-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error} helpLabel="Guía de Tarifas" onActiveChange={setTariffTourActive}/>}
+    {tab==="revision-comercial"&&tariffBlock==="impresion"&&<GuidedTour steps={printingTour} completion={printingTourCompletion} storageKey={`lamontana:tarifas-impresion-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error&&catalog.servicios.some(s=>s.tipo==="IMPRESION"&&s.activo)} helpLabel="Guía de Tarifas de impresión" onActiveChange={setTariffTourActive}/>}
+    {tab==="revision-comercial"&&tariffBlock==="servicios"&&<GuidedTour steps={serviceTour} completion={serviceTourCompletion} storageKey={`lamontana:tarifas-servicios-tour:v1:${tourOwner}`} autoStart={firstSetup&&!!guide.data&&!guide.error} helpLabel="Guía de Tarifas de servicios" onActiveChange={setTariffTourActive}/>}
   </>;
 }

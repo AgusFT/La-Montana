@@ -48,9 +48,9 @@ class EvaluadorPrecioItemTest {
  private final UUID imp=UUID.randomUUID(),f=UUID.randomUUID(),p=UUID.randomUUID();
  private final EvaluadorPrecioItem precios=new EvaluadorPrecioItem();
  private CatalogoService.Estado catalogo(String precio,String recargo,List<OfertaServicio> extras){
-  var tipos=new ArrayList<CatalogoService.Servicio>();tipos.add(new CatalogoService.Servicio(imp,"IMP","Impresión",TipoServicio.IMPRESION,null));
+  var tipos=new ArrayList<CatalogoService.Servicio>();tipos.add(new CatalogoService.Servicio(imp,"IMP","Impresión",TipoServicio.IMPRESION,null,true));
   var ofertas=new ArrayList<OfertaServicio>();ofertas.add(new OfertaServicio(imp,"Impresión",BasePrecio.POR_CARILLA,BigDecimal.ZERO,15,true,List.of()));
-  for(var e:extras){tipos.add(new CatalogoService.Servicio(e.servicio(),e.nombreVisible(),e.nombreVisible(),TipoServicio.TERMINACION,null));ofertas.add(e);}
+  for(var e:extras){tipos.add(new CatalogoService.Servicio(e.servicio(),e.nombreVisible(),e.nombreVisible(),TipoServicio.TERMINACION,null,true));ofertas.add(e);}
   var r=new CatalogoService.Revision(UUID.randomUUID(),1,"Prueba",Instant.EPOCH,"Prueba",List.of(new Tarifa(f,p,ModoColor.BLANCO_NEGRO,new BigDecimal(precio),new BigDecimal(recargo),true)),ofertas,CatalogoService.EstadoRevision.VIGENTE,null,Instant.EPOCH);
   return new CatalogoService.Estado(List.of(),List.of(),tipos,r,List.of(),null,List.of(),List.of());
  }

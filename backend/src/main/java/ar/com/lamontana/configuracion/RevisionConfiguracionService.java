@@ -97,7 +97,9 @@ public class RevisionConfiguracionService {
         if(b.recursos().metodoAsignacion()==null)bloqueo(h,"ASIGNACION_PENDIENTE","recursos",4,"Confirmá la asignación manual de trabajos.",null);
         var activas=new HashSet<UUID>();sucursales.stream().filter(Sucursal::activa).forEach(s->activas.add(s.codigoPublico()));
         var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")&&activas.contains(p.sucursal())).toList();
-        if(impresoras.isEmpty())bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar una impresora Operativa en una sucursal activa es obligatorio. No necesita conexión CUPS.",null);
+        boolean impresionVigente=comercial.actual()!=null&&comercial.actual().servicios().stream().anyMatch(s->s.habilitado()&&comercial.servicios().stream().anyMatch(m->m.codigoPublico().equals(s.servicio())&&m.tipo()==TipoServicio.IMPRESION));
+        if(comercial.actual()!=null&&!impresionVigente)bloqueo(h,"COTIZACION_SERVICIOS_INDEPENDIENTES_PENDIENTE","recursos",4,"El catálogo puede ofrecer solo otros servicios, pero el flujo de pedidos actual requiere Impresión. Falta habilitar la cotización de trabajos independientes antes de activar este modelo operativo.",null);
+        if(impresoras.isEmpty()&&impresionVigente)bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar una impresora Operativa en una sucursal activa es obligatorio para ofrecer Impresión. No necesita conexión CUPS.",null);
         var entregaActual=vigente?entrega.evaluarVigente(codigo,correo):historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
         for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
         for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","MODALIDAD_SIN_DESTINO","entrega",5,aviso,null));
@@ -107,13 +109,13 @@ public class RevisionConfiguracionService {
         for(var origen:b.recursos().serviciosPorSucursal()){
             String nombre=sucursales.stream().filter(s->s.codigoPublico().equals(origen.sucursal())).map(Sucursal::nombre).findFirst().orElse("Sucursal");
             if(!activas.contains(origen.sucursal())){h.add(new Hallazgo("ADVERTENCIA","SUCURSAL_DESACTIVADA","recursos",4,nombre+" está desactivada; sus capacidades no se ofrecerán.",origen.sucursal()));continue;}
-            if(origen.servicios().stream().noneMatch(id->tipos.get(id)==TipoServicio.IMPRESION))bloqueo(h,"IMPRESION_SUCURSAL_PENDIENTE","recursos",4,nombre+" necesita habilitar un servicio de impresión para recibir pedidos PDF.",origen.sucursal());
+            if(origen.servicios().stream().anyMatch(id->tipos.get(id)==TipoServicio.IMPRESION)&&impresoras.stream().noneMatch(p->p.sucursal().equals(origen.sucursal())))bloqueo(h,"IMPRESORA_SUCURSAL_PENDIENTE","recursos",4,nombre+" ofrece Impresión y necesita una impresora Operativa.",origen.sucursal());
             if(revision==null)continue;
             var locales=opciones.stream().filter(o->o.sucursal().equals(origen.sucursal())).toList();
             for(UUID servicio:origen.servicios()){
                 var oferta=revision.servicios().stream().filter(s->s.servicio().equals(servicio)&&s.habilitado()).findFirst();String servicioNombre=comercial.servicios().stream().filter(s->s.codigoPublico().equals(servicio)).map(CatalogoService.Servicio::nombre).findFirst().orElse("Servicio");
                 if(oferta.isEmpty())bloqueo(h,"SERVICIO_SIN_PRECIO_VIGENTE","catalogo",0,nombre+": "+servicioNombre+" está habilitado localmente pero no tiene oferta/precio vigente. Completá el catálogo o quitá el servicio de esa sucursal.",origen.sucursal());
-                else if(locales.stream().noneMatch(o->o.servicio().equals(servicio)||o.terminaciones().contains(servicio)))bloqueo(h,"SERVICIO_SIN_CAPACIDAD","recursos",4,nombre+": "+servicioNombre+" no tiene una combinación tarifada compatible con una impresora Operativa. Revisá formatos, color y servicios.",origen.sucursal());
+                else if(tipos.get(servicio)==TipoServicio.IMPRESION&&locales.stream().noneMatch(o->o.servicio().equals(servicio)))bloqueo(h,"SERVICIO_SIN_CAPACIDAD","recursos",4,nombre+": "+servicioNombre+" no tiene una combinación tarifada compatible con una impresora Operativa. Revisá formatos, color y servicios.",origen.sucursal());
             }
         }
         if(revision!=null){

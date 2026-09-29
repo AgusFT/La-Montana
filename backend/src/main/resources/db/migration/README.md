@@ -1032,3 +1032,15 @@ Agrega grupo y nombre de tarifa y el modo/valor para calcular el precio final do
 **Restricciones:** grupo/nombre completos, modo/valor completos y válidos, importes no negativos y ausencia del recargo antiguo en tarifas por hoja.
 
 **Funciones declaradas:** ninguna.
+
+---
+
+## V39__estado_servicios_catalogo.sql
+
+Agrega el estado activo del servicio base. Las referencias de configuraciones y pedidos históricos se conservan; los servicios existentes quedan activos por defecto.
+
+[Abrir SQL](V39__estado_servicios_catalogo.sql)
+
+**Tabla modificada:** `lamontana.servicio`.
+
+**Funciones declaradas:** ninguna.

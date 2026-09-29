@@ -64,7 +64,9 @@ public class PreparacionController {
         boolean activa=estado.activa()!=null;
         String origen=b==null?"SIN_CONFIGURACION":b.estado(),guardada=activa?"Configurada y activa":b!=null&&b.estado().equals("PROGRAMADA")?"Configurada y programada":"Configurada en borrador";
         boolean sucursal=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE estado='ACTIVA')",Boolean.class));
-        boolean precios=comercial.actual()!=null&&comercial.actual().tarifas().stream().anyMatch(t->t.habilitada())&&comercial.actual().servicios().stream().anyMatch(s->s.habilitado()&&comercial.servicios().stream().anyMatch(m->m.codigoPublico().equals(s.servicio())&&m.tipo()==TipoServicio.IMPRESION));
+        boolean precios=comercial.actual()!=null&&comercial.actual().servicios().stream().anyMatch(s->s.habilitado())&&
+                (comercial.actual().servicios().stream().noneMatch(s->s.habilitado()&&comercial.servicios().stream().anyMatch(m->m.codigoPublico().equals(s.servicio())&&m.tipo()==TipoServicio.IMPRESION))||
+                 comercial.actual().tarifas().stream().anyMatch(t->t.habilitada()));
         var pasos=new ArrayList<Paso>();
         pasos.add(new Paso("propietario","Crear propietario",true,"Completado","Las cuentas de clientes ya pueden registrarse. Los empleados los crea el propietario.","/cuenta/seguridad",false));
         pasos.add(new Paso("sucursal","Preparar sucursal",sucursal,sucursal?"Configurada":"Pendiente","Necesitás al menos una sucursal activa con sus datos y zona horaria.","/administracion/sucursales",false));
@@ -81,7 +83,7 @@ public class PreparacionController {
         boolean webPreparada=Boolean.TRUE.equals(jdbc.queryForObject("SELECT id_actor IS NOT NULL FROM lamontana.web_borrador WHERE unica",Boolean.class));
         pasos.add(new Paso("web","Página de la imprenta",publicada,publicada?"Publicada":webPreparada?"Borrador sin publicar":"Opcional · sin configurar","Prepará identidad, fichas e imágenes, revisá la vista previa y publicá expresamente. Guardar un borrador no cambia la página pública.","/administracion/pagina-web",true));
         boolean papelesListos=comercial.papelesHabilitados().stream().anyMatch(s->s.habilitado());
-        boolean servicioBase=!comercial.servicios().isEmpty();
+        boolean servicioBase=comercial.servicios().stream().anyMatch(CatalogoService.Servicio::activo);
         boolean modeloListo=b!=null&&b.modelo()!=null&&bloqueos.stream().noneMatch(h->h.fase()==2);
         boolean pagosListos=b!=null&&b.pagos()!=null&&bloqueos.stream().noneMatch(h->h.fase()==3);
         boolean recursosListos=b!=null&&b.recursos().metodoAsignacion()!=null&&!b.recursos().serviciosPorSucursal().isEmpty()
@@ -93,7 +95,7 @@ public class PreparacionController {
         var pendientes=new ArrayList<String>();
         int fase=guia.faseDisponible();
         bloqueos.stream().filter(h->h.fase()==fase||fase==4&&h.fase()==0).map(RevisionConfiguracionService.Hallazgo::mensaje).distinct().forEach(pendientes::add);
-        if(fase==4&&b!=null&&b.recursos().serviciosPorSucursal().isEmpty())pendientes.add("Guardá la asignación y al menos un servicio de impresión por sucursal que vaya a operar.");
+        if(fase==4&&b!=null&&b.recursos().serviciosPorSucursal().isEmpty())pendientes.add("Guardá la asignación y los servicios ofrecidos por cada sucursal que vaya a operar.");
         if(fase==5&&r!=null)r.hallazgos().stream().filter(h->h.codigo().equals("MODALIDAD_SIN_DESTINO")).map(RevisionConfiguracionService.Hallazgo::mensaje).forEach(pendientes::add);
         guia=new GuiaInstalacion.Estado(guia.primeraInstalacion(),guia.faseDisponible(),guia.versionBorrador(),guia.etapas(),List.copyOf(pendientes));
         return new Preparacion(origen,b==null?null:b.numero(),activa,estado.borrador()==null?null:estado.borrador().numero(),List.copyOf(pasos),guia);

@@ -37,3 +37,15 @@
 .branch-delete{margin-top:24px;padding:16px;border:1px solid #e7b4b4;border-radius:9px;background:#fff9f8}.branch-delete h3{margin:0 0 8px;font-size:16px}.branch-delete .empty-note{margin:0 0 14px}.branch-delete-button{background:#a72929!important;border-color:#a72929!important;color:#fff!important}.branch-delete-confirm{display:grid;gap:12px}.branch-delete-confirm>div{display:flex;flex-wrap:wrap;gap:10px}.branch-delete-confirm label{max-width:360px}
 .tariff-tour-example{border:1px dashed var(--ui-info-border,#8cb6ee);border-radius:10px;padding:14px;background:var(--ui-info-bg,#edf5ff);margin-bottom:18px}.tariff-tour-example>p{margin:0 0 12px;font-size:13px;color:var(--ui-text,#123254)}.tariff-tour-example .pricing-entry{background:var(--ui-surface,#fff)}.tariff-tour-save-hint{padding:12px 14px;margin:12px 0 0;border:1px solid var(--ui-info-border,#8cb6ee);border-radius:7px;background:var(--ui-info-bg,#edf5ff);font-size:13px;line-height:1.6;color:var(--ui-text,#123254)}
 .guided-tour-secondary{display:block;margin:0 0 16px;font-size:13px;text-align:left}
+.pricing-editor .pricing-section[hidden] { display: none !important; }
+.catalog-coverage { border: 1px solid #c9d9ef; background: #f7faff; border-radius: 12px; padding: 16px; margin: 16px 0; }
+.catalog-coverage h3 { margin: 0 0 6px; }
+.catalog-coverage p { margin: 5px 0 9px; }
+.catalog-coverage ul, .catalog-rate-combinations ul { margin: 8px 0 0; padding-left: 20px; }
+.catalog-coverage li { margin: 4px 0; }
+.catalog-rate-combinations { margin-top: 12px; padding: 12px; border-radius: 10px; background: #eff7ff; overflow-wrap: anywhere; }
+.catalog-master-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.catalog-offered-review { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.catalog-offered-review li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #dce6f2; padding: 8px 0; }
+.catalog-pending-publication { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin: 16px 0; }
+@media (max-width: 700px) { .catalog-pending-publication { flex-direction: column; align-items: stretch; } }

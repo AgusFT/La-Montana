@@ -38,7 +38,7 @@ import {CodeField} from "@/components/code-field";
 import {presetPaperGroups,registeredPaperGroups} from "@/lib/catalog-paper-groups";
 import type {CatalogState,PaperSelection} from "@/lib/catalog-types";
 
-function MasterForm({kind,onCreated,serviceCodes=[]}:{kind:"papel"|"servicio";onCreated:()=>Promise<void>;serviceCodes?:string[]}) {
+function MasterForm({kind,onCreated,serviceCodes=[],serviceNames=[],hasPrinting=false}:{kind:"papel"|"servicio";onCreated:()=>Promise<void>;serviceCodes?:string[];serviceNames?:string[];hasPrinting?:boolean}) {
   const [busy,setBusy]=useState(false),[error,setError]=useState(""),[saved,setSaved]=useState(false);
   const paper=kind==="papel";
   const [formEpoch,setFormEpoch]=useState(0);
@@ -62,8 +62,8 @@ function MasterForm({kind,onCreated,serviceCodes=[]}:{kind:"papel"|"servicio";on
       <label>Alto de la hoja (mm)<input name="altoMm" type="number" required min="0.01" max="999999.99" step="0.01"/><small>La medida del otro lado. Ejemplo A4: 210 × 297 mm.</small></label>
       <label>Gramaje (g/m²)<input name="gramaje" type="number" required min="0.01" max="999999.99" step="0.01"/><small>Buscalo en el paquete: expresa el peso del papel por metro cuadrado.</small></label>
       <label>Terminación del papel<input name="terminacion" required maxLength={100} placeholder="Ej.: Mate, brillante o sin estucar"/><small>Indica cómo es su superficie, según el fabricante.</small></label>
-    </>:<CatalogServiceFields key={formEpoch} existingCodes={serviceCodes} disabled={busy}/>}
-  </div></fieldset>{error&&<p className="form-message error-message" role="alert">{error}</p>}{saved&&<SaveNotice>{paper?"Papel habilitado en el catálogo base. Podés continuar con los servicios.":"Servicio base guardado. Continuá a Tarifas para definir los precios; para publicarlos necesitás ofrecer un servicio de impresión."}</SaveNotice>}<button className="admin-button" disabled={busy}>{busy?"Guardando…":paper?"Guardar papel personalizado":"Crear servicio"}</button></form>;
+    </>:<CatalogServiceFields key={formEpoch} existingCodes={serviceCodes} existingNames={serviceNames} hasPrinting={hasPrinting} disabled={busy}/>}
+  </div></fieldset>{error&&<p className="form-message error-message" role="alert">{error}</p>}{saved&&<SaveNotice>{paper?"Papel habilitado en el catálogo base. Podés continuar con los servicios.":"Servicio base guardado. En Tarifas configurá los precios solo de los servicios que vayas a ofrecer."}</SaveNotice>}<button className="admin-button" disabled={busy}>{busy?"Guardando…":paper?"Guardar papel personalizado":"Crear servicio"}</button></form>;
 }
 export function CatalogMasters({catalog,onCreated,activeBlock="papeles"}:{catalog:CatalogState;onCreated:()=>Promise<void>;activeBlock?:"papeles"|"servicios"}){
   const guide=useInstallation(),papersReady=catalog.papelesHabilitados.some(p=>p.habilitado),firstSetup=guide.enabled&&!guide.data?.activa;
@@ -85,6 +85,16 @@ export function CatalogMasters({catalog,onCreated,activeBlock="papeles"}:{catalo
       await secureMutation(`/api/admin/catalogo/${selection?"papeles-habilitados":"papeles-predefinidos"}`,JSON.stringify(selection?{formato:selection.formato,papel:selection.papel,habilitado:enabled}:{codigo:preset}),"application/json",selection?"PUT":"POST");
       await onCreated();setNotice(enabled?"Variante habilitada. Los otros gramajes conservan su estado.":"Variante deshabilitada para nuevas tarifas. Los otros gramajes conservan su estado y los precios publicados no cambian.");
     }catch(e){setError((e instanceof TypeError?"No pudimos comunicarnos con el servidor.":e instanceof Error?e.message:"No pudimos actualizar el catálogo.")+" Podés reintentar la misma acción para confirmar el resultado.");}finally{setBusy(false);}
+  }
+  async function changeService(id:string,action:"remove"|"activate"|"deactivate"){
+    if(busy)return;
+    if(action==="remove"&&!window.confirm("¿Quitar este servicio del catálogo base? Si tiene referencias históricas, quedará desactivado y se conservará su trazabilidad."))return;
+    setBusy(true);setError("");setNotice("");
+    try{
+      const url=`/api/admin/catalogo/servicios/${id}`;
+      const response=await secureMutation(action==="remove"?url:`${url}/estado`,action==="remove"?undefined:JSON.stringify({activo:action==="activate"}),"application/json",action==="remove"?"DELETE":"PUT");
+      const result=await response.json() as {mensaje?:string};await onCreated();setNotice(result.mensaje??"Servicio actualizado.");
+    }catch(e){setError(e instanceof Error?e.message:"No pudimos actualizar el servicio.");}finally{setBusy(false);}
   }
   return <section id="catalogo-base" className="admin-card catalog-master-section">
     <div id="catalog-papers" hidden={activeBlock!=="papeles"}>
@@ -126,8 +136,8 @@ export function CatalogMasters({catalog,onCreated,activeBlock="papeles"}:{catalo
     </details>
     </div>
     <section id="catalog-services" className="catalog-services" hidden={activeBlock!=="servicios"}><h2>Servicios de tu imprenta <span className="admin-count">{catalog.servicios.length}</span></h2><p className="admin-note">Definí qué trabajos o prestaciones ofrece tu imprenta. Impresión es pasar el documento al papel; terminación es un trabajo adicional, como anillado o plastificado. Sus precios se definen en Tarifas.</p>
-      {catalog.servicios.length===0?<p className="admin-empty">Todavía no creaste servicios. Para publicar precios vas a necesitar al menos uno de impresión.</p>:<ul className="catalog-master-list">{catalog.servicios.map(s=><li key={s.codigoPublico}><strong>{s.nombre}</strong><small>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</small>{s.descripcion&&<small>{s.descripcion}</small>}</li>)}</ul>}
-      {firstSetup&&!papersReady?<p className="admin-info">Paso 2 bloqueado: primero habilitá al menos un papel. Después podrás crear los servicios base.</p>:<details className="catalog-custom"><summary>Agregar servicio</summary><MasterForm kind="servicio" serviceCodes={catalog.servicios.map(s=>s.codigo)} onCreated={onCreated}/></details>}
+      {catalog.servicios.length===0?<p className="admin-empty">Todavía no creaste servicios. Podés comenzar con Impresión o con cualquier otro trabajo que ofrezca tu imprenta.</p>:<ul className="catalog-master-list">{catalog.servicios.map(s=><li key={s.codigoPublico}><strong>{s.nombre}</strong><small>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Otro servicio"} · {s.activo?"Activo":"Desactivado"}</small>{s.descripcion&&<small>{s.descripcion}</small>}<div className="catalog-master-actions"><button type="button" className="admin-button secondary" disabled={busy} onClick={()=>changeService(s.codigoPublico,s.activo?"deactivate":"activate")}>{s.activo?"Desactivar":"Reactivar"}</button><button type="button" className="admin-link-button" disabled={busy} onClick={()=>changeService(s.codigoPublico,"remove")}>Quitar del catálogo</button></div></li>)}</ul>}
+      {firstSetup&&!papersReady?<p className="admin-info">Paso 2 bloqueado: primero habilitá al menos un papel. Después podrás crear los servicios base.</p>:<details className="catalog-custom"><summary>Agregar servicio</summary><MasterForm kind="servicio" serviceCodes={catalog.servicios.map(s=>s.codigo)} serviceNames={catalog.servicios.map(s=>s.nombre)} hasPrinting={catalog.servicios.some(s=>s.tipo==="IMPRESION")} onCreated={onCreated}/></details>}
     </section>
   </section>;
 }

@@ -31,6 +31,7 @@ export function offerSignature(offer:OfferDraft):string{
 export function validateOffer(offer:OfferDraft,index:number,offers:OfferDraft[],catalog:CatalogState):ServiceOffer{
   const label=`Servicio ${index+1}`,service=catalog.servicios.find(s=>s.codigoPublico===offer.servicio);
   if(!service||!offer.basePrecio||!Object.hasOwn(priceLabels,offer.basePrecio)||!offer.nombreVisible.trim())throw new Error(`${label}: elegí un servicio de la lista, su nombre visible y la forma de cobro.`);
+  if(offer.habilitado&&!service.activo)throw new Error(`${label}: el servicio está desactivado en el catálogo base.`);
   if(offer.nombreVisible.trim().length>140)throw new Error(`${label}: el nombre admite hasta 140 caracteres.`);
   if(offers.some(other=>other.id!==offer.id&&other.servicio===offer.servicio))throw new Error(`${label}: ese servicio ya está agregado. Editá el existente o elegí otro del Catálogo base.`);
   const precio=parseAmount(offer.precio,`${label}, precio unitario`),preparacionMinutos=Number(offer.preparacionMinutos);
@@ -39,6 +40,5 @@ export function validateOffer(offer:OfferDraft,index:number,offers:OfferDraft[],
   if(offer.compatibilidades.some(pair=>!pair.formato||!pair.papel))throw new Error(`${label}: elegí un papel de la lista para cada compatibilidad.`);
   const pairs=offer.compatibilidades.map(pair=>`${pair.formato}/${pair.papel}`);
   if(new Set(pairs).size!==pairs.length)throw new Error(`${label}: hay papeles compatibles repetidos.`);
-  if(service.tipo!=="IMPRESION"&&offer.habilitado&&!pairs.length)throw new Error(`${label}: agregá al menos un papel compatible para habilitar esta terminación.`);
   return {servicio:offer.servicio,nombreVisible:offer.nombreVisible.trim(),basePrecio:offer.basePrecio,precio,preparacionMinutos,habilitado:offer.habilitado,compatibilidades:offer.compatibilidades.map(({formato,papel})=>({formato,papel}))};
 }

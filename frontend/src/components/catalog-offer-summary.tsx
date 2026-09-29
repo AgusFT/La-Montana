@@ -20,7 +20,7 @@ export function CatalogOfferSummary({offer,index,catalog,state,disabled,onEdit,o
   const service=catalog.servicios.find(s=>s.codigoPublico===offer.servicio),printing=service?.tipo==="IMPRESION";
   const groups=new Map<string,{name:string;count:number}>();
   for(const pair of offer.compatibilidades){const group=groups.get(pair.formato);if(group)group.count++;else groups.set(pair.formato,{name:catalog.formatos.find(f=>f.codigoPublico===pair.formato)?.nombre??"Tamaño anterior",count:1});}
-  const status=state==="PENDIENTE"?"Pendiente de guardar":state==="PROGRAMADA"?"Guardado · programado":"Guardado · vigente";
+  const status=state==="PENDIENTE"?"Aplicado al borrador · sin publicar":state==="PROGRAMADA"?"Guardado · programado":"Guardado · vigente";
   return <article id={offer.id} className={`pricing-entry pricing-offer rate-summary ${state==="PENDIENTE"?"is-pending":state==="PROGRAMADA"?"is-scheduled":""}`} aria-label={`Resumen de servicio ${index+1}`}>
     <header><div className="rate-name"><h3>{offer.nombreVisible}</h3></div><span className={`pricing-state ${state==="PENDIENTE"?"is-pending":state==="PROGRAMADA"?"is-scheduled":"enabled"}`}>{status}</span></header>
     <p className="admin-note"><strong>{printing?"Impresión":"Terminación"}</strong> · {service?.nombre} · {offer.habilitado?"Habilitado":"Deshabilitado para nuevas cotizaciones"}</p>

@@ -19,6 +19,8 @@
  * - [public] Map<String, String> formato(AltaFormato data, Principal actor)
  * - [public] Map<String, String> papel(AltaPapel data, Principal actor)
  * - [public] Map<String, String> servicio(AltaServicio data, Principal actor)
+ * - [public] Map<String, String> quitarServicio(UUID codigo, Principal actor)
+ * - [public] Map<String, String> estadoServicio(UUID codigo, EstadoServicio data, Principal actor)
  * - [public] CatalogoService.Revision guardar(NuevaRevision data, Principal actor)
  * - [public] CatalogoService.Revision revision(UUID codigo)
  * - [public] CatalogoService.Revision cancelar(UUID codigo, CancelarProgramacion data, Principal
@@ -37,6 +39,7 @@
  * - CatalogoController.AltaFormato (record).
  * - CatalogoController.AltaPapel (record).
  * - CatalogoController.AltaServicio (record).
+ * - CatalogoController.EstadoServicio (record).
  * - CatalogoController.TipoServicio (enum).
  * - CatalogoController.ModoColor (enum).
  * - CatalogoController.BasePrecio (enum).
@@ -76,6 +79,10 @@ public class CatalogoController {
     public Map<String,String> papel(@Valid @RequestBody AltaPapel data, Principal actor) { catalogo.papel(data, actor.getName()); return Map.of("mensaje","Papel creado."); }
     @PostMapping("/servicios") @ResponseStatus(HttpStatus.CREATED)
     public Map<String,String> servicio(@Valid @RequestBody AltaServicio data, Principal actor) { catalogo.servicio(data, actor.getName()); return Map.of("mensaje","Servicio creado."); }
+    @DeleteMapping("/servicios/{codigo}")
+    public Map<String,String> quitarServicio(@PathVariable UUID codigo, Principal actor) { return Map.of("mensaje",catalogo.quitarServicio(codigo,actor.getName())); }
+    @PutMapping("/servicios/{codigo}/estado")
+    public Map<String,String> estadoServicio(@PathVariable UUID codigo,@Valid @RequestBody EstadoServicio data,Principal actor) { catalogo.estadoServicio(codigo,data.activo(),actor.getName()); return Map.of("mensaje",data.activo()?"Servicio reactivado.":"Servicio desactivado."); }
     @PostMapping("/revisiones") public CatalogoService.Revision guardar(@Valid @RequestBody NuevaRevision data, Principal actor) { return catalogo.guardar(data, actor.getName()); }
     @GetMapping("/revisiones/{codigo}") public CatalogoService.Revision revision(@PathVariable UUID codigo) { return catalogo.revision(codigo); }
     @PostMapping("/programaciones/{codigo}/cancelar")
@@ -104,6 +111,7 @@ public class CatalogoController {
                             @NotNull @Positive @Digits(integer=6,fraction=2) BigDecimal gramaje, @NotBlank @Size(max=100) String terminacion) {}
     public record AltaServicio(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,50}") String codigo, @NotBlank @Size(max=140) String nombre,
                                @NotNull TipoServicio tipo, @Size(max=1000) String descripcion) {}
+    public record EstadoServicio(@NotNull Boolean activo) {}
     public enum TipoServicio { IMPRESION, TERMINACION }
     public enum ModoColor { BLANCO_NEGRO, COLOR }
     public enum BasePrecio { POR_COPIA, POR_HOJA, POR_CARILLA, FIJO_POR_ITEM }

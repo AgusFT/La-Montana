@@ -25,8 +25,11 @@
  * - [public] void formato(AltaFormato in, String actor)
  * - [public] void papel(AltaPapel in, String actor)
  * - [public] void servicio(AltaServicio in, String actor)
+ * - [public] String quitarServicio(UUID codigo, String actor)
+ * - [public] void estadoServicio(UUID codigo, boolean activo, String actor)
  * - [private] void creado(int n, String tipo)
  * - [private] String codigo(String value)
+ * - [private] String normalizar(String value)
  * - [private] void evento(String actor, String tipo, UUID objeto)
  * - [public] Revision guardar(NuevaRevision in, String actor)
  * - [public] Revision cancelar(UUID codigo, CancelarProgramacion in, String actor)
@@ -66,6 +69,7 @@ package ar.com.lamontana.catalogo;
 
 import static ar.com.lamontana.catalogo.CatalogoController.*;
 import java.math.BigDecimal;
+import java.text.Normalizer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.sql.ResultSet;
@@ -88,7 +92,7 @@ public class CatalogoService {
 
     public record Formato(UUID codigoPublico,String codigo,String nombre,BigDecimal anchoMm,BigDecimal altoMm) {}
     public record Papel(UUID codigoPublico,String codigo,String nombre,BigDecimal gramaje,String terminacion) {}
-    public record Servicio(UUID codigoPublico,String codigo,String nombre,TipoServicio tipo,String descripcion) {}
+    public record Servicio(UUID codigoPublico,String codigo,String nombre,TipoServicio tipo,String descripcion,boolean activo) {}
     public enum EstadoRevision { VIGENTE, HISTORICA, PROGRAMADA, CANCELADA }
     public record Resumen(UUID codigoPublico,long numero,String motivo,Instant creadaEn,String actor,
                           EstadoRevision estado,Instant programadaPara,Instant activadaEn) {}
@@ -111,7 +115,7 @@ public class CatalogoService {
     }
     private List<Formato> formatos() { return jdbc.query("SELECT codigo_publico,codigo,nombre,ancho_mm,alto_mm FROM lamontana.formato ORDER BY codigo",(r,n)->new Formato(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getBigDecimal(5))); }
     private List<Papel> papeles() { return jdbc.query("SELECT codigo_publico,codigo,nombre,gramaje_g_m2,terminacion_tipo FROM lamontana.papel ORDER BY codigo",(r,n)->new Papel(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getBigDecimal(4),r.getString(5))); }
-    private List<Servicio> servicios() { return jdbc.query("SELECT codigo_publico,codigo,nombre,tipo,descripcion FROM lamontana.servicio ORDER BY codigo",(r,n)->new Servicio(r.getObject(1,UUID.class),r.getString(2),r.getString(3),TipoServicio.valueOf(r.getString(4)),r.getString(5))); }
+    private List<Servicio> servicios() { return jdbc.query("SELECT codigo_publico,codigo,nombre,tipo,descripcion,activo FROM lamontana.servicio ORDER BY codigo",(r,n)->new Servicio(r.getObject(1,UUID.class),r.getString(2),r.getString(3),TipoServicio.valueOf(r.getString(4)),r.getString(5),r.getBoolean(6))); }
 
     @Transactional public void predefinido(String codigo,String actor) { bloquear();new PapelesCatalogo(jdbc).predefinido(codigo,actor); }
     @Transactional public void todosPredefinidos(String actor) {
@@ -136,12 +140,42 @@ public class CatalogoService {
         evento(actor,"ALTA_PAPEL",id);
     }
     @Transactional public void servicio(AltaServicio in,String actor) {
+        bloquear();
+        String code=codigo(in.codigo());
+        if(in.tipo()==TipoServicio.IMPRESION&&servicios().stream().anyMatch(s->s.tipo()==TipoServicio.IMPRESION))
+            throw error(HttpStatus.CONFLICT,"Usá el servicio Impresión una sola vez. Blanco y negro y Color se configuran en Tarifas de impresión.");
+        if(Set.of("IMP-BN","IMP-COLOR").contains(code)||code.matches("IMP-(BN|COLOR)-[0-9]+"))
+            throw error(HttpStatus.CONFLICT,"Blanco y negro y Color son tipos de tarifa, no servicios del catálogo.");
+        if(code.matches("(IMPRESION|ANILLADO|PLASTIFICADO|ENCUADERNACION|CORTE-REFILADO|PLEGADO|ABROCHADO)-[0-9]+"))
+            throw error(HttpStatus.CONFLICT,"Ese servicio predefinido no puede duplicarse agregando un número al código.");
+        if(servicios().stream().anyMatch(s->normalizar(s.nombre()).equals(normalizar(in.nombre()))))
+            throw error(HttpStatus.CONFLICT,"Ya existe un servicio con ese nombre.");
         UUID id=UUID.randomUUID();
-        int n=jdbc.update("INSERT INTO lamontana.servicio(codigo_publico,codigo,nombre,tipo,descripcion) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING",id,codigo(in.codigo()),in.nombre().strip(),in.tipo().name(),in.descripcion()==null?null:in.descripcion().strip());
+        int n=jdbc.update("INSERT INTO lamontana.servicio(codigo_publico,codigo,nombre,tipo,descripcion) VALUES (?,?,?,?,?) ON CONFLICT DO NOTHING",id,code,in.nombre().strip(),in.tipo().name(),in.descripcion()==null?null:in.descripcion().strip());
         creado(n,"servicio");evento(actor,"ALTA_SERVICIO",id);
+    }
+    @Transactional public String quitarServicio(UUID codigo,String actor) {
+        bloquear();
+        servicios().stream().filter(s->s.codigoPublico().equals(codigo)).findFirst().orElseThrow(()->error(HttpStatus.NOT_FOUND,"El servicio no existe."));
+        long revisiones=jdbc.queryForObject("SELECT count(*) FROM lamontana.configuracion_servicio WHERE id_servicio=(SELECT id_servicio FROM lamontana.servicio WHERE codigo_publico=?)",Long.class,codigo);
+        long sucursales=jdbc.queryForObject("SELECT count(*) FROM lamontana.sucursal_servicio WHERE id_servicio=(SELECT id_servicio FROM lamontana.servicio WHERE codigo_publico=?)",Long.class,codigo);
+        long pedidos=jdbc.queryForObject("SELECT count(*) FROM lamontana.cotizacion_item_servicio WHERE id_servicio=(SELECT id_servicio FROM lamontana.servicio WHERE codigo_publico=?)",Long.class,codigo);
+        if(revisiones+sucursales+pedidos>0){
+            jdbc.update("UPDATE lamontana.servicio SET activo=false WHERE codigo_publico=?",codigo);evento(actor,"DESACTIVAR_SERVICIO",codigo);
+            return "Servicio desactivado. Las referencias históricas se conservan.";
+        }
+        jdbc.update("DELETE FROM lamontana.servicio WHERE codigo_publico=?",codigo);evento(actor,"ELIMINAR_SERVICIO",codigo);
+        return "Servicio sin referencias eliminado.";
+    }
+    @Transactional public void estadoServicio(UUID codigo,boolean activo,String actor) {
+        bloquear();
+        int n=jdbc.update("UPDATE lamontana.servicio SET activo=? WHERE codigo_publico=?",activo,codigo);
+        if(n==0)throw error(HttpStatus.NOT_FOUND,"El servicio no existe.");
+        evento(actor,activo?"REACTIVAR_SERVICIO":"DESACTIVAR_SERVICIO",codigo);
     }
     private void creado(int n,String tipo) { if(n!=1) throw error(HttpStatus.CONFLICT,"Ya existe un "+tipo+" con ese código."); }
     private String codigo(String value) { return value.strip().toUpperCase(Locale.ROOT); }
+    private String normalizar(String value) { return Normalizer.normalize(value.strip(),Normalizer.Form.NFD).replaceAll("\\p{M}+","").toUpperCase(Locale.ROOT); }
     private void evento(String actor,String tipo,UUID objeto) {
         jdbc.update("INSERT INTO lamontana.evento_catalogo(id_actor,tipo,codigo_objeto) VALUES ((SELECT id_usuario FROM lamontana.usuario WHERE correo=?),?,?)",actor,tipo,objeto);
     }
@@ -248,8 +282,8 @@ public class CatalogoService {
     }
 
     private void validar(NuevaRevision in) {
-        Set<UUID> formatos=new HashSet<>(),papeles=new HashSet<>();Map<UUID,TipoServicio> servicios=new HashMap<>();
-        formatos().forEach(f->formatos.add(f.codigoPublico()));papeles().forEach(p->papeles.add(p.codigoPublico()));servicios().forEach(s->servicios.put(s.codigoPublico(),s.tipo()));
+        Set<UUID> formatos=new HashSet<>(),papeles=new HashSet<>();Map<UUID,Servicio> servicios=new HashMap<>();
+        formatos().forEach(f->formatos.add(f.codigoPublico()));papeles().forEach(p->papeles.add(p.codigoPublico()));servicios().forEach(s->servicios.put(s.codigoPublico(),s));
         var seleccionados=new HashSet<Compatibilidad>();
         new PapelesCatalogo(jdbc).seleccion().stream().filter(PapelesCatalogo.Seleccion::habilitado).forEach(p->seleccionados.add(new Compatibilidad(p.formato(),p.papel())));
         var combinaciones=new HashSet<String>();var disponibles=new HashSet<Compatibilidad>();
@@ -268,12 +302,14 @@ public class CatalogoService {
                 disponibles.add(new Compatibilidad(t.formato(),t.papel()));
             }
         }
-        existe(!disponibles.isEmpty(),"Configurá al menos una tarifa de impresión habilitada.");
-        var usados=new HashSet<UUID>();int impresiones=0;
+        var usados=new HashSet<UUID>();int impresiones=0,habilitados=0;
         for(OfertaServicio s:in.servicios()) {
-            TipoServicio tipo=servicios.get(s.servicio());
-            existe(tipo!=null,"El servicio no existe en el catálogo.");
+            Servicio maestro=servicios.get(s.servicio());
+            existe(maestro!=null,"El servicio no existe en el catálogo.");
+            if(s.habilitado())existe(maestro.activo(),"Un servicio desactivado no puede ofrecerse en una configuración nueva.");
+            TipoServicio tipo=maestro.tipo();
             existe(usados.add(s.servicio()),"Hay servicios duplicados en esta revisión.");
+            if(s.habilitado())habilitados++;
             if(tipo==TipoServicio.IMPRESION) {
                 existe(s.basePrecio()==BasePrecio.POR_CARILLA && s.precio().signum()==0,"El precio de impresión se toma de las tarifas; no admite un segundo cargo de servicio.");
                 existe(s.compatibilidades().isEmpty(),"Las combinaciones de impresión se configuran en las tarifas.");
@@ -283,12 +319,12 @@ public class CatalogoService {
                 for(Compatibilidad c:s.compatibilidades()) {
                     existe(combinacionExiste(formatos,papeles,c.formato(),c.papel()),"La compatibilidad debe referir a un formato y papel existentes.");
                     existe(pares.add(c),"Hay compatibilidades duplicadas.");
-                    if(s.habilitado()) existe(disponibles.contains(c),"Una terminación habilitada necesita una tarifa de impresión habilitada para cada compatibilidad.");
+                    if(s.habilitado()) existe(seleccionados.contains(c),"Una terminación habilitada usa un papel retirado del catálogo base.");
                 }
-                if(s.habilitado()) existe(!pares.isEmpty(),"Elegí las combinaciones admitidas por cada terminación habilitada.");
             }
         }
-        existe(impresiones>=1,"Habilitá al menos un servicio de impresión para este catálogo.");
+        existe(habilitados>=1,"Habilitá al menos un servicio con su configuración comercial completa.");
+        existe(impresiones==0?disponibles.isEmpty():!disponibles.isEmpty(),impresiones==0?"No habilites tarifas de impresión si no ofrecés Impresión.":"Impresión requiere al menos una tarifa habilitada.");
     }
     private boolean combinacionExiste(Set<UUID> formatos,Set<UUID> papeles,UUID f,UUID p) { return formatos.contains(f)&&papeles.contains(p); }
     private void existe(boolean condition,String message) { if(!condition) throw error(HttpStatus.BAD_REQUEST,message); }

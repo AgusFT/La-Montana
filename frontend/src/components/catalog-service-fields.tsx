@@ -38,8 +38,7 @@ import type {CatalogService} from "@/lib/catalog-types";
 
 type Suggestion={nombre:string;codigo:string;tipo:CatalogService["tipo"]};
 const suggestions:Suggestion[]=[
-  {nombre:"Impresión blanco y negro",codigo:"IMP-BN",tipo:"IMPRESION"},
-  {nombre:"Impresión a color",codigo:"IMP-COLOR",tipo:"IMPRESION"},
+  {nombre:"Impresión",codigo:"IMPRESION",tipo:"IMPRESION"},
   {nombre:"Anillado",codigo:"ANILLADO",tipo:"TERMINACION"},
   {nombre:"Plastificado",codigo:"PLASTIFICADO",tipo:"TERMINACION"},
   {nombre:"Encuadernación",codigo:"ENCUADERNACION",tipo:"TERMINACION"},
@@ -49,14 +48,13 @@ const suggestions:Suggestion[]=[
 ];
 const normalize=(value:string)=>value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
 
-export function CatalogServiceFields({existingCodes,disabled}:{existingCodes:string[];disabled:boolean}){
+export function CatalogServiceFields({existingCodes,existingNames=[],hasPrinting=false,disabled}:{existingCodes:string[];existingNames?:string[];hasPrinting?:boolean;disabled:boolean}){
   const id=useId(),input=useRef<HTMLInputElement>(null),control=useRef<HTMLDivElement>(null);
   const [name,setName]=useState(""),[code,setCode]=useState(""),[type,setType]=useState<CatalogService["tipo"]|"">("");
   const [open,setOpen]=useState(false),[query,setQuery]=useState(""),[active,setActive]=useState(-1),[selectionNote,setSelectionNote]=useState("");
-  const options=suggestions.filter(s=>normalize(`${s.nombre} ${s.codigo}`).includes(normalize(query))),shown=open&&!disabled;
+  const options=suggestions.filter(s=>(s.tipo!=="IMPRESION"||!hasPrinting)&&!existingCodes.some(code=>code.toUpperCase()===s.codigo)&&!existingNames.some(name=>normalize(name)===normalize(s.nombre))).filter(s=>normalize(`${s.nombre} ${s.codigo}`).includes(normalize(query))),shown=open&&!disabled;
   const listId=`${id}-options`,helpId=`${id}-help`;
-  function suggestedCode(base:string){const used=new Set(existingCodes.map(c=>c.trim().toUpperCase()));let result=base,n=2;while(used.has(result))result=`${base}-${n++}`;return result;}
-  function choose(s:Suggestion){const nextCode=suggestedCode(s.codigo);setName(s.nombre);setCode(nextCode);setType(s.tipo);setOpen(false);setActive(-1);setSelectionNote(`Completamos el código ${nextCode} y el tipo ${s.tipo==="IMPRESION"?"Impresión":"Terminación"}. Podés editar todos los campos antes de crear el servicio.${nextCode!==s.codigo?" El código habitual ya existe; agregamos un número para distinguirlo.":""}`);}
+  function choose(s:Suggestion){setName(s.nombre);setCode(s.codigo);setType(s.tipo);setOpen(false);setActive(-1);setSelectionNote(`Completamos el código ${s.codigo} y el tipo ${s.tipo==="IMPRESION"?"Impresión":"Terminación"}. Podés editar los campos antes de crearlo.`);}
   function keyboard(event:KeyboardEvent<HTMLInputElement>){
     if(event.key==="ArrowDown"||event.key==="ArrowUp"){
       event.preventDefault();
@@ -83,7 +81,7 @@ export function CatalogServiceFields({existingCodes,disabled}:{existingCodes:str
         {shown&&<div className="service-suggestions" tabIndex={-1}>
           <ul id={listId} role="listbox" aria-label="Servicios básicos">{options.map((s,i)=><li id={`${listId}-${i}`} key={s.codigo} role="option" aria-selected={active===i}
             onPointerDown={e=>e.preventDefault()} onPointerMove={()=>setActive(i)} onClick={()=>choose(s)}>
-            <strong>{s.nombre}</strong><span>{suggestedCode(s.codigo)} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</span>
+            <strong>{s.nombre}</strong><span>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</span>
           </li>)}</ul>
           {options.length===0&&<p role="status">Sin coincidencias. Podés usar el nombre que escribiste y completar el código y el tipo.</p>}
         </div>}
@@ -93,7 +91,7 @@ export function CatalogServiceFields({existingCodes,disabled}:{existingCodes:str
     {selectionNote&&<p className="service-selection-note admin-info" role="status">{selectionNote}</p>}
     <CodeField subject="servicio" maxLength={50} value={code} onValueChange={setCode}>
       <p>Es el identificador único del servicio. Se usa para reconocerlo en el catálogo, al preparar tarifas y servicios ofrecidos.</p>
-      <p><strong>Formato recomendado:</strong> una abreviatura clara, como <code>IMP-BN</code>, <code>IMP-COLOR</code> o <code>ANILLADO</code>. Si ya existe, sugerimos un número al final, por ejemplo <code>IMP-BN-2</code>.</p>
+      <p><strong>Formato recomendado:</strong> <code>IMPRESION</code> o <code>ANILLADO</code>. B/N y Color se eligen más adelante, dentro de Tarifas de impresión. Los códigos no pueden repetirse.</p>
       <p>Podés cambiar la sugerencia antes de guardar. Hasta 50 caracteres: letras sin tildes, números, guion o guion bajo, sin espacios. Se guarda en mayúsculas y queda fijo después del alta.</p>
     </CodeField>
     <label>Tipo<select name="tipo" required value={type} onChange={e=>setType(e.target.value as CatalogService["tipo"]|"")}><option value="" disabled>Seleccionar tipo</option><option value="IMPRESION">Impresión</option><option value="TERMINACION">Terminación</option></select></label>

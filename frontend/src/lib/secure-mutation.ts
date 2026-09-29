@@ -31,7 +31,7 @@ export class MutationError extends Error {
   constructor(message: string, readonly status: number, readonly uncertain = false) { super(message); this.name = "MutationError"; }
 }
 
-export async function secureMutation(path: string, body?: BodyInit, contentType?: string, method: "POST" | "PUT" = "POST") {
+export async function secureMutation(path: string, body?: BodyInit, contentType?: string, method: "POST" | "PUT" | "DELETE" = "POST") {
   const csrfResponse = await fetch("/api/auth/csrf", { cache: "no-store", credentials: "same-origin" });
   if (!csrfResponse.ok) throw new MutationError("No pudimos preparar una operación segura. Intentá nuevamente.", csrfResponse.status);
   const csrf = await csrfResponse.json();

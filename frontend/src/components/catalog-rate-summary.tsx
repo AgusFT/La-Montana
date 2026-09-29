@@ -19,7 +19,7 @@ export function CatalogRateSummary({rate,index,catalog,state,disabled,onEdit,onR
   const simple=parseAmount(rate.precio,"Simple faz"),legacy=rate.recargoAnterior!==undefined,duplex=legacy?simple+(rate.recargoAnterior??0):duplexPrice(rate.precio,rate.modoDobleFaz,rate.valorDobleFaz);
   const groups=new Map<string,{name:string;count:number}>();
   for(const paper of rate.papeles){const group=groups.get(paper.formato);if(group)group.count++;else groups.set(paper.formato,{name:catalog.formatos.find(format=>format.codigoPublico===paper.formato)?.nombre??"Tamaño anterior",count:1});}
-  const status=state==="PENDIENTE"?"Pendiente de guardar":state==="PROGRAMADA"?"Guardada · programada":"Guardada · vigente";
+  const status=state==="PENDIENTE"?"Aplicado al borrador · sin publicar":state==="PROGRAMADA"?"Guardada · programada":"Guardada · vigente";
   return <article id={rate.id} className={`pricing-entry rate-summary ${state==="PENDIENTE"?"is-pending":state==="PROGRAMADA"?"is-scheduled":""}`} aria-label={`Resumen de tarifa ${index+1}`}>
     <header><div className="rate-name"><h3>{rate.nombre}</h3></div><span className={`pricing-state ${state==="PENDIENTE"?"is-pending":state==="PROGRAMADA"?"is-scheduled":"enabled"}`}>{status}</span></header>
     <p className="admin-note"><strong>{rate.color?colorLabels[rate.color]:"Sin modo de impresión"}</strong> · {rate.papeles.length} variantes · {rate.habilitada?"Habilitada":"Deshabilitada para nuevas cotizaciones"}</p>

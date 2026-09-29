@@ -109,7 +109,7 @@ class CatalogoIntegrationTest {
                 tarifa.put("precio","1.001");status(post(admin,"/api/admin/catalogo/revisiones",revision),400);tarifa.put("precio","19.99");
                 tarifa.put("habilitada",false);status(post(admin,"/api/admin/catalogo/revisiones",revision),400);tarifa.put("habilitada",true);
                 impresion.put("precio","1");status(post(admin,"/api/admin/catalogo/revisiones",revision),400);impresion.put("precio","0");
-                terminacion.put("compatibilidades",List.of());status(post(admin,"/api/admin/catalogo/revisiones",revision),400);terminacion.put("compatibilidades",List.of(Map.of("formato",f,"papel",p)));
+                // Una prestación independiente puede no depender de papeles ni de impresión.
                 tarifa.put("formato",UUID.randomUUID().toString());status(post(admin,"/api/admin/catalogo/revisiones",revision),400);tarifa.put("formato",f);
                 invalid=new HashMap<>(revision);invalid.put("tarifas",List.of(tarifa,tarifa));status(post(admin,"/api/admin/catalogo/revisiones",invalid),400);
                 // Falla de almacenamiento a mitad del guardado: tampoco publica ni deja filas parciales.
@@ -130,14 +130,22 @@ class CatalogoIntegrationTest {
                 var publico=cliente();status(get(publico,"/api/admin/catalogo"),401);
                 status(post(publico,"/api/auth/registro",Map.of("nombre","Cliente","apellido","Test","correo","cliente@example.test","contrasena",CLAVE)),201);login(publico,"cliente@example.test");
                 status(get(publico,"/api/admin/catalogo"),403);status(get(publico,"/api/admin/catalogo/revisiones/"+primera),403);status(post(publico,"/api/admin/catalogo/formatos",formato),403);status(post(publico,"/api/admin/catalogo/revisiones",revision),403);
-                // La unicidad de impresión corresponde al ítem, no al catálogo global.
-                status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","IMP2","nombre","Otra impresión","tipo","IMPRESION")),201);
-                var conDos=JSON.readTree(get(admin,"/api/admin/catalogo").body());
-                String segundoServicio="";for(var servicio:conDos.get("servicios"))if(servicio.get("codigo").asString().equals("IMP2"))segundoServicio=servicio.get("codigoPublico").asString();
-                var otraImpresion=new HashMap<>(impresion);otraImpresion.put("servicio",segundoServicio);otraImpresion.put("nombreVisible","Otra impresión");
-                revision.put("versionBase",conDos.get("actual").get("codigoPublico").asString());revision.put("operacion",UUID.randomUUID().toString());revision.put("servicios",List.of(impresion,otraImpresion,terminacion));
+                status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","IMP2","nombre","Otra impresión","tipo","IMPRESION")),409);
+                status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","IMP-BN-2","nombre","Impresión blanco y negro","tipo","TERMINACION")),409);
+                // Una revisión que ofrece solo terminaciones no requiere tarifa de impresión.
+                var vigente=JSON.readTree(get(admin,"/api/admin/catalogo").body()).get("actual");
+                revision.put("versionBase",vigente.get("codigoPublico").asString());revision.put("operacion",UUID.randomUUID().toString());
+                terminacion.put("compatibilidades",List.of());revision.put("tarifas",List.of());revision.put("servicios",List.of(terminacion));
                 status(post(admin,"/api/admin/catalogo/revisiones",revision),200);
-                assertThat(JSON.readTree(get(admin,"/api/admin/catalogo").body()).get("actual").get("servicios").size()).isEqualTo(3);
+                var sinImpresion=JSON.readTree(get(admin,"/api/admin/catalogo").body()).get("actual");
+                assertThat(sinImpresion.get("tarifas").size()).isZero();assertThat(sinImpresion.get("servicios").size()).isEqualTo(1);
+                var quitar=HttpRequest.newBuilder(uri("/api/admin/catalogo/servicios/"+term)).header("X-CSRF-TOKEN",csrf(admin)).DELETE().build();
+                status(admin.send(quitar,HttpResponse.BodyHandlers.ofString()),200);
+                var desactivado=JSON.readTree(get(admin,"/api/admin/catalogo").body());
+                assertThat(desactivado.get("servicios").get(1).get("activo").asBoolean()).isFalse();
+                assertThat(desactivado.get("actual").get("servicios").get(0).get("servicio").asString()).isEqualTo(term);
+                var reactivar=HttpRequest.newBuilder(uri("/api/admin/catalogo/servicios/"+term+"/estado")).header("X-CSRF-TOKEN",csrf(admin)).header("Content-Type","application/json").PUT(HttpRequest.BodyPublishers.ofString("{\"activo\":true}")).build();
+                status(admin.send(reactivar,HttpResponse.BodyHandlers.ofString()),200);
                 String antes=get(admin,"/api/admin/catalogo").body();app.close();app=iniciar(props);
                 var despues=get(admin,"/api/admin/catalogo");status(despues,200);assertThat(despues.body()).isEqualTo(antes);
             } finally {app.close();}
