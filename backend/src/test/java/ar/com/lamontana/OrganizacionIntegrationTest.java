@@ -131,9 +131,16 @@ class OrganizacionIntegrationTest {
             assertThat(get(admin,"/api/admin/sucursales").body()).contains(a);
             assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",0)),409);
             assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",1)),204);
-            assertThat(get(admin,"/api/admin/sucursales").body()).doesNotContain(horarioId);
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_organizacion WHERE tipo='ELIMINACION_SUCURSAL' AND codigo_publico_objeto=?",Integer.class,UUID.fromString(horarioId))).isEqualTo(1);
-            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",1)),404);
+            var desactivada = editarSucursal(admin,horarioId);
+            assertThat(desactivada.get("estado")).isEqualTo("DESACTIVADA");
+            assertThat(desactivada.get("version")).isEqualTo(2);
+            assertThat(desactivada.get("horarioAtencion")).isEqualTo(semana);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.sucursal WHERE codigo_publico=? AND fecha_desactivacion IS NOT NULL",Integer.class,UUID.fromString(horarioId))).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_organizacion WHERE tipo='BAJA_SUCURSAL' AND codigo_publico_objeto=? AND version=2",Integer.class,UUID.fromString(horarioId))).isEqualTo(1);
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",2)),409);
+            desactivada.put("estado","ACTIVA");
+            assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+horarioId,desactivada),200);
+            assertThat(editarSucursal(admin,horarioId).get("estado")).isEqualTo("ACTIVA");
 
             var org = app.getBean(OrganizacionService.class);
             org.exigirPermiso("alice@example.test","ACREDITAR_PAGO");
@@ -154,6 +161,15 @@ class OrganizacionIntegrationTest {
             assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,editAlice),409);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_permiso WHERE fecha_revocacion IS NOT NULL",Integer.class)).isEqualTo(1);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_sucursal WHERE NOT activa",Integer.class)).isEqualTo(1);
+
+            // Incluso con una asignación histórica, la baja conserva la sucursal y su relación.
+            var vinculada=editarSucursal(admin,a);
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+a+"/eliminar",Map.of("version",vinculada.get("version"))),204);
+            assertThat(editarSucursal(admin,a).get("estado")).isEqualTo("DESACTIVADA");
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal) WHERE s.codigo_publico=?",Integer.class,UUID.fromString(a))).isEqualTo(1);
+            assertThat(org.contexto("admin@example.test").sucursales()).noneMatch(s->s.codigoPublico().equals(UUID.fromString(a)));
+            vinculada=editarSucursal(admin,a);vinculada.put("estado","ACTIVA");
+            assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+a,vinculada),200);
 
             // Dos ediciones del mismo formulario: sólo una puede guardar la versión leída.
             var editA = editarSucursal(admin,a); editA.put("nombre","Sucursal editada");

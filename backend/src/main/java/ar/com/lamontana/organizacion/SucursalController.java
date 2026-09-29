@@ -4,8 +4,8 @@
  * ARCHIVO: SucursalController.java
  * ========================================================================
  * FUNCIÓN
- * Expone el listado, alta y edición de sucursales y el catálogo de ubicaciones disponible para
- * resolver la zona horaria argentina.
+ * Expone el listado, alta, edición y baja lógica de sucursales y el catálogo de ubicaciones
+ * disponible para resolver la zona horaria argentina.
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
@@ -23,6 +23,8 @@
  *   Entrada HTTP POST · ruta del método: /api/admin/sucursales.
  * - [public] Sucursal actualizar(UUID codigo, EdicionSucursal input, Principal principal)
  *   Entrada HTTP PUT · ruta del método: /api/admin/sucursales/{codigo}.
+ * - [public] void eliminar(UUID codigo, EliminacionSucursal input, Principal principal)
+ *   Entrada HTTP POST · ruta del método: /api/admin/sucursales/{codigo}/eliminar; baja lógica.
  *
  * ------------------------------------------------------------------------
  * TIPOS DECLARADOS
@@ -30,6 +32,7 @@
  * - SucursalController.Ubicacion (record).
  * - SucursalController.NuevaSucursal (record).
  * - SucursalController.EdicionSucursal (record).
+ * - SucursalController.EliminacionSucursal (record).
  * - SucursalController.Sucursal (record).
  * ========================================================================
  */

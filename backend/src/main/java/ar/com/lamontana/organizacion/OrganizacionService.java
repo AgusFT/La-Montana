@@ -20,6 +20,8 @@
  * - [public] List<Sucursal> sucursales()
  * - [public] UUID crearSucursal(NuevaSucursal in, String actor)
  * - [public] Sucursal actualizarSucursal(UUID codigo, EdicionSucursal in, String actor)
+ * - [public] void eliminarSucursal(UUID codigo, long version, String actor): baja lógica.
+ * - [private] void validarDesactivacion(UUID codigo)
  * - [public] List<Empleado> empleados()
  * - [public] UUID crearEmpleado(NuevoEmpleado in, String actor)
  * - [public] Empleado actualizarEmpleado(UUID codigo, EdicionEmpleado in, String actor)
@@ -66,7 +68,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -117,17 +118,7 @@ public class OrganizacionService {
         String zona = UbicacionSucursal.zona(in.provincia(), in.zonaHoraria(), dias == null);
         if (actual.version() != in.version()) throw desactualizado();
         if (!actual.codigo().equals(in.codigo().toUpperCase(Locale.ROOT))) throw error(HttpStatus.BAD_REQUEST, "El código de la sucursal no se modifica.");
-        if ("DESACTIVADA".equals(in.estado())) {
-            Integer sinAlternativa = jdbc.queryForObject("""
-                    SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
-                    WHERE u.estado='ACTIVO' AND r.codigo='EMPLEADO'
-                    AND EXISTS (SELECT 1 FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
-                                WHERE us.id_usuario=u.id_usuario AND us.activa AND s.codigo_publico=?)
-                    AND NOT EXISTS (SELECT 1 FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
-                                    WHERE us.id_usuario=u.id_usuario AND us.activa AND s.estado='ACTIVA' AND s.codigo_publico<>?)
-                    """, Integer.class, codigo, codigo);
-            if (sinAlternativa != null && sinAlternativa > 0) throw error(HttpStatus.CONFLICT, "Reasigná o desactivá los empleados que quedarían sin una sucursal activa.");
-        }
+        if ("DESACTIVADA".equals(in.estado())) validarDesactivacion(codigo);
         jdbc.update("""
                 UPDATE lamontana.sucursal SET nombre=?,calle=?,numero=?,localidad=?,provincia=?,codigo_postal=?,correo=?,telefono=?,zona_horaria=?,
                 fecha_desactivacion=CASE WHEN ?='DESACTIVADA' THEN COALESCE(fecha_desactivacion,now()) ELSE NULL END,estado=?,version=version+1
@@ -144,14 +135,22 @@ public class OrganizacionService {
         bloquearOrganizacion();
         Sucursal actual = buscarSucursal(codigo);
         if (actual.version() != version) throw desactualizado();
-        long id = jdbc.queryForObject("SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?", Long.class, codigo);
-        try {
-            jdbc.update("DELETE FROM lamontana.sucursal_horario_atencion WHERE id_sucursal=?", id);
-            jdbc.update("DELETE FROM lamontana.sucursal WHERE id_sucursal=?", id);
-        } catch (DataIntegrityViolationException e) {
-            throw error(HttpStatus.CONFLICT, "Esta sucursal tiene empleados, configuraciones o actividad vinculada. Desactivala en lugar de eliminarla.");
-        }
-        auditar(actor, "ELIMINACION_SUCURSAL", codigo, actual.version());
+        if ("DESACTIVADA".equals(actual.estado())) throw error(HttpStatus.CONFLICT, "La sucursal ya está desactivada.");
+        validarDesactivacion(codigo);
+        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',fecha_desactivacion=now(),version=version+1 WHERE codigo_publico=?", codigo);
+        auditar(actor, "BAJA_SUCURSAL", codigo, actual.version()+1);
+    }
+
+    private void validarDesactivacion(UUID codigo) {
+        Integer sinAlternativa = jdbc.queryForObject("""
+                SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
+                WHERE u.estado='ACTIVO' AND r.codigo='EMPLEADO'
+                AND EXISTS (SELECT 1 FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
+                            WHERE us.id_usuario=u.id_usuario AND us.activa AND s.codigo_publico=?)
+                AND NOT EXISTS (SELECT 1 FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
+                                WHERE us.id_usuario=u.id_usuario AND us.activa AND s.estado='ACTIVA' AND s.codigo_publico<>?)
+                """, Integer.class, codigo, codigo);
+        if (sinAlternativa != null && sinAlternativa > 0) throw error(HttpStatus.CONFLICT, "Reasigná o desactivá los empleados que quedarían sin una sucursal activa.");
     }
 
     public List<Empleado> empleados() {
