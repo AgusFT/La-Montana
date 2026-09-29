@@ -5,7 +5,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 export type TourStep={target:string;title:string;description:string};
 
 /** A small reusable spotlight tour. It never changes the underlying form or navigation. */
-export function GuidedTour({steps,storageKey,autoStart,completion,onStepChange}:{steps:TourStep[];storageKey:string;autoStart:boolean;completion:{title:string;description:string};onStepChange?:(step:number)=>void}){
+export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Guía del catálogo comercial",onStepChange}:{steps:TourStep[];storageKey:string;autoStart:boolean;completion?:{title:string;description:string};helpLabel?:string;onStepChange?:(step:number)=>void}){
   const [step,setStep]=useState<number|null>(null);
   const [rect,setRect]=useState<DOMRect|null>(null);
   const button=useRef<HTMLButtonElement>(null);
@@ -54,7 +54,7 @@ export function GuidedTour({steps,storageKey,autoStart,completion,onStepChange}:
     top:nearBottom?Math.max(12,padded.top-235):Math.min(innerHeight-245,padded.bottom+14),
   }:undefined;
   return <>
-    {!active&&<button ref={help} type="button" className="guided-tour-help" aria-label="Abrir guía del catálogo comercial" title="Guía del catálogo comercial" onClick={()=>setStep(0)}>?</button>}
+    {!active&&<button ref={help} type="button" className="guided-tour-help" aria-label={`Abrir ${helpLabel.toLowerCase()}`} title={helpLabel} onClick={()=>setStep(0)}>?</button>}
     {active&&<div className="guided-tour" role="dialog" aria-modal="true" aria-labelledby="guided-tour-title" aria-describedby="guided-tour-description" onKeyDown={event=>{if(event.key!=="Tab")return;const controls=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(".guided-tour-card button"));if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1)?.focus();}else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0]?.focus();}}}>
       {final&&<div className="guided-tour-shade" style={{inset:0}}/>}
       {padded&&<>
@@ -67,7 +67,7 @@ export function GuidedTour({steps,storageKey,autoStart,completion,onStepChange}:
       <div className={`guided-tour-card${final?" is-final":""}`} style={popupStyle}>
         <div className="guided-tour-top"><span>{final?"Recorrido completo":`Paso ${step!+1} de ${steps.length}`}</span><button ref={button} type="button" className="guided-tour-close" aria-label="Cerrar guía" onClick={finish}>×</button></div>
         <h2 id="guided-tour-title">{content?.title}</h2><p id="guided-tour-description">{content?.description}</p>
-        <div className="guided-tour-actions"><button type="button" className="admin-button secondary" onClick={finish}>Omitir</button><button type="button" className="admin-button" onClick={()=>final?finish():setStep(step!+1)}>{final?"Aceptar":step===steps.length-1?"Finalizar":"Siguiente →"}</button></div>
+        <div className="guided-tour-actions"><button type="button" className="admin-button secondary" onClick={finish}>Omitir</button><button type="button" className="admin-button" onClick={()=>final||step===steps.length-1&&!completion?finish():setStep(step!+1)}>{final?"Aceptar":step===steps.length-1?"Finalizar":"Siguiente →"}</button></div>
       </div>
     </div>}
   </>;

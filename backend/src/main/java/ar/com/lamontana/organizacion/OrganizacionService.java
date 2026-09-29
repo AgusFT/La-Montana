@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -136,6 +137,21 @@ public class OrganizacionService {
         guardarHorario(codigo, dias);
         auditar(actor, "EDICION_SUCURSAL", codigo, actual.version()+1);
         return buscarSucursal(codigo);
+    }
+
+    @Transactional
+    public void eliminarSucursal(UUID codigo, long version, String actor) {
+        bloquearOrganizacion();
+        Sucursal actual = buscarSucursal(codigo);
+        if (actual.version() != version) throw desactualizado();
+        long id = jdbc.queryForObject("SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?", Long.class, codigo);
+        try {
+            jdbc.update("DELETE FROM lamontana.sucursal_horario_atencion WHERE id_sucursal=?", id);
+            jdbc.update("DELETE FROM lamontana.sucursal WHERE id_sucursal=?", id);
+        } catch (DataIntegrityViolationException e) {
+            throw error(HttpStatus.CONFLICT, "Esta sucursal tiene empleados, configuraciones o actividad vinculada. Desactivala en lugar de eliminarla.");
+        }
+        auditar(actor, "ELIMINACION_SUCURSAL", codigo, actual.version());
     }
 
     public List<Empleado> empleados() {

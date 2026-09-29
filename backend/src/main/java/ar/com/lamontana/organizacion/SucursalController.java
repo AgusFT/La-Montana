@@ -72,6 +72,14 @@ public class SucursalController {
         return organizacion.actualizarSucursal(codigo, input, principal.getName());
     }
 
+    @PostMapping("/api/admin/sucursales/{codigo}/eliminar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminar(@PathVariable UUID codigo, @Valid @RequestBody EliminacionSucursal input, Principal principal) {
+        organizacion.eliminarSucursal(codigo, input.version(), principal.getName());
+    }
+
+    public record EliminacionSucursal(@NotNull @PositiveOrZero Long version) {}
+
     public record NuevaSucursal(
             @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{1,40}") String codigo,
             @NotBlank @Size(max = 140) String nombre,

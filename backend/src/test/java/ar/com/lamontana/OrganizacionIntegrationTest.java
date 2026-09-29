@@ -78,6 +78,7 @@ class OrganizacionIntegrationTest {
             var admin = cliente();
             assertStatus(enviar(admin,"POST","/api/setup/propietario",Map.of("nombre","Admin","apellido","Test","correo","admin@example.test","contrasena",CLAVE,"token",TOKEN)),201);
             login(admin,"admin@example.test",200);
+            var jdbc = app.getBean(JdbcTemplate.class);
             String a = creado(enviar(admin,"POST","/api/admin/sucursales",sucursal("A")));
             String b = creado(enviar(admin,"POST","/api/admin/sucursales",sucursal("B")));
             assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("alice",List.of(),List.of())),400);
@@ -125,6 +126,14 @@ class OrganizacionIntegrationTest {
             assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+horarioId,guardada),409);
             assertThat(editarSucursal(admin,horarioId).get("horarioAtencion")).isEqualTo(semana);
             assertStatus(enviar(alice,"POST","/api/admin/sucursales",nueva),403);
+            assertStatus(enviar(alice,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",1)),403);
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+a+"/eliminar",Map.of("version",0)),409);
+            assertThat(get(admin,"/api/admin/sucursales").body()).contains(a);
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",0)),409);
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",1)),204);
+            assertThat(get(admin,"/api/admin/sucursales").body()).doesNotContain(horarioId);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_organizacion WHERE tipo='ELIMINACION_SUCURSAL' AND codigo_publico_objeto=?",Integer.class,UUID.fromString(horarioId))).isEqualTo(1);
+            assertStatus(enviar(admin,"POST","/api/admin/sucursales/"+horarioId+"/eliminar",Map.of("version",1)),404);
 
             var org = app.getBean(OrganizacionService.class);
             org.exigirPermiso("alice@example.test","ACREDITAR_PAGO");
@@ -143,7 +152,6 @@ class OrganizacionIntegrationTest {
             assertThat(get(alice,"/api/operacion/contexto").body()).doesNotContain("ACREDITAR_PAGO");
             assertThatThrownBy(()->org.exigirPermiso("alice@example.test","ACREDITAR_PAGO")).isInstanceOf(ResponseStatusException.class);
             assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,editAlice),409);
-            var jdbc = app.getBean(JdbcTemplate.class);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_permiso WHERE fecha_revocacion IS NOT NULL",Integer.class)).isEqualTo(1);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_sucursal WHERE NOT activa",Integer.class)).isEqualTo(1);
 

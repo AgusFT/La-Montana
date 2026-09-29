@@ -34,6 +34,7 @@ import { getSession } from "@/lib/identity-server";
 import { getBranches, getBranchLocations } from "@/lib/organization-server";
 import { timeZoneLabel } from "@/lib/organization-types";
 import { BranchHours } from "@/components/branch-hours";
+import { BranchOnboarding } from "@/components/branch-onboarding";
 
 export const dynamic = "force-dynamic";
 export default async function BranchesPage() {
@@ -45,6 +46,7 @@ export default async function BranchesPage() {
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const [branches, locations] = await Promise.all([getBranches(), getBranchLocations()]);
   return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="sucursales" title="Sucursales" description="Definí la ubicación y los días y horarios de atención. La zona horaria se determina automáticamente. Luego reutilizá estos horarios en el configurador y completá las entregas y sus cupos.">
+    <BranchOnboarding branches={branches} owner={session.profile.codigoPublico}/>
     <a className="secondary-link" href="/administracion">Volver a administración</a>
     <section className="branch-list" aria-labelledby="branches-heading"><h2 id="branches-heading">Sucursales registradas</h2>
       {branches === null ? <p className="form-message error-message" role="alert">No pudimos consultar las sucursales. <a href="/administracion/sucursales">Volver a intentar</a></p> : branches.length === 0 ? <p className="empty-note">Todavía no hay sucursales registradas.</p> : branches.map(branch => <article className="branch-card" key={branch.codigoPublico}>

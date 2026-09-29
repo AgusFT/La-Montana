@@ -53,6 +53,7 @@ const week = (branch?: Branch): BranchDay[] => weekDays.map((_, i) => branch?.ho
 export function BranchForm({ branch, locations }: { branch?: Branch; locations: BranchLocation[] | null }) {
   const guide=useInstallation();
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [saved, setSaved] = useState(false);
+  const [confirmDelete,setConfirmDelete]=useState(false),[deleteCode,setDeleteCode]=useState(""),[deleting,setDeleting]=useState(false),[deleteMessage,setDeleteMessage]=useState("");
   const [province, setProvince] = useState(() => locations?.find(p => [p.provincia, ...p.alias].some(a => normalize(a) === normalize(branch?.provincia ?? "")))?.provincia ?? "");
   const [locality, setLocality] = useState(branch?.localidad ?? ""), [hours, setHours] = useState(() => week(branch));
   const [copyNotice, setCopyNotice] = useState("");
@@ -89,10 +90,19 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     setBusy(true);
     try {
       await secureMutation(`/api/admin/sucursales${branch ? `/${branch.codigoPublico}` : ""}`, JSON.stringify(payload), "application/json", branch ? "PUT" : "POST");
-      if (!branch) { form.reset(); setProvince(""); setLocality(""); setHours(week()); }
+      if (!branch) { form.reset(); setProvince(""); setLocality(""); setHours(week()); window.dispatchEvent(new Event("lamontana:branch-created")); }
       setSaved(true); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos guardar la sucursal."); }
     finally { setBusy(false); }
+  }
+  async function remove(){
+    if(!branch||busy||deleting||deleteCode.trim()!==branch.codigo)return;
+    setDeleting(true);setDeleteMessage("");
+    try{
+      await secureMutation(`/api/admin/sucursales/${branch.codigoPublico}/eliminar`,JSON.stringify({version:branch.version}),"application/json");
+      setConfirmDelete(false);router.refresh();
+    }catch(error){setDeleteMessage(error instanceof Error?error.message:"No pudimos eliminar la sucursal.");}
+    finally{setDeleting(false);}
   }
   function field([key, label, maxLength]: typeof fields[number]) {
     if (key === "codigo") return <BranchCodeField key={key} code={branch?.codigo} />;
@@ -104,8 +114,8 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     <h2>{branch ? "Editar sucursal" : "Nueva sucursal"}</h2>
     <p className="empty-note">Completá la dirección y después elegí qué días abre y en qué horario atiende.</p>
     {!locations && <p className="form-message error-message" role="alert">No pudimos cargar las provincias. <a href="/administracion/sucursales">Volver a intentar</a>.</p>}
-    <fieldset className="plain-fieldset" disabled={busy || !locations}>
-      <fieldset className="choice-fieldset branch-form-section"><legend>1. Ubicación y contacto</legend>
+    <fieldset className="plain-fieldset" disabled={busy || deleting || !locations}>
+      <fieldset id={!branch?"branch-create-location":undefined} className="choice-fieldset branch-form-section"><legend>1. Ubicación y contacto</legend>
         <p className="empty-note">País: Argentina. La zona horaria se calcula sin conexión a Internet.</p>
         <div className="form-columns">{fields.slice(0, 4).map(field)}
           <label>Provincia / Ciudad Autónoma<select name="provincia" required value={province} onChange={e => {
@@ -118,7 +128,7 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
         {branch && !province && <p className="empty-note">Provincia guardada: {branch.provincia}. Seleccionala en el listado para actualizar la ubicación.</p>}
         <p className="branch-timezone" role="status">{location ? <>Zona horaria automática: <strong>{location.desfase}</strong>. Los horarios se interpretan en la hora local de la sucursal.</> : "Seleccioná la provincia para detectar la zona horaria."}</p>
       </fieldset>
-      <fieldset className="choice-fieldset branch-form-section"><legend>2. Días y horario de atención</legend>
+      <fieldset id={!branch?"branch-create-hours":undefined} className="choice-fieldset branch-form-section"><legend>2. Días y horario de atención</legend>
         <p className="empty-note">Marcá los días abiertos y elegí Desde y Hasta. Para repetir un horario, habilitá al menos dos días, completá uno y aplicalo al resto: reemplaza sus horarios y después podés editar cada uno. Los días sin marcar quedan cerrados. Se admite un horario continuo por día, sin cruzar la medianoche.</p>
         <div className="branch-week">{hours.map(d => <div className={`branch-day${d.habilitado ? " is-open" : ""}`} key={d.dia}>
           <label className="checkbox-label branch-day-toggle"><input type="checkbox" checked={d.habilitado} aria-label={`Abierto ${weekDays[d.dia - 1]}`} onChange={e => dayChange(d.dia, { habilitado: e.target.checked, ...(e.target.checked ? {} : { apertura: null, cierre: null }) })} /><span>{weekDays[d.dia - 1]}<small>{d.habilitado ? "Abierto" : "Cerrado"}</small></span></label>
@@ -134,6 +144,10 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     {branch && <p className="empty-note">El código permanece fijo. No se puede desactivar la última sucursal activa asignada a un empleado activo.</p>}
     {message && <p className="form-message error-message" role="alert">{message}</p>}
     {saved && <SaveNotice>{guide.enabled&&!guide.data?.activa?"Sucursal guardada con su horario de atención. Podés continuar con el catálogo base desde la guía de instalación.":"Sucursal guardada con su horario de atención. Podés reutilizarlo en el configurador."}</SaveNotice>}
-    <button className="refresh" disabled={busy || !locations}>{busy ? "Guardando…" : branch ? "Guardar sucursal" : "Crear sucursal"}</button>
+    <button className="refresh" disabled={busy || deleting || !locations}>{busy ? "Guardando…" : branch ? "Guardar sucursal" : "Crear sucursal"}</button>
+    {branch&&<section className="branch-delete" aria-label="Eliminar sucursal"><h3>Eliminar sucursal</h3><p className="empty-note">Esta acción elimina la ficha y sus horarios de forma permanente. Si tiene empleados, configuraciones o actividad vinculada, desactivala en lugar de eliminarla.</p>
+      {!confirmDelete?<button type="button" className="admin-button branch-delete-button" disabled={busy} onClick={()=>{setConfirmDelete(true);setDeleteCode("");setDeleteMessage("");}}>Eliminar sucursal…</button>:<div className="branch-delete-confirm"><label>Escribí el código <strong>{branch.codigo}</strong> para confirmar<input value={deleteCode} onChange={event=>setDeleteCode(event.target.value)} onKeyDown={event=>{if(event.key==="Enter")event.preventDefault();}} autoComplete="off" /></label><div><button type="button" className="admin-button secondary" disabled={deleting} onClick={()=>{setConfirmDelete(false);setDeleteMessage("");}}>Cancelar</button><button type="button" className="admin-button branch-delete-button" disabled={deleting||busy||deleteCode.trim()!==branch.codigo} onClick={()=>void remove()}>{deleting?"Eliminando…":"Confirmar eliminación"}</button></div></div>}
+      {deleteMessage&&<p className="form-message error-message" role="alert">{deleteMessage}</p>}
+    </section>}
   </form>;
 }

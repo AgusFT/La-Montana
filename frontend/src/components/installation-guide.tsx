@@ -39,7 +39,7 @@ export function InstallationGate({area,children}:{area:string;children:ReactNode
   const guided=enabled&&!data?.activa;
   const next=data&&nextStep(data),allowed=installationAllowed(data,area),protectedArea=!["dashboard","sucursales","empleados","web"].includes(area),blocked=!allowed||!data&&error&&protectedArea;
   return <>
-    {guided&&area!=="dashboard"&&area!=="catalogo"&&<section className="installation-guide" aria-label="Guía de primera instalación">
+    {guided&&area!=="dashboard"&&area!=="catalogo"&&area!=="sucursales"&&<section className="installation-guide" aria-label="Guía de primera instalación">
       <div><strong>Primera instalación · pasos en orden</strong><p>{next?`Próximo paso: ${next.titulo}.`:"Comprobando qué falta para completar tu instalación."} Guardá cada paso antes de continuar. Las simulaciones, los empleados y la página web son opcionales.</p></div>
       {next&&<a className="admin-button" href={next.enlace}>Continuar instalación →</a>}
     </section>}
