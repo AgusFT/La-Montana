@@ -42,6 +42,6 @@ export default async function ConfigurationPage({searchParams}:{searchParams:Pro
   if(session.profile.rol!=="ADMIN_ADMIN")redirect(roleHome(session.profile.rol));
   const state=await getConfiguration();const query=await searchParams;
   return <AdminShell title="Motor de configuración" description="Configuración operativa de la imprenta" name={`${session.profile.nombre} ${session.profile.apellido}`} active="configuracion">
-    {state?<ConfigurationWorkspace initial={state} initialPhase={state.borrador?.codigoPublico===query.borrador?2:1}/>:<div className="admin-card"><p role="alert">No pudimos consultar la configuración.</p><a className="admin-button" href="/administracion/configuracion">Volver a intentar</a></div>}
+    {state?<ConfigurationWorkspace initial={state} initialPhase={state.borrador?.codigoPublico===query.borrador?2:1} tourOwner={session.profile.codigoPublico}/>:<div className="admin-card"><p role="alert">No pudimos consultar la configuración.</p><a className="admin-button" href="/administracion/configuracion">Volver a intentar</a></div>}
   </AdminShell>;
 }
