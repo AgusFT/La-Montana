@@ -353,3 +353,9 @@ Cada fase y subfase informa qué falta antes de habilitar la siguiente. El catá
 Recursos requiere una impresora operativa compatible y asignación/servicios guardados. Horarios y entrega requiere los mínimos validados y destinos utilizables para las modalidades elegidas. Se puede volver a pasos ya realizados; al cambiar un requisito se vuelven a comprobar los posteriores. El avance no se guarda en preferencias del navegador: se obtiene de los datos actuales de la imprenta. Después de la primera activación se recupera la navegación habitual.
 
 Los avisos de guardado tienen icono, borde y fondo verdes, anuncian el resultado y permanecen visibles. Las tarifas y servicios confirmados sólo en el formulario se distinguen en amarillo, aclarando que aún hay que guardar la configuración completa. Una respuesta fallida o incierta no muestra éxito.
+
+### Corrección contextual de las guías de Fases 4 y 5
+
+La ayuda de Fase 4 distingue la lista de recursos del formulario de alta/edición de impresora. En el formulario resalta capacidades, formatos compatibles y guardado; al volver a la lista explica impresoras, asignación y servicios. Cada contexto conserva su propio estado de guía. Si un destino no está disponible, la tarjeta se centra sin reutilizar la posición de un bloque anterior.
+
+La guía de Fase 5 separa el calendario operativo de las franjas de retiro en sucursal. El calendario parte de la ficha de la sucursal y gobierna el cómputo de preparación; fuera de horario, el cálculo continúa en la próxima apertura. No bloquea por sí mismo la recepción de pedidos. Las franjas permiten retirar pedidos listos dentro de un día y horario abiertos, con cupo por pedido completo verificado al confirmar. Pueden configurarse varios días/franjas; un miércoles cerrado no admite una franja de retiro del miércoles. La preparación y el traslado estimado mantienen el cálculo vigente dentro del horario operativo; no se cambian reglas de negocio con esta aclaración.

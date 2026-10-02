@@ -9,6 +9,8 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√
   const [step,setStep]=useState<number|null>(null);
   const [showSecondary,setShowSecondary]=useState(false);
   const [rect,setRect]=useState<DOMRect|null>(null);
+  const [cardHeight,setCardHeight]=useState(245);
+  const card=useRef<HTMLDivElement>(null);
   const button=useRef<HTMLButtonElement>(null);
   const help=useRef<HTMLButtonElement>(null);
   const onStepChangeRef=useRef(onStepChange);
@@ -36,14 +38,23 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√
     onStepChangeRef.current?.(step!);
     const current=steps[step!];
     const target=document.getElementById(showSecondary&&current.secondaryTarget?current.secondaryTarget:current.target);
-    if(!target)return;
+    if(!target){setRect(null);return;}
     target.scrollIntoView({block:"center",behavior:"instant"});
     const update=()=>setRect(target.getBoundingClientRect());
     update();
+    const observer=new ResizeObserver(update);
+    observer.observe(target);
     window.addEventListener("resize",update);
     window.addEventListener("scroll",update,true);
-    return()=>{window.removeEventListener("resize",update);window.removeEventListener("scroll",update,true);};
+    return()=>{observer.disconnect();window.removeEventListener("resize",update);window.removeEventListener("scroll",update,true);};
   },[active,step,steps,showSecondary]);
+  useEffect(()=>{
+    if(!active||!card.current)return;
+    const update=()=>setCardHeight(card.current?.getBoundingClientRect().height??245);
+    const observer=new ResizeObserver(update);
+    observer.observe(card.current);update();
+    return()=>observer.disconnect();
+  },[active]);
   useEffect(()=>{if(active)button.current?.focus();},[active,step]);
   useEffect(()=>{
     if(!active)return;
@@ -55,15 +66,15 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√
   const padded=rect&&{left:Math.max(0,rect.left-6),top:Math.max(0,rect.top-6),right:Math.min(innerWidth,rect.right+6),bottom:Math.min(innerHeight,rect.bottom+6)};
   const final=step===steps.length;
   const content=final?completion:step!==null?steps[step]:null;
-  const nearBottom=padded?innerHeight-padded.bottom<300:false;
+  const nearBottom=padded?innerHeight-padded.bottom<cardHeight+26:false;
   const popupStyle=padded&&!final?{
     left:Math.max(12,Math.min(padded.left,innerWidth-380)),
-    top:nearBottom?Math.max(12,padded.top-235):Math.min(innerHeight-245,padded.bottom+14),
+    top:Math.max(12,Math.min(innerHeight-cardHeight-12,nearBottom?padded.top-cardHeight-14:padded.bottom+14)),
   }:undefined;
   return <>
     {!active&&<button ref={help} type="button" className="guided-tour-help" aria-label={`Abrir ${helpLabel.toLowerCase()}`} title={helpLabel} onClick={begin}>?</button>}
     {active&&<div className="guided-tour" role="dialog" aria-modal="true" aria-labelledby="guided-tour-title" aria-describedby="guided-tour-description" onKeyDown={event=>{if(event.key!=="Tab")return;const controls=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(".guided-tour-card button"));if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1)?.focus();}else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0]?.focus();}}}>
-      {final&&<div className="guided-tour-shade" style={{inset:0}}/>}
+      {(final||!padded)&&<div className="guided-tour-shade" style={{inset:0}}/>}
       {padded&&<>
         <div className="guided-tour-shade" style={{top:0,left:0,right:0,height:padded.top}}/>
         <div className="guided-tour-shade" style={{top:padded.top,left:0,width:padded.left,height:padded.bottom-padded.top}}/>
@@ -71,7 +82,7 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√
         <div className="guided-tour-shade" style={{top:padded.bottom,left:0,right:0,bottom:0}}/>
         <div className="guided-tour-focus" style={{left:padded.left,top:padded.top,width:padded.right-padded.left,height:padded.bottom-padded.top}}/>
       </>}
-      <div className={`guided-tour-card${final?" is-final":""}`} style={popupStyle}>
+      <div ref={card} className={`guided-tour-card${final||!padded?" is-final":""}`} style={popupStyle}>
         <div className="guided-tour-top"><span>{final?"Recorrido completo":`Paso ${step!+1} de ${steps.length}`}</span><button ref={button} type="button" className="guided-tour-close" aria-label="Cerrar gu√≠a" onClick={finish}>√ó</button></div>
         <h2 id="guided-tour-title">{content?.title}</h2><p id="guided-tour-description">{content?.description}</p>
         {!final&&step!==null&&steps[step].secondaryTarget&&<button type="button" className="admin-link-button guided-tour-secondary" onClick={()=>setShowSecondary(value=>!value)}>{showSecondary?"‚Üê Volver a aplicar la tarifa":steps[step].secondaryLabel??"Ver siguiente bloque ‚Üí"}</button>}

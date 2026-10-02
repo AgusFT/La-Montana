@@ -31,7 +31,7 @@ export type PickupSlotDraft=Omit<PointSlot,"dia"|"capacidadPedidos"|"habilitada"
 const days=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 export function ConfigurationPickupSlots({branch,slots,onChange}:{branch:string;slots:PickupSlotDraft[];onChange:(slots:PickupSlotDraft[])=>void}){
  function change(index:number,field:Partial<PickupSlotDraft>){onChange(slots.map((s,i)=>i===index?{...s,...field}:s));}
- return <section className="pickup-slots" aria-label={`Franjas de retiro de ${branch}`}><h4>Franjas y cupos de retiro</h4><p className="admin-note">Cada cupo corresponde a un pedido completo. Definí las franjas dentro del horario abierto; cero o deshabilitada no ofrecen plazas. No hay una capacidad predeterminada.</p>
+ return <section className="pickup-slots" aria-label={`Franjas de retiro de ${branch}`}><h4>Franjas y cupos de retiro</h4><p className="admin-note">Estas franjas son para retirar pedidos listos en esta sucursal, no para definir su horario de trabajo. Podés agregar varios días y horarios, siempre dentro del horario abierto de cada día. Un día cerrado no admite retiro. Cada cupo corresponde a un pedido completo; cero o deshabilitada no ofrecen plazas. La disponibilidad se verifica al confirmar el pedido.</p>
  {!slots.length&&<p className="admin-empty">Sin franjas de retiro configuradas.</p>}
  {slots.map((s,i)=><fieldset className="pickup-slot" key={i}><legend>Franja {i+1} · {branch}</legend>
  <label>Día<select aria-label={`Día de retiro ${i+1} de ${branch}`} required value={s.dia??""} onChange={e=>change(i,{dia:e.target.value?Number(e.target.value):null})}><option value="">Elegir día</option>{days.map((d,n)=><option value={n+1} key={d}>{d}</option>)}</select></label>
