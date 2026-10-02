@@ -20,6 +20,7 @@
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
  * - [public] Horario :: boolean retiroUtilizable()
+ * - [public] Horario :: boolean retirosFueraHorarioOperativo()
  * - [public] Entrega leer(long config)
  * - [private] String numero(BigDecimal valor)
  *
@@ -53,7 +54,12 @@ public class EntregaRepositorio {
     public record Horario(UUID sucursal,String zonaHoraria,List<Dia> dias,List<PuntoEntregaController.Franja> franjasRetiro) {
         public Horario { franjasRetiro=franjasRetiro==null?List.of():List.copyOf(franjasRetiro); }
         public Horario(UUID sucursal,String zonaHoraria,List<Dia> dias){this(sucursal,zonaHoraria,dias,List.of());}
-        public boolean retiroUtilizable(){return franjasRetiro.stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0)&&franjasRetiro.stream().filter(f->f.habilitada()&&f.capacidadPedidos()>0).allMatch(f->dias.stream().anyMatch(d->d.dia().equals(f.dia())&&Boolean.TRUE.equals(d.habilitado())&&d.apertura()!=null&&d.cierre()!=null&&d.apertura().compareTo(f.apertura())<=0&&d.cierre().compareTo(f.cierre())>=0));}
+        public boolean retiroUtilizable(){return franjasRetiro.stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0);}
+        public boolean retirosFueraHorarioOperativo(){
+            return franjasRetiro.stream().filter(f->f.habilitada()&&f.capacidadPedidos()>0)
+                    .anyMatch(f->dias.stream().noneMatch(d->d.dia().equals(f.dia())&&Boolean.TRUE.equals(d.habilitado())
+                            &&d.apertura()!=null&&d.cierre()!=null&&d.apertura().compareTo(f.apertura())<=0&&d.cierre().compareTo(f.cierre())>=0));
+        }
     }
     public record Entrega(String preparacionHoras,String trasladoHoras,List<Modalidad> modalidades,List<Horario> horariosPorSucursal,List<PuntosRepositorio.Punto> puntos,List<ZonasRepositorio.Zona> zonas) {}
     public Entrega leer(long config) {

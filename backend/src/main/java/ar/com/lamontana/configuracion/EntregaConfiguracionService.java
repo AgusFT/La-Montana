@@ -144,7 +144,14 @@ public class EntregaConfiguracionService {
 
         }
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Habilitá servicios en al menos una sucursal activa para ofrecer entregas."));
-        for(var sucursal:operativas){var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));if(retiro&&horario!=null&&!horario.retiroUtilizable())problemas.add(new Problema("RETIRO_SIN_FRANJAS_VALIDAS",sucursal.codigo(),"Configurá al menos una franja de retiro habilitada con cupo positivo en "+sucursal.nombre()+". Todas sus franjas habilitadas de cupo positivo deben quedar dentro del horario abierto."));}
+        for(var sucursal:operativas){
+            var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);
+            problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));
+            if(retiro&&horario!=null){
+                if(!horario.retiroUtilizable())problemas.add(new Problema("RETIRO_SIN_FRANJAS_VALIDAS",sucursal.codigo(),"Configurá al menos una franja de retiro habilitada con cupo positivo en "+sucursal.nombre()+"."));
+                if(horario.retirosFueraHorarioOperativo())avisos.add(sucursal.nombre()+": producción cerrada · retiros habilitados fuera del horario de producción. Se entregan pedidos listos y no se cuentan horas de preparación. Confirmá que haya personal para entregar.");
+            }
+        }
         return new Validacion(b.version(),problemas.isEmpty(),List.copyOf(problemas),List.copyOf(avisos),opciones);
     }
 
@@ -185,11 +192,12 @@ public class EntregaConfiguracionService {
             return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),resultado.llegadaEstimada(),disponible,resultado.enCola(),List.copyOf(notas),null,destino);
         }
         if(input.modalidad()==Modalidad.RETIRO_SUCURSAL){
-            if(!horario.retiroUtilizable())throw conflicto("La sucursal necesita franjas de retiro habilitadas con cupo positivo dentro de su horario operativo.");
+            if(!horario.retiroUtilizable())throw conflicto("La sucursal necesita al menos una franja de retiro habilitada con cupo positivo.");
             var ventana=franjas.siguiente(resultado.disponibleDesde(),horario.zonaHoraria(),horario.franjasRetiro(),EvaluadorCalendario.limite(input.recibidoEn(),horario.zonaHoraria()));
             var disponible=resultado.disponibleDesde().isAfter(ventana.desde())?resultado.disponibleDesde():ventana.desde();
             var destino=new EvaluadorCalendario.DestinoSucursal(input.sucursal(),operativa.get().nombre(),horario.zonaHoraria(),ventana.fecha(),ventana.apertura(),ventana.cierre(),ventana.desde(),ventana.hasta(),ventana.cupoConfigurado());
             var notas=new ArrayList<>(resultado.advertencias());notas.add("Retiro en sucursal: la disponibilidad se ajusta a una franja habilitada. El cupo configurado cuenta pedidos completos y todavía no representa plazas libres ni una reserva.");
+            if(horario.retirosFueraHorarioOperativo())notas.add("Hay franjas de retiro fuera del horario de producción: solo se entregan pedidos listos y debe haber personal para entregar. Esas franjas no suman horas de preparación.");
             return new EvaluadorCalendario.Simulacion(resultado.version(),resultado.zonaHoraria(),resultado.recibidoEn(),resultado.inicioPreparacion(),resultado.finPreparacion(),null,disponible,resultado.enCola(),List.copyOf(notas),null,null,destino);
         }
         var relacion=punto.sucursales().stream().filter(r->r.sucursal().equals(input.sucursal())).findFirst().orElseThrow();

@@ -104,7 +104,7 @@ class ConfiguracionEntregaIntegrationTest {
     private String id,a,b,servicio;
     private JsonNode borrador;
     @BeforeEach void iniciar()throws Exception {
-        archivos=Files.createTempDirectory("lamontana-entrega-");pg=EmbeddedPostgres.builder().start();arrancar();
+        archivos=Files.createTempDirectory("lamontana-entrega-");pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories","").start();arrancar();
         app.getBean(IdentidadService.class).crearPropietario(new IdentidadController.AltaPropietario(TOKEN,"Admin","Entrega",EMAIL,CLAVE));admin=cliente();login(admin,EMAIL);
         var creado=post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID().toString()));status(creado,200);borrador=JSON.readTree(creado.body());id=borrador.get("codigoPublico").asString();
         a=sucursal("A");b=sucursal("B");status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","IMP","nombre","Impresión","tipo","IMPRESION")),201);servicio=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.servicio WHERE codigo='IMP'",String.class);
@@ -159,6 +159,31 @@ class ConfiguracionEntregaIntegrationTest {
         var vieja=simulacion(a,"RETIRO_SUCURSAL","2026-09-21T05:00:00Z");vieja.put("version",borrador.get("version").asLong()-1);status(post(admin,ruta()+"/simular",vieja),409);
         status(post(admin,ruta()+"/simular",simulacion(a,"ENVIO_DOMICILIO","2026-09-21T05:00:00Z")),409);
         guardar("10000",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,soloDomingo("09:00","09:01"))));var limite=post(admin,ruta()+"/simular",simulacion(a,"RETIRO_SUCURSAL","2026-09-21T05:00:00Z"));status(limite,400);assertThat(limite.body()).contains("cinco años");
+    }
+
+    @Test void retiroFueraDeProduccionEsAvisoYPuedeUsarseSinAdelantarLaPreparacion()throws Exception {
+        var dias=semana("09:00","18:00");dias.set(2,dia(3,false,null,null));
+        var h=new HashMap<String,Object>(horario(a,dias));
+        h.put("franjasRetiro",List.of(Map.of("dia",1,"apertura","18:00","cierre","20:00","capacidadPedidos",2,"habilitada",true)));
+        guardar("1",null,List.of("RETIRO_SUCURSAL"),List.of(h));
+        var v=validacion();assertThat(v.get("valida").asBoolean()).isTrue();assertThat(v.get("problemas").size()).isZero();
+        assertThat(v.get("avisos").toString()).contains("producción cerrada","personal para entregar");
+        var respuesta=get(admin,base()+"/revision");status(respuesta,200);var revision=JSON.readTree(respuesta.body());
+        assertThat(revision.get("fase5Valida").asBoolean()).isTrue();boolean avisoPresente=false;
+        for(var hallazgo:revision.get("hallazgos"))if(hallazgo.get("mensaje").asString().contains("producción cerrada")){
+            avisoPresente=true;assertThat(hallazgo.get("nivel").asString()).isEqualTo("ADVERTENCIA");assertThat(hallazgo.get("codigo").asString()).isEqualTo("ENTREGA_AVISO");
+        }
+        assertThat(avisoPresente).isTrue();
+        assertThat(borrador.get("entrega").get("horariosPorSucursal").get(0).get("franjasRetiro").get(0).get("apertura").asString()).isEqualTo("18:00");
+        var s=simular(a,"RETIRO_SUCURSAL","2026-09-21T20:00:00Z");
+        assertInstante(s,"finPreparacion","2026-09-21T21:00:00Z");assertInstante(s,"disponibleDesde","2026-09-21T21:00:00Z");
+        h.put("franjasRetiro",List.of(Map.of("dia",3,"apertura","11:00","cierre","13:00","capacidadPedidos",2,"habilitada",true)));
+        guardar("1",null,List.of("RETIRO_SUCURSAL"),List.of(h));assertThat(validacion().get("valida").asBoolean()).isTrue();
+        s=simular(a,"RETIRO_SUCURSAL","2026-09-21T20:00:00Z");assertInstante(s,"disponibleDesde","2026-09-23T14:00:00Z");
+        s=simular(a,"RETIRO_SUCURSAL","2026-09-23T14:00:00Z");assertInstante(s,"inicioPreparacion","2026-09-24T12:00:00Z");assertInstante(s,"disponibleDesde","2026-09-30T14:00:00Z");
+        h.put("franjasRetiro",List.of(Map.of("dia",3,"apertura","11:00","cierre","13:00","capacidadPedidos",0,"habilitada",true)));
+        guardar("1",null,List.of("RETIRO_SUCURSAL"),List.of(h));assertProblemas("RETIRO_SIN_FRANJAS_VALIDAS");
+        assertThat(validacion().get("avisos").toString()).doesNotContain("producción cerrada");
     }
 
     @Test void cambiosDstCuentanDuracionRealYOmiteVentanasInvertidasPorSaltoHorario()throws Exception {

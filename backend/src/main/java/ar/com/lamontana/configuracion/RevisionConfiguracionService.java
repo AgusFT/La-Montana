@@ -102,7 +102,7 @@ public class RevisionConfiguracionService {
         if(impresoras.isEmpty()&&impresionVigente)bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar una impresora Operativa en una sucursal activa es obligatorio para ofrecer Impresión. No necesita conexión CUPS.",null);
         var entregaActual=vigente?entrega.evaluarVigente(codigo,correo):historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
         for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
-        for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","MODALIDAD_SIN_DESTINO","entrega",5,aviso,null));
+        for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","ENTREGA_AVISO","entrega",5,aviso,null));
         var opciones=OpcionesImpresion.calcular(b,comercial,activas);var revision=comercial.actual();
         if(revision==null)bloqueo(h,"CATALOGO_PENDIENTE","catalogo",0,"Activá una revisión comercial válida. Una revisión programada para el futuro todavía no sirve para cotizar.",null);
         var tipos=new HashMap<UUID,TipoServicio>();comercial.servicios().forEach(s->tipos.put(s.codigoPublico(),s.tipo()));

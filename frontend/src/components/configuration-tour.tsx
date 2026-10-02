@@ -16,8 +16,8 @@ const phaseTours:Record<number,{steps:TourStep[];completion:{title:string;descri
     {target:"config-tour-resources-actions",title:"Continuá cuando esté guardado",description:"Los cambios de recursos se guardan en el borrador. Revisá que haya equipos operativos y asignaciones compatibles antes de seguir."},
   ],completion:{title:"Recursos revisados",description:"Las impresoras y servicios declarados se volverán a comprobar en la revisión integral y al aplicar la configuración."}},
   5:{steps:[
-    {target:"config-tour-schedule",title:"Definí cuándo trabaja la sucursal",description:"Este calendario parte del horario guardado en la ficha de la sucursal y puede ajustarse en el borrador. Define las horas operativas que se cuentan para preparar el pedido. Se pueden recibir pedidos fuera de horario si el sistema está habilitado; el cálculo comienza o continúa en la próxima apertura."},
-    {target:"config-tour-pickup",title:"Definí cuándo se retiran los pedidos",description:"Las franjas de retiro indican cuándo el cliente puede retirar un pedido listo en esta sucursal; no son otro horario de producción. Podés agregar varias franjas y días, siempre dentro del horario abierto de ese día. Por ejemplo: lunes abierto de 09:00 a 18:00, retiro de 15:00 a 17:00. Si el miércoles está cerrado, no admite retiro ese día. El cupo cuenta pedidos completos; la disponibilidad se confirma al crear el pedido."},
+    {target:"config-tour-schedule",title:"Definí cuándo produce la sucursal",description:"Este calendario parte del horario guardado en la ficha de la sucursal y puede ajustarse en el borrador. Define las horas operativas que se cuentan para preparar el pedido. Se pueden recibir pedidos fuera de horario si el sistema está habilitado; el cálculo comienza o continúa en la próxima apertura."},
+    {target:"config-tour-pickup",title:"Definí cuándo se retiran los pedidos",description:"Las franjas de retiro indican cuándo el cliente puede retirar un pedido listo en esta sucursal; no son otro horario de producción. Podés atender retiros fuera del horario de producción si hay personal para entregar pedidos listos. Por ejemplo: lunes producción de 09:00 a 18:00 y retiro de 18:00 a 20:00; miércoles sin producción y retiro de 11:00 a 13:00. Verás el aviso Producción cerrada · retiros habilitados. Estas franjas no suman horas de preparación. El cupo cuenta pedidos completos; la disponibilidad se confirma al crear el pedido."},
     {target:"config-tour-times",title:"Indicá los tiempos",description:"Cargá la preparación y el traslado estimados. Estas cifras ayudan a calcular fechas, pero no prometen tiempos de transportistas externos."},
     {target:"config-tour-delivery",title:"Elegí las modalidades",description:"Habilitá las entregas que vas a ofrecer. Configurá puntos o zonas solo si elegiste esas modalidades."},
     {target:"config-tour-delivery-validation",title:"Comprobá los mínimos",description:"Guardá la fase y consultá la validación. Las simulaciones son opcionales; para seguir sí deben estar completos los requisitos de horarios y entrega."},
@@ -67,6 +67,6 @@ export function ConfigurationTour({phase,owner,firstSetup,ready,hasDraft,hasSche
     steps=tour.steps;completion=tour.completion;
   }
   const context=phase===4&&printerEditor?":printer-editor":"";
-  const revision=phase===5?"v2":"v1";
+  const revision=phase===5?"v3":"v1";
   return <GuidedTour key={`${owner}:${phase}${context}`} steps={steps} completion={completion} storageKey={`lamontana:configuration-tour:phase-${phase}${context}:${revision}:${owner}`} autoStart={firstSetup&&ready&&phase<=7} helpLabel={`Guía de la fase ${phase}${context?" · formulario de impresora":""}`}/>;
 }

@@ -46,6 +46,23 @@ class EvaluadorFranjasTest {
     private final EvaluadorFranjas evaluador=new EvaluadorFranjas();
     private PuntoEntregaController.Franja franja(int dia,String a,String c,int cupo,boolean habilitada){return new PuntoEntregaController.Franja(dia,a,c,cupo,habilitada);}
     private EvaluadorFranjas.Ventana calcular(String llegada,String zona,List<PuntoEntregaController.Franja> franjas){return evaluador.siguiente(Instant.parse(llegada),zona,franjas,Instant.parse(llegada).plus(Duration.ofDays(366*5)));}
+    @Test void retirosIndependientesNoAgreganHorasDeProduccion(){
+        String zona="America/Argentina/Buenos_Aires";
+        var dias=List.of(new EntregaConfiguracionController.Dia(1,true,"09:00","18:00"),new EntregaConfiguracionController.Dia(3,false,null,null));
+        var origen=new EntregaRepositorio.Horario(UUID.randomUUID(),zona,dias,List.of(franja(1,"18:00","20:00",2,true)));
+        assertThat(origen.retiroUtilizable()).isTrue();assertThat(origen.retirosFueraHorarioOperativo()).isTrue();
+        var r=new EvaluadorCalendario().evaluar(1,origen,"1",null,EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL,Instant.parse("2026-09-28T20:00:00Z"));
+        assertThat(r.finPreparacion()).isEqualTo(Instant.parse("2026-09-28T21:00:00Z"));
+        assertThat(calcular(r.disponibleDesde().toString(),zona,origen.franjasRetiro()).desde()).isEqualTo(r.finPreparacion());
+        origen=new EntregaRepositorio.Horario(origen.sucursal(),zona,dias,List.of(franja(3,"11:00","13:00",2,true)));
+        assertThat(origen.retiroUtilizable()).isTrue();
+        assertThat(calcular(r.disponibleDesde().toString(),zona,origen.franjasRetiro()).desde()).isEqualTo(Instant.parse("2026-09-30T14:00:00Z"));
+        r=new EvaluadorCalendario().evaluar(1,origen,"1",null,EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL,Instant.parse("2026-09-30T14:00:00Z"));
+        assertThat(r.inicioPreparacion()).isEqualTo(Instant.parse("2026-10-05T12:00:00Z"));assertThat(r.enCola()).isTrue();
+        assertThat(calcular(r.disponibleDesde().toString(),zona,origen.franjasRetiro()).fecha()).isEqualTo(LocalDate.of(2026,10,7));
+        assertThat(new EntregaRepositorio.Horario(origen.sucursal(),zona,dias,List.of(franja(3,"11:00","13:00",0,true),franja(3,"14:00","16:00",2,false))).retiroUtilizable()).isFalse();
+        assertThat(new EntregaRepositorio.Horario(origen.sucursal(),zona,dias,List.of(franja(1,"10:00","12:00",2,true))).retirosFueraHorarioOperativo()).isFalse();
+    }
     @Test void aperturaInclusivaCierreExclusivoContiguasCupoCeroYFinDeSemana(){
         var franjas=List.of(franja(1,"17:00","19:00",2,true),franja(1,"19:00","21:00",3,true),franja(2,"09:00","10:00",0,true),franja(2,"10:00","11:00",9,false));String zona="America/Argentina/Buenos_Aires";
         var v=calcular("2026-09-28T18:00:00Z",zona,franjas);assertThat(v.desde()).isEqualTo(Instant.parse("2026-09-28T20:00:00Z"));assertThat(v.cupoConfigurado()).isEqualTo(2);

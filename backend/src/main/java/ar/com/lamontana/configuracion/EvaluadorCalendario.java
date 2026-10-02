@@ -79,7 +79,8 @@ public class EvaluadorCalendario {
         Instant llegada=null,disponible=null;
         var notas=new ArrayList<String>();notas.add("La preparación y el traslado estimados consumen únicamente las ventanas operativas de la sucursal de origen.");
         notas.add("Son estimaciones del calendario semanal guardado; el avance real puede adelantarlas o demorarlas y no obliga a esperar.");
-        if(modalidad==Modalidad.RETIRO_SUCURSAL)disponible=siguienteApertura(fin,zona,dias,limite);
+        // Una vez listo, el retiro se ajusta a su propio calendario, incluso con producción cerrada.
+        if(modalidad==Modalidad.RETIRO_SUCURSAL)disponible=fin;
         else if(modalidad==Modalidad.ENVIO_DOMICILIO||modalidad==Modalidad.RETIRO_PUNTO_ENTREGA){llegada=consumir(fin,segundos(trasladoHoras),zona,dias,limite);}
         else throw error("Modalidad de entrega no admitida.");
         return new Simulacion(version,zona.getId(),recibidoEn,comienzo,fin,llegada,disponible,comienzo.isAfter(recibidoEn),List.copyOf(notas),null,null);
