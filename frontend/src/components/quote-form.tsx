@@ -50,7 +50,7 @@ export function QuoteForm({replaces,inspectedFile,correction}:{replaces?:string;
  useEffect(()=>{void load(true);return()=>reader.current?.abort();},[replaces,inspectedFile]);
  function update(key:string,change:Partial<Row>){setRows(old=>old.map(r=>r.key===key?{...r,...change}:r));}
  async function files(list:FileList|null){if(!list||locked)return;setError("");if(rows.length+list.length>20){setError("Una cotización admite hasta 20 PDF.");return;}reader.current?.abort();const abort=new AbortController();reader.current=abort;setReading(true);
-  try{const added:Row[]=[];const known=new Set(rows.map(r=>r.documento.sha256));for(const file of Array.from(list)){const d=await readLocalPdf(file,abort.signal);if(known.has(d.documento.sha256))throw new Error("Ese PDF ya está incluido. Cada archivo lleva una sola configuración homogénea.");known.add(d.documento.sha256);added.push({key:crypto.randomUUID(),...d,choice:"",copies:"",double:false,ends:[],local:true});}setRows(old=>[...old,...added]);}
+  try{const added:Row[]=[];const known=new Set(rows.map(r=>r.documento.sha256));for(const file of Array.from(list)){const d=await readLocalPdf(file,abort.signal);if(known.has(d.documento.sha256))throw new Error("Ese PDF ya está incluido. Cada archivo lleva una sola configuración homogénea.");known.add(d.documento.sha256);added.push({key:crypto.randomUUID(),...d,choice:"",copies:"1",double:false,ends:[],local:true});}setRows(old=>[...old,...added]);}
   catch(e){if(!abort.signal.aborted)setError(e instanceof Error?e.message:"No pudimos leer el archivo.");}finally{if(!abort.signal.aborted)setReading(false);}
  }
  async function submit(event?:FormEvent){event?.preventDefault();if(busy||reading||loading||sending.current)return;setError("");
