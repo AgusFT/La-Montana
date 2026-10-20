@@ -38,6 +38,8 @@
 import {useEffect,useState} from "react";
 import {quoteRead,money,date,modeLabels} from "@/lib/quote-types";
 import {isOrder,orderState,type Order} from "@/lib/order-types";
+import {ClientJourney} from "./client-journey";
+import {ClientOrderSummary} from "./client-order-summary";
 import {OrderProgress} from "./order-progress";
 import {orderTrackingLabel} from "@/lib/order-tracking";
 import {PaymentPanel} from "./payment-panel";
@@ -72,6 +74,7 @@ function WorkSummary({order,internal}:{order:Order;internal:boolean}){
  </section>;
 }
 function Summary({order,internal}:{order:Order;internal:boolean}){
+ if(!internal)return <ClientOrderSummary order={order}/>;
  return <><div className="client-grid"><section className="client-card"><h3>Recorrido del pedido</h3><ol className="order-timeline">{order.historial.map((e,i)=><li key={i}><strong>{orderState(e.estado,order.reserva.modalidad)}</strong><span>{date(e.fecha)}</span><p>{e.motivo}</p></li>)}</ol></section>
   <section className="client-card"><h3>{order.estadoReserva==="LIBERADA"?"Reserva liberada":order.estadoReserva==="CUMPLIDA"?"Reserva cumplida":"Entrega reservada"}</h3><p><strong>{modeLabels[order.reserva.modalidad]}</strong></p><p>{order.reserva.nombre}</p><p>{order.reserva.fecha} · {order.reserva.apertura}–{order.reserva.cierre}<br/>{order.reserva.zonaHoraria}</p>{order.contacto&&<p>Recibe: {order.contacto.receptor}<br/>Contacto: {order.contacto.telefono}</p>}
    <p className="client-muted">{["LIBERADA","CUMPLIDA"].includes(order.estadoReserva)?"Esta franja quedó en el historial y ya no ocupa capacidad.":"Un cupo reservado para el pedido completo. La fecha reservada no indica que el trabajo ya esté listo."}</p><a href="#pedido-entrega">Consultar entrega y saldo</a></section></div><WorkSummary order={order} internal={internal}/></>;
@@ -86,7 +89,7 @@ export function OrderDetail({id,internal=false,financial=true}:{id:string;intern
  const current=available.some(s=>s.id===requested)?requested:order?defaultSection(order,internal):"pedido-resumen";
  useEffect(()=>{if(!order||!requested)return;const frame=requestAnimationFrame(()=>document.getElementById("pedido-secciones")?.scrollIntoView({block:"start"}));return()=>cancelAnimationFrame(frame);},[current,requested,!!order]);
  const saved=()=>{setRefresh(v=>v+1);void load();};
- return <>{busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
+ return <>{!internal&&<ClientJourney part={3}/>} {busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
   <div className="client-actions"><a className="client-button secondary" href={internal?order?`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`:"/operacion":"/cliente/pedidos"}>Volver a pedidos</a><button className="client-button secondary" disabled={busy} onClick={()=>void load()}>Actualizar pedido</button></div>
   {order&&<><header className="order-overview order-detail-heading"><div><h2>{internal?"Pedido":"Tu pedido"} PED-{order.numero}</h2><p>{order.oferta.sucursal.nombre} · Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></header>
    {!internal&&<OrderProgress order={order}/>}

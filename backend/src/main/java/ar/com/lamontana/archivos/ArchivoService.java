@@ -19,6 +19,8 @@
  * MÉTODOS DECLARADOS
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
+ * - [public] Acceso :: Acceso(boolean habilitada, String motivo)
+ *   Mantiene el constructor existente; codigo identifica habilitación, bloqueo general o pago pendiente.
  * - [public] Bandeja bandeja(UUID branch, int page, String correo)
  * - [public] Vista listar(UUID quote, String correo, boolean interno)
  * - [public] Archivo consultar(UUID quote, UUID file, String correo, boolean interno)
@@ -100,7 +102,9 @@ public class ArchivoService {
         this.jdbc=jdbc;this.tx=new TransactionTemplate(manager);this.storage=storage;this.inspector=inspector;this.antivirus=antivirus;
         this.organizacion=organizacion;this.operativa=operativa;this.finanzas=finanzas;this.cobertura=cobertura;
     }
-    public record Acceso(boolean habilitada,String motivo){}
+    public record Acceso(boolean habilitada,String motivo,String codigo){
+        public Acceso(boolean habilitada,String motivo){this(habilitada,motivo,habilitada?"HABILITADA":"BLOQUEADA");}
+    }
     public record Archivo(UUID codigoPublico,UUID item,String nombre,String estado,boolean activo,Instant creadoEn,Instant cargarHasta,
                           Long bytes,String sha256,Integer paginas,String codigoResultado,String mensaje,Instant aceptadaEn){}
     public record Item(UUID codigoPublico,String nombre,List<Archivo> archivos,boolean admiteCarga){}
@@ -240,7 +244,7 @@ public class ArchivoService {
         var ofrecida=c.oferta().condiciones();
         if(ofrecida.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),ofrecida.pagoPrevioRequerido(),ofrecida.senaRequerida(),ofrecida.mediosAcreditacion())
             ||actual.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),actual.pagoPrevioRequerido(),actual.senaRequerida(),actual.mediosAcreditacion()))
-            return new Acceso(false,"Falta acreditar y aplicar el anticipo requerido mediante los medios admitidos. Informar una transferencia no acredita dinero.");
+            return new Acceso(false,"Falta acreditar y aplicar el anticipo requerido mediante los medios admitidos. Informar una transferencia no acredita dinero.","PAGO_PENDIENTE");
         return new Acceso(true,"Podés enviar los PDF para su análisis y vista previa. La seña exigible después de aprobar sigue siendo un requisito independiente.");
     }
     private Correccion correccion(Cotizacion c){
@@ -258,7 +262,7 @@ public class ArchivoService {
         if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,c.oferta().sucursal().codigoPublico()))return new Acceso(false,"La sucursal está desactivada.");
         if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.solicitud_correccion_item WHERE id_solicitud_correccion=? AND requiere_reemplazo)",Boolean.class,s.id()))return new Acceso(false,"Esta solicitud no requiere reemplazar PDF. Corregí los datos al responder desde el pedido.");
         var fin=jdbc.queryForObject("SELECT condiciones_finales FROM lamontana.pedido_actual WHERE id_cotizacion=?",(r,n)->json.readValue(r.getString(1),ar.com.lamontana.pedidos.PedidoService.Condiciones.class),c.id());var a=fin.cotizadas();var b=fin.actuales();
-        if(a.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),a.pagoPrevioRequerido(),a.senaRequerida(),a.mediosAcreditacion())||b.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),b.pagoPrevioRequerido(),b.senaRequerida(),b.mediosAcreditacion()))return new Acceso(false,"Falta cobertura acreditada del anticipo aceptado para la carga.");
+        if(a.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),a.pagoPrevioRequerido(),a.senaRequerida(),a.mediosAcreditacion())||b.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),b.pagoPrevioRequerido(),b.senaRequerida(),b.mediosAcreditacion()))return new Acceso(false,"Falta cobertura acreditada del anticipo aceptado para la carga.","PAGO_PENDIENTE");
         return new Acceso(true,"Cargá sólo los PDF solicitados, aceptá cada vista previa y enviá tu respuesta desde el pedido. Los originales siguen en su historial.");
     }
     private void exigirCarga(Cotizacion c){var a=gate(c);if(!a.habilitada())throw conflicto(a.motivo());}

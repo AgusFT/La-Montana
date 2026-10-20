@@ -35,6 +35,7 @@
 import {useConfirmNavigation} from "@/components/navigation-boundary";
 
 import { useState, type FormEvent } from "react";
+import { clearPreparedFiles } from "@/lib/prepared-files";
 import { useRouter } from "next/navigation";
 
 import { secureMutation as post } from "@/lib/secure-mutation";
@@ -139,7 +140,7 @@ export function LogoutButton() {
   async function logout() {
     if (busy || !confirmNavigation()) return;
     setBusy(true); setMessage("");
-    try { await post("/api/auth/logout"); router.replace("/acceso"); router.refresh(); }
+    try { await post("/api/auth/logout"); clearPreparedFiles(); router.replace("/acceso"); router.refresh(); }
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cerrar sesión."); }
     finally { setBusy(false); }
   }
