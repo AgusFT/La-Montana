@@ -10,7 +10,8 @@
     "dev": "node scripts/prepare-pdf.mjs && next dev --hostname 0.0.0.0",
     "build": "node scripts/prepare-pdf.mjs && next build",
     "start": "next start --hostname 0.0.0.0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:tracking": "node --test tests/order-tracking.test.cjs"
   },
   "dependencies": {
     "next": "16.3.5",

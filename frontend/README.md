@@ -25,6 +25,7 @@ Manifiesto de la aplicación: nombre y versión, versión de pnpm, rango de Node
 - `build`: prepara PDF.js y construye la aplicación de producción.
 - `start`: inicia Next.js en producción.
 - `typecheck`: ejecuta TypeScript sin emitir archivos.
+- `test:tracking`: prueba el recorrido del cliente según estado general, logística, modalidad y condiciones del pedido con el runner de Node.
 - `dependencies` y `devDependencies`: bibliotecas de ejecución y herramientas de desarrollo.
 
 No declara métodos ni funciones de aplicación; los scripts son comandos.

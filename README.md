@@ -153,6 +153,14 @@ Cambiar contenido manteniendo páginas/opciones conserva el precio y requiere nu
 
 **Confirmar pedido** comprueba condiciones, archivos aceptados y cupo, y crea un único pedido con reserva e historia. Una respuesta perdida se recupera con la misma operación, sin duplicar pedido/reserva. El cliente consulta activos e históricos, filtros y detalle desde `/cliente/pedidos`.
 
+### Seguimiento visual del cliente
+
+El inicio y el detalle comparten un timeline del pedido. Se combinan el estado general y el estado logístico devueltos por el servidor, usando la modalidad y las condiciones guardadas del pedido. La revisión humana aparece cuando fue requerida o registrada; una aprobación directa no simula esa revisión. Una configuración nueva del motor no reconstruye el recorrido de pedidos anteriores.
+
+El retiro en sucursal no incluye viaje. Los envíos distinguen preparación, preparado para salir y en viaje; los puntos de entrega agregan disponible en el punto. Entregado y Cerrado son etapas distintas. Producción y calidad se muestran juntas porque el estado global actual no publica una etapa de calidad independiente. Una corrección vuelve a mostrar la intervención pendiente, sin conservar la aprobación como completada. Cancelado/Rechazado detienen el recorrido y conservan sólo los hitos registrados.
+
+Las fechas provienen de hechos guardados. No se inventan fechas de movimientos logísticos ni porcentajes o plazos para etapas futuras. El historial de eventos permanece en Resumen e historia. **Actualizar seguimiento** en el inicio y **Actualizar pedido** en el detalle consultan nuevamente el backend. Un estado desconocido o incompatible muestra seguimiento no disponible, sin inferir una entrega.
+
 ## Pagos manuales, comprobantes y D2
 
 Informar una transferencia no acredita dinero. El interno con permiso verifica la recepción real, registra referencia, importe, fecha y motivo, y después aplica expresamente el importe a una cotización aceptada. Registrar efectivo requiere su permiso específico. Referencias de transferencia son únicas en la instalación y recibos de efectivo por sucursal. No se genera una transacción bancaria ni se puede aplicar dos veces el mismo dinero.

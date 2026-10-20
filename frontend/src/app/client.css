@@ -42,6 +42,7 @@
  * - three: .three
  *
  * - quote: .quote-price-detail.
+ * - order-progress: seguimiento compartido, marcadores, etapas y adaptación móvil.
  *
  * CONDICIONES Y DIRECTIVAS CSS
  * - @media (max-width:1000px)
@@ -134,3 +135,21 @@
 
 /* Desglose por hoja dentro del único servicio de impresión cotizado. */
 .quote-price-detail{display:block;white-space:normal;min-width:190px;max-width:350px;margin-top:6px;font-size:12px;line-height:1.6}
+
+
+/* #region Seguimiento global del pedido · estados generales y logística */
+.order-progress{margin:20px 0;padding:20px;border:1px solid var(--ui-border,#dce5ef);border-radius:12px;background:var(--ui-surface,#fff);color:var(--ui-text,#1c3859)}
+.order-progress-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}.order-progress-heading h3{font-size:18px;margin:0}.order-progress-heading p{font-size:13px;margin:0;line-height:1.6}
+.order-progress-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;list-style:none;padding:0;margin:20px 0}
+.order-progress-steps>li{display:flex;align-items:flex-start;gap:10px;min-width:0;padding:12px;border:1px solid var(--ui-border,#dce5ef);border-radius:9px;background:var(--ui-surface,#fff)}
+.order-progress-steps>li>div{min-width:0}.order-progress-steps strong{display:block;font-size:13px;line-height:1.5;overflow-wrap:anywhere}.order-progress-status,.order-progress-steps time{display:block;font-size:11px;line-height:1.5;margin-top:5px;color:var(--ui-muted,#61748d)}
+.order-progress-marker{flex-shrink:0;display:flex;align-items:center;justify-content:center;width:27px;height:27px;border-radius:50%;font-size:12px;font-weight:700;background:var(--ui-border,#dce5ef);color:var(--ui-text,#1c3859)}
+.order-progress-steps>li[data-state="complete"] .order-progress-marker{background:var(--ui-success-bg,#e6f7ed);color:var(--ui-success-text,#146b3a)}
+.order-progress-steps>li[data-state="current"]{border:2px solid var(--ui-accent,#1769df);padding:11px;background:var(--ui-info-bg,#edf4ff)}
+.order-progress-steps>li[data-state="current"] .order-progress-marker{background:var(--ui-accent,#1769df);color:#fff}
+.order-progress-steps>li[data-state="stopped"]{border-color:var(--ui-warning-border,#e6a76e);background:var(--ui-warning-bg,#fff4e5)}
+.order-progress-steps>li[data-state="stopped"] .order-progress-marker{background:var(--ui-warning-bg,#fff4e5);color:var(--ui-warning-text,#995200)}
+.order-progress-note{padding:10px 12px;border-radius:8px;background:var(--ui-info-bg,#edf4ff);font-size:13px;line-height:1.6}.order-progress-footnote{margin:12px 0 0;font-size:12px;line-height:1.6;color:var(--ui-muted,#61748d)}
+.client-current-order .order-progress{background:var(--ui-surface,#fff);color:var(--ui-text,#1c3859);margin:20px 0 0}.client-current-order .order-progress h3{color:var(--ui-text,#1c3859)}.client-current-order .order-progress p{font-size:12px}.client-current-info p{font-size:14px;line-height:1.6}.client-current-info .client-actions .client-button{margin-top:0}
+@media(max-width:600px){.order-progress{padding:15px}.order-progress-steps{grid-template-columns:1fr;gap:8px}.order-progress-steps>li{padding:10px}.order-progress-steps>li[data-state="current"]{padding:9px}.order-progress-heading{display:block}.order-progress-heading p{margin-top:8px}}
+/* #endregion */

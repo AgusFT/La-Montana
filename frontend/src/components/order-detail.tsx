@@ -5,7 +5,7 @@
  * ========================================================================
  * FUNCIÓN
  * Coordina la vista del pedido: resumen de trabajo, gestión, correcciones, producción y entrega,
- * según el contexto de cliente u operación.
+ * según el contexto de cliente u operación. El cliente ve el seguimiento global sobre las secciones.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
@@ -37,7 +37,9 @@
 "use client";
 import {useEffect,useState} from "react";
 import {quoteRead,money,date,modeLabels} from "@/lib/quote-types";
-import {isOrder,orderState,logisticsState,type Order} from "@/lib/order-types";
+import {isOrder,orderState,type Order} from "@/lib/order-types";
+import {OrderProgress} from "./order-progress";
+import {orderTrackingLabel} from "@/lib/order-tracking";
 import {PaymentPanel} from "./payment-panel";
 import {OrderReschedule} from "./order-reschedule";
 import {OrderDelivery} from "./order-delivery";
@@ -86,7 +88,8 @@ export function OrderDetail({id,internal=false,financial=true}:{id:string;intern
  const saved=()=>{setRefresh(v=>v+1);void load();};
  return <>{busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
   <div className="client-actions"><a className="client-button secondary" href={internal?order?`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`:"/operacion":"/cliente/pedidos"}>Volver a pedidos</a><button className="client-button secondary" disabled={busy} onClick={()=>void load()}>Actualizar pedido</button></div>
-  {order&&<><header className="order-overview order-detail-heading"><div><h2>{internal?"Pedido":"Tu pedido"} PED-{order.numero}</h2><p>{order.oferta.sucursal.nombre} · Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{order.estado==="LISTO_PARA_ENTREGA"?logisticsState(order.estadoLogistico):orderState(order.estado,order.reserva.modalidad)}</span></header>
+  {order&&<><header className="order-overview order-detail-heading"><div><h2>{internal?"Pedido":"Tu pedido"} PED-{order.numero}</h2><p>{order.oferta.sucursal.nombre} · Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></header>
+   {!internal&&<OrderProgress order={order}/>}
    <nav id="pedido-secciones" className="order-sections" aria-label="Secciones del pedido">{available.map(s=><a key={s.id} href={`#${s.id}`} aria-current={current===s.id?"page":undefined}>{s.label}</a>)}</nav>
    {/* Keep each form mounted so switching sections preserves drafts and recoverable operations. */}
    <div id="pedido-resumen" className="order-section" hidden={current!=="pedido-resumen"}><Summary order={order} internal={internal}/>{!internal&&<OrderManagement order={order} internal={false} onSaved={saved}/>}</div>

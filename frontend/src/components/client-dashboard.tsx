@@ -5,7 +5,7 @@
  * ========================================================================
  * FUNCIÓN
  * Consulta y presenta el resumen de cotizaciones y pedidos del cliente y los accesos para
- * continuar su trabajo.
+ * continuar su trabajo. El seguimiento combina los estados generales y logísticos del pedido.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
@@ -31,6 +31,8 @@
 import {useEffect,useState} from "react";
 import {quoteRead,money,date,modeLabels} from "@/lib/quote-types";
 import {isOrder,isOrderList,orderState,logisticsState,type Order,type OrderList} from "@/lib/order-types";
+import {OrderProgress} from "./order-progress";
+import {orderTrackingLabel} from "@/lib/order-tracking";
 
 const activeStates=["PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO"];
 type Dashboard={orders:OrderList;active:number;current:Order|null};
@@ -54,8 +56,8 @@ export function ClientDashboard(){
     {data&&<div className="client-dashboard">
       <div className="client-dashboard-main">
         <section className="client-current-order" aria-label="Pedido actual">
-          <header><h2>Pedido actual</h2>{current&&<span>{current.estado==="LISTO_PARA_ENTREGA"?logisticsState(current.estadoLogistico):orderState(current.estado,current.reserva.modalidad)}</span>}</header>
-          {current?<div className="client-current-grid"><div><h3>PED-{current.numero}</h3><p>{orderState(current.estado,current.reserva.modalidad)} en {current.oferta.sucursal.nombre}.</p><p className="client-current-date">Confirmado el {date(current.confirmadaEn)}</p><a className="client-button" href={`/cliente/pedidos/${current.codigoPublico}`}>Ver detalle del pedido <span aria-hidden="true">›</span></a></div><ol aria-label="Últimos estados registrados">{current.historial.slice(-5).map((event,i)=><li key={`${event.fecha}-${i}`}><strong>{orderState(event.estado,current.reserva.modalidad)}</strong><small>{date(event.fecha)}</small><small>{event.motivo}</small></li>)}</ol></div>:<div className="client-current-empty"><h3>No tenés pedidos en curso</h3><p>{data.orders.total?"Tus pedidos anteriores siguen disponibles en el historial.":"Prepará tu primer trabajo y confirmá la cotización para comenzar su seguimiento."}</p><a className="client-button" href="/cliente/cotizaciones/nueva">Preparar un pedido</a></div>}
+          <header><h2>Pedido actual</h2>{current&&<span>{orderTrackingLabel(current)}</span>}</header>
+          {current?<><div className="client-current-info"><h3>PED-{current.numero}</h3><p>{orderTrackingLabel(current)} en {current.oferta.sucursal.nombre}.</p><p className="client-current-date">Confirmado el {date(current.confirmadaEn)}</p><div className="client-actions"><a className="client-button" href={`/cliente/pedidos/${current.codigoPublico}`}>Ver detalle del pedido <span aria-hidden="true">›</span></a><button className="client-button" disabled={busy} onClick={()=>void load()}>Actualizar seguimiento</button></div></div><OrderProgress order={current} compact/></>:<div className="client-current-empty"><h3>No tenés pedidos en curso</h3><p>{data.orders.total?"Tus pedidos anteriores siguen disponibles en el historial.":"Prepará tu primer trabajo y confirmá la cotización para comenzar su seguimiento."}</p><a className="client-button" href="/cliente/cotizaciones/nueva">Preparar un pedido</a></div>}
         </section>
         <section className="client-card client-dashboard-orders"><header><h2>Mis pedidos</h2><a href="/cliente/pedidos">Ver todos <span aria-hidden="true">→</span></a></header>
           {data.orders.total===0?<p className="client-empty">Todavía no confirmaste un pedido.</p>:<><div className="client-table-wrap"><table className="client-table"><thead><tr><th>Pedido</th><th>Estado</th><th>Fecha</th><th>Total</th><th>Acción</th></tr></thead><tbody>{data.orders.elementos.slice(0,5).map(p=><tr key={p.codigoPublico}><td>PED-{p.numero}</td><td><span className="client-state">{p.estado==="LISTO_PARA_ENTREGA"?logisticsState(p.estadoLogistico):orderState(p.estado,p.modalidad)}</span></td><td>{date(p.confirmadaEn)}</td><td>{money(p.total)}</td><td><a className="client-button secondary" href={`/cliente/pedidos/${p.codigoPublico}`}>Ver PED-{p.numero}</a></td></tr>)}</tbody></table></div><p className="client-muted">Últimos {Math.min(data.orders.total,5)} de {data.orders.total} pedidos.</p></>}
