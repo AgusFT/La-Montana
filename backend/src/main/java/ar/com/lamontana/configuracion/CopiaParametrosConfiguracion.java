@@ -37,8 +37,7 @@ public class CopiaParametrosConfiguracion {
   copiar("configuracion_financiera","vigencia_cotizacion_minutos,instrucciones_transferencia,exigir_sena,condicion_sena,umbral_sena,tipo_sena,valor_sena,umbral_aprobacion",origen,destino);
   copiar("configuracion_medio_pago","medio_pago",origen,destino);
   copiar("configuracion_recursos","metodo_asignacion",origen,destino);
-  copiar("configuracion_impresora","id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro",origen,destino);
-  copiar("configuracion_impresora_formato","id_impresora,id_formato",origen,destino);
+  copiarImpresoras(origen,destino);
   copiar("sucursal_servicio","id_sucursal,id_servicio",origen,destino);
   copiar("configuracion_entrega","preparacion_horas,traslado_horas",origen,destino);
   copiar("configuracion_modalidad_entrega","modalidad",origen,destino);
@@ -67,6 +66,10 @@ public class CopiaParametrosConfiguracion {
    FROM lamontana.franja_entrega f JOIN lamontana.configuracion_zona_entrega o USING(id_configuracion_zona_entrega)
    JOIN lamontana.configuracion_zona_entrega d ON d.id_configuracion_version=? AND d.id_zona_entrega=o.id_zona_entrega WHERE o.id_configuracion_version=?
    """,destino,origen);
+ }
+ public void copiarImpresoras(long origen,long destino){
+  copiar("configuracion_impresora","id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro",origen,destino);
+  copiar("configuracion_impresora_formato","id_impresora,id_formato",origen,destino);
  }
  private void copiar(String tabla,String columnas,long origen,long destino){jdbc.update("INSERT INTO lamontana."+tabla+"(id_configuracion_version,"+columnas+") SELECT ?,"+columnas+" FROM lamontana."+tabla+" WHERE id_configuracion_version=?",destino,origen);}
 }

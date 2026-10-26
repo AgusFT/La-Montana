@@ -14,6 +14,8 @@
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
+ * - [public] Borrador iniciar(CrearBorrador in, String correo): inicio desde la vigente.
+ * - [private] Borrador crearCopia(UUID origen, UUID operacion, long actor, String huella, String tipo, String correo).
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
  * - [public] ConfiguracionService.Borrador copiar(UUID origen, Crear in, String correo)
@@ -47,8 +49,19 @@ public class CopiaConfiguracionService {
  private final JsonMapper json=JsonMapper.builder().build();
  public CopiaConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,RevisionConfiguracionService revision,CopiaParametrosConfiguracion parametros){this.jdbc=jdbc;this.configuracion=configuracion;this.revision=revision;this.parametros=parametros;}
  private record Contenido(UUID origen,Crear solicitud){}
+ /** Inicio habitual: copia la vigente; sólo la primera instalación comienza vacía. */
+ @Transactional public ConfiguracionService.Borrador iniciar(ConfiguracionController.CrearBorrador in,String correo){
+  bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(in);
+  var repetido=configuracion.reintento(in.operacion(),"CREAR_BORRADOR",null,actor,huella);if(repetido!=null)return repetido;
+  var activa=configuracion.activa();
+  if(activa==null)return configuracion.crear(in,correo);
+  return crearCopia(activa.configuracion().codigoPublico(),in.operacion(),actor,huella,"CREAR_BORRADOR",correo);
+ }
  @Transactional public ConfiguracionService.Borrador copiar(UUID origen,Crear in,String correo){
   bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(new Contenido(origen,in));var repetido=configuracion.reintento(in.operacion(),"USAR_COMO_BASE",null,actor,huella);if(repetido!=null)return repetido;
+  return crearCopia(origen,in.operacion(),actor,huella,"USAR_COMO_BASE",correo);
+ }
+ private ConfiguracionService.Borrador crearCopia(UUID origen,UUID operacion,long actor,String huella,String tipo,String correo){
   var original=configuracion.cargar(origen);if(!Set.of("ACTIVA","HISTORICA").contains(original.estado()))throw conflicto("Sólo una configuración activa o histórica puede usarse como base.");
   if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado IN ('EN_PREPARACION','PROGRAMADA'))",Boolean.class)))throw conflicto("Ya hay un cambio pendiente. Continuá o cancelá el borrador; una programación debe cancelarse mediante su autorización antes de crear otra copia.");
   UUID codigo=UUID.randomUUID();long id=jdbc.queryForObject("INSERT INTO lamontana.configuracion_version(codigo_publico,numero_version,id_usuario_creador,estado,modelo,criterio,version) VALUES (?,(SELECT coalesce(max(numero_version),0)+1 FROM lamontana.configuracion_version),?,'EN_PREPARACION',?,?,2) RETURNING id_configuracion_version",Long.class,codigo,actor,original.modelo().name(),original.criterio()==null?null:original.criterio().name());
@@ -57,7 +70,7 @@ public class CopiaConfiguracionService {
   parametros.copiar(anterior,id);
   var barrido=revision.evaluar(codigo,correo,false).hallazgos().stream().filter(h->!h.codigo().startsWith("RECONFIRMAR_FASE_")).toList();
   jdbc.update("UPDATE lamontana.origen_configuracion SET barrido_inicial=?::jsonb WHERE id_configuracion_version=?",json.writeValueAsString(barrido),id);
-  configuracion.registrar(in.operacion(),"USAR_COMO_BASE",id,actor,huella,"BORRADOR_DESDE_BASE",2,origen,"USO_COMO_BASE de V"+original.numero());
+  configuracion.registrar(operacion,tipo,id,actor,huella,"BORRADOR_DESDE_BASE",2,origen,"USO_COMO_BASE de V"+original.numero());
   return configuracion.cargar(codigo);
  }
  @Transactional public RevisionConfiguracionService.Revision confirmar(UUID codigo,ConfirmarRevision in,String correo){

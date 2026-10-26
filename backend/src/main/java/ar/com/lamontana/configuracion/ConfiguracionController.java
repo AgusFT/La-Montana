@@ -79,12 +79,13 @@ public class ConfiguracionController {
     private final ConfiguracionService configuracion;
     private final CancelacionConfiguracionService cancelacion;
     private final PagosConfiguracionService pagos;
-    public ConfiguracionController(ConfiguracionService configuracion,CancelacionConfiguracionService cancelacion,PagosConfiguracionService pagos) { this.configuracion=configuracion;this.cancelacion=cancelacion;this.pagos=pagos; }
+    private final CopiaConfiguracionService copias;
+    public ConfiguracionController(ConfiguracionService configuracion,CancelacionConfiguracionService cancelacion,PagosConfiguracionService pagos,CopiaConfiguracionService copias) { this.configuracion=configuracion;this.cancelacion=cancelacion;this.pagos=pagos;this.copias=copias; }
 
     @GetMapping public ConfiguracionService.Estado estado(Principal actor) { return configuracion.estado(actor.getName()); }
     @PostMapping("/borradores")
     public ConfiguracionService.Borrador crear(@Valid @RequestBody CrearBorrador input,Principal actor) {
-        return configuracion.crear(input,actor.getName());
+        return copias.iniciar(input,actor.getName());
     }
     @PutMapping("/borradores/{codigo}/modelo")
     public ConfiguracionService.Borrador seleccionar(@PathVariable UUID codigo,@Valid @RequestBody SeleccionarModelo input,Principal actor) {

@@ -28,6 +28,8 @@
 //#endregion
 
 import type {OperatingDay,PointSlot} from "@/lib/configuration-types";
+import {WeeklyScheduleTools} from "./weekly-schedule-tools";
+import {applyPickupWeek} from "@/lib/schedule-presets";
 export type PickupSlotDraft=Omit<PointSlot,"dia"|"capacidadPedidos"|"habilitada">&{dia:number|null;capacidadPedidos:number|null;habilitada:boolean|null};
 const days=["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 export function ConfigurationPickupSlots({branch,slots,operatingDays,onChange}:{branch:string;slots:PickupSlotDraft[];operatingDays:OperatingDay[];onChange:(slots:PickupSlotDraft[])=>void}){
@@ -38,6 +40,7 @@ export function ConfigurationPickupSlots({branch,slots,operatingDays,onChange}:{
   return day?.habilitado===false||day?.habilitado===true&&!!day.apertura&&!!day.cierre&&(slot.apertura<day.apertura||slot.cierre>day.cierre);
  }
  return <section className="pickup-slots" aria-label={`Franjas de retiro de ${branch}`}><h4>Franjas y cupos de retiro</h4><p className="admin-note">Estas franjas son para retirar pedidos listos. Pueden estar fuera del horario de producción, incluso en días sin producción, si hay personal para entregar. No suman horas de preparación. Cada cupo corresponde a un pedido completo; cero o deshabilitada no ofrecen plazas. La disponibilidad se verifica al confirmar el pedido.</p>
+ <WeeklyScheduleTools kind="pickup" onApply={(selected,start,end,_close,capacity)=>{if(slots.some(s=>s.dia!==null&&selected.includes(s.dia))&&!window.confirm("¿Reemplazar las franjas de retiro de los días elegidos? Las franjas de otros días y los horarios de producción se conservan."))return;onChange(applyPickupWeek(slots,selected,start,end,capacity));}}/>
  {!slots.length&&<p className="admin-empty">Sin franjas de retiro configuradas.</p>}
  {slots.map((s,i)=><fieldset className="pickup-slot" key={i}><legend>Franja {i+1} · {branch}</legend>
  <label>Día<select aria-label={`Día de retiro ${i+1} de ${branch}`} required value={s.dia??""} onChange={e=>change(i,{dia:e.target.value?Number(e.target.value):null})}><option value="">Elegir día</option>{days.map((d,n)=><option value={n+1} key={d}>{d}</option>)}</select></label>

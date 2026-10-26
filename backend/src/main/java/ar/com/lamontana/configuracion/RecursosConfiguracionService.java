@@ -9,10 +9,11 @@
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
- * - [public] RecursosConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion)
+ * - [public] RecursosConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion, CopiaParametrosConfiguracion copias)
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
+ * - [public] Borrador recuperarVigentes(UUID codigo, RecuperarImpresoras input, String correo): recupera equipos sin reemplazar otras decisiones.
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
  * - [public] ConfiguracionService.Borrador guardar(UUID codigo, GuardarRecursos input, String
@@ -69,7 +70,21 @@ import org.springframework.web.server.ResponseStatusException;
 public class RecursosConfiguracionService {
     private final JdbcTemplate jdbc;
     private final ConfiguracionService configuracion;
-    public RecursosConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion){this.jdbc=jdbc;this.configuracion=configuracion;}
+    private final CopiaParametrosConfiguracion copias;
+    public RecursosConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,CopiaParametrosConfiguracion copias){this.jdbc=jdbc;this.configuracion=configuracion;this.copias=copias;}
+
+    /** Recupera sólo equipos en un borrador vacío; conserva el resto de sus decisiones. */
+    @Transactional public ConfiguracionService.Borrador recuperarVigentes(UUID codigo,RecuperarImpresoras input,String correo){
+        configuracion.bloquear();long actor=configuracion.propietario(correo);
+        String huella=configuracion.huella(Map.of("accion","RECUPERAR_IMPRESORAS","borrador",codigo,"solicitud",input));
+        var repetido=configuracion.reintento(input.operacion(),"GUARDAR_RECURSOS",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());
+        if(!actual.recursos().impresoras().isEmpty())throw conflicto("Este borrador ya tiene impresoras. Se conservan sus equipos y cambios; no se reemplazan al recuperar.");
+        var activa=configuracion.activa();
+        if(activa==null||activa.configuracion().recursos().impresoras().isEmpty())throw conflicto("La configuración vigente no tiene impresoras para recuperar.");
+        var origen=activa.configuracion();copias.copiarImpresoras(id(origen.codigoPublico()),id(codigo));
+        return terminar(codigo,actual,input.operacion(),"GUARDAR_RECURSOS",actor,huella,"RECURSOS_CONFIGURADOS",origen.codigoPublico(),"Impresoras recuperadas de V"+origen.numero()+"; se conservan sus identidades y el resto del borrador.");
+    }
 
     @Transactional
     public ConfiguracionService.Borrador guardar(UUID codigo,GuardarRecursos input,String correo) {

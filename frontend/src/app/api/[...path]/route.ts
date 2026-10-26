@@ -60,6 +60,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const configDraft = path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3] ?? "");
   const resourceMethods = configDraft && path.length === 5 && ["recursos", "entrega"].includes(path[4]) ? ["PUT"]
     : configDraft && path.length === 5 && path[4] === "impresoras" ? ["POST"]
+    : configDraft && path.length === 6 && path[4] === "impresoras" && path[5] === "recuperar-vigentes" ? ["POST"]
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 6 ? ["PUT"]
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 7 && ["estado", "retirar"].includes(path[6]) ? ["POST"] : null;
   const deliveryMethods = configDraft && path.length === 6 && path[4] === "entrega" ? path[5] === "validacion" ? ["GET"] : path[5] === "simular" ? ["POST"] : null : null;

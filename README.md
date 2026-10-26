@@ -143,6 +143,10 @@ La landing está en `http://localhost:3000/web` o `http://127.0.0.1:3000/web`, a
 
 ## Recorrido del cliente y PDF
 
+**Revisión funcional del 26/10/2026:** el catálogo y las capacidades corresponden globalmente a la imprenta, mientras que los puntos de entrega son destinos del cliente. La adaptación de esa separación al backend y al recorrido cliente sigue pendiente: ver [alcance global y flujo objetivo](docs/alcance-global-imprenta-y-recorrido-cliente.md). Los párrafos siguientes describen la versión del cliente implementada hasta ahora, que todavía exige sucursal para cotizar.
+
+En el configurador, crear un borrador nuevo ahora reutiliza la versión vigente y sus impresoras. Los borradores anteriores sin equipos pueden recuperarlos expresamente desde fase 4. Producción y retiro incorporan edición de varios días juntos en fase 5; las propuestas no se aplican automáticamente. Ver [correcciones de fases 4 y 5 y su validación](docs/correcciones-fases-4-y-5.md). La fase 6 queda pendiente de revisión posterior.
+
 El cliente elige sucursal, servicio, formato, papel, páginas/copias, color/doble faz, terminaciones y modalidad/destino de entrega. El navegador puede leer datos del PDF para preparar el formulario; Spring calcula el importe y guarda la oferta. Aceptar condiciones es una acción explícita, separada de cargar, pagar y confirmar el pedido.
 
 Una oferta vigente conserva el precio aceptado; una nueva revisión comercial afecta las nuevas ofertas. Al cargar/confirmar se revalidan configuración, elegibilidad y requisitos financieros actuales sin reescribir ese precio. El vencimiento requiere nueva cotización aceptada. Se conservan las referencias a configuración cotizada, revisión comercial y configuración de validación final.

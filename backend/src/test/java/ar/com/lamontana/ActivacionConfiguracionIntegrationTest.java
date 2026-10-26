@@ -962,6 +962,25 @@ class ActivacionConfiguracionIntegrationTest {
     private void guardarFaseCopia(int fase)throws Exception{var in=comando();String path="";switch(fase){case 2-> {path="/modelo";in.put("modelo",borrador.get("modelo"));in.put("criterio",borrador.get("criterio"));}case 3->{path="/pagos";in.put("pagos",borrador.get("pagos"));}case 4->{path="/recursos";in.put("metodoAsignacion",borrador.get("recursos").get("metodoAsignacion"));in.put("serviciosPorSucursal",borrador.get("recursos").get("serviciosPorSucursal"));}case 5->{path="/entrega";for(String key:List.of("preparacionHoras","trasladoHoras","modalidades","horariosPorSucursal"))in.put(key,borrador.get("entrega").get(key));}default->throw new IllegalArgumentException();}aceptar(put(admin,base()+path,in));}
     private Map<String,Object> confirmarCopiaSolicitud()throws Exception{var r=revision();return Map.of("operacion",UUID.randomUUID(),"version",borrador.get("version").asLong(),"revisionComercial",r.get("catalogo").get("actual").get("codigoPublico").asString(),"huellaRevision",r.get("huella").asString(),"advertenciasRevisadas",true);}
     private void confirmarCopia(Map<String,Object> in)throws Exception{var r=post(admin,base()+"/revision/confirmar",in);status(r,200);borrador=JSON.readTree(r.body()).get("borrador");}
+    @Test void crearBorradorHabitualHeredaLaVigenteYRecuperaEquiposEnBorradorAnteriorVacio()throws Exception{
+        preparar();var activa=activar();String origen=id;int equipos=contar("impresora");
+        var input=Map.of("operacion",UUID.randomUUID());var r=post(admin,"/api/admin/configuracion/borradores",input);status(r,200);var copia=JSON.readTree(r.body());
+        assertThat(copia.get("copia").get("origen").asString()).isEqualTo(origen);
+        for(String campo:List.of("modelo","criterio","pagos","recursos","entrega"))assertThat(copia.get(campo)).as(campo).isEqualTo(activa.get("configuracion").get(campo));
+        assertThat(contar("impresora")).isEqualTo(equipos);assertThat(estado().get("activa")).isEqualTo(activa);
+        var replay=post(admin,"/api/admin/configuracion/borradores",input);status(replay,200);assertThat(JSON.readTree(replay.body())).isEqualTo(copia);
+        status(post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID())),409);
+        adoptarCopia(copia);var recuperar=comando();status(post(admin,base()+"/impresoras/recuperar-vigentes",recuperar),409);
+        // Simula un borrador vacío creado por la versión anterior, conservando pagos y horarios.
+        long cfg=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?",Long.class,UUID.fromString(id));
+        jdbc.update("DELETE FROM lamontana.configuracion_impresora_formato WHERE id_configuracion_version=?",cfg);jdbc.update("DELETE FROM lamontana.configuracion_impresora WHERE id_configuracion_version=?",cfg);
+        var antes=estado().get("borrador");recuperar=comando();var saved=post(admin,base()+"/impresoras/recuperar-vigentes",recuperar);status(saved,200);var restored=JSON.readTree(saved.body());
+        assertThat(restored.get("recursos").get("impresoras")).isEqualTo(activa.get("configuracion").get("recursos").get("impresoras"));
+        for(String campo:List.of("modelo","criterio","pagos","entrega"))assertThat(restored.get(campo)).isEqualTo(antes.get(campo));
+        assertThat(contar("impresora")).isEqualTo(equipos);assertThat(estado().get("activa")).isEqualTo(activa);
+        status(post(admin,base()+"/impresoras/recuperar-vigentes",recuperar),200);
+        adoptarCopia(restored);status(post(admin,base()+"/impresoras/recuperar-vigentes",comando()),409);
+    }
     @Test void baseCopiaIntegraIdentidadesOrigenYBarridoSinDuplicarNiReactivar()throws Exception{
         preparar();var p=comando();p.putAll(Map.of("codigo","PUNTO","nombre","Punto central","calle","Prueba","numero","10","localidad","Localidad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(Map.of("sucursal",a,"costo","2.50","habilitado",true,"franjas",List.of(Map.of("dia",2,"apertura","09:00","cierre","12:00","capacidadPedidos",3,"habilitada",true))),Map.of("sucursal",b,"costo","0.00","habilitado",true,"franjas",List.of(Map.of("dia",3,"apertura","15:00","cierre","18:00","capacidadPedidos",0,"habilitada",false))))));aceptar(post(admin,ruta()+"/puntos",p));
         var i=comando();i.putAll(Map.of("sucursal",a,"nombre","Retirada histórica","formatos",List.of(formato),"admiteColor",true,"admiteDobleFaz",false,"capacidadHojas",30,"estado","DESHABILITADA"));aceptar(post(admin,base()+"/impresoras",i));String retirada=null;for(var printer:borrador.get("recursos").get("impresoras"))if(printer.get("nombre").asString().equals("Retirada histórica"))retirada=printer.get("codigoPublico").asString();var retirar=comando();retirar.put("motivo","Retirada declarada");aceptar(post(admin,base()+"/impresoras/"+retirada+"/retirar",retirar));

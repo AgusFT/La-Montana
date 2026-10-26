@@ -62,6 +62,8 @@ public class RecursosConfiguracionController {
     public RecursosConfiguracionController(RecursosConfiguracionService recursos){this.recursos=recursos;}
     @PutMapping("/recursos")
     public ConfiguracionService.Borrador guardar(@PathVariable UUID borrador,@Valid @RequestBody GuardarRecursos input,Principal actor){return recursos.guardar(borrador,input,actor.getName());}
+    @PostMapping("/impresoras/recuperar-vigentes")
+    public ConfiguracionService.Borrador recuperar(@PathVariable UUID borrador,@Valid @RequestBody RecuperarImpresoras input,Principal actor){return recursos.recuperarVigentes(borrador,input,actor.getName());}
     @PostMapping("/impresoras")
     public ConfiguracionService.Borrador crear(@PathVariable UUID borrador,@Valid @RequestBody CrearImpresora input,Principal actor){return recursos.crear(borrador,input,actor.getName());}
     @PutMapping("/impresoras/{impresora}")
@@ -72,6 +74,7 @@ public class RecursosConfiguracionController {
     public ConfiguracionService.Borrador retirar(@PathVariable UUID borrador,@PathVariable UUID impresora,@Valid @RequestBody RetirarImpresora input,Principal actor){return recursos.retirar(borrador,impresora,input,actor.getName());}
 
     public enum MetodoAsignacion { MANUAL }
+    public record RecuperarImpresoras(@NotNull UUID operacion,@NotNull @Min(1) Long version) {}
     public enum EstadoSeleccionado { OPERATIVA, DESHABILITADA }
     public record ServiciosSucursal(@NotNull UUID sucursal,@NotNull @Size(max=100) List<@NotNull UUID> servicios) {}
     public record GuardarRecursos(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotNull MetodoAsignacion metodoAsignacion,
