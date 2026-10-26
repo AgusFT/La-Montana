@@ -96,31 +96,18 @@ public class RevisionConfiguracionService {
         else if(b.modelo()!=null)try{pagos.comprobar(b);}catch(ResponseStatusException ex){bloqueo(h,"PAGOS_INCOMPATIBLES","pagos",3,ex.getReason(),null);}
         if(b.recursos().metodoAsignacion()==null)bloqueo(h,"ASIGNACION_PENDIENTE","recursos",4,"Confirmá la asignación manual de trabajos.",null);
         var activas=new HashSet<UUID>();sucursales.stream().filter(Sucursal::activa).forEach(s->activas.add(s.codigoPublico()));
-        var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")&&activas.contains(p.sucursal())).toList();
+        var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")).toList();
         boolean impresionVigente=comercial.actual()!=null&&comercial.actual().servicios().stream().anyMatch(s->s.habilitado()&&comercial.servicios().stream().anyMatch(m->m.codigoPublico().equals(s.servicio())&&m.tipo()==TipoServicio.IMPRESION));
         if(comercial.actual()!=null&&!impresionVigente)bloqueo(h,"COTIZACION_SERVICIOS_INDEPENDIENTES_PENDIENTE","recursos",4,"El catálogo puede ofrecer solo otros servicios, pero el flujo de pedidos actual requiere Impresión. Falta habilitar la cotización de trabajos independientes antes de activar este modelo operativo.",null);
-        if(impresoras.isEmpty()&&impresionVigente)bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar una impresora Operativa en una sucursal activa es obligatorio para ofrecer Impresión. No necesita conexión CUPS.",null);
+        if(impresoras.isEmpty()&&impresionVigente)bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar al menos una impresora Operativa para la imprenta es obligatorio para ofrecer Impresión. Su ubicación interna es opcional y no necesita conexión CUPS.",null);
         var entregaActual=vigente?entrega.evaluarVigente(codigo,correo):historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
         for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
         for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","ENTREGA_AVISO","entrega",5,aviso,null));
         var opciones=OpcionesImpresion.calcular(b,comercial,activas);var revision=comercial.actual();
         if(revision==null)bloqueo(h,"CATALOGO_PENDIENTE","catalogo",0,"Activá una revisión comercial válida. Una revisión programada para el futuro todavía no sirve para cotizar.",null);
-        var tipos=new HashMap<UUID,TipoServicio>();comercial.servicios().forEach(s->tipos.put(s.codigoPublico(),s.tipo()));
-        for(var origen:b.recursos().serviciosPorSucursal()){
-            String nombre=sucursales.stream().filter(s->s.codigoPublico().equals(origen.sucursal())).map(Sucursal::nombre).findFirst().orElse("Sucursal");
-            if(!activas.contains(origen.sucursal())){h.add(new Hallazgo("ADVERTENCIA","SUCURSAL_DESACTIVADA","recursos",4,nombre+" está desactivada; sus capacidades no se ofrecerán.",origen.sucursal()));continue;}
-            if(origen.servicios().stream().anyMatch(id->tipos.get(id)==TipoServicio.IMPRESION)&&impresoras.stream().noneMatch(p->p.sucursal().equals(origen.sucursal())))bloqueo(h,"IMPRESORA_SUCURSAL_PENDIENTE","recursos",4,nombre+" ofrece Impresión y necesita una impresora Operativa.",origen.sucursal());
-            if(revision==null)continue;
-            var locales=opciones.stream().filter(o->o.sucursal().equals(origen.sucursal())).toList();
-            for(UUID servicio:origen.servicios()){
-                var oferta=revision.servicios().stream().filter(s->s.servicio().equals(servicio)&&s.habilitado()).findFirst();String servicioNombre=comercial.servicios().stream().filter(s->s.codigoPublico().equals(servicio)).map(CatalogoService.Servicio::nombre).findFirst().orElse("Servicio");
-                if(oferta.isEmpty())bloqueo(h,"SERVICIO_SIN_PRECIO_VIGENTE","catalogo",0,nombre+": "+servicioNombre+" está habilitado localmente pero no tiene oferta/precio vigente. Completá el catálogo o quitá el servicio de esa sucursal.",origen.sucursal());
-                else if(tipos.get(servicio)==TipoServicio.IMPRESION&&locales.stream().noneMatch(o->o.servicio().equals(servicio)))bloqueo(h,"SERVICIO_SIN_CAPACIDAD","recursos",4,nombre+": "+servicioNombre+" no tiene una combinación tarifada compatible con una impresora Operativa. Revisá formatos, color y servicios.",origen.sucursal());
-            }
-        }
         if(revision!=null){
-            long sinOrigen=revision.tarifas().stream().filter(Tarifa::habilitada).filter(t->opciones.stream().noneMatch(o->o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color())).count();
-            if(sinOrigen>0)h.add(new Hallazgo("ADVERTENCIA","TARIFAS_SIN_ORIGEN","catalogo",0,sinOrigen+" tarifas habilitadas no tienen un origen compatible; esas combinaciones no se ofrecerán.",null));
+            long sinCapacidad=revision.tarifas().stream().filter(Tarifa::habilitada).filter(t->impresoras.stream().noneMatch(p->OpcionesImpresion.compatible(p,t.formato(),t.color(),false))).count();
+            if(sinCapacidad>0)h.add(new Hallazgo("ADVERTENCIA","TARIFAS_SIN_CAPACIDAD","catalogo",0,sinCapacidad+" tarifas habilitadas no tienen una impresora global compatible; esas combinaciones no se ofrecerán.",null));
         }
         if(comercial.programada()!=null)h.add(new Hallazgo("ADVERTENCIA","CATALOGO_PROGRAMADO","catalogo",0,"Existe una revisión comercial programada. Este resumen usa la vigente; los precios se volverán a comprobar al activar y al cotizar.",null));
         h.add(new Hallazgo("INFORMACION","REFERENCIAS_INDEPENDIENTES","catalogo",0,"La revisión comercial es independiente del motor. Las cotizaciones y pedidos conservarán sus precios capturados; esta revisión no crea ni modifica pedidos.",null));
@@ -136,13 +123,13 @@ public class RevisionConfiguracionService {
         if(r.catalogo().actual()==null||!r.catalogo().actual().codigoPublico().equals(input.revisionComercial()))throw conflicto("La referencia comercial cambió. Actualizá la revisión y volvé a elegir el ejemplo.");
         if(r.bloqueos()>0)throw conflicto("Corregí los bloqueos de la revisión integral antes de simular el recorrido completo.");
         var item=input.item();var opcion=r.opciones().stream().filter(o->o.sucursal().equals(input.sucursal())&&o.servicio().equals(item.servicio())&&o.formato().equals(item.formato())&&o.papel().equals(item.papel())&&o.color()==item.color()&&(!item.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(item.terminaciones())).findFirst();
-        if(opcion.isEmpty())throw conflicto("El ejemplo no tiene servicio, tarifa y capacidad compatibles en esa sucursal.");
+        if(opcion.isEmpty())throw conflicto("El ejemplo no tiene servicio, tarifa y capacidad global compatibles con el destino elegido.");
         var precio=precios.calcular(r.catalogo(),item);
         var temporal=entrega.simular(codigo,new EntregaConfiguracionController.SimularEntrega(input.version(),input.sucursal(),input.modalidad(),input.recibidoEn(),input.punto(),input.territorio()),correo,precio.minimoPreparacionMinutos());
         String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
         BigDecimal total=new BigDecimal(precio.subtotal()).add(new BigDecimal(costo));precios.limite(total);
         var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,precio.carillas());
-        var impresoras=b.recursos().impresoras().stream().filter(p->OpcionesImpresion.compatible(p,input.sucursal(),item.formato(),item.color(),item.dobleFaz())).map(p->new Impresora(p.codigoPublico(),p.nombre())).toList();
+        var impresoras=b.recursos().impresoras().stream().filter(p->OpcionesImpresion.compatible(p,item.formato(),item.color(),item.dobleFaz())).map(p->new Impresora(p.codigoPublico(),p.nombre())).toList();
         var recorrido=new ArrayList<String>();recorrido.add("Cotización de ejemplo con la revisión comercial "+r.catalogo().actual().numero()+": ARS "+total.toPlainString()+". Vigencia configurada: "+b.pagos().vigenciaCotizacionMinutos()+" minutos.");
         recorrido.addAll(economica.instrucciones());recorrido.add(economica.cargaRequiereAcreditacion()?"Archivo: carga del PDF bloqueada hasta acreditar el importe requerido; después se inspecciona su contenido real.":"Archivo: carga e inspección real del PDF; las discrepancias y correcciones se resuelven antes de producir.");
         if(economica.revisionHumana())recorrido.add("Revisión humana: aprobar o pedir correcciones. Si la seña se exige después de aprobar, producción espera su acreditación.");

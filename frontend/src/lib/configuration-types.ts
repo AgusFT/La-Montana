@@ -81,14 +81,11 @@ export type PaymentConfiguration = {
   tipoSena: "PORCENTAJE" | "FIJA" | null; valorSena: string | null; umbralAprobacion: string | null;
 };
 export type ConfiguredPrinter = {
-  codigoPublico: string; sucursal: string; nombre: string; formatos: string[];
+  codigoPublico: string; sucursal: string | null; nombre: string; formatos: string[];
   admiteColor: boolean; admiteDobleFaz: boolean; capacidadHojas: number;
   estado: "OPERATIVA" | "DESHABILITADA" | "RETIRADA"; retiradaEn: string | null; motivoRetiro: string | null;
 };
-export type ResourceConfiguration = {
-  metodoAsignacion: "MANUAL" | null; impresoras: ConfiguredPrinter[];
-  serviciosPorSucursal: {sucursal: string; servicios: string[]}[];
-};
+export type ResourceConfiguration = { metodoAsignacion: "MANUAL" | null; impresoras: ConfiguredPrinter[]; };
 export type DeliveryMode = "RETIRO_SUCURSAL" | "RETIRO_PUNTO_ENTREGA" | "ENVIO_DOMICILIO";
 export type OperatingDay = {dia:number;habilitado:boolean|null;apertura:string|null;cierre:string|null};
 export type BranchSchedule = {sucursal:string;zonaHoraria:string;dias:OperatingDay[];franjasRetiro?:PointSlot[]};
@@ -127,14 +124,12 @@ export function isPaymentConfiguration(value:unknown):value is PaymentConfigurat
 export function isResourceConfiguration(value: unknown): value is ResourceConfiguration {
   return record(value) && (value.metodoAsignacion === null || value.metodoAsignacion === "MANUAL") &&
     Array.isArray(value.impresoras) && value.impresoras.every(p => record(p) &&
-      ["codigoPublico","sucursal","nombre"].every(k => typeof p[k] === "string") &&
+      ["codigoPublico","nombre"].every(k => typeof p[k] === "string") && (p.sucursal === null || typeof p.sucursal === "string") &&
       Array.isArray(p.formatos) && p.formatos.every(f => typeof f === "string") &&
       typeof p.admiteColor === "boolean" && typeof p.admiteDobleFaz === "boolean" &&
       Number.isSafeInteger(p.capacidadHojas) && Number(p.capacidadHojas) > 0 &&
       ["OPERATIVA","DESHABILITADA","RETIRADA"].includes(String(p.estado)) &&
-      ["retiradaEn","motivoRetiro"].every(k => p[k] === null || typeof p[k] === "string")) &&
-    Array.isArray(value.serviciosPorSucursal) && value.serviciosPorSucursal.every(s => record(s) &&
-      typeof s.sucursal === "string" && Array.isArray(s.servicios) && s.servicios.every(id => typeof id === "string"));
+      ["retiradaEn","motivoRetiro"].every(k => p[k] === null || typeof p[k] === "string"));
 }
 export function isDeliveryPoint(value:unknown):value is DeliveryPoint {
   return record(value)&&["codigoPublico","codigo","nombre","calle","numero","localidad","provincia","codigoPostal","zonaHoraria"].every(k=>typeof value[k]==="string")&&(value.referencias===null||typeof value.referencias==="string")&&Array.isArray(value.sucursales)&&value.sucursales.every(s=>record(s)&&typeof s.sucursal==="string"&&typeof s.habilitado==="boolean"&&typeof s.costo==="string"&&Array.isArray(s.franjas)&&s.franjas.every(f=>record(f)&&Number.isInteger(f.dia)&&Number(f.dia)>=1&&Number(f.dia)<=7&&typeof f.apertura==="string"&&typeof f.cierre==="string"&&Number.isSafeInteger(f.capacidadPedidos)&&Number(f.capacidadPedidos)>=0&&typeof f.habilitada==="boolean"));

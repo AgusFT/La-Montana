@@ -11,10 +11,10 @@ const phaseTours:Record<number,{steps:TourStep[];completion:{title:string;descri
     {target:"config-tour-payments-actions",title:"Guardá las reglas",description:"Guardar conserva estas decisiones en el borrador. El próximo paso se habilita cuando los requisitos quedan completos; todavía no cambia la configuración activa."},
   ],completion:{title:"Pagos preparados",description:"Revisá las condiciones antes de continuar. La simulación es opcional y no registra cobros ni pedidos."}},
   4:{steps:[
-    {target:"config-tour-printers",title:"Declarar impresoras",description:"Registrá las impresoras y sus capacidades reales. La compatibilidad se comprueba contra las sucursales, formatos y servicios habilitados."},
-    {target:"config-tour-assignment",title:"Elegí la asignación",description:"Definí el método de asignación y los servicios ofrecidos por sucursal. La asignación automática sigue en construcción; elegí una opción disponible."},
+    {target:"config-tour-printers",title:"Revisá el parque de impresoras",description:"Acá ves todas las impresoras de la imprenta. Podés agregar, habilitar, deshabilitar y revisar sus capacidades. La ubicación interna es opcional y no limita los servicios ofrecidos."},
+    {target:"config-tour-assignment",title:"Confirmá la asignación manual",description:"En esta versión, el personal elige finalmente entre las impresoras globalmente compatibles. La asignación automática permanece visible como evolución futura."},
     {target:"config-tour-resources-actions",title:"Continuá cuando esté guardado",description:"Los cambios de recursos se guardan en el borrador. Revisá que haya equipos operativos y asignaciones compatibles antes de seguir."},
-  ],completion:{title:"Recursos revisados",description:"Las impresoras y servicios declarados se volverán a comprobar en la revisión integral y al aplicar la configuración."}},
+  ],completion:{title:"Recursos revisados",description:"Las impresoras globales y sus capacidades se volverán a comprobar en la revisión integral y al aplicar la configuración."}},
   5:{steps:[
     {target:"config-tour-schedule",title:"Definí cuándo produce la sucursal",description:"Este calendario parte del horario guardado en la ficha de la sucursal y puede ajustarse en el borrador. Define las horas operativas que se cuentan para preparar el pedido. Se pueden recibir pedidos fuera de horario si el sistema está habilitado; el cálculo comienza o continúa en la próxima apertura."},
     {target:"config-tour-pickup",title:"Definí cuándo se retiran los pedidos",description:"Las franjas de retiro indican cuándo el cliente puede retirar un pedido listo en esta sucursal; no son otro horario de producción. Podés atender retiros fuera del horario de producción si hay personal para entregar pedidos listos. Por ejemplo: lunes producción de 09:00 a 18:00 y retiro de 18:00 a 20:00; miércoles sin producción y retiro de 11:00 a 13:00. Verás el aviso Producción cerrada · retiros habilitados. Estas franjas no suman horas de preparación. El cupo cuenta pedidos completos; la disponibilidad se confirma al crear el pedido."},
@@ -57,9 +57,9 @@ export function ConfigurationTour({phase,owner,firstSetup,ready,hasDraft,hasSche
     completion={title:"Modelo preparado",description:"El siguiente paso define los medios de pago y la seña compatibles con esta decisión. Guardar no activa la configuración."};
   }else if(phase===4&&printerEditor){
     steps=[
-      {target:"config-tour-printer-details",title:"Identificá la impresora y sus capacidades",description:"Ingresá el nombre, la sucursal y las capacidades reales de color, doble faz y cantidad de hojas. Al editar una impresora existente, su sucursal e identidad se conservan. Estos datos pertenecen al borrador y todavía no cambian la configuración activa."},
+      {target:"config-tour-printer-details",title:"Identificá la impresora y sus capacidades",description:"Ingresá el nombre y las capacidades reales de color, doble faz y cantidad de hojas. Si querés, indicá dónde está físicamente para ayudar al equipo interno. Esa ubicación no limita el catálogo ni decide dónde producir."},
       {target:"config-tour-printer-formats",title:"Seleccioná los formatos compatibles",description:"Marcá solamente los tamaños de papel que esta impresora admite. Necesitás al menos un formato. Seleccionar todos no certifica la compatibilidad física del equipo."},
-      {target:"config-tour-printer-actions",title:"Guardá y volvé a la lista",description:"Guardar impresora conserva sus datos en el borrador. Después configurá la asignación y los servicios de la sucursal. Volver a la lista no guarda los cambios del formulario."},
+      {target:"config-tour-printer-actions",title:"Guardá y volvé a la lista",description:"Guardar impresora conserva sus datos en el borrador. Después confirmá la asignación manual global. Volver a la lista no guarda los cambios del formulario."},
     ];
     completion={title:"Impresora preparada para guardar",description:"La guía no guarda ni activa el equipo. Revisá el formulario y usá Guardar impresora cuando sus datos estén completos."};
   }else{

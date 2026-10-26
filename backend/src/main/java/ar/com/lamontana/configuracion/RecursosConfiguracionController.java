@@ -4,8 +4,8 @@
  * ARCHIVO: RecursosConfiguracionController.java
  * ========================================================================
  * FUNCIÓN
- * Expone las operaciones del borrador sobre servicios por sucursal e impresoras: alta, edición,
- * cambio de estado y retiro.
+ * Expone las operaciones del borrador sobre el parque global de impresoras: alta, edición,
+ * cambio de estado, ubicación interna opcional y retiro.
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
@@ -36,7 +36,6 @@
  * - RecursosConfiguracionController (clase).
  * - RecursosConfiguracionController.MetodoAsignacion (enumeración).
  * - RecursosConfiguracionController.EstadoSeleccionado (enumeración).
- * - RecursosConfiguracionController.ServiciosSucursal (record).
  * - RecursosConfiguracionController.GuardarRecursos (record).
  * - RecursosConfiguracionController.CrearImpresora (record).
  * - RecursosConfiguracionController.EditarImpresora (record).
@@ -76,13 +75,11 @@ public class RecursosConfiguracionController {
     public enum MetodoAsignacion { MANUAL }
     public record RecuperarImpresoras(@NotNull UUID operacion,@NotNull @Min(1) Long version) {}
     public enum EstadoSeleccionado { OPERATIVA, DESHABILITADA }
-    public record ServiciosSucursal(@NotNull UUID sucursal,@NotNull @Size(max=100) List<@NotNull UUID> servicios) {}
-    public record GuardarRecursos(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotNull MetodoAsignacion metodoAsignacion,
-                                   @NotNull @Size(max=100) List<@NotNull @Valid ServiciosSucursal> serviciosPorSucursal) {}
-    public record CrearImpresora(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotNull UUID sucursal,@NotBlank @Size(max=120) String nombre,
+    public record GuardarRecursos(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotNull MetodoAsignacion metodoAsignacion) {}
+    public record CrearImpresora(@NotNull UUID operacion,@NotNull @Min(1) Long version,UUID sucursal,@NotBlank @Size(max=120) String nombre,
                                  @NotNull @Size(min=1,max=300) List<@NotNull UUID> formatos,@NotNull Boolean admiteColor,@NotNull Boolean admiteDobleFaz,
                                  @NotNull @Positive Integer capacidadHojas,@NotNull EstadoSeleccionado estado) {}
-    public record EditarImpresora(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotBlank @Size(max=120) String nombre,
+    public record EditarImpresora(@NotNull UUID operacion,@NotNull @Min(1) Long version,UUID sucursal,@NotBlank @Size(max=120) String nombre,
                                   @NotNull @Size(min=1,max=300) List<@NotNull UUID> formatos,@NotNull Boolean admiteColor,@NotNull Boolean admiteDobleFaz,
                                   @NotNull @Positive Integer capacidadHojas) {}
     public record CambiarEstado(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotNull EstadoSeleccionado estado,@NotBlank @Size(max=500) String motivo) {}

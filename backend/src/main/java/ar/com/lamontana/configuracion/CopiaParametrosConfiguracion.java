@@ -38,7 +38,6 @@ public class CopiaParametrosConfiguracion {
   copiar("configuracion_medio_pago","medio_pago",origen,destino);
   copiar("configuracion_recursos","metodo_asignacion",origen,destino);
   copiarImpresoras(origen,destino);
-  copiar("sucursal_servicio","id_sucursal,id_servicio",origen,destino);
   copiar("configuracion_entrega","preparacion_horas,traslado_horas",origen,destino);
   copiar("configuracion_modalidad_entrega","modalidad",origen,destino);
   copiar("configuracion_horario_sucursal","id_sucursal,zona_horaria",origen,destino);
@@ -68,7 +67,7 @@ public class CopiaParametrosConfiguracion {
    """,destino,origen);
  }
  public void copiarImpresoras(long origen,long destino){
-  copiar("configuracion_impresora","id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro",origen,destino);
+  copiar("configuracion_impresora","id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro,id_sucursal_ubicacion",origen,destino);
   copiar("configuracion_impresora_formato","id_impresora,id_formato",origen,destino);
  }
  private void copiar(String tabla,String columnas,long origen,long destino){jdbc.update("INSERT INTO lamontana."+tabla+"(id_configuracion_version,"+columnas+") SELECT ?,"+columnas+" FROM lamontana."+tabla+" WHERE id_configuracion_version=?",destino,origen);}

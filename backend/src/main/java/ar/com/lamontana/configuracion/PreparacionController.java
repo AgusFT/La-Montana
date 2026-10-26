@@ -69,11 +69,11 @@ public class PreparacionController {
                  comercial.actual().tarifas().stream().anyMatch(t->t.habilitada()));
         var pasos=new ArrayList<Paso>();
         pasos.add(new Paso("propietario","Crear propietario",true,"Completado","Las cuentas de clientes ya pueden registrarse. Los empleados los crea el propietario.","/cuenta/seguridad",false));
-        pasos.add(new Paso("sucursal","Preparar sucursal",sucursal,sucursal?"Configurada":"Pendiente","Necesitás al menos una sucursal activa con sus datos y zona horaria.","/administracion/sucursales",false));
+        pasos.add(new Paso("sucursal","Preparar sucursal",sucursal,sucursal?"Configurada":"Pendiente para atención o retiro","Creá una sucursal activa si vas a ofrecer atención o retiro presencial. Las impresoras y el catálogo global no dependen de este paso.","/administracion/sucursales",false));
         boolean catalogoListo=precios&&bloqueos.stream().noneMatch(h->h.fase()==0);
         pasos.add(new Paso("catalogo","Servicios y precios",catalogoListo,catalogoListo?"Revisión comercial vigente":"Pendiente",detalle(bloqueos,List.of(0),"Cargá servicios, formatos y papeles y publicá sus tarifas. Los precios se administran por separado de la configuración operativa."),"/administracion/catalogo",false));
         agregar(pasos,"modelo","Modelo y pagos",b!=null&&b.modelo()!=null&&b.pagos()!=null,bloqueos,List.of(2,3),guardada,"Definí aprobación, medios de pago, vigencia y reglas de seña.");
-        agregar(pasos,"recursos","Capacidades de producción",b!=null&&b.recursos().metodoAsignacion()!=null,bloqueos,List.of(4),guardada,"Registrá impresoras operativas y los servicios disponibles en cada sucursal.");
+        agregar(pasos,"recursos","Capacidades de producción",b!=null&&b.recursos().metodoAsignacion()!=null,bloqueos,List.of(4),guardada,"Registrá las impresoras globales de la imprenta y confirmá la asignación manual. La ubicación interna es opcional.");
         agregar(pasos,"entrega","Horarios y entregas",b!=null,bloqueos,List.of(5),guardada,"Guardá tiempos, horarios, modalidades y sus franjas o destinos.");
         boolean lista=r!=null&&r.bloqueos()==0;
         pasos.add(new Paso("activacion","Revisar y activar",activa&&lista,activa?(lista?"Activa":"Activa · requiere atención"):"Pendiente",activa?(lista?"La versión vigente permite operar. Los nuevos borradores no la reemplazan hasta activarlos.":"Hay condiciones actuales que requieren revisión. Corregí los pasos señalados; los pedidos existentes conservan sus condiciones."):lista?"El contenido supera la revisión. Falta autorizar su activación en el paso 7.":"Completá los pasos anteriores, revisá y autorizá la activación. Guardar no habilita pedidos.","/administracion/configuracion",false));
@@ -86,7 +86,7 @@ public class PreparacionController {
         boolean servicioBase=comercial.servicios().stream().anyMatch(CatalogoService.Servicio::activo);
         boolean modeloListo=b!=null&&b.modelo()!=null&&bloqueos.stream().noneMatch(h->h.fase()==2);
         boolean pagosListos=b!=null&&b.pagos()!=null&&bloqueos.stream().noneMatch(h->h.fase()==3);
-        boolean recursosListos=b!=null&&b.recursos().metodoAsignacion()!=null&&!b.recursos().serviciosPorSucursal().isEmpty()
+        boolean recursosListos=b!=null&&b.recursos().metodoAsignacion()!=null
                 &&bloqueos.stream().noneMatch(h->h.fase()==4||h.fase()==0);
         boolean entregaLista=b!=null&&!b.entrega().modalidades().isEmpty()&&bloqueos.stream().noneMatch(h->h.fase()==5)
                 &&r.hallazgos().stream().noneMatch(h->h.codigo().equals("MODALIDAD_SIN_DESTINO"));
@@ -95,7 +95,7 @@ public class PreparacionController {
         var pendientes=new ArrayList<String>();
         int fase=guia.faseDisponible();
         bloqueos.stream().filter(h->h.fase()==fase||fase==4&&h.fase()==0).map(RevisionConfiguracionService.Hallazgo::mensaje).distinct().forEach(pendientes::add);
-        if(fase==4&&b!=null&&b.recursos().serviciosPorSucursal().isEmpty())pendientes.add("Guardá la asignación y los servicios ofrecidos por cada sucursal que vaya a operar.");
+        if(fase==4&&b!=null&&b.recursos().metodoAsignacion()==null)pendientes.add("Confirmá la asignación manual para el parque global de impresoras.");
         if(fase==5&&r!=null)r.hallazgos().stream().filter(h->h.codigo().equals("MODALIDAD_SIN_DESTINO")).map(RevisionConfiguracionService.Hallazgo::mensaje).forEach(pendientes::add);
         guia=new GuiaInstalacion.Estado(guia.primeraInstalacion(),guia.faseDisponible(),guia.versionBorrador(),guia.etapas(),List.copyOf(pendientes));
         return new Preparacion(origen,b==null?null:b.numero(),activa,estado.borrador()==null?null:estado.borrador().numero(),List.copyOf(pasos),guia);

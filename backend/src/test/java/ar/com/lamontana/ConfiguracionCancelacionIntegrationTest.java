@@ -167,7 +167,7 @@ class ConfiguracionCancelacionIntegrationTest {
         assertThat(eventos("BORRADOR_CANCELADO")).isEqualTo(1);assertThat(contar("comprobante_configuracion")).isEqualTo(6);
         app.close();arrancar();assertThat(estado().get("historial").get(0)).isEqualTo(cancelada);
         var nuevo=crear();assertThat(nuevo.get("numero").asLong()).isEqualTo(2);assertThat(nuevo.get("modelo").isNull()).isTrue();
-        assertThat(nuevo.get("recursos").get("metodoAsignacion").isNull()).isTrue();assertThat(nuevo.get("recursos").get("impresoras").size()).isZero();assertThat(nuevo.get("recursos").get("serviciosPorSucursal").size()).isZero();
+        assertThat(nuevo.get("recursos").get("metodoAsignacion").isNull()).isTrue();assertThat(nuevo.get("recursos").get("impresoras").size()).isZero();assertThat(nuevo.get("recursos").has("serviciosPorSucursal")).isFalse();
         assertThat(nuevo.get("entrega").get("preparacionHoras").isNull()).isTrue();assertThat(nuevo.get("entrega").get("trasladoHoras").isNull()).isTrue();assertThat(nuevo.get("entrega").get("modalidades").size()).isZero();assertThat(nuevo.get("entrega").get("horariosPorSucursal").size()).isZero();
         assertThat(nuevo.get("entrega").get("puntos").size()).isZero();
         var modificarCancelada=enviar(admin,"PUT","/api/admin/configuracion/borradores/"+id+"/recursos",Map.of("operacion",UUID.randomUUID().toString(),"version",6,"metodoAsignacion","MANUAL","serviciosPorSucursal",List.of()));status(modificarCancelada,409);

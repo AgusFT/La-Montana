@@ -143,7 +143,7 @@ public class EntregaConfiguracionService {
             if(motivo!=null){if(retiro||(envio&&cobertura))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" Las otras modalidades utilizables pueden seguir disponibles.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
 
         }
-        if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Habilitá servicios en al menos una sucursal activa para ofrecer entregas."));
+        if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Creá al menos una sucursal activa si querés ofrecer atención o retiro en una ubicación física."));
         for(var sucursal:operativas){
             var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);
             problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));
@@ -172,7 +172,7 @@ public class EntregaConfiguracionService {
         exigir((input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA)==(input.punto()!=null),"Elegí un punto sólo para la modalidad Puntos de entrega.");
         exigir((input.modalidad()==Modalidad.ENVIO_DOMICILIO)==(input.territorio()!=null),"Completá código postal, localidad y provincia sólo para envío a domicilio.");
         var sucursales=operativas(id(codigo));var operativa=sucursales.stream().filter(s->s.codigo().equals(input.sucursal())).findFirst();
-        if(operativa.isEmpty())throw conflicto("La sucursal debe estar activa y tener servicios habilitados para ofrecer entregas.");
+        if(operativa.isEmpty())throw conflicto("La ubicación usada para calcular preparación y entrega debe ser una sucursal activa con calendario operativo.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);
         var errores=problemasCalendario(horario,input.sucursal(),operativa.get().nombre());if(!errores.isEmpty())throw conflicto(errores.get(0).mensaje());
         if(e.preparacionHoras()==null||(input.modalidad()!=Modalidad.RETIRO_SUCURSAL&&e.trasladoHoras()==null))throw conflicto("Completá y guardá los tiempos estimados de la modalidad antes de simular.");
@@ -226,7 +226,7 @@ public class EntregaConfiguracionService {
             problemas.add(new Problema("SIN_DIA_OPERATIVO",codigo,nombre+" necesita al menos un día abierto con horario completo."));
         return problemas;
     }
-    private List<Sucursal> operativas(long config){return jdbc.query("SELECT DISTINCT s.id_sucursal,s.codigo_publico,s.nombre,s.zona_horaria,s.codigo FROM lamontana.sucursal s JOIN lamontana.sucursal_servicio ss USING(id_sucursal) WHERE ss.id_configuracion_version=? AND s.estado='ACTIVA' ORDER BY s.codigo",(rs,row)->new Sucursal(rs.getLong("id_sucursal"),rs.getObject("codigo_publico",UUID.class),rs.getString("nombre"),rs.getString("zona_horaria")),config);}
+    private List<Sucursal> operativas(long config){return jdbc.query("SELECT s.id_sucursal,s.codigo_publico,s.nombre,s.zona_horaria FROM lamontana.sucursal s WHERE s.estado='ACTIVA' ORDER BY s.codigo",(rs,row)->new Sucursal(rs.getLong("id_sucursal"),rs.getObject("codigo_publico",UUID.class),rs.getString("nombre"),rs.getString("zona_horaria")));}
     private Sucursal sucursal(UUID codigo){var r=jdbc.query("SELECT id_sucursal,codigo_publico,nombre,zona_horaria FROM lamontana.sucursal WHERE codigo_publico=? FOR SHARE",(rs,row)->new Sucursal(rs.getLong(1),rs.getObject(2,UUID.class),rs.getString(3),rs.getString(4)),codigo);if(r.isEmpty())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"La sucursal del calendario no existe.");return r.get(0);}
     private long id(UUID codigo){return jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?",Long.class,codigo);}
     private void editable(ConfiguracionService.Borrador b,Long version){if(!b.estado().equals("EN_PREPARACION")||version==null||b.version()!=version)throw conflicto("El borrador cambió o ya no se puede editar. Consultá su versión actual.");if(b.modelo()==null)throw conflicto("Seleccioná primero el modelo operativo.");}

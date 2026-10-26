@@ -18,6 +18,22 @@ Para un borrador vacío generado por versiones anteriores, la fase 4 ofrece **Re
 
 El título de la fase vuelve a «Impresoras y capacidades». La tabla muestra los datos disponibles; disponibilidad de papel, recargas, sensores e histórico de hojas todavía no se implementan con esta corrección y no se presentan cifras simuladas como datos reales.
 
+## Alcance global y ubicación interna
+
+Las impresoras pertenecen a la imprenta completa, no a una sucursal productiva. Fase 4 permite agregarlas sin crear ni seleccionar una sucursal. Para cada equipo puede guardarse una ubicación interna opcional:
+
+- se versiona junto con el resto de la configuración;
+- puede quedar vacía;
+- puede señalar una sucursal activa o desactivada;
+- ayuda al administrador a localizar físicamente el equipo;
+- no habilita ni deshabilita servicios, papeles, tarifas o cotizaciones;
+- no limita la compatibilidad de la impresora;
+- no decide automáticamente dónde se producirá un pedido.
+
+Los servicios y precios provienen de la revisión comercial global. Fase 4 ya no guarda «servicios por sucursal». La asignación concreta de una impresora a un trabajo continúa siendo una decisión manual del personal interno.
+
+El listado permite revisar equipos, habilitarlos o deshabilitarlos, agregar nuevos y editar o retirar únicamente los deshabilitados. Retirar conserva identidad e historia. Para ofrecer impresión debe existir al menos una impresora global Operativa compatible. Para ofrecer retiro en sucursal sí se necesita, en la fase de entrega, una sucursal activa con franjas válidas.
+
 ## Horarios con pocos clics
 
 Producción y retiro incorporan una herramienta «Configurar varios días juntos» con dos propuestas de días: lunes a viernes y lunes a sábado. El horario propuesto de 09:00 a 18:00 es editable y sólo se aplica al pulsar el botón. Se pueden elegir días individuales y modificar cada día o franja después.
@@ -30,7 +46,7 @@ Los borradores copiados heredan sus horarios, por lo que no requieren volver a c
 
 ## Pendientes separados
 
-La oferta y las capacidades de la imprenta deben tener alcance global, según la [definición funcional corregida](alcance-global-imprenta-y-recorrido-cliente.md). La asociación comercial de servicios por sucursal sigue siendo una adaptación pendiente de contratos, validación y persistencia. Esta entrega no simula haber completado esa migración ni modifica las reglas o pantallas de la fase 6.
+La oferta y las capacidades de la imprenta tienen alcance global, según la [definición funcional corregida](alcance-global-imprenta-y-recorrido-cliente.md). La fase 4 ya separa catálogo, capacidades y ubicación física. El recorrido cliente todavía conserva temporalmente un destino previo en su contrato; las opciones que recibe usan el mismo catálogo y las mismas capacidades globales, nunca servicios habilitados localmente. La eliminación completa de esa selección temprana del cliente continúa como trabajo separado. Esta entrega no rediseña la experiencia de la fase 6.
 
 ## Verificación
 

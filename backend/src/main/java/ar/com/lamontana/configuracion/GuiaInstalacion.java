@@ -23,8 +23,8 @@ public final class GuiaInstalacion {
                                boolean borrador,boolean modelo,boolean pagos,boolean recursos,boolean entrega,
                                Long version,List<String> pendientes) {
         String[] codigos={"sucursal","papeles","servicios","precios","modelo","pagos","recursos","entrega","activacion"};
-        String[] titulos={"Crear una sucursal","Elegir papeles","Crear al menos un servicio base","Guardar tarifas y servicios",
-                "Guardar modelo operativo","Guardar pagos y reglas","Configurar impresoras y asignación","Completar horarios y entrega","Revisar y activar"};
+        String[] titulos={"Preparar sucursal para atención o retiro","Elegir papeles","Crear al menos un servicio base","Guardar tarifas y servicios",
+                "Guardar modelo operativo","Guardar pagos y reglas","Configurar impresoras globales y asignación","Completar horarios y entrega","Revisar y activar"};
         String[] enlaces={"/administracion/sucursales","/administracion/catalogo#catalogo-base","/administracion/catalogo#catalogo-base",
                 "/administracion/catalogo#revision-comercial","/administracion/configuracion","/administracion/configuracion",
                 "/administracion/configuracion","/administracion/configuracion","/administracion/configuracion"};
@@ -33,9 +33,11 @@ public final class GuiaInstalacion {
         for(int i=0;i<codigos.length;i++) {
             boolean completa=activa||anteriores&&minimos[i];
             etapas.add(new Etapa(codigos[i],titulos[i],completa,activa||anteriores,enlaces[i]));
-            anteriores=completa;
+            // La sucursal es independiente del catálogo y de las impresoras. Recién la entrega
+            // presencial exige una ubicación activa y franjas válidas.
+            if(i>0)anteriores=completa;
         }
-        int fase=activa?8:!sucursal||!papeles||!servicios||!precios||!borrador?1:!modelo?2:!pagos?3:!recursos?4:!entrega?5:6;
+        int fase=activa?8:!papeles||!servicios||!precios||!borrador?1:!modelo?2:!pagos?3:!recursos?4:!entrega?5:6;
         return new Estado(!activa,fase,version,List.copyOf(etapas),List.copyOf(pendientes));
     }
 }

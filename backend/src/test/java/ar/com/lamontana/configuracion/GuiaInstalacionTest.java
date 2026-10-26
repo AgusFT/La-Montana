@@ -14,11 +14,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GuiaInstalacionTest {
-    @Test void sucursalEsElPrimerRequisito(){
+    @Test void sucursalNoBloqueaCatalogoNiImpresorasGlobales(){
         var g=GuiaInstalacion.crear(false,false,true,true,true,true,true,true,true,true,9L,List.of());
         assertThat(g.etapas().get(0).habilitada()).isTrue();
-        assertThat(g.etapas().subList(1,9)).allMatch(e->!e.habilitada()&&!e.completa());
-        assertThat(g.faseDisponible()).isEqualTo(1);
+        assertThat(g.etapas().get(0).completa()).isFalse();
+        assertThat(g.etapas().subList(1,8)).allMatch(e->e.habilitada()&&e.completa());
+        assertThat(g.etapas().get(8).habilitada()).isTrue();
+        assertThat(g.etapas().get(8).completa()).isFalse();
+        assertThat(g.faseDisponible()).isEqualTo(6);
     }
     @Test void noSaltaHuecosPrevios(){
         var g=GuiaInstalacion.crear(false,true,true,false,true,true,true,true,true,true,9L,List.of());

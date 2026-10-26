@@ -108,37 +108,38 @@ class ConfiguracionRecursosIntegrationTest {
     @AfterEach void cerrar()throws Exception{if(app!=null)app.close();if(pg!=null)pg.close();if(archivos!=null)Files.deleteIfExists(archivos);}
     private void arrancar(){app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
 
-    @Test void recursosVaciosCicloDeImpresoraServiciosPorSucursalYDesactivacion()throws Exception {
-        assertThat(recursos().get("metodoAsignacion").isNull()).isTrue();assertThat(recursos().get("impresoras").size()).isZero();assertThat(recursos().get("serviciosPorSucursal").size()).isZero();
+    @Test void recursosVaciosCicloGlobalUbicacionOpcionalYDesactivacion()throws Exception {
+        assertThat(recursos().get("metodoAsignacion").isNull()).isTrue();assertThat(recursos().get("impresoras").size()).isZero();assertThat(recursos().has("serviciosPorSucursal")).isFalse();
         status(put(admin,ruta("recursos"),recursosComando(List.of())),409);modelo("MANUAL",null);
         aceptar(put(admin,ruta("recursos"),recursosComando(List.of())));assertThat(recursos().get("metodoAsignacion").asString()).isEqualTo("MANUAL");assertThat(contar("impresora")).isZero();
         aceptar(put(admin,ruta("recursos"),recursosComando(List.of(grupo(a,s),grupo(b,t)))));
-        assertThat(recursos().get("serviciosPorSucursal").size()).isEqualTo(2);
+        assertThat(recursos().has("serviciosPorSucursal")).isFalse();
         aceptar(post(admin,ruta("impresoras"),alta(a,"Equipo","OPERATIVA")));String equipo=impresora("Equipo",a);
         status(put(admin,ruta("impresoras/"+equipo),edicion("Equipo",250)),409);status(post(admin,ruta("impresoras/"+equipo+"/retirar"),motivo()),409);
         status(post(admin,ruta("impresoras"),alta(a," equipo ","DESHABILITADA")),409);
-        aceptar(post(admin,ruta("impresoras"),alta(b,"Equipo","DESHABILITADA")));String otro=impresora("Equipo",b);
-        assertThat(equipo).isNotEqualTo(otro);
+        status(post(admin,ruta("impresoras"),alta(b,"Equipo","DESHABILITADA")),409);
+        aceptar(post(admin,ruta("impresoras"),alta(b,"Equipo B","DESHABILITADA")));String otro=impresora("Equipo B",b);
         aceptar(post(admin,ruta("impresoras/"+equipo+"/estado"),estadoComando("DESHABILITADA")));
         aceptar(put(admin,ruta("impresoras/"+equipo),edicion("Equipo actualizado",Integer.MAX_VALUE)));
         var recurso=porCodigo(equipo);assertThat(recurso.get("sucursal").asString()).isEqualTo(a);assertThat(recurso.get("capacidadHojas").asInt()).isEqualTo(Integer.MAX_VALUE);
         assertThat(recurso.get("admiteColor").asBoolean()).isTrue();assertThat(recurso.get("formatos").get(0).asString()).isEqualTo(f);
-        // La baja real de sucursal no impide conservar/quitar su configuración, pero sí habilitar nuevas capacidades.
+        // La ubicación es informativa: desactivar la sucursal no limita altas ni estados productivos.
         var suc=JSON.readValue(JSON.writeValueAsString(sucursalActual(a)),Map.class);suc.remove("codigoPublico");suc.put("estado","DESACTIVADA");status(put(admin,"/api/admin/sucursales/"+a,suc),200);
-        status(post(admin,ruta("impresoras"),alta(a,"Otra","DESHABILITADA")),409);
-        status(post(admin,ruta("impresoras/"+equipo+"/estado"),estadoComando("OPERATIVA")),409);
-        status(put(admin,ruta("recursos"),recursosComando(List.of(grupo(a,s,t),grupo(b,t)))),409);
+        aceptar(post(admin,ruta("impresoras"),alta(a,"Otra","DESHABILITADA")));
+        aceptar(post(admin,ruta("impresoras/"+equipo+"/estado"),estadoComando("OPERATIVA")));
+        aceptar(put(admin,ruta("recursos"),recursosComando(List.of(grupo(a,s,t),grupo(b,t)))));
         aceptar(put(admin,ruta("recursos"),recursosComando(List.of(grupo(a,s),grupo(b,t)))));
+        aceptar(post(admin,ruta("impresoras/"+equipo+"/estado"),estadoComando("DESHABILITADA")));
         aceptar(put(admin,ruta("impresoras/"+equipo),edicion("Equipo actualizado",350)));
         aceptar(post(admin,ruta("impresoras/"+equipo+"/retirar"),motivo()));var retirada=porCodigo(equipo);
         assertThat(retirada.get("estado").asString()).isEqualTo("RETIRADA");assertThat(retirada.get("retiradaEn").isNull()).isFalse();assertThat(retirada.get("motivoRetiro").asString()).isEqualTo("Motivo documentado");
-        assertThat(retirada.get("formatos").size()).isEqualTo(1);assertThat(contar("impresora")).isEqualTo(2);
+        assertThat(retirada.get("formatos").size()).isEqualTo(1);assertThat(contar("impresora")).isEqualTo(3);
         assertThat(jdbc.query("SELECT coalesce(estado_anterior,'ALTA')||'→'||estado_nuevo FROM lamontana.evento_configuracion WHERE codigo_recurso=? AND estado_nuevo IS NOT NULL ORDER BY id_evento_configuracion",(rs,n)->rs.getString(1),UUID.fromString(equipo)))
-                .containsExactly("ALTA→OPERATIVA","OPERATIVA→DESHABILITADA","DESHABILITADA→RETIRADA");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_configuracion e JOIN lamontana.usuario u ON e.id_actor=u.id_usuario WHERE e.codigo_recurso=? AND e.estado_anterior IS NOT NULL AND e.motivo='Motivo documentado' AND u.correo=?",Integer.class,UUID.fromString(equipo),EMAIL)).isEqualTo(2);
+                .containsExactly("ALTA→OPERATIVA","OPERATIVA→DESHABILITADA","DESHABILITADA→OPERATIVA","OPERATIVA→DESHABILITADA","DESHABILITADA→RETIRADA");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_configuracion e JOIN lamontana.usuario u ON e.id_actor=u.id_usuario WHERE e.codigo_recurso=? AND e.estado_anterior IS NOT NULL AND e.motivo='Motivo documentado' AND u.correo=?",Integer.class,UUID.fromString(equipo),EMAIL)).isEqualTo(4);
         status(put(admin,ruta("impresoras/"+equipo),edicion("No",50)),409);status(post(admin,ruta("impresoras/"+equipo+"/estado"),estadoComando("OPERATIVA")),409);
         var anterior=recursos();modelo("CONDICIONAL","SENA");assertThat(recursos()).isEqualTo(anterior);
-        aceptar(put(admin,ruta("recursos"),recursosComando(List.of())));assertThat(recursos().get("serviciosPorSucursal").size()).isZero();assertThat(recursos().get("impresoras").size()).isEqualTo(2);
+        aceptar(put(admin,ruta("recursos"),recursosComando(List.of())));assertThat(recursos().has("serviciosPorSucursal")).isFalse();assertThat(recursos().get("impresoras").size()).isEqualTo(3);
         assertThat(contar("catalogo_revision")).isZero();assertThat(borrador.get("estado").asString()).isEqualTo("EN_PREPARACION");
     }
 
