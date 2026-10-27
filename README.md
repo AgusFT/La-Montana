@@ -173,6 +173,8 @@ Las guías reutilizan `GuidedTour`: opcionales, independientes por etapa, spotli
 
 ### Seguimiento visual del cliente
 
+**Detalle compacto:** el paso 3 reúne número y estado en la cabecera, presenta trabajo, saldo real y destino en paneles, y permite desplegar el recorrido completo, el historial y las opciones. La lista de PDF queda acotada y las secciones conservan los formularios al alternar. Ver [alcance y verificación del detalle compacto](docs/cliente-detalle-compacto.md).
+
 El inicio y el detalle comparten un timeline del pedido. Se combinan el estado general y el estado logístico devueltos por el servidor, usando la modalidad y las condiciones guardadas del pedido. La revisión humana aparece cuando fue requerida o registrada; una aprobación directa no simula esa revisión. Una configuración nueva del motor no reconstruye el recorrido de pedidos anteriores.
 
 El retiro en casa matriz (y el retiro local legado) no incluye viaje. El retiro en otra sucursal sí agrega preparación de envío, viaje y llegada real al destino, usando la versión confirmada del pedido. Los envíos distinguen preparación, preparado para salir y en viaje; los puntos de entrega agregan disponible en el punto. Entregado y Cerrado son etapas distintas. Producción y calidad se muestran juntas porque el estado global actual no publica una etapa de calidad independiente. Una corrección vuelve a mostrar la intervención pendiente, sin conservar la aprobación como completada. Cancelado/Rechazado detienen el recorrido y conservan sólo los hitos registrados.
