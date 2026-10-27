@@ -159,6 +159,8 @@ La fase 4 conserva el parque global de impresoras y la ubicación interna opcion
 
 ### Cliente · tres etapas
 
+**Presentación compacta:** la preparación muestra archivos, opciones y adicionales en paneles, con un único editor para el PDF seleccionado. La confirmación reúne trabajo, entrega y pago, con total y acción final al costado en escritorio. El visor se abre en una ventana propia y conserva la aceptación obligatoria de todas las páginas. En móvil los módulos se reordenan. Ver [criterios y verificación de la mejora UX/UI](docs/cliente-paneles-compactos.md).
+
 1. **Prepará tu trabajo** (`/cliente/cotizaciones/nueva`): hasta 20 PDF privados de 10 MiB cada uno. El servidor inspecciona y cuenta las páginas antes de presupuestar. Cada PDF tiene servicio, tamaño, papel/gramaje, impresión, simple/doble faz y copias inicialmente en 1. Los servicios adicionales compatibles se presentan aparte. Se calcula el subtotal en backend, sin entrega ni pago.
 2. **Revisá y confirmá** (`/cliente/preparaciones/{id}`): una sola pantalla con trabajo, subtotal, destino, medio de pago, total actualizado, estimación y condiciones. El servidor recalcula al cambiar entrega/pago. Se revisan/aceptan todas las páginas y se acepta expresamente el resumen definitivo. Crear pedido acepta la oferta y confirma atómicamente con versión, huella y operación idempotente; no equivale a aprobar ni imprimir.
 3. **Seguí tu pedido** (`/cliente/pedidos/{id}`): número persistido, timeline, trabajo, archivos autorizados, importes acreditados/aplicados, saldo, destino y acciones permitidas. Los pagos se informan desde el pedido. Una transferencia informada no acredita dinero.

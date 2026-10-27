@@ -4,7 +4,8 @@ import {useRouter} from 'next/navigation';
 import {LegacyQuoteForm} from './legacy-quote-form';
 import {ClientJourney} from './client-journey';
 import {ClientContextTour} from './client-context-tour';
-import {PrivateFiles} from './private-files';
+import {PreparedFileReview} from './prepared-file-review';
+import '@/app/client-workspace.css';
 import {useNavigationGuard} from './navigation-boundary';
 import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {isOptions,quoteRead,type QuoteOptions,type WorkItem} from '@/lib/quote-types';
@@ -19,6 +20,7 @@ export function QuoteForm(props:{replaces?:string;inspectedFile?:string;correcti
 }
 function PrepareWork(){
  const router=useRouter(),[options,setOptions]=useState<QuoteOptions|null>(null),[prep,setPrep]=useState<Preparation|null>(null),[rows,setRows]=useState<Row[]>([]);
+ const [activeFile,setActiveFile]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
  const running=useRef(false),pending=useRef<null|(()=>Promise<void>)>(null),input=useRef<HTMLInputElement>(null);
  const locked=busy||uncertain||fileLocked;
@@ -46,7 +48,7 @@ function PrepareWork(){
    while(index<uploads.length){const u=uploads[index];
     if(!u.id){const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos`,JSON.stringify({operacion:u.operation,nombre:u.file.name}),'application/json');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el intento de carga.');u.id=a.codigoPublico;}
     const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${u.id}/contenido`,u.file,'application/pdf','PUT');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el análisis del PDF.');
-    setRows(old=>old.some(x=>x.archivo===u.id)?old:[...old,{archivo:u.id!,choice:'',copies:'1',double:false,ends:[]}]);index++;await load();
+    setRows(old=>old.some(x=>x.archivo===u.id)?old:[...old,{archivo:u.id!,choice:'',copies:'1',double:false,ends:[]}]);setActiveFile(u.id!);index++;await load();
    }
   });
  }
@@ -66,29 +68,55 @@ function PrepareWork(){
  async function submit(e:FormEvent){
   e.preventDefault();if(locked||!prep||!options?.configuracion||!options.revisionComercial)return;
   const items=[];for(const f of prep.archivos){const row=rows.find(x=>x.archivo===f.codigoPublico),o=choices.find(x=>key(x)===row?.choice),copies=Number(row?.copies);
-   if(f.estado!=='VALIDO'||!f.paginas||!row||!o||!Number.isInteger(copies)||copies<1||copies>10000){setError('Analizá los PDF y completá las opciones de cada archivo.');return;}
+   if(f.estado!=='VALIDO'||!f.paginas||!row||!o||!Number.isInteger(copies)||copies<1||copies>10000){setActiveFile(f.codigoPublico);setError(`Completá las opciones de ${f.nombre} y verificá su análisis.`);return;}
    const trabajo:WorkItem={servicio:o.servicio,formato:o.formato,papel:o.papel,color:o.color,paginas:f.paginas,copias:copies,dobleFaz:row.double,terminaciones:row.ends};items.push({archivo:f.codigoPublico,trabajo});
   }
   if(!items.length)return;
   const body=JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,configuracion:options.configuracion,revisionComercial:options.revisionComercial,items});
   await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');router.push(`/cliente/preparaciones/${p.codigoPublico}`);});
  }
- return <div className="client-experience"><ClientJourney part={1}/>
- <p className="client-note">Primero prepará tu trabajo. Después elegís entrega y pago en un único resumen.</p>
- <section id="client-upload" className="client-card client-upload-card"><h2>Subí tus archivos</h2><p>El servidor analiza cada PDF y cuenta sus páginas. No necesitás pagar para cargarlo.</p><div className="client-dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void files(e.dataTransfer.files);}}><span aria-hidden="true">⇧</span><strong>Arrastrá tus PDF o seleccioná tus archivos</strong><input ref={input} aria-label="Seleccionar PDF" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/><small>Hasta 20 PDF · 10 MiB por archivo · acceso privado</small></div></section>
- {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
- {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}
- <form onSubmit={submit}><fieldset disabled={locked||!options?.disponible} id="client-work-options">
- {prep?.archivos.length===0&&<p className="client-empty">Tu trabajo todavía no tiene archivos. Agregá un PDF para configurar su impresión.</p>}
- {prep?.archivos.map((f,index)=>{const row=rows.find(r=>r.archivo===f.codigoPublico)??{archivo:f.codigoPublico,choice:'',copies:'1',double:false,ends:[]},parts=row.choice.split(':'),selected=choices.find(x=>key(x)===row.choice);
+ const selectedFile=prep?.archivos.find(f=>f.codigoPublico===activeFile)??prep?.archivos[0];
+ const row=rows.find(r=>r.archivo===selectedFile?.codigoPublico)??{archivo:selectedFile?.codigoPublico??'',choice:'',copies:'1',double:false,ends:[]};
+ const parts=row.choice.split(':'),selected=choices.find(x=>key(x)===row.choice);
  const lists=[...Array(4)].map((_,n)=>Array.from(new Set(choices.filter(o=>{const p=key(o).split(':');return parts.every((v,j)=>j>=n||!v||v===p[j]);}).map(o=>key(o).split(':')[n]))));
- return <section className="client-card client-work-card" key={f.codigoPublico}><header className="client-item-title"><h2>PDF {index+1} · {f.nombre}</h2><button type="button" className="client-button secondary" disabled={f.estado==='VALIDANDO'} onClick={()=>void remove(f.codigoPublico)}>Quitar / reemplazar</button></header>
- <p className={f.estado==='VALIDO'?'client-success':'client-note'}>{f.estado==='VALIDO'?`✓ PDF analizado · ${f.paginas} páginas · ${((f.bytes??0)/1024).toLocaleString('es-AR',{maximumFractionDigits:1})} KiB`:f.estado==='VALIDANDO'?'Analizando seguridad y páginas…':f.mensaje??'Carga pendiente. Quitalo y volvé a seleccionarlo si no terminó.'}</p>
- <div className="client-work-columns"><section><h3>Detalles de impresión</h3><div className="client-grid">{['Servicio de impresión','Tamaño de hoja','Papel y gramaje','Impresión'].map((label,n)=><label key={label}>{label}<select aria-label={`${label} · PDF ${index+1}`} required disabled={f.estado!=='VALIDO'||n>0&&!parts[n-1]} value={parts[n]??''} onChange={e=>choose(row,n,e.target.value)}><option value="">Elegí una opción</option>{lists[n].map(v=><option key={v} value={v}>{n===3?(v==='COLOR'?'Color':'Blanco y negro'):names.get(v)??v}</option>)}</select></label>)}<label>Cantidad de copias<input aria-label={`Copias · PDF ${index+1}`} type="number" required min={1} max={10000} step={1} value={row.copies} onChange={e=>update(f.codigoPublico,{copies:e.target.value})}/></label><label>Caras<select aria-label={`Caras · PDF ${index+1}`} disabled={!selected} value={row.double?'doble':'simple'} onChange={e=>update(f.codigoPublico,{double:e.target.value==='doble'})}><option value="simple">Simple faz</option>{selected?.dobleFaz&&<option value="doble">Doble faz</option>}</select></label></div></section>
- <section className="client-extras"><h3>Servicios adicionales</h3>{!selected?<p>Completá la impresión para ver los adicionales compatibles.</p>:selected.terminaciones.length===0?<p>No hay adicionales compatibles habilitados para esta selección.</p>:selected.terminaciones.map(id=><label key={id} className="client-check"><input type="checkbox" checked={row.ends.includes(id)} onChange={e=>update(f.codigoPublico,{ends:e.target.checked?[...row.ends,id]:row.ends.filter(x=>x!==id)})}/>{names.get(id)??id}</label>)}<p className="client-muted">Los servicios pertenecen a toda la imprenta. El destino de retiro no limita tu trabajo.</p></section></div></section>;})}
- <div id="client-budget-action" className="client-actions center"><button className="client-button" disabled={!prep?.archivos.length||busy||uncertain}>Revisar presupuesto →</button></div>
- </fieldset></form>
- {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<details className="client-prepared-preview"><summary>Ver PDF y aceptar sus páginas (también podés hacerlo en el resumen)</summary><PrivateFiles prepared quote={prep.codigoPublico} version={prep.version} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></details>}
- {busy&&<p role="status">Guardando y verificando tu trabajo…</p>}{error&&<p className="client-warning" role="alert">{error}</p>}{uncertain?<button type="button" className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button className="client-button secondary" disabled={busy} onClick={()=>void load(true).catch(e=>setError(e.message))}>Actualizar datos</button>}
- {prep&&<ClientContextTour stage={1} ready={!!options?.disponible&&!busy}/>}</div>;
+ function configured(id:string){const r=rows.find(x=>x.archivo===id),f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
+ const configuredCount=prep?.archivos.filter(f=>configured(f.codigoPublico)).length??0;
+ return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>
+  <p className="client-compact-intro">Agregá tus PDF y configurá cada uno. En el siguiente paso elegís entrega y pago.</p>
+  {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
+  {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}
+  {busy&&<p role="status" className="client-note">Guardando y verificando tu trabajo…</p>}
+  {error&&<p className="client-warning" role="alert">{error}</p>}
+  {uncertain?<button type="button" className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button type="button" className="client-button secondary" disabled={locked} onClick={()=>void load(true).catch(e=>setError(e.message))}>Actualizar datos</button>}
+  <form onSubmit={submit} className="client-workspace">
+   <section id="client-upload" className="workspace-panel workspace-files" data-has-files={!!prep?.archivos.length}>
+    <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">1</span><h2>Tus archivos</h2><small>{prep?.archivos.length??0} / 20</small></header>
+    <div className="client-dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void files(e.dataTransfer.files);}}>
+     <span aria-hidden="true">⇧</span><strong>Arrastrá tus PDF acá</strong>
+     <button type="button" className="client-button secondary" disabled={locked||!prep||!options?.disponible} onClick={()=>input.current?.click()}>{prep?.archivos.length?'Agregar PDF':'Seleccionar PDF'}</button>
+     <input ref={input} className="workspace-file-input" tabIndex={-1} aria-label="Seleccionar PDF" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/>
+     <small>Hasta 10 MiB por archivo · acceso privado</small>
+    </div>
+    {!!prep?.archivos.length&&<ul className="workspace-file-list" aria-label="Archivos del trabajo">{prep.archivos.map((f,index)=><li key={f.codigoPublico}><button type="button" className="workspace-file-choice" aria-pressed={selectedFile?.codigoPublico===f.codigoPublico} aria-label={`Configurar PDF ${index+1}: ${f.nombre}`} disabled={locked} data-complete={configured(f.codigoPublico)} onClick={()=>setActiveFile(f.codigoPublico)}><span className="workspace-file-icon" aria-hidden="true">PDF</span><span><strong title={f.nombre}>{f.nombre}</strong><small>{f.estado==='VALIDO'?`${f.paginas} páginas · ${configured(f.codigoPublico)?'Configurado':'Falta configurar'}`:f.estado==='VALIDANDO'?'Analizando seguridad…':'Revisar archivo'}</small></span><span className="workspace-file-status" aria-hidden="true">{configured(f.codigoPublico)?'✓':index+1}</span></button></li>)}</ul>}
+    <p className="workspace-files-footer">{prep?.archivos.length?'Seleccioná un archivo para ajustar sus opciones. Podés agregar varios y cotizarlos juntos.':'El servidor analiza la seguridad y cuenta las páginas de cada PDF. No necesitás pagar para cargarlo.'}</p>
+   </section>
+   <fieldset disabled={locked||!options?.disponible} id="client-work-options" className="workspace-editor"><legend>Opciones del archivo seleccionado</legend>
+    {selectedFile?<><section className="workspace-panel">
+     <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">2</span><h2>Detalles de impresión</h2></header>
+     <div className="workspace-selected-file"><div><strong>{selectedFile.nombre}</strong><small>{selectedFile.estado==='VALIDO'?`✓ PDF analizado · ${selectedFile.paginas} páginas · ${((selectedFile.bytes??0)/1024).toLocaleString('es-AR',{maximumFractionDigits:1})} KiB`:selectedFile.estado==='VALIDANDO'?'Analizando seguridad y páginas…':selectedFile.mensaje??'Carga pendiente. Quitalo y volvé a seleccionarlo si no terminó.'}</small></div><button type="button" disabled={selectedFile.estado==='VALIDANDO'} onClick={()=>void remove(selectedFile.codigoPublico)}>Quitar</button></div>
+     <div className="workspace-print-fields">{['Servicio de impresión','Tamaño de hoja','Papel y gramaje','Impresión'].map((label,n)=><label key={label}>{label}<select aria-label={label} required disabled={selectedFile.estado!=='VALIDO'||n>0&&!parts[n-1]} value={parts[n]??''} onChange={e=>choose(row,n,e.target.value)}><option value="">Elegí una opción</option>{lists[n].map(v=><option key={v} value={v}>{n===3?(v==='COLOR'?'Color':'Blanco y negro'):names.get(v)??v}</option>)}</select></label>)}
+      <label>Cantidad de copias<input aria-label="Copias" type="number" required min={1} max={10000} step={1} value={row.copies} onChange={e=>update(selectedFile.codigoPublico,{copies:e.target.value})}/></label>
+      <label>Caras<select aria-label="Caras" disabled={!selected} value={row.double?'doble':'simple'} onChange={e=>update(selectedFile.codigoPublico,{double:e.target.value==='doble'})}><option value="simple">Simple faz</option>{selected?.dobleFaz&&<option value="doble">Doble faz</option>}</select></label>
+     </div>
+    </section><section className="workspace-panel workspace-additions">
+     <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">3</span><h2>Adicionales</h2></header>
+     {!selected?<p>Completá la impresión para ver los servicios compatibles.</p>:selected.terminaciones.length===0?<p>No hay adicionales compatibles para esta selección.</p>:<div className="workspace-additions-list">{selected.terminaciones.map(id=><label key={id} className="client-check"><input type="checkbox" checked={row.ends.includes(id)} onChange={e=>update(selectedFile.codigoPublico,{ends:e.target.checked?[...row.ends,id]:row.ends.filter(x=>x!==id)})}/>{names.get(id)??id}</label>)}</div>}
+     <p>Opcionales para este archivo. El destino de retiro no limita los servicios de la imprenta.</p>
+    </section></>:<section className="workspace-panel workspace-placeholder"><span aria-hidden="true">▤</span><h2>Tu trabajo empieza con un PDF</h2><p>Subí un archivo para elegir impresión, papel, copias y adicionales.</p></section>}
+   </fieldset>
+   <div id="client-budget-action" className="workspace-next"><div><strong>{prep?.archivos.length?`${configuredCount} de ${prep.archivos.length} archivos configurados`:'Agregá tu primer archivo'}</strong><small>Las opciones se guardan al revisar el presupuesto.</small></div><button className="client-button" disabled={!prep?.archivos.length||locked}>Revisar presupuesto →</button></div>
+  </form>
+  {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<section className="workspace-panel workspace-optional-preview"><PreparedFileReview optional quote={prep.codigoPublico} version={prep.version} total={prep.archivos.length} accepted={prep.archivos.filter(f=>!!f.aceptadaEn).length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>}
+  {prep&&<ClientContextTour stage={1} ready={!!options?.disponible&&!busy}/>}
+ </div>;
 }
