@@ -142,6 +142,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/cliente/pedidos/*/correcciones/respuesta", "/api/cliente/pedidos/*/correcciones/*/cotizaciones").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/pedidos/*/correcciones").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/correcciones").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/pedidos").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/estado").hasRole("CLIENTE")
                         .anyRequest().denyAll())
                 .addFilterBefore(new SesionVigenteFilter(jdbc), UsernamePasswordAuthenticationFilter.class)

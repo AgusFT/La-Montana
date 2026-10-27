@@ -36,7 +36,7 @@ const allowed: Record<string, readonly string[]> = {
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/pagina-web": ["GET"], "admin/pagina-web/borrador": ["PUT"], "admin/pagina-web/revision": ["GET"], "admin/pagina-web/publicar": ["POST"], "publico/pagina-web": ["GET"],
-  "admin/preparacion": ["GET"], "sistema/estado": ["GET"],
+  "admin/pedidos": ["GET"], "admin/preparacion": ["GET"], "sistema/estado": ["GET"],
   "admin/sucursales/ubicaciones": ["GET"], "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/papeles-predefinidos": ["POST"], "admin/catalogo/papeles-predefinidos/habilitar-todos": ["POST"], "admin/catalogo/papeles-personalizados": ["POST"], "admin/catalogo/papeles-habilitados": ["PUT"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
   "admin/puntos-entrega/disponibilidad": ["GET"],
@@ -142,7 +142,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     }else body=["POST", "PUT"].includes(request.method)?await request.text():undefined;
     const maxBytes = route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
     if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
-    const query = websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
+    const query = route==="admin/pedidos" || websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {
       method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(binaryUpload?90000:binaryDownload||websiteMethods?30000:8000),
     });

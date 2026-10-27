@@ -1119,6 +1119,32 @@ class ActivacionConfiguracionIntegrationTest {
         assertThat(pedidoActual(order).get("estado").asString()).isEqualTo("CANCELADO");assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("archivo_almacenado")).isEqualTo(1);assertThat(Files.exists(archivos.resolve("pdf").resolve(file).resolve("original.pdf"))).isFalse();assertThat(binario(c,"/api/cliente/cotizaciones/"+q+"/archivos/"+file+"/original").statusCode()).isEqualTo(410);
         assertThat(pedidoActual(order).get("oferta")).isEqualTo(order.get("oferta"));assertThat(pedidoActual(order).get("historial").size()).isGreaterThan(1);
     }
+
+    private JsonNode pedidoEnSucursal(HttpClient c,String origen)throws Exception{
+        byte[] bytes=pdf(5,false,false,1);var input=ofertaPdf(bytes,5);input.put("sucursal",origen);input.put("origenGlobal",false);var q=ofertaAceptada(c,input);pdfAceptado(c,q,bytes);
+        var r=post(c,confirmacionPedido(q.get("codigoPublico").asString()),confirmarPedido(revisarPedido(c,q)));status(r,200);return JSON.readTree(r.body());
+    }
+    @Test void adminGlobalReuneOrigenesYDestinosSinAlterarPermisosNiHistoria()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("admin-global");var other=particularCotizacion("admin-global-otro");
+        var prep=prepararCliente(c,true);var view=cotizarCliente(c,prep,"RETIRO_SUCURSAL",b);var created=post(c,preparaciones(prep)+"/confirmar",confirmarCliente(view));status(created,200);var traslado=JSON.readTree(created.body());var local=pedidoEnSucursal(c,a);var heredado=pedidoEnSucursal(other,b);
+        var all=get(admin,"/api/admin/pedidos");status(all,200);var lista=JSON.readTree(all.body());assertThat(lista.get("total").asInt()).isEqualTo(3);assertThat(lista.get("elementos").size()).isEqualTo(3);
+        var porId=new HashMap<String,JsonNode>();for(var row:lista.get("elementos"))porId.put(row.get("codigoPublico").asString(),row);
+        var fila=porId.get(traslado.get("codigoPublico").asString());assertThat(fila.get("destino").asString()).isEqualTo(traslado.get("reserva").get("nombre").asString());assertThat(fila.get("retiroConTraslado").asBoolean()).isTrue();
+        assertThat(porId.containsKey(heredado.get("codigoPublico").asString())).isTrue();
+        var empleado=empleadoArchivos("admin-global-empleado-b",b);var scoped=get(empleado,"/api/operacion/sucursales/"+b+"/pedidos");status(scoped,200);assertThat(JSON.readTree(scoped.body()).get("total").asInt()).isEqualTo(1);status(get(empleado,"/api/operacion/pedidos/"+traslado.get("codigoPublico").asString()),403);
+        assertThat(JSON.readTree(get(c,"/api/cliente/pedidos").body()).get("total").asInt()).isEqualTo(2);assertThat(JSON.readTree(get(other,"/api/cliente/pedidos").body()).get("total").asInt()).isEqualTo(1);
+        status(post(c,cancelarPedido(local),cancelacionPedido(local)),200);
+        var pendientes=get(admin,"/api/admin/pedidos?estado=PENDIENTE_REVISION");status(pendientes,200);assertThat(JSON.readTree(pendientes.body()).get("total").asInt()).isEqualTo(2);
+        var historicos=get(admin,"/api/admin/pedidos?estado=CANCELADO");status(historicos,200);assertThat(JSON.readTree(historicos.body()).get("total").asInt()).isEqualTo(1);
+        assertThat(JSON.readTree(get(admin,"/api/admin/pedidos").body()).get("total").asInt()).isEqualTo(3);assertThat(pedidoActual(traslado).get("oferta")).isEqualTo(traslado.get("oferta"));
+    }
+    @Test void adminGlobalExigeRolValidaFiltrosYPaginaVaciaNoInventaContadores()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("admin-scope");var e=empleadoArchivos("admin-no-global",a);
+        status(get(c,"/api/admin/pedidos"),403);status(get(e,"/api/admin/pedidos"),403);status(get(cliente(),"/api/admin/pedidos"),401);
+        status(get(admin,"/api/admin/pedidos?estado=INVENTADO"),400);status(get(admin,"/api/admin/pedidos?pagina=-1"),400);status(post(admin,"/api/admin/pedidos",Map.of()),403);
+        var vacio=get(admin,"/api/admin/pedidos?estado=EN_PRODUCCION&pagina=1");status(vacio,200);assertThat(JSON.readTree(vacio.body()).get("total").asInt()).isZero();assertThat(JSON.readTree(vacio.body()).get("elementos").size()).isZero();
+        assertThatThrownBy(()->app.getBean(ar.com.lamontana.pedidos.PedidoService.class).listarGlobal(0,null,"admin-no-global@example.test")).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    }
     private JsonNode revision()throws Exception{var r=get(admin,base()+"/revision");status(r,200);return JSON.readTree(r.body());}
     private Set<String> codigos(JsonNode r){var c=new HashSet<String>();for(var h:r.get("hallazgos"))c.add(h.get("codigo").asString());return c;}
     private void preparar()throws Exception{

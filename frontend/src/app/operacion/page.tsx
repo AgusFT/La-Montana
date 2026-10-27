@@ -40,8 +40,9 @@ export default async function OperationPage() {
   if (session.state !== "authenticated") return null;
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol === "CLIENTE") redirect("/cliente");
+  if (session.profile.rol === "ADMIN_ADMIN") redirect("/administracion/pedidos");
   const context = await getOperationContext();
-  return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={session.profile.rol === "ADMIN_ADMIN"} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={`Hola, ${session.profile.nombre}`} description="Consultá los pedidos, archivos y pagos de tus sucursales habilitadas.">
+  return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={false} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={`Hola, ${session.profile.nombre}`} description="Consultá los pedidos, archivos y pagos de tus sucursales habilitadas.">
     <div className="owner-profile"><h2>{session.profile.nombre} {session.profile.apellido}</h2><p>{session.profile.correo}</p><span className="environment">{session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"}</span></div>
     {context === null ? <p className="form-message error-message" role="alert">No pudimos consultar tu acceso operativo. <a href="/operacion">Volver a intentar</a></p> : <>
       <section className="branch-list" aria-labelledby="operation-branches"><h2 id="operation-branches">Tus sucursales activas</h2>
@@ -50,6 +51,6 @@ export default async function OperationPage() {
       <h2>Permisos asignados</h2>{context.permisos.length ? <ul className="permission-list">{context.permisos.map(permission => <li key={permission}>{permissionLabels[permission]}</li>)}</ul> : <p className="empty-note">Sin permisos operativos adicionales.</p>}
       <p className="empty-note">Revisión, correcciones, producción manual y calidad están disponibles desde los pedidos de cada sucursal. También están disponibles la logística, entrega física, reprogramación y cierre, según tus permisos.</p>
     </>}
-    <div className="page-actions">{session.profile.rol === "ADMIN_ADMIN" && <a className="secondary-link" href="/administracion">Volver a administración</a>}<a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a></div>
+    <div className="page-actions"><a className="secondary-link" href="/cuenta/seguridad">Seguridad de la cuenta</a></div>
   </AdminShell>;
 }

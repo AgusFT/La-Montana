@@ -102,7 +102,7 @@ public class PedidoService {
  public record Revision(UUID pedido,long version,UUID configuracion,long numeroConfiguracion,String huella,boolean habilitada,List<String> bloqueos,Condiciones condiciones,Franja franja,List<Pdf> archivos){}
  public record Evento(String estado,String motivo,Instant fecha,String accion){}
  public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro){}
- public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico){}
+ public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado){}
  public record Pagina(List<Resumen> elementos,long total,int pagina){}
  private record Actor(long id,String rol){}
 
@@ -190,12 +190,21 @@ public class PedidoService {
   },codigo,interno,a.id());if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pedido no está disponible en tu cuenta.");return rows.get(0);
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String correo){
-  var a=actor(correo,branch!=null);if(branch!=null&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,branch);if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
+  var a=actor(correo,branch!=null);if(branch!=null&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,branch);
+  return pagina(branch==null?"p.id_usuario_creador=?":"s.codigo_publico=?",List.of(branch==null?a.id():branch),pagina,estado);
+ }
+ /** Bandeja única del propietario. El destino del cliente no determina su visibilidad. */
+ @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listarGlobal(int pagina,String estado,String correo){
+  var a=actor(correo,true);if(!a.rol().equals("ADMIN_ADMIN"))throw error(HttpStatus.FORBIDDEN,"Sólo el administrador puede consultar todos los pedidos de la imprenta.");
+  return pagina("TRUE",List.of(),pagina,estado);
+ }
+ private Pagina pagina(String alcance,List<Object> parametros,int pagina,String estado){
+  if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
   if(estado!=null&&!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","RECHAZADO","CANCELADO").contains(estado))throw error(HttpStatus.BAD_REQUEST,"Estado de pedido inválido.");
-  String from=" FROM lamontana.pedido_actual p JOIN lamontana.sucursal s USING(id_sucursal) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE "+(branch==null?"p.id_usuario_creador=?":"s.codigo_publico=?");Object filtro=branch==null?a.id():branch;
-  from+=" AND (?::text IS NULL OR p.estado=?)";
-  long count=jdbc.queryForObject("SELECT count(*)"+from,Long.class,filtro,estado,estado);
-  var ids=jdbc.query("SELECT p.codigo_publico,p.id_pedido,p.estado,p.confirmada_en,s.nombre,p.total,c.oferta->>'modalidad' AS modalidad,lamontana.estado_logistico(p.id_pedido)"+from+" ORDER BY p.id_pedido DESC LIMIT 25 OFFSET ?",(r,n)->new Resumen(r.getObject(1,UUID.class),r.getLong(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5),r.getBigDecimal(6).toPlainString(),Modalidad.valueOf(r.getString(7)),r.getString(8)),filtro,estado,estado,(long)pagina*25);
+  String from=" FROM lamontana.pedido_actual p JOIN lamontana.sucursal s USING(id_sucursal) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE "+alcance+" AND (?::text IS NULL OR p.estado=?)";
+  var args=new ArrayList<Object>(parametros);args.add(estado);args.add(estado);
+  long count=jdbc.queryForObject("SELECT count(*)"+from,Long.class,args.toArray());args.add((long)pagina*25);
+  var ids=jdbc.query("SELECT p.codigo_publico,p.id_pedido,p.estado,p.confirmada_en,s.nombre,p.total,c.oferta->>'modalidad' AS modalidad,lamontana.estado_logistico(p.id_pedido),(SELECT r.nombre_destino FROM lamontana.reserva_entrega r WHERE r.id_pedido=p.id_pedido ORDER BY r.id_reserva_entrega DESC LIMIT 1),lamontana.retiro_con_traslado(p.id_pedido)"+from+" ORDER BY p.id_pedido DESC LIMIT 25 OFFSET ?",(r,n)->new Resumen(r.getObject(1,UUID.class),r.getLong(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5),r.getBigDecimal(6).toPlainString(),Modalidad.valueOf(r.getString(7)),r.getString(8),r.getString(9),r.getBoolean(10)),args.toArray());
   return new Pagina(ids,count,pagina);
  }
  private boolean esCorreccion(UUID quote){return jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE c.codigo_publico=?)",Boolean.class,quote);}

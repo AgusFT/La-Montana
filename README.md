@@ -189,6 +189,10 @@ Si el cliente abandona o existe excedente, el personal con permiso registra una 
 
 Los comprobantes son PDF privados de hasta 10 MiB, con inspección, versiones, vista previa y descarga. Pueden acompañar transferencias informadas antes de acreditar; un interno autorizado puede adjuntar recibos de efectivo. No sustituyen el PDF de trabajo, no acreditan por sí solos y no son obligatorios para registrar dinero realmente verificado. No se admiten fotos en este piloto.
 
+## Dashboard administrativo global
+
+El propietario consulta todos los pedidos de la imprenta, sin selector de sucursal. Las bandejas y los enlaces «Ver todos» usan la consulta global y muestran el destino real de entrega, no una sucursal productiva elegida por el cliente. Operación y cobros abre `/administracion/pedidos`; el detalle vuelve a esa bandeja. Los permisos de empleados no se amplían y no se reescriben pedidos históricos. Ver [contrato y pruebas del dashboard global](docs/dashboard-administrativo-global.md).
+
 ## Operación, correcciones y producción
 
 Abrir **Operación → sucursal → pedido**. El detalle se organiza en secciones: resumen/historia, revisión, correcciones, producción/calidad, entrega/cierre, reprogramación, PDF y pagos según rol/permisos. Al entrar se muestra la etapa del pedido; los enlaces con fragmento conservan la sección tras recargar. Cambiar de sección conserva borradores en memoria. Recargar vuelve al estado persistido y no conserva cambios sin guardar. Desde calidad el PDF abre en otra pestaña para no perder el formulario.
