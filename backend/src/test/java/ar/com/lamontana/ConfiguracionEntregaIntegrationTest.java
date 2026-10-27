@@ -115,14 +115,14 @@ class ConfiguracionEntregaIntegrationTest {
 
     @Test void vacioParcialValidacionMultisucursalModalidadesYErroresSinDatosPrecargados()throws Exception {
         var inicial=borrador.get("entrega");assertThat(inicial.get("preparacionHoras").isNull()).isTrue();assertThat(inicial.get("trasladoHoras").isNull()).isTrue();assertThat(inicial.get("modalidades").size()).isZero();assertThat(inicial.get("horariosPorSucursal").size()).isZero();assertThat(contar("horario_sucursal")).isZero();
-        assertProblemas("PREPARACION_PENDIENTE","SIN_MODALIDAD","HORARIO_PENDIENTE");
+        assertProblemas("PREPARACION_PENDIENTE","SIN_MODALIDAD","MATRIZ_PENDIENTE","MATRIZ_SIN_CONFIRMAR");
         var vacios=new ArrayList<Map<String,Object>>();for(int dia=1;dia<=7;dia++)vacios.add(dia(dia,null,null,null));
         aceptar(put(admin,ruta(),entrega(null,null,List.of(),List.of(horario(a,vacios)))));assertProblemas("HORARIO_INCOMPLETO","SIN_DIA_OPERATIVO");
         assertThat(borrador.get("entrega").get("horariosPorSucursal").get(0).get("dias").get(0).get("habilitado").isNull()).isTrue();
         var parcial=semana("09:00","18:00");parcial.set(0,dia(1,true,"09:00",null));guardar("4",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,parcial)));assertProblemas("HORARIO_INCOMPLETO");
         status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_SUCURSAL","2026-09-21T05:00:00Z")),409);
         guardar("4",null,List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
-        servicios(List.of(a,b));assertProblemas("HORARIO_PENDIENTE");
+        servicios(List.of(a,b));assertThat(validacion().get("valida").asBoolean()).isTrue(); // Una secundaria no necesita calendario productivo.
         guardar("4","0",List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
         guardar("4","2",List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("10:00","17:00"))));assertThat(validacion().get("valida").asBoolean()).isTrue();
         assertThat(validacion().get("avisos").toString()).contains("No se ofrecerán puntos de entrega");
@@ -138,7 +138,7 @@ class ConfiguracionEntregaIntegrationTest {
         assertThat(estado().get("borrador").toString()).isEqualTo(antes);
         jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',fecha_desactivacion=clock_timestamp() WHERE codigo_publico=?",UUID.fromString(a));
         status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_SUCURSAL","2026-09-21T05:00:00Z")),409);
-        servicios(List.of());assertProblemas("SIN_SUCURSAL_OPERATIVA");assertThat(borrador.get("entrega").get("horariosPorSucursal").size()).isEqualTo(2);
+        servicios(List.of());assertProblemas("MATRIZ_INACTIVA");assertThat(borrador.get("entrega").get("horariosPorSucursal").size()).isEqualTo(2);
     }
 
     @Test void simulacionCruzaCierresFinDeSemanaRespetaSegundosExactosYSnapshotDeZona()throws Exception {
@@ -229,7 +229,7 @@ class ConfiguracionEntregaIntegrationTest {
     private List<Map<String,Object>> soloDomingo(String apertura,String cierre){var dias=new ArrayList<Map<String,Object>>();for(int d=1;d<=7;d++)dias.add(dia(d,d==7,d==7?apertura:null,d==7?cierre:null));return dias;}
     // Capacidad explícita del fixture; la instalación no recibe estas franjas.
     private Map<String,Object> horario(String sucursal,List<? extends Map<String,Object>> dias){var franjas=dias.stream().filter(d->Boolean.TRUE.equals(d.get("habilitado"))&&d.get("apertura")!=null&&d.get("cierre")!=null).map(d->Map.of("dia",d.get("dia"),"apertura",d.get("apertura"),"cierre",d.get("cierre"),"capacidadPedidos",20,"habilitada",true)).toList();return Map.of("sucursal",sucursal,"dias",dias,"franjasRetiro",franjas);}
-    private Map<String,Object> entrega(String preparacion,String traslado,List<String> modalidades,List<? extends Map<String,Object>> horarios){var c=comando();c.put("preparacionHoras",preparacion);c.put("trasladoHoras",traslado);c.put("modalidades",modalidades);c.put("horariosPorSucursal",horarios);return c;}
+    private Map<String,Object> entrega(String preparacion,String traslado,List<String> modalidades,List<? extends Map<String,Object>> horarios){var c=comando();c.put("preparacionHoras",preparacion);c.put("trasladoHoras",traslado);c.put("modalidades",modalidades);c.put("horariosPorSucursal",horarios);c.put("casaMatriz",a);c.put("matrizConfirmada",true);return c;}
     private void guardar(String preparacion,String traslado,List<String> modalidades,List<? extends Map<String,Object>> horarios)throws Exception{aceptar(put(admin,ruta(),entrega(preparacion,traslado,modalidades,horarios)));}
     private Map<String,Object> simulacion(String sucursal,String modalidad,String recibido){return new HashMap<>(Map.of("version",borrador.get("version").asLong(),"sucursal",sucursal,"modalidad",modalidad,"recibidoEn",recibido));}
     private JsonNode simular(String sucursal,String modalidad,String recibido)throws Exception{var r=post(admin,ruta()+"/simular",simulacion(sucursal,modalidad,recibido));status(r,200);return JSON.readTree(r.body());}

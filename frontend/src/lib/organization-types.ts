@@ -56,6 +56,7 @@ export type Branch = {
   codigoPublico: string; codigo: string; nombre: string; calle: string; numero: string;
   localidad: string; provincia: string; codigoPostal: string; zonaHoraria: string;
   horarioAtencion: BranchDay[];
+  propuestaMatriz?: boolean; casaMatrizVigente?: boolean;
   correo: string | null; telefono: string | null; estado: "ACTIVA" | "DESACTIVADA"; version: number;
 };
 export const permissionLabels = {
@@ -76,7 +77,7 @@ export function isBranch(value: unknown): value is Branch {
   return ["codigoPublico", "codigo", "nombre", "calle", "numero", "localidad", "provincia", "codigoPostal", "zonaHoraria"].every(k => typeof b[k] === "string") &&
     Array.isArray(b.horarioAtencion) && b.horarioAtencion.every(d => !!d && typeof d === "object" && Number.isInteger(d.dia) && d.dia >= 1 && d.dia <= 7 && typeof d.habilitado === "boolean" && ["apertura", "cierre"].every(k => d[k] === null || typeof d[k] === "string")) &&
     ["correo", "telefono"].every(k => b[k] === null || typeof b[k] === "string") &&
-    (b.estado === "ACTIVA" || b.estado === "DESACTIVADA") && Number.isInteger(b.version) && Number(b.version) >= 0;
+    ["propuestaMatriz","casaMatrizVigente"].every(k=>b[k]===undefined||typeof b[k]==="boolean") && (b.estado === "ACTIVA" || b.estado === "DESACTIVADA") && Number.isInteger(b.version) && Number(b.version) >= 0;
 }
 export function isPermissions(value: unknown): value is Permission[] {
   return Array.isArray(value) && value.every(p => typeof p === "string" && Object.hasOwn(permissionLabels, p));

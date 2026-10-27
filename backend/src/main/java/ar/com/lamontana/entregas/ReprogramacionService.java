@@ -118,11 +118,11 @@ public class ReprogramacionService {
   if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL){
    var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(branch)).findFirst().orElseThrow(()->conflicto("La sucursal no tiene horarios configurados."));zona=h.zonaHoraria();
    nombre=jdbc.queryForObject("SELECT nombre||' · '||calle||' '||numero||', '||localidad||', '||provincia FROM lamontana.sucursal WHERE codigo_publico=?",String.class,branch);
-   templates=h.franjasRetiro().stream().filter(f->h.dias().stream().anyMatch(d->d.dia().equals(f.dia())&&Boolean.TRUE.equals(d.habilitado())&&d.apertura()!=null&&d.cierre()!=null&&d.apertura().compareTo(f.apertura())<=0&&d.cierre().compareTo(f.cierre())>=0)).toList();
+   templates=h.franjasRetiro(); // Retiros independientes del horario de producción.
   }else if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_PUNTO_ENTREGA){
    var pt=e.puntos().stream().filter(x->x.codigoPublico().equals(old.destino())).findFirst().orElseThrow(()->conflicto("El punto ya no está configurado."));
    if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.disponibilidad_punto_entrega d JOIN lamontana.punto_entrega p USING(id_punto_entrega) WHERE p.codigo_publico=? AND d.estado='HABILITADO')",Boolean.class,old.destino()))throw conflicto("El punto no está disponible para reprogramar.");
-   var link=pt.sucursales().stream().filter(x->x.sucursal().equals(branch)&&x.habilitado()).findFirst().orElseThrow(()->conflicto("El punto ya no sirve a esta sucursal."));zona=pt.zonaHoraria();nombre=pt.nombre()+" · "+pt.calle()+" "+pt.numero()+", "+pt.localidad()+", "+pt.provincia();templates=link.franjas();
+   var link=pt.sucursales().stream().filter(x->x.sucursal().equals(e.casaMatriz()==null?branch:e.casaMatriz())&&x.habilitado()).findFirst().orElseThrow(()->conflicto("El punto ya no sirve a esta sucursal."));zona=pt.zonaHoraria();nombre=pt.nombre()+" · "+pt.calle()+" "+pt.numero()+", "+pt.localidad()+", "+pt.provincia();templates=link.franjas();
   }else{
    var z=e.zonas().stream().filter(x->x.codigoPublico().equals(old.destino())&&x.habilitada()).findFirst().orElseThrow(()->conflicto("La zona ya no está habilitada."));
    if(p.oferta().direccion()==null||z.territorios().stream().noneMatch(t->t.normalizado().equals(p.oferta().direccion().territorio().normalizado())))throw conflicto("El domicilio ya no pertenece a la cobertura configurada.");zona=z.zonaHoraria();nombre=old.nombre();templates=z.franjas();

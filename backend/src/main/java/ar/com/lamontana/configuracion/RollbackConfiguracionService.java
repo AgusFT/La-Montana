@@ -80,6 +80,7 @@ public class RollbackConfiguracionService {
         if(objetivo==null)impedimentos.add("No hay una predecesora efectiva que recuperar. Se necesitan al menos dos activaciones exitosas.");
         if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado='EN_PREPARACION')",Boolean.class)))impedimentos.add("Cancelá el borrador abierto antes de iniciar la reversión.");
         if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.intento_activacion_configuracion WHERE estado='INICIADO' AND (?::uuid IS NULL OR id_intento<>?))",Boolean.class,propio,propio)))impedimentos.add("Hay una publicación en curso. Consultá su resultado antes de continuar.");
+        if(objetivo!=null&&objetivo.configuracion().entrega().casaMatriz()==null)impedimentos.add("La predecesora no tiene casa matriz explícita. Usala como base, confirmá la matriz en Fase 5 y activá el nuevo borrador.");
         var condiciones=objetivo==null?null:revision.evaluarHistorica(objetivo.configuracion().codigoPublico(),correo);
         var cerradas=List.copyOf(impedimentos);String huella=configuracion.huella(new Referencia(activa,objetivo,programada,condiciones==null?null:condiciones.huella(),cerradas));
         return new Revision(activa,objetivo,programada,condiciones,cerradas,cerradas.isEmpty()&&condiciones!=null&&condiciones.bloqueos()==0,huella);

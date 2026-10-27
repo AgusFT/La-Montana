@@ -84,7 +84,11 @@ public class OrganizacionService {
     public OrganizacionService(JdbcTemplate jdbc, PasswordEncoder encoder, ar.com.lamontana.identidad.CredencialService credenciales) { this.jdbc = jdbc; this.encoder = encoder; this.credenciales=credenciales; }
 
     // Ordena cambios de asignaciones y bajas para conservar al menos una sucursal activa por empleado.
-    private void bloquearOrganizacion() { jdbc.execute("SELECT pg_advisory_xact_lock(764001)"); }
+    private void bloquearOrganizacion() {
+        // Mismo orden para cambios de organización, guardado y activación del motor.
+        jdbc.execute("SELECT pg_advisory_xact_lock(764003)");
+        jdbc.execute("SELECT pg_advisory_xact_lock(764001)");
+    }
 
     public List<Sucursal> sucursales() {
         return jdbc.query("SELECT * FROM lamontana.sucursal ORDER BY nombre,codigo", this::sucursal);
@@ -103,6 +107,7 @@ public class OrganizacionService {
                 in.localidad().strip(), in.provincia().strip(), in.codigoPostal().strip(), opcional(in.correo()), opcional(in.telefono()), zona, idUsuario(actor));
         if (creadas == 0) throw error(HttpStatus.CONFLICT, "Ya existe una sucursal con ese código.");
         guardarHorario(codigo, in.horarioAtencion());
+        if(Boolean.TRUE.equals(in.propuestaMatriz()))proponerMatriz(codigo,actor);
         auditar(actor, "ALTA_SUCURSAL", codigo, 0);
         return codigo;
     }
@@ -119,12 +124,15 @@ public class OrganizacionService {
         if (actual.version() != in.version()) throw desactualizado();
         if (!actual.codigo().equals(in.codigo().toUpperCase(Locale.ROOT))) throw error(HttpStatus.BAD_REQUEST, "El código de la sucursal no se modifica.");
         if ("DESACTIVADA".equals(in.estado())) validarDesactivacion(codigo);
+        if(Boolean.TRUE.equals(in.propuestaMatriz())&&!"ACTIVA".equals(in.estado()))throw error(HttpStatus.CONFLICT,"La propuesta de casa matriz debe ser una sucursal activa.");
+        if(Boolean.TRUE.equals(in.propuestaMatriz()))proponerMatriz(codigo,actor);
         jdbc.update("""
                 UPDATE lamontana.sucursal SET nombre=?,calle=?,numero=?,localidad=?,provincia=?,codigo_postal=?,correo=?,telefono=?,zona_horaria=?,
-                fecha_desactivacion=CASE WHEN ?='DESACTIVADA' THEN COALESCE(fecha_desactivacion,now()) ELSE NULL END,estado=?,version=version+1
+                fecha_desactivacion=CASE WHEN ?='DESACTIVADA' THEN COALESCE(fecha_desactivacion,now()) ELSE NULL END,estado=?,version=version+1,
+                propuesta_matriz=CASE WHEN ?='DESACTIVADA' THEN false ELSE COALESCE(?,propuesta_matriz) END
                 WHERE codigo_publico=?
                 """, in.nombre().strip(), in.calle().strip(), in.numero().strip(), in.localidad().strip(), in.provincia().strip(),
-                in.codigoPostal().strip(), opcional(in.correo()), opcional(in.telefono()), zona, in.estado(), in.estado(), codigo);
+                in.codigoPostal().strip(), opcional(in.correo()), opcional(in.telefono()), zona, in.estado(), in.estado(),in.estado(),in.propuestaMatriz(), codigo);
         guardarHorario(codigo, dias);
         auditar(actor, "EDICION_SUCURSAL", codigo, actual.version()+1);
         return buscarSucursal(codigo);
@@ -137,11 +145,18 @@ public class OrganizacionService {
         if (actual.version() != version) throw desactualizado();
         if ("DESACTIVADA".equals(actual.estado())) throw error(HttpStatus.CONFLICT, "La sucursal ya está desactivada.");
         validarDesactivacion(codigo);
-        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',fecha_desactivacion=now(),version=version+1 WHERE codigo_publico=?", codigo);
+        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',propuesta_matriz=false,fecha_desactivacion=now(),version=version+1 WHERE codigo_publico=?", codigo);
         auditar(actor, "BAJA_SUCURSAL", codigo, actual.version()+1);
     }
 
     private void validarDesactivacion(UUID codigo) {
+        boolean matriz=Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e
+            JOIN lamontana.configuracion_version c USING(id_configuracion_version)
+            JOIN lamontana.sucursal s ON s.id_sucursal=e.id_sucursal_matriz
+            WHERE s.codigo_publico=? AND c.estado IN ('ACTIVA','PROGRAMADA'))
+            """,Boolean.class,codigo));
+        if(matriz)throw error(HttpStatus.CONFLICT,"Esta sucursal es la casa matriz vigente o programada. Activá una configuración con otra matriz, o cancelá la programada, antes de desactivarla.");
         Integer sinAlternativa = jdbc.queryForObject("""
                 SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
                 WHERE u.estado='ACTIVO' AND r.codigo='EMPLEADO'
@@ -151,6 +166,14 @@ public class OrganizacionService {
                                 WHERE us.id_usuario=u.id_usuario AND us.activa AND s.estado='ACTIVA' AND s.codigo_publico<>?)
                 """, Integer.class, codigo, codigo);
         if (sinAlternativa != null && sinAlternativa > 0) throw error(HttpStatus.CONFLICT, "Reasigná o desactivá los empleados que quedarían sin una sucursal activa.");
+    }
+
+    private void proponerMatriz(UUID codigo,String actor){
+        var anteriores=jdbc.query("UPDATE lamontana.sucursal SET propuesta_matriz=false,version=version+1 WHERE propuesta_matriz AND codigo_publico<>? RETURNING codigo_publico,version",
+            (rs,row)->new Object[]{rs.getObject(1,UUID.class),rs.getLong(2)},codigo);
+        for(var anterior:anteriores)auditar(actor,"EDICION_SUCURSAL",(UUID)anterior[0],(Long)anterior[1]);
+        // Solo una propuesta: la matriz efectiva pertenece a cada versión del motor.
+        jdbc.update("UPDATE lamontana.sucursal SET propuesta_matriz=true WHERE codigo_publico=?",codigo);
     }
 
     public List<Empleado> empleados() {
@@ -274,7 +297,7 @@ public class OrganizacionService {
         return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id));
     }
     private Sucursal sucursal(ResultSet rs, int row) throws SQLException {
-        return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")));
+        return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))));
     }
     private void auditar(String actor, String tipo, UUID codigo, long version) {
         jdbc.update("INSERT INTO lamontana.evento_organizacion(id_usuario_actor,tipo,codigo_publico_objeto,version) VALUES (?,?,?,?)", idUsuario(actor), tipo, codigo, version);

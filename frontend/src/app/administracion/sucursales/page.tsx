@@ -50,7 +50,7 @@ export default async function BranchesPage() {
     <a className="secondary-link" href="/administracion">Volver a administración</a>
     <section className="branch-list" aria-labelledby="branches-heading"><h2 id="branches-heading">Sucursales registradas</h2>
       {branches === null ? <p className="form-message error-message" role="alert">No pudimos consultar las sucursales. <a href="/administracion/sucursales">Volver a intentar</a></p> : branches.length === 0 ? <p className="empty-note">Todavía no hay sucursales registradas.</p> : branches.map(branch => <article className="branch-card" key={branch.codigoPublico}>
-        <h3>{branch.nombre}</h3><p>Código: {branch.codigo} · Estado: {branch.estado}</p>
+        <h3>{branch.nombre}</h3>{branch.casaMatrizVigente&&<p className="admin-success">Casa matriz vigente</p>}{branch.propuestaMatriz&&<p className="admin-info">Propuesta de casa matriz · confirmar en Fase 5</p>}<p>Código: {branch.codigo} · Estado: {branch.estado}</p>
         <p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p>
         <p>Hora local: {timeZoneLabel(branch.zonaHoraria)}</p><BranchHours days={branch.horarioAtencion} />
         {branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}

@@ -94,7 +94,10 @@ public class SucursalController {
             @Email @Size(max = 254) String correo,
             @Size(max = 40) String telefono,
             @Size(max = 64) String zonaHoraria,
-            @Size(min = 7, max = 7) List<@NotNull @Valid Dia> horarioAtencion) {}
+            @Size(min = 7, max = 7) List<@NotNull @Valid Dia> horarioAtencion,
+            Boolean propuestaMatriz) {
+        public NuevaSucursal(String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,List<Dia> horarioAtencion){this(codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,horarioAtencion,null);}
+    }
     public record EdicionSucursal(
             @NotBlank @Pattern(regexp = "[A-Za-z0-9_-]{1,40}") String codigo,
             @NotBlank @Size(max = 140) String nombre,
@@ -108,8 +111,14 @@ public class SucursalController {
             @Size(max = 64) String zonaHoraria,
             @NotBlank @Pattern(regexp = "ACTIVA|DESACTIVADA") String estado,
             @NotNull @PositiveOrZero Long version,
-            @Size(max = 7) List<@NotNull @Valid Dia> horarioAtencion) {}
+            @Size(max = 7) List<@NotNull @Valid Dia> horarioAtencion,
+            Boolean propuestaMatriz) {
+        public EdicionSucursal(String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,Long version,List<Dia> horarioAtencion){this(codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,null);}
+    }
     public record Sucursal(UUID codigoPublico, String codigo, String nombre, String calle, String numero,
                            String localidad, String provincia, String codigoPostal, String correo,
-                           String telefono, String zonaHoraria, String estado, long version, List<HorarioAtencion.Dia> horarioAtencion) {}
+                           String telefono, String zonaHoraria, String estado, long version, List<HorarioAtencion.Dia> horarioAtencion,
+                           boolean propuestaMatriz, boolean casaMatrizVigente) {
+        public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,false,false);}
+    }
 }

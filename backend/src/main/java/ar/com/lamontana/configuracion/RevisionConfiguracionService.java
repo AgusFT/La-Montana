@@ -101,7 +101,7 @@ public class RevisionConfiguracionService {
         if(comercial.actual()!=null&&!impresionVigente)bloqueo(h,"COTIZACION_SERVICIOS_INDEPENDIENTES_PENDIENTE","recursos",4,"El catálogo puede ofrecer solo otros servicios, pero el flujo de pedidos actual requiere Impresión. Falta habilitar la cotización de trabajos independientes antes de activar este modelo operativo.",null);
         if(impresoras.isEmpty()&&impresionVigente)bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar al menos una impresora Operativa para la imprenta es obligatorio para ofrecer Impresión. Su ubicación interna es opcional y no necesita conexión CUPS.",null);
         var entregaActual=vigente?entrega.evaluarVigente(codigo,correo):historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
-        for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
+        for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("MATRIZ")||p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
         for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","ENTREGA_AVISO","entrega",5,aviso,null));
         var opciones=OpcionesImpresion.calcular(b,comercial,activas);var revision=comercial.actual();
         if(revision==null)bloqueo(h,"CATALOGO_PENDIENTE","catalogo",0,"Activá una revisión comercial válida. Una revisión programada para el futuro todavía no sirve para cotizar.",null);

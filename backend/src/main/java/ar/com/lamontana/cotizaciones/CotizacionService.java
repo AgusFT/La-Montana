@@ -151,7 +151,7 @@ public class CotizacionService {
             exigir(hashes.add(item.documento().sha256()),"Cada PDF debe aparecer una sola vez con una configuración homogénea. Para otra configuración usá una cotización diferente.");
             String nombre=item.documento().nombre().strip();exigir(nombre.toLowerCase(Locale.ROOT).endsWith(".pdf")&&nombre.codePoints().noneMatch(cp->Character.isISOControl(cp)||cp=='/'||cp=='\\'),"El nombre debe identificar un PDF sin rutas ni caracteres de control.");
             var t=item.trabajo();boolean compatible=c.opciones().stream().anyMatch(o->o.sucursal().equals(in.sucursal())&&o.servicio().equals(t.servicio())&&o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color()&&(!t.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(t.terminaciones()));
-            if(!compatible)throw conflicto("Uno de los trabajos no tiene tarifa, servicio y capacidad compatibles en esa sucursal.");
+            if(!compatible)throw conflicto("Uno de los trabajos no tiene tarifa, servicio y capacidad compatibles en la imprenta.");
             var precio=precios.calcular(c.catalogo(),t);subtotal=subtotal.add(new BigDecimal(precio.subtotal()));carillas=Math.addExact(carillas,precio.carillas());minutos=Math.max(minutos,precio.minimoPreparacionMinutos());
             String formato=c.catalogo().formatos().stream().filter(x->x.codigoPublico().equals(t.formato())).findFirst().orElseThrow().nombre();
             String papel=c.catalogo().papeles().stream().filter(x->x.codigoPublico().equals(t.papel())).findFirst().orElseThrow().nombre();

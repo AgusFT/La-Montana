@@ -38,7 +38,8 @@ public class CopiaParametrosConfiguracion {
   copiar("configuracion_medio_pago","medio_pago",origen,destino);
   copiar("configuracion_recursos","metodo_asignacion",origen,destino);
   copiarImpresoras(origen,destino);
-  copiar("configuracion_entrega","preparacion_horas,traslado_horas",origen,destino);
+  copiar("configuracion_entrega","preparacion_horas,traslado_horas,id_sucursal_matriz",origen,destino);
+  // La ubicación se hereda, pero cada borrador exige la confirmación explícita de Fase 5.
   copiar("configuracion_modalidad_entrega","modalidad",origen,destino);
   copiar("configuracion_horario_sucursal","id_sucursal,zona_horaria",origen,destino);
   copiar("horario_sucursal","id_sucursal,dia_semana,habilitado,hora_desde,hora_hasta",origen,destino);

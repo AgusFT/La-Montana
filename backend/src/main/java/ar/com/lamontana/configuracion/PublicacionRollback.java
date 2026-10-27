@@ -53,6 +53,8 @@ public class PublicacionRollback {
         }
         long nueva=jdbc.queryForObject("INSERT INTO lamontana.configuracion_version(codigo_publico,numero_version,id_usuario_creador,estado,modelo,criterio,version) VALUES (?,(SELECT max(numero_version)+1 FROM lamontana.configuracion_version),?,'EN_PREPARACION',?,?,2) RETURNING id_configuracion_version",Long.class,UUID.randomUUID(),actor,source.modelo().name(),source.criterio()==null?null:source.criterio().name());
         parametros.copiar(origen,nueva);
+        // La reversión protegida exige revisión explícita de la matriz original. Los borradores comunes no heredan esta confirmación.
+        jdbc.update("UPDATE lamontana.configuracion_entrega e SET matriz_confirmada=true FROM lamontana.configuracion_entrega o WHERE e.id_configuracion_version=? AND o.id_configuracion_version=? AND e.id_sucursal_matriz=o.id_sucursal_matriz AND o.matriz_confirmada",nueva,origen);
         jdbc.update("INSERT INTO lamontana.origen_configuracion(id_configuracion_version,id_version_origen,tipo,barrido_inicial) VALUES (?,?,'ROLLBACK',?::jsonb)",nueva,origen,json.writeValueAsString(revision.condiciones().hallazgos()));
         publicacion.publicar(nueva,actor,operacion,revision.condiciones().catalogo().actual().codigoPublico(),motivo);
         jdbc.update("INSERT INTO lamontana.evento_configuracion(id_configuracion_version,id_actor,tipo,version,codigo_recurso,motivo) SELECT id_configuracion_version,?,'ROLLBACK_PUBLICADO',version,?,? FROM lamontana.configuracion_version WHERE id_configuracion_version=?",actor,intento,motivo,nueva);

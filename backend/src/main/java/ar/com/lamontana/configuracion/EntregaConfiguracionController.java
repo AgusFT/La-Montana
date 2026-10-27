@@ -63,6 +63,6 @@ public class EntregaConfiguracionController {
     public record GuardarEntrega(@NotNull UUID operacion,@NotNull @Min(1) Long version,
                                  @Size(max=8) String preparacionHoras,@Size(max=8) String trasladoHoras,
                                  @NotNull @Size(max=3) List<@NotNull Modalidad> modalidades,
-                                 @NotNull @Size(max=100) List<@NotNull @Valid HorarioSucursal> horariosPorSucursal) {}
+                                 @NotNull @Size(max=100) List<@NotNull @Valid HorarioSucursal> horariosPorSucursal,UUID casaMatriz,boolean matrizConfirmada) {}
     public record SimularEntrega(@NotNull @Min(1) Long version,@NotNull UUID sucursal,@NotNull Modalidad modalidad,@NotNull Instant recibidoEn,UUID punto,@Valid TerritorioEntrega territorio) {}
 }

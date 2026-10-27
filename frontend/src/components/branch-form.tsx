@@ -57,6 +57,7 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
   const [province, setProvince] = useState(() => locations?.find(p => [p.provincia, ...p.alias].some(a => normalize(a) === normalize(branch?.provincia ?? "")))?.provincia ?? "");
   const [locality, setLocality] = useState(branch?.localidad ?? ""), [hours, setHours] = useState(() => week(branch));
   const [copyNotice, setCopyNotice] = useState("");
+  const [proposedMain,setProposedMain]=useState(branch?.propuestaMatriz??false);
   const id = useId(), router = useRouter();
   const location = locations?.find(p => p.provincia === province);
   function dayChange(day: number, changes: Partial<BranchDay>) {
@@ -85,12 +86,12 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     if (invalid) { setMessage(`${weekDays[invalid.dia - 1]}: completá Desde y Hasta; la apertura debe ser anterior al cierre, dentro del mismo día.`); return; }
     const form = event.currentTarget, data = new FormData(form);
     const values = { ...Object.fromEntries(fields.map(([key]) => [key, String(data.get(key) ?? "").trim()])),
-      provincia: province, localidad: locality.trim(), horarioAtencion: hours };
+      provincia: province, localidad: locality.trim(), horarioAtencion: hours, propuestaMatriz:proposedMain };
     const payload = branch ? { ...values, codigo: branch.codigo, estado: data.get("estado"), version: branch.version } : values;
     setBusy(true);
     try {
       await secureMutation(`/api/admin/sucursales${branch ? `/${branch.codigoPublico}` : ""}`, JSON.stringify(payload), "application/json", branch ? "PUT" : "POST");
-      if (!branch) { form.reset(); setProvince(""); setLocality(""); setHours(week()); window.dispatchEvent(new Event("lamontana:branch-created")); }
+      if (!branch) { form.reset(); setProvince(""); setLocality(""); setHours(week()); setProposedMain(false); window.dispatchEvent(new Event("lamontana:branch-created")); }
       setSaved(true); router.refresh();
     } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos guardar la sucursal."); }
     finally { setBusy(false); }
@@ -139,9 +140,14 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
         <p className="branch-copy-notice" role="status" aria-live="polite" aria-atomic="true">{copyNotice}</p>
         <p className="empty-note">Este horario queda guardado en la ficha. En Configurador → Horarios y entregas podés copiarlo al calendario, completar los cupos y activar la configuración. Guardar esta ficha no cambia los pedidos ni los calendarios ya activos.</p>
       </fieldset>
+      <fieldset className="choice-fieldset branch-form-section"><legend>Casa matriz</legend>
+        {branch?.casaMatrizVigente&&<p className="admin-info">Esta es la casa matriz de la configuración vigente. Para cambiarla, elegí y confirmá otra en Fase 5 y activá esa nueva versión.</p>}
+        <label className="checkbox-label"><input type="checkbox" checked={proposedMain} onChange={e=>{setProposedMain(e.target.checked);setSaved(false);}}/>Proponer esta sucursal como casa matriz</label>
+        <p className="empty-note">La propuesta ayuda a preparar un borrador, pero no cambia la matriz vigente. Siempre deberás seleccionarla y confirmarla en Fase 5 del motor. Solo puede haber una propuesta activa.</p>
+      </fieldset>
       {branch && <label>Estado<select name="estado" defaultValue={branch.estado}><option value="ACTIVA">Activa</option><option value="DESACTIVADA">Desactivada</option></select></label>}
     </fieldset>
-    {branch && <p className="empty-note">El código permanece fijo. No se puede desactivar la última sucursal activa asignada a un empleado activo.</p>}
+    {branch && <p className="empty-note">El código permanece fijo. No se puede desactivar la casa matriz vigente o programada ni la última sucursal activa asignada a un empleado activo.</p>}
     {message && <p className="form-message error-message" role="alert">{message}</p>}
     {saved && <SaveNotice>{guide.enabled&&!guide.data?.activa?"Sucursal guardada con su horario de atención. Podés continuar con el catálogo base desde la guía de instalación.":"Sucursal guardada con su horario de atención. Podés reutilizarlo en el configurador."}</SaveNotice>}
     <button className="refresh" disabled={busy || deleting || !locations}>{busy ? "Guardando…" : branch ? "Guardar sucursal" : "Crear sucursal"}</button>
