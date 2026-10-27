@@ -1,84 +1,94 @@
-//#region ENCABEZADO · src/components/quote-form.tsx
-/*
- * ========================================================================
- * ARCHIVO: src/components/quote-form.tsx
- * ========================================================================
- * FUNCIÓN
- * Construye una solicitud de cotización con opciones disponibles, documentos PDF, cantidades y
- * entrega. Lee datos locales del PDF y envía la solicitud al servidor para el cálculo definitivo.
- *
- * ------------------------------------------------------------------------
- * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
- * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
- * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
- * - choiceKey(o: Combination)
- * - [export] QuoteForm({replaces,inspectedFile,correction}:
- *   {replaces?:string;inspectedFile?:string;correction?:{pedido:string;solicitud:string}})
- *   Componente de interfaz.
- * - [async] QuoteForm :: load(initial = false)
- * - QuoteForm :: choosePart(row: Row, index: number, value: string)
- * - QuoteForm :: update(key: string, change: Partial<Row>)
- * - [async] QuoteForm :: files(list: FileList|null)
- * - [async] QuoteForm :: submit(event?: FormEvent)
- *
- * ------------------------------------------------------------------------
- * TIPOS DECLARADOS
- * - Row (tipo).
- * - Combination (tipo).
- *
- * ------------------------------------------------------------------------
- * VALORES DE MÓDULO Y REEXPORTACIONES
- * - emptyAddress [const].
- * ========================================================================
- */
-//#endregion
-
 "use client";
-import {useRouter} from "next/navigation";
-import {useNavigationGuard} from "./navigation-boundary";
-import {ClientJourney} from "./client-journey";
-import {rememberPreparedFiles,preparedFile} from "@/lib/prepared-files";
-import {useEffect,useRef,useState,type FormEvent} from "react";
-import {secureMutation,MutationError} from "@/lib/secure-mutation";
-import {readLocalPdf} from "@/lib/local-pdf";
-import {isOptions,isQuote,quoteRead,modeLabels,type QuoteOptions,type QuoteInput,type DocumentInfo,type Mode,type Address} from "@/lib/quote-types";
-import {isFile} from "@/lib/file-types";
-type Row={key:string;documento:DocumentInfo;paginas:number;choice:string;copies:string;double:boolean;ends:string[];local:boolean;file?:File};
-type Combination=QuoteOptions["combinaciones"][number];
-const choiceKey=(o:Combination)=>[o.servicio,o.formato,o.papel,o.color].join(":");
-const emptyAddress:Address={calle:"",numero:"",referencias:"",territorio:{codigoPostal:"",localidad:"",provincia:""}};
-export function QuoteForm({replaces,inspectedFile,correction}:{replaces?:string;inspectedFile?:string;correction?:{pedido:string;solicitud:string}}){
- const router=useRouter();
- const[options,setOptions]=useState<QuoteOptions|null>(null),[rows,setRows]=useState<Row[]>([]),[branch,setBranch]=useState(""),[mode,setMode]=useState<Mode|"">(""),[point,setPoint]=useState(""),[payment,setPayment]=useState(""),[address,setAddress]=useState<Address>(emptyAddress);
- const[loading,setLoading]=useState(true),[reading,setReading]=useState(false),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(""),[conflict,setConflict]=useState(false);
- const command=useRef<string|null>(null),reader=useRef<AbortController|null>(null),sending=useRef(false);const locked=loading||reading||busy||uncertain;
- useNavigationGuard({blocked:busy||reading||uncertain});
- async function load(initial=false){setLoading(true);setError("");try{const data=await quoteRead("/api/cliente/cotizaciones/opciones",isOptions);setOptions(data);setConflict(false);if(initial&&replaces){const old=await quoteRead(`/api/cliente/cotizaciones/${replaces}`,isQuote);const o=old.oferta;if(inspectedFile){const actual=await quoteRead(`/api/cliente/cotizaciones/${replaces}/archivos/${inspectedFile}`,isFile);if(actual.estado!=="REQUIERE_COTIZACION"||!actual.paginas||!actual.bytes||!actual.sha256)throw new Error("El archivo no tiene una discrepancia inspeccionada para recotizar.");const item=o.items.find(i=>i.codigoPublico===actual.item);if(!item)throw new Error("El archivo no pertenece a esta oferta.");item.documento={nombre:actual.nombre,bytes:actual.bytes,sha256:actual.sha256};item.trabajo.paginas=actual.paginas;}setBranch(o.sucursal.codigoPublico);setMode(o.modalidad);setPoint(o.punto??"");setPayment(o.medioPago);setAddress(o.direccion??emptyAddress);setRows(o.items.map(i=>({key:crypto.randomUUID(),documento:i.documento,paginas:i.trabajo.paginas,choice:[i.trabajo.servicio,i.trabajo.formato,i.trabajo.papel,i.trabajo.color].join(":"),copies:String(i.trabajo.copias),double:i.trabajo.dobleFaz,ends:i.trabajo.terminaciones,local:false,file:preparedFile(old.codigoPublico,i.codigoPublico,i.documento.sha256)})));}}catch(e){setError(e instanceof Error?e.message:"No pudimos consultar las opciones.");}finally{setLoading(false);}}
- useEffect(()=>{void load(true);return()=>reader.current?.abort();},[replaces,inspectedFile]);
- function choosePart(row:Row,index:number,value:string){const parts=Array.from({length:4},(_,i)=>row.choice.split(":")[i]??"");parts[index]=value;for(let i=index+1;i<4;i++)parts[i]="";update(row.key,{choice:parts.join(":"),double:false,ends:[]});}
- function update(key:string,change:Partial<Row>){setRows(old=>old.map(r=>r.key===key?{...r,...change}:r));}
- async function files(list:FileList|null){if(!list||locked)return;setError("");if(rows.length+list.length>20){setError("Una cotización admite hasta 20 PDF.");return;}reader.current?.abort();const abort=new AbortController();reader.current=abort;setReading(true);
-  try{const added:Row[]=[];const known=new Set(rows.map(r=>r.documento.sha256));for(const file of Array.from(list)){const d=await readLocalPdf(file,abort.signal);if(known.has(d.documento.sha256))throw new Error("Ese PDF ya está incluido. Cada archivo lleva una sola configuración homogénea.");known.add(d.documento.sha256);added.push({key:crypto.randomUUID(),...d,choice:"",copies:"1",double:false,ends:[],local:true,file});}setRows(old=>[...old,...added]);}
-  catch(e){if(!abort.signal.aborted)setError(e instanceof Error?e.message:"No pudimos leer el archivo.");}finally{if(!abort.signal.aborted)setReading(false);}
+import {useEffect,useRef,useState,type FormEvent} from 'react';
+import {useRouter} from 'next/navigation';
+import {LegacyQuoteForm} from './legacy-quote-form';
+import {ClientJourney} from './client-journey';
+import {ClientContextTour} from './client-context-tour';
+import {PrivateFiles} from './private-files';
+import {useNavigationGuard} from './navigation-boundary';
+import {secureMutation,MutationError} from '@/lib/secure-mutation';
+import {isOptions,quoteRead,type QuoteOptions,type WorkItem} from '@/lib/quote-types';
+import {isFile} from '@/lib/file-types';
+import {isPreparation,type Preparation} from '@/lib/prepared-work';
+
+type Row={archivo:string;choice:string;copies:string;double:boolean;ends:string[]};
+type Combination=QuoteOptions['combinaciones'][number];
+const key=(o:Combination)=>[o.servicio,o.formato,o.papel,o.color].join(':');
+export function QuoteForm(props:{replaces?:string;inspectedFile?:string;correction?:{pedido:string;solicitud:string}}){
+ return props.replaces?<LegacyQuoteForm {...props}/>:<PrepareWork/>;
+}
+function PrepareWork(){
+ const router=useRouter(),[options,setOptions]=useState<QuoteOptions|null>(null),[prep,setPrep]=useState<Preparation|null>(null),[rows,setRows]=useState<Row[]>([]);
+ const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
+ const running=useRef(false),pending=useRef<null|(()=>Promise<void>)>(null),input=useRef<HTMLInputElement>(null);
+ const locked=busy||uncertain||fileLocked;
+ useNavigationGuard({blocked:locked});
+ async function load(initial=false){
+  const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
+  const response=await secureMutation('/api/cliente/preparaciones');
+  const p:unknown=await response.json();if(!isPreparation(p))throw new Error('No pudimos recuperar el trabajo preparado.');setPrep(p);
+  if(initial)setRows(p.archivos.map(f=>{const t=p.items.find(i=>i.archivo===f.codigoPublico)?.trabajo;return {archivo:f.codigoPublico,choice:t?[t.servicio,t.formato,t.papel,t.color].join(':'):'',copies:String(t?.copias??1),double:t?.dobleFaz??false,ends:t?.terminaciones??[]};}));
  }
- async function submit(event?:FormEvent){event?.preventDefault();if(busy||reading||loading||sending.current)return;setError("");
-  if(!uncertain){if(!options?.configuracion||!options.revisionComercial||!branch||!mode||!payment||rows.length===0){setError("Seleccioná archivos y completá todas las opciones del trabajo.");return;}
-   const items:QuoteInput["items"]=[];
-   for(const row of rows){const o=options.combinaciones.find(x=>x.sucursal===branch&&choiceKey(x)===row.choice);if(!o||!Number.isInteger(Number(row.copies))||Number(row.copies)<1||Number(row.copies)>10000||row.double&&!o.dobleFaz||row.ends.some(e=>!o.terminaciones.includes(e))){setError("Revisá la configuración de cada archivo con las opciones vigentes de la sucursal.");return;}items.push({documento:row.documento,trabajo:{servicio:o.servicio,formato:o.formato,papel:o.papel,color:o.color,paginas:row.paginas,copias:Number(row.copies),dobleFaz:row.double,terminaciones:row.ends}});}
-   const input:QuoteInput={operacion:crypto.randomUUID(),configuracion:options.configuracion,revisionComercial:options.revisionComercial,sucursal:branch,items,modalidad:mode,punto:mode==="RETIRO_PUNTO_ENTREGA"?point:null,direccion:mode==="ENVIO_DOMICILIO"?address:null,medioPago:payment,reemplaza:replaces??null};command.current=JSON.stringify(input);
+ useEffect(()=>{void load(true).catch(e=>setError(e.message));},[]);
+ useEffect(()=>{if(!prep?.archivos.some(f=>f.estado==='VALIDANDO'))return;const t=setTimeout(()=>void load().catch(e=>setError(e.message)),2500);return()=>clearTimeout(t);},[prep]);
+ async function execute(task?:()=>Promise<void>){
+  if(running.current)return;if(task)pending.current=task;if(!pending.current)return;
+  running.current=true;setBusy(true);setError('');
+  try{await pending.current();pending.current=null;setUncertain(false);}
+  catch(e){setError(e instanceof Error?e.message:'No pudimos completar la operación.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;await load().catch(()=>{});}}
+  finally{running.current=false;setBusy(false);}
+ }
+ async function files(list:FileList|null){
+  if(!list||locked||!prep)return;const values=Array.from(list);if(prep.archivos.length+values.length>20){setError('Podés preparar hasta 20 PDF.');return;}
+  if(values.some(f=>!f.name.toLowerCase().endsWith('.pdf')||f.size===0||f.size>10*1024*1024)){setError('Seleccioná únicamente PDF de hasta 10 MiB por archivo.');return;}
+  let index=0;const uploads=values.map(file=>({file,operation:crypto.randomUUID(),id:undefined as string|undefined}));
+  await execute(async()=>{
+   while(index<uploads.length){const u=uploads[index];
+    if(!u.id){const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos`,JSON.stringify({operacion:u.operation,nombre:u.file.name}),'application/json');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el intento de carga.');u.id=a.codigoPublico;}
+    const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${u.id}/contenido`,u.file,'application/pdf','PUT');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el análisis del PDF.');
+    setRows(old=>old.some(x=>x.archivo===u.id)?old:[...old,{archivo:u.id!,choice:'',copies:'1',double:false,ends:[]}]);index++;await load();
+   }
+  });
+ }
+ function update(id:string,change:Partial<Row>){setRows(old=>old.map(r=>r.archivo===id?{...r,...change}:r));}
+ const choices=Array.from(new Map((options?.combinaciones??[]).map(o=>[key(o),o])).values());
+ const names=new Map([...(options?.formatos??[]),...(options?.papeles??[]),...(options?.servicios??[])].map(n=>[n.codigoPublico,n.nombre+(n.gramaje?` · ${n.gramaje} g/m²`:'')+(n.terminacion?` · ${n.terminacion}`:'')]));
+ function choose(row:Row,index:number,value:string){
+  const parts=Array.from({length:4},(_,i)=>row.choice.split(':')[i]??'');parts[index]=value;
+  for(let i=0;i<4;i++){if(i===index)continue;const valid=choices.some(o=>{const p=key(o).split(':');return p[index]===value&&parts.every((v,j)=>j===i||!v||v===p[j])&&(!parts[i]||parts[i]===p[i]);});if(!valid)parts[i]='';}
+  const selected=choices.find(o=>key(o)===parts.join(':'));
+  update(row.archivo,{choice:parts.join(':'),double:!!selected?.dobleFaz&&row.double,ends:row.ends.filter(x=>selected?.terminaciones.includes(x))});
+ }
+ async function remove(file:string){
+  if(!prep||locked)return;const body=JSON.stringify({operacion:crypto.randomUUID()});
+  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${file}/quitar`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p))throw new Error('No se pudo comprobar que el PDF fue quitado.');setPrep(p);setRows(old=>old.filter(x=>x.archivo!==file));});
+ }
+ async function submit(e:FormEvent){
+  e.preventDefault();if(locked||!prep||!options?.configuracion||!options.revisionComercial)return;
+  const items=[];for(const f of prep.archivos){const row=rows.find(x=>x.archivo===f.codigoPublico),o=choices.find(x=>key(x)===row?.choice),copies=Number(row?.copies);
+   if(f.estado!=='VALIDO'||!f.paginas||!row||!o||!Number.isInteger(copies)||copies<1||copies>10000){setError('Analizá los PDF y completá las opciones de cada archivo.');return;}
+   const trabajo:WorkItem={servicio:o.servicio,formato:o.formato,papel:o.papel,color:o.color,paginas:f.paginas,copias:copies,dobleFaz:row.double,terminaciones:row.ends};items.push({archivo:f.codigoPublico,trabajo});
   }
-  if(!command.current)return;sending.current=true;setBusy(true);
-  try{const r=await secureMutation(correction?`/api/cliente/pedidos/${correction.pedido}/correcciones/${correction.solicitud}/cotizaciones`:"/api/cliente/cotizaciones",command.current,"application/json"),data:unknown=await r.json();if(!isQuote(data))throw new Error("No pudimos verificar la cotización guardada.");rememberPreparedFiles(data,rows.map(row=>({sha256:row.documento.sha256,file:row.file})));router.push(`/cliente/cotizaciones/${data.codigoPublico}`);}
-  catch(e){setError(e instanceof Error?e.message:"No pudimos cotizar.");if(e instanceof MutationError&&!e.uncertain){command.current=null;setUncertain(false);if(e.status===409)setConflict(true);}else setUncertain(true);sending.current=false;setBusy(false);}
+  if(!items.length)return;
+  const body=JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,configuracion:options.configuracion,revisionComercial:options.revisionComercial,items});
+  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');router.push(`/cliente/preparaciones/${p.codigoPublico}`);});
  }
- const names=new Map([...(options?.formatos??[]),...(options?.papeles??[]),...(options?.servicios??[])].map(n=>[n.codigoPublico,n.nombre]));const choices=options?.combinaciones.filter(o=>o.sucursal===branch)??[];
- return <><ClientJourney part={1}/>{correction&&<p className="client-note">Esta oferta propone cambios al mismo pedido. Requiere aceptación y una respuesta explícita de corrección. <a href={`/cliente/pedidos/${correction.pedido}`}>Volver al pedido</a>.</p>}<p className="client-note">Elegí tus archivos y las opciones de impresión. Después vas a revisar el precio y la entrega antes de crear el pedido.</p>
- {loading&&<p role="status">Consultando opciones actuales…</p>}{!loading&&!options?.disponible&&<section className="client-card client-empty"><h2>La imprenta está en preparación</h2><p>{options?.mensaje??"No pudimos consultar las opciones."}</p><button className="client-button secondary" onClick={()=>void load()}>Volver a consultar</button></section>}
- {options?.disponible&&<form className="client-form" onSubmit={submit}><fieldset disabled={locked||conflict}>
- <section className="client-card"><h2><span className="client-step">1</span>Archivos y sucursal</h2><label>Sucursal que realizará el trabajo<select aria-label="Sucursal que realizará el trabajo" required disabled={!!correction} value={branch} onChange={e=>{setBranch(e.target.value);setPoint("");setRows(old=>old.map(r=>({...r,choice:"",ends:[],double:false})));}}><option value="">Seleccioná una sucursal</option>{options.sucursales.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre} · {s.direccion}</option>)}</select></label><div className="client-file" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void files(e.dataTransfer.files);}}><p><strong>Arrastrá tus PDF aquí o seleccionalos desde tu dispositivo.</strong></p><label>Seleccionar PDF<input type="file" accept="application/pdf,.pdf" multiple onChange={e=>{void files(e.target.files);e.target.value="";}}/></label><p className="client-muted">Máximo 10 MB por PDF y 20 archivos. El conteo se obtiene del documento. Un archivo tiene una única configuración de impresión.</p></div>{reading&&<p role="status">Leyendo PDF en este dispositivo…</p>}{replaces&&<p className="client-note">Esta oferta reemplazará la anterior sólo cuando se guarde correctamente. Los datos heredados se pueden revisar; la oferta nueva requerirá otra aceptación.</p>}</section>
- {rows.map((r,index)=>{const parts=r.choice.split(":"),selected=choices.find(o=>choiceKey(o)===r.choice);const values=[...new Set(choices.map(o=>o.servicio))],formats=[...new Set(choices.filter(o=>o.servicio===parts[0]).map(o=>o.formato))],papers=[...new Set(choices.filter(o=>o.servicio===parts[0]&&o.formato===parts[1]).map(o=>o.papel))],colors=[...new Set(choices.filter(o=>o.servicio===parts[0]&&o.formato===parts[1]&&o.papel===parts[2]).map(o=>o.color))];return <section className="client-card" key={r.key}><div className="client-item-title"><h2>Archivo {index+1} · {r.documento.nombre}</h2><button className="client-button secondary" type="button" onClick={()=>setRows(old=>old.filter(x=>x.key!==r.key))}>Quitar archivo {index+1}</button></div><p className="client-muted">{r.paginas} páginas detectadas · {(r.documento.bytes/1024).toLocaleString("es-AR",{maximumFractionDigits:1})} KB</p><div className="client-grid"><section><h3>Detalles del trabajo</h3><div className="client-grid"><label>Servicio<select aria-label={`Servicio · archivo ${index+1}`} required value={parts[0]??""} onChange={e=>choosePart(r,0,e.target.value)}><option value="">Elegí el servicio</option>{values.map(v=><option key={v} value={v}>{names.get(v)}</option>)}</select></label><label>Tamaño de hoja<select aria-label={`Tamaño de hoja · archivo ${index+1}`} required disabled={!parts[0]} value={parts[1]??""} onChange={e=>choosePart(r,1,e.target.value)}><option value="">Elegí el tamaño</option>{formats.map(v=><option key={v} value={v}>{names.get(v)}</option>)}</select></label><label>Papel<select aria-label={`Papel · archivo ${index+1}`} required disabled={!parts[1]} value={parts[2]??""} onChange={e=>choosePart(r,2,e.target.value)}><option value="">Elegí el papel</option>{papers.map(v=><option key={v} value={v}>{names.get(v)}</option>)}</select></label><label>Impresión<select aria-label={`Impresión · archivo ${index+1}`} required disabled={!parts[2]} value={parts[3]??""} onChange={e=>choosePart(r,3,e.target.value)}><option value="">Elegí la impresión</option>{colors.map(v=><option key={v} value={v}>{v==="COLOR"?"Color":"Blanco y negro"}</option>)}</select></label><label>Cantidad de copias<input aria-label={`Cantidad de copias · archivo ${index+1}`} type="number" min={1} max={10000} step={1} required value={r.copies} onChange={e=>update(r.key,{copies:e.target.value})}/></label></div></section><section><h3>Opcionales</h3>{!selected?<p className="client-muted">Elegí el servicio, el papel y la impresión para ver los opcionales disponibles.</p>:<>{selected.dobleFaz&&<label className="client-check"><input type="checkbox" checked={r.double} onChange={e=>update(r.key,{double:e.target.checked})}/>Doble faz</label>}{selected.terminaciones.map(id=><label className="client-check" key={id}><input type="checkbox" checked={r.ends.includes(id)} onChange={e=>update(r.key,{ends:e.target.checked?[...r.ends,id]:r.ends.filter(x=>x!==id)})}/>{names.get(id)}</label>)}{!selected.dobleFaz&&!selected.terminaciones.length&&<p className="client-muted">No hay opcionales habilitados para esta combinación.</p>}<p className="client-muted">Sólo se muestran opciones habilitadas y compatibles con este trabajo.</p></>}</section></div></section>})}
- <section className="client-card"><h2><span className="client-step">2</span>Entrega y medio preferido</h2><div className="client-grid"><label>Modalidad de entrega<select aria-label="Modalidad de entrega" required value={mode} onChange={e=>{setMode(e.target.value as Mode);setPoint("");}}><option value="">Seleccioná una modalidad</option>{options.modalidades.filter(m=>m!=="RETIRO_PUNTO_ENTREGA"||options.puntos.some(p=>p.sucursal===branch)).map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label><label>Medio de pago preferido<select aria-label="Medio de pago preferido" required value={payment} onChange={e=>setPayment(e.target.value)}><option value="">Seleccioná un medio</option>{options.medios.map(m=><option key={m} value={m}>{m==="EFECTIVO"?"Efectivo":"Transferencia"}</option>)}</select></label></div>{mode==="RETIRO_PUNTO_ENTREGA"&&<label>Punto de entrega<select aria-label="Punto de entrega" required value={point} onChange={e=>setPoint(e.target.value)}><option value="">Seleccioná un punto</option>{options.puntos.filter(p=>p.sucursal===branch).map(p=><option key={p.codigoPublico} value={p.codigoPublico}>{p.nombre} · {p.direccion}</option>)}</select></label>}{mode==="ENVIO_DOMICILIO"&&<div className="client-grid">{([['calle','Calle'],['numero','Número'],['referencias','Referencias de entrega (opcional)']] as const).map(([key,label])=><label key={key}>{label}<input required={key!=="referencias"} maxLength={key==="numero"?30:key==="calle"?140:300} value={address[key]} onChange={e=>setAddress({...address,[key]:e.target.value})}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([key,label])=><label key={key}>{label}<input required maxLength={key==="codigoPostal"?24:120} value={address.territorio[key]} onChange={e=>setAddress({...address,territorio:{...address.territorio,[key]:e.target.value}})}/></label>)}</div>}<p className="client-muted">La cotización indicará el costo y una fecha estimada. Todavía no reserva un cupo. La seña o el pago previo, si corresponden, pueden exigir transferencia aunque el saldo se pague en efectivo.</p></section>
- <div className="client-actions center"><button className="client-button" disabled={rows.length===0}>Revisar resumen y precio →</button></div></fieldset></form>}
- {error&&<p className="client-warning" role="alert">{error}</p>}{uncertain&&<div className="client-warning"><p>La respuesta no se pudo confirmar. Recuperá la misma operación antes de cambiar datos.</p><button className="client-button" disabled={busy} onClick={()=>void submit()}>Recuperar cotización</button></div>}{conflict&&<button className="client-button secondary" disabled={locked} onClick={()=>void load()}>Actualizar opciones y revisar</button>}
- </>;
+ return <div className="client-experience"><ClientJourney part={1}/>
+ <p className="client-note">Primero prepará tu trabajo. Después elegís entrega y pago en un único resumen.</p>
+ <section id="client-upload" className="client-card client-upload-card"><h2>Subí tus archivos</h2><p>El servidor analiza cada PDF y cuenta sus páginas. No necesitás pagar para cargarlo.</p><div className="client-dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void files(e.dataTransfer.files);}}><span aria-hidden="true">⇧</span><strong>Arrastrá tus PDF o seleccioná tus archivos</strong><input ref={input} aria-label="Seleccionar PDF" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/><small>Hasta 20 PDF · 10 MiB por archivo · acceso privado</small></div></section>
+ {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
+ {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}
+ <form onSubmit={submit}><fieldset disabled={locked||!options?.disponible} id="client-work-options">
+ {prep?.archivos.length===0&&<p className="client-empty">Tu trabajo todavía no tiene archivos. Agregá un PDF para configurar su impresión.</p>}
+ {prep?.archivos.map((f,index)=>{const row=rows.find(r=>r.archivo===f.codigoPublico)??{archivo:f.codigoPublico,choice:'',copies:'1',double:false,ends:[]},parts=row.choice.split(':'),selected=choices.find(x=>key(x)===row.choice);
+ const lists=[...Array(4)].map((_,n)=>Array.from(new Set(choices.filter(o=>{const p=key(o).split(':');return parts.every((v,j)=>j>=n||!v||v===p[j]);}).map(o=>key(o).split(':')[n]))));
+ return <section className="client-card client-work-card" key={f.codigoPublico}><header className="client-item-title"><h2>PDF {index+1} · {f.nombre}</h2><button type="button" className="client-button secondary" disabled={f.estado==='VALIDANDO'} onClick={()=>void remove(f.codigoPublico)}>Quitar / reemplazar</button></header>
+ <p className={f.estado==='VALIDO'?'client-success':'client-note'}>{f.estado==='VALIDO'?`✓ PDF analizado · ${f.paginas} páginas · ${((f.bytes??0)/1024).toLocaleString('es-AR',{maximumFractionDigits:1})} KiB`:f.estado==='VALIDANDO'?'Analizando seguridad y páginas…':f.mensaje??'Carga pendiente. Quitalo y volvé a seleccionarlo si no terminó.'}</p>
+ <div className="client-work-columns"><section><h3>Detalles de impresión</h3><div className="client-grid">{['Servicio de impresión','Tamaño de hoja','Papel y gramaje','Impresión'].map((label,n)=><label key={label}>{label}<select aria-label={`${label} · PDF ${index+1}`} required disabled={f.estado!=='VALIDO'||n>0&&!parts[n-1]} value={parts[n]??''} onChange={e=>choose(row,n,e.target.value)}><option value="">Elegí una opción</option>{lists[n].map(v=><option key={v} value={v}>{n===3?(v==='COLOR'?'Color':'Blanco y negro'):names.get(v)??v}</option>)}</select></label>)}<label>Cantidad de copias<input aria-label={`Copias · PDF ${index+1}`} type="number" required min={1} max={10000} step={1} value={row.copies} onChange={e=>update(f.codigoPublico,{copies:e.target.value})}/></label><label>Caras<select aria-label={`Caras · PDF ${index+1}`} disabled={!selected} value={row.double?'doble':'simple'} onChange={e=>update(f.codigoPublico,{double:e.target.value==='doble'})}><option value="simple">Simple faz</option>{selected?.dobleFaz&&<option value="doble">Doble faz</option>}</select></label></div></section>
+ <section className="client-extras"><h3>Servicios adicionales</h3>{!selected?<p>Completá la impresión para ver los adicionales compatibles.</p>:selected.terminaciones.length===0?<p>No hay adicionales compatibles habilitados para esta selección.</p>:selected.terminaciones.map(id=><label key={id} className="client-check"><input type="checkbox" checked={row.ends.includes(id)} onChange={e=>update(f.codigoPublico,{ends:e.target.checked?[...row.ends,id]:row.ends.filter(x=>x!==id)})}/>{names.get(id)??id}</label>)}<p className="client-muted">Los servicios pertenecen a toda la imprenta. El destino de retiro no limita tu trabajo.</p></section></div></section>;})}
+ <div id="client-budget-action" className="client-actions center"><button className="client-button" disabled={!prep?.archivos.length||busy||uncertain}>Revisar presupuesto →</button></div>
+ </fieldset></form>
+ {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<details className="client-prepared-preview"><summary>Ver PDF y aceptar sus páginas (también podés hacerlo en el resumen)</summary><PrivateFiles prepared quote={prep.codigoPublico} version={prep.version} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></details>}
+ {busy&&<p role="status">Guardando y verificando tu trabajo…</p>}{error&&<p className="client-warning" role="alert">{error}</p>}{uncertain?<button type="button" className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button className="client-button secondary" disabled={busy} onClick={()=>void load(true).catch(e=>setError(e.message))}>Actualizar datos</button>}
+ {prep&&<ClientContextTour stage={1} ready={!!options?.disponible&&!busy}/>}</div>;
 }

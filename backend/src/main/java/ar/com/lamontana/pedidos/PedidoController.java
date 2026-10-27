@@ -48,11 +48,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class PedidoController {
  private final PedidoService pedidos;
- public PedidoController(PedidoService pedidos){this.pedidos=pedidos;}
+ private final ar.com.lamontana.cotizaciones.CotizacionService cotizaciones;
+ public PedidoController(PedidoService pedidos,ar.com.lamontana.cotizaciones.CotizacionService cotizaciones){this.pedidos=pedidos;this.cotizaciones=cotizaciones;}
  public record Contacto(@NotBlank @Size(max=140) String receptor,@NotBlank @Size(max=40) String telefono){}
  public record Confirmar(@NotNull UUID operacion,@Min(1) long version,@NotBlank @Pattern(regexp="[a-f0-9]{64}") String huella,@AssertTrue boolean condicionesAceptadas,@Valid Contacto contacto){}
  @GetMapping("/api/cliente/cotizaciones/{id}/confirmacion") public PedidoService.Revision revisar(@PathVariable UUID id,Principal p){return pedidos.revisar(id,p.getName());}
- @PostMapping("/api/cliente/cotizaciones/{id}/confirmacion") public PedidoService.Detalle confirmar(@PathVariable UUID id,@Valid @RequestBody Confirmar in,Principal p){return pedidos.confirmar(id,in,p.getName());}
+ @PostMapping("/api/cliente/cotizaciones/{id}/confirmacion") public PedidoService.Detalle confirmar(@PathVariable UUID id,@Valid @RequestBody Confirmar in,Principal p){if(cotizaciones.detalle(id,p.getName()).oferta().origenGlobal())throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Confirmá desde el resumen completo de tu trabajo preparado.");return pedidos.confirmar(id,in,p.getName());}
  @GetMapping("/api/cliente/pedidos") public PedidoService.Pagina listar(@RequestParam(defaultValue="0") int pagina,@RequestParam(required=false) String estado,Principal p){return pedidos.listar(null,pagina,estado,p.getName());}
  @GetMapping("/api/cliente/pedidos/{id}") public PedidoService.Detalle cliente(@PathVariable UUID id,Principal p){return pedidos.detalle(id,p.getName(),false);}
  @GetMapping("/api/operacion/pedidos/{id}") public PedidoService.Detalle interno(@PathVariable UUID id,Principal p){return pedidos.detalle(id,p.getName(),true);}

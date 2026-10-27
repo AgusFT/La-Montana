@@ -59,3 +59,7 @@ git pull --ff-only origin desarrollo
 ```
 
 El script reconstruye e inicia los contenedores y Flyway aplica V41; no hace falta otro `docker compose up`. No borrar volúmenes ni reiniciar la base. Crear un borrador, revisar Fase 5, seleccionar/confirmar la matriz, guardar y comprobar Fase 6 antes de autorizar una activación.
+
+## Nuevo recorrido Cliente · V43
+
+El presupuesto no requiere destino. Al cotizar la entrega, el backend deriva el origen interno desde la matriz confirmada y registra `oferta.origenGlobal=true`; `oferta.sucursal` identifica ese origen, no una elección productiva del cliente. El retiro seleccionado queda en `entrega.destinoSucursal` y en `reserva_entrega.destino_publico`. Para pedidos nuevos, el traslado se determina comparando la matriz de la versión confirmada y el destino persistido. El cálculo y los guards SQL de reserva/reprogramación respetan esa separación. Los documentos anteriores sin esa marca conservan el significado legado; V43 no los reescribe. Si cambia la matriz entre oferta y confirmación, se exige revisar una oferta nueva. Ver [Cliente: contrato de tres etapas](cliente-tres-etapas.md).

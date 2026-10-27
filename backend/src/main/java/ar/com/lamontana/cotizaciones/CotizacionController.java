@@ -68,6 +68,8 @@ public class CotizacionController {
     public record Direccion(@NotBlank @Size(max=140) String calle,@NotBlank @Size(max=30) String numero,@Size(max=300) String referencias,@NotNull @Valid TerritorioEntrega territorio){}
     public record Crear(@NotNull UUID operacion,@NotNull UUID configuracion,@NotNull UUID revisionComercial,@NotNull UUID sucursal,
         @NotNull @Size(min=1,max=20) List<@NotNull @Valid Item> items,@NotNull Modalidad modalidad,UUID punto,@Valid Direccion direccion,
-        @NotNull MedioPago medioPago,UUID reemplaza){}
+        @NotNull MedioPago medioPago,UUID reemplaza,UUID destinoRetiro,boolean origenGlobal){
+        public Crear(UUID operacion,UUID configuracion,UUID revisionComercial,UUID sucursal,List<Item> items,Modalidad modalidad,UUID punto,Direccion direccion,MedioPago medioPago,UUID reemplaza){this(operacion,configuracion,revisionComercial,sucursal,items,modalidad,punto,direccion,medioPago,reemplaza,null,false);}
+    }
     public record Decision(@NotNull UUID operacion,@Min(1) long version,@Size(max=300) String motivo){}
 }

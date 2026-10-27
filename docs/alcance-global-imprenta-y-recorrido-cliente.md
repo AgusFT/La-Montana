@@ -23,12 +23,12 @@ Una vez creado el pedido se muestra su número y seguimiento en el dashboard. Lo
 
 Ejemplo: La Montaña ofrece impresión color A4 y anillado. El cliente cotiza ese trabajo y elige retirar en un punto sin impresoras ni anilladora. La imprenta produce y traslada internamente. La disponibilidad de entrega se comprueba sin quitar anillado del catálogo.
 
-## Impacto pendiente
+## Estado de implementación · 27/10/2026
 
-- Fase 4 ya dejó de usar `serviciosPorSucursal` y `sucursal_servicio` como habilitación comercial. Falta retirar la selección temprana de sucursal del contrato cliente y completar su migración logística.
-- Derivar combinaciones y compatibilidades globales; separar capacidad productiva y destino de retiro.
-- Separar el presupuesto inicial de su preparación final para entrega, pago y creación del pedido. Actualmente el contrato y la base exigen origen y oferta completa para cotizar.
-- Revisar autorización de usuarios, archivos y finanzas por separado: una oferta global no concede acceso global a datos privados.
+- Fase 4 no usa `serviciosPorSucursal` ni `sucursal_servicio` como habilitación comercial. El nuevo recorrido cliente ya no pide sucursal productiva: la preparación y el presupuesto son globales.
+- Las combinaciones y compatibilidades son globales; el backend deriva el origen de la casa matriz confirmada y guarda por separado el destino de retiro.
+- V43 incorpora preparación privada y presupuesto previo a la oferta final. Entrega/pago y creación conviven en un único resumen. Ver [contrato y validación](cliente-tres-etapas.md).
+- La preparación y los archivos se autorizan por propietario, rol y CSRF; la globalidad comercial no concede acceso a datos privados de otra cuenta.
 - Conservar versiones y pedidos históricos. No alcanza con ocultar la sucursal o elegir una arbitrariamente.
 - La asignación interna de centro, operador e impresora debe tener reglas explícitas. Esta decisión no introduce un algoritmo automático.
 

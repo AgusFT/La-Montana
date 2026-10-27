@@ -22,6 +22,7 @@
  */
 //#endregion
 
+import "@/app/client-experience.css";
 import {NavigationBoundary} from "./navigation-boundary";
 import {MountainMark} from "./mountain-brand";
 import {LogoutButton} from "./identity-forms";

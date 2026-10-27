@@ -39,6 +39,7 @@ import {useEffect,useState} from "react";
 import {quoteRead,money,date,modeLabels} from "@/lib/quote-types";
 import {isOrder,orderState,type Order} from "@/lib/order-types";
 import {ClientJourney} from "./client-journey";
+import {ClientContextTour} from "./client-context-tour";
 import {ClientOrderSummary} from "./client-order-summary";
 import {OrderProgress} from "./order-progress";
 import {orderTrackingLabel} from "@/lib/order-tracking";
@@ -62,6 +63,7 @@ const sections=[
  {id:"pedido-pagos",label:"Pagos",financial:true},
 ];
 function defaultSection(order:Order,internal:boolean){
+ if(!internal)return "pedido-resumen";
  if(order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado)&&order.estado==="PENDIENTE_REVISION")return "pedido-pagos";
  if(order.estado==="CORRECCION_SOLICITADA")return "pedido-correcciones";
  if(["LISTO_PARA_ENTREGA","ENTREGADO","CERRADO"].includes(order.estado))return "pedido-entrega";
@@ -92,9 +94,9 @@ export function OrderDetail({id,internal=false,financial=true}:{id:string;intern
  const saved=()=>{setRefresh(v=>v+1);void load();};
  return <>{!internal&&<ClientJourney part={3}/>} {busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
   <div className="client-actions"><a className="client-button secondary" href={internal?order?`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`:"/operacion":"/cliente/pedidos"}>Volver a pedidos</a><button className="client-button secondary" disabled={busy} onClick={()=>void load()}>Actualizar pedido</button></div>
-  {order&&<><header className="order-overview order-detail-heading"><div><h2>{internal?"Pedido":"Tu pedido"} PED-{order.numero}</h2><p>{order.oferta.sucursal.nombre} · Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></header>
-   {!internal&&<OrderProgress order={order}/>}
-   <nav id="pedido-secciones" className="order-sections" aria-label="Secciones del pedido">{available.map(s=><a key={s.id} href={`#${s.id}`} aria-current={current===s.id?"page":undefined}>{s.label}</a>)}</nav>
+  {order&&<><header className="order-overview order-detail-heading"><div><h2>{internal?"Pedido":"Tu pedido"} PED-{order.numero}</h2><p>{internal?order.oferta.sucursal.nombre+" · ":""}Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></header>
+   {!internal&&<div id="client-order-progress"><OrderProgress order={order}/>{order.cobro&&<p className="client-note"><strong>Situación del pedido:</strong> {order.cobro.mensaje} <a href="#pedido-pagos">Consultar pagos y próximos pasos</a></p>}</div>}
+   <div id="client-order-details"><nav id="pedido-secciones" className="order-sections" aria-label="Secciones del pedido">{available.map(s=><a key={s.id} href={`#${s.id}`} aria-current={current===s.id?"page":undefined}>{s.label}</a>)}</nav></div>
    {/* Keep each form mounted so switching sections preserves drafts and recoverable operations. */}
    <div id="pedido-resumen" className="order-section" hidden={current!=="pedido-resumen"}><Summary order={order} internal={internal}/>{!internal&&<OrderManagement order={order} internal={false} onSaved={saved}/>}</div>
    {internal&&<div id="pedido-revision" className="order-section" hidden={current!=="pedido-revision"}><WorkSummary order={order} internal/><OrderManagement order={order} internal onSaved={saved}/></div>}
@@ -104,6 +106,7 @@ export function OrderDetail({id,internal=false,financial=true}:{id:string;intern
    <div className="order-section" hidden={current!=="pedido-reprogramacion"}><OrderReschedule order={order} internal={internal} onSaved={saved}/></div>
    <div id="pedido-pdf" className="order-section" hidden={current!=="pedido-pdf"}><PrivateFiles quote={order.cotizacion} version={0} internal={internal} confirmed snapshot={order.archivos.map(f=>f.archivo)}/></div>
    {financial&&<div id="pedido-pagos" className="order-section" hidden={current!=="pedido-pagos"}><PaymentPanel key={refresh} quote={order.cotizacion} internal={internal}/></div>}
+   {!internal&&<ClientContextTour stage={3} ready={!busy}/>}
    <details className="order-pilot-limits"><summary>Funciones del piloto <span className="client-construction">En construcción</span></summary><p>CUPS, aplicación móvil, licencias, pasarelas de pago y reclamos siguen en construcción.</p></details>
   </>}
  </>;

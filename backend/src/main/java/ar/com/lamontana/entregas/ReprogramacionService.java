@@ -116,8 +116,8 @@ public class ReprogramacionService {
   if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,branch)||!e.modalidades().contains(old.modalidad()))throw conflicto("La sucursal o modalidad ya no está habilitada para reprogramar.");
   String zona,nombre;List<PuntoEntregaController.Franja> templates;
   if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL){
-   var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(branch)).findFirst().orElseThrow(()->conflicto("La sucursal no tiene horarios configurados."));zona=h.zonaHoraria();
-   nombre=jdbc.queryForObject("SELECT nombre||' · '||calle||' '||numero||', '||localidad||', '||provincia FROM lamontana.sucursal WHERE codigo_publico=?",String.class,branch);
+   var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(p.oferta().origenGlobal()?old.destino():branch)).findFirst().orElseThrow(()->conflicto("El destino no tiene horarios de retiro configurados."));zona=h.zonaHoraria();
+   nombre=jdbc.queryForObject("SELECT nombre||' · '||calle||' '||numero||', '||localidad||', '||provincia FROM lamontana.sucursal WHERE codigo_publico=?",String.class,p.oferta().origenGlobal()?old.destino():branch);
    templates=h.franjasRetiro(); // Retiros independientes del horario de producción.
   }else if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_PUNTO_ENTREGA){
    var pt=e.puntos().stream().filter(x->x.codigoPublico().equals(old.destino())).findFirst().orElseThrow(()->conflicto("El punto ya no está configurado."));

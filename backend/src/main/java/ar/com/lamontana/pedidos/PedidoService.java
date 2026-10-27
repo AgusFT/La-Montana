@@ -112,7 +112,8 @@ public class PedidoService {
  private Revision evaluar(CotizacionService.Detalle q,Long excluirPedido){
   if(q.estado().equals("CONFIRMADA"))return new Revision(vinculado(q.codigoPublico()),q.version(),null,0,null,false,List.of(),null,null,List.of());
   if(!q.estado().equals("VIGENTE")||!clock.instant().isBefore(q.vigenteHasta()))throw conflicto("La cotización ya no está vigente. Conservá los pagos y solicitá una nueva oferta para continuar.");
-  catalogo.reconciliarProgramaciones();var c=operativa.leer();var b=c.configuracion();var o=q.oferta();var branch=o.sucursal().codigoPublico();
+  catalogo.reconciliarProgramaciones();var c=operativa.leer();var b=c.configuracion();
+  if(q.oferta().origenGlobal()&&(b==null||b.entrega().casaMatriz()==null||!b.entrega().casaMatriz().equals(q.oferta().sucursal().codigoPublico())))throw conflicto("Cambió la casa matriz. Actualizá entrega y condiciones antes de confirmar.");var o=q.oferta();var branch=o.sucursal().codigoPublico();
   if(b==null||c.sucursales().stream().noneMatch(s->s.codigoPublico().equals(branch)))throw conflicto("La sucursal no está disponible para confirmar este trabajo.");
   int minPreparacion=0;
   for(var item:o.items()){
@@ -121,8 +122,8 @@ public class PedidoService {
    minPreparacion=Math.max(minPreparacion,item.precio().minimoPreparacionMinutos());
    for(var servicio:c.catalogo().actual().servicios())if(servicio.servicio().equals(t.servicio())||t.terminaciones().contains(servicio.servicio()))minPreparacion=Math.max(minPreparacion,servicio.preparacionMinutos());
   }
-  Instant ahora=clock.instant();var estimacion=operativa.calcularEntrega(c,new SimularEntrega(b.version(),branch,o.modalidad(),ahora,o.punto(),o.direccion()==null?null:o.direccion().territorio()),minPreparacion);
-  var franja=disponible(o,b.entrega(),estimacion,ahora,c.sucursales().stream().filter(s->s.codigoPublico().equals(branch)).findFirst().orElseThrow(),excluirPedido);
+  Instant ahora=clock.instant();var estimacion=operativa.calcularEntrega(c,new SimularEntrega(b.version(),o.origenGlobal()&&o.modalidad()==Modalidad.RETIRO_SUCURSAL?o.entrega().destinoSucursal().sucursal():branch,o.modalidad(),ahora,o.punto(),o.direccion()==null?null:o.direccion().territorio()),minPreparacion);
+  var franja=disponible(o,b.entrega(),estimacion,ahora,c.sucursales().stream().filter(s->s.codigoPublico().equals(o.origenGlobal()&&o.modalidad()==Modalidad.RETIRO_SUCURSAL?o.entrega().destinoSucursal().sucursal():branch)).findFirst().orElseThrow(),excluirPedido);
   var fin=financiero.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),new BigDecimal(o.total()),o.items().stream().mapToInt(x->x.precio().carillas()).sum());
   var condiciones=new Condiciones(o.condiciones(),fin,o.condiciones().revisionHumana()||fin.revisionHumana());
   var bloqueos=new ArrayList<String>();if(q.aceptadaEn()==null)bloqueos.add("Aceptá primero los importes y condiciones de la cotización.");
@@ -135,7 +136,7 @@ public class PedidoService {
  }
  private Franja disponible(CotizacionService.Oferta o,EntregaRepositorio.Entrega e,EvaluadorCalendario.Simulacion estimacion,Instant ahora,OfertaOperativaService.Sucursal sucursalActual,Long excluirPedido){
   UUID branch=o.sucursal().codigoPublico(),dest;String zona,nombre;List<PuntoEntregaController.Franja> slots;
-  if(o.modalidad()==Modalidad.RETIRO_SUCURSAL){var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(branch)).findFirst().orElseThrow();dest=branch;zona=h.zonaHoraria();slots=h.franjasRetiro();nombre=sucursalActual.nombre()+" · "+sucursalActual.direccion();}
+  if(o.modalidad()==Modalidad.RETIRO_SUCURSAL){UUID retiro=o.origenGlobal()?o.entrega().destinoSucursal().sucursal():branch;var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(retiro)).findFirst().orElseThrow();dest=retiro;zona=h.zonaHoraria();slots=h.franjasRetiro();nombre=sucursalActual.nombre()+" · "+sucursalActual.direccion();}
   else if(o.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){var p=e.puntos().stream().filter(x->x.codigoPublico().equals(o.punto())).findFirst().orElseThrow();dest=p.codigoPublico();zona=p.zonaHoraria();slots=p.sucursales().stream().filter(x->x.sucursal().equals(e.casaMatriz()==null?branch:e.casaMatriz())).findFirst().orElseThrow().franjas();nombre=p.nombre()+" · "+p.calle()+" "+p.numero()+", "+p.localidad()+", "+p.provincia();}
   else{var d=estimacion.destinoZona();var z=e.zonas().stream().filter(x->x.codigoPublico().equals(d.zona())).findFirst().orElseThrow();dest=z.codigoPublico();zona=z.zonaHoraria();slots=z.franjas();nombre=o.destino();}
   var v=franjas.siguiente(estimacion.disponibleDesde(),zona,slots,EvaluadorCalendario.limite(ahora,zona),w->ocupadas(o.modalidad(),dest,branch,w,excluirPedido)<w.cupoConfigurado());

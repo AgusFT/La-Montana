@@ -90,19 +90,19 @@ public class CotizacionService {
     private final Clock clock=Clock.systemUTC();
     private final JsonMapper json=JsonMapper.builder().build();
     public CotizacionService(JdbcTemplate jdbc,OfertaOperativaService operativa,CatalogoService catalogo,EvaluadorPrecioItem precios,EvaluadorFinanciero finanzas){this.jdbc=jdbc;this.operativa=operativa;this.catalogo=catalogo;this.precios=precios;this.finanzas=finanzas;}
-    public record Nombre(UUID codigoPublico,String nombre){}
+    public record Nombre(UUID codigoPublico,String nombre,BigDecimal gramaje,String terminacion){public Nombre(UUID codigoPublico,String nombre){this(codigoPublico,nombre,null,null);}}
     public record Punto(UUID codigoPublico,UUID sucursal,String nombre,String direccion,String costo){}
     public record Opciones(boolean disponible,String mensaje,UUID configuracion,UUID revisionComercial,List<OfertaOperativaService.Sucursal> sucursales,
         List<RevisionConfiguracionService.Opcion> combinaciones,List<Nombre> formatos,List<Nombre> papeles,List<Nombre> servicios,
-        List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios){}
+        List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios,OfertaOperativaService.Sucursal casaMatriz,List<OfertaOperativaService.Sucursal> destinosRetiro){}
     public record ItemCotizado(UUID codigoPublico,Documento documento,EvaluadorPrecioItem.Item trabajo,String formato,String papel,EvaluadorPrecioItem.Precio precio){}
     public record Condiciones(boolean revisionHumana,boolean cargaRequiereAcreditacion,String pagoPrevioRequerido,String senaRequerida,String saldo,
         String momento,List<MedioPago> mediosAcreditacion,List<String> instrucciones,PoliticaPagoArchivos politicaArchivos){}
     public record Oferta(UUID configuracion,long numeroConfiguracion,UUID revisionComercial,long numeroRevision,OfertaOperativaService.Sucursal sucursal,
         List<ItemCotizado> items,Modalidad modalidad,UUID punto,Direccion direccion,String destino,MedioPago medioPago,
-        String subtotal,String costoEntrega,String total,Condiciones condiciones,EvaluadorCalendario.Simulacion entrega,List<MedioPago> mediosGenerales){}
+        String subtotal,String costoEntrega,String total,Condiciones condiciones,EvaluadorCalendario.Simulacion entrega,List<MedioPago> mediosGenerales,boolean origenGlobal){}
     public record Detalle(UUID codigoPublico,long numero,long version,String estado,Instant generadaEn,Instant vigenteHasta,Instant aceptadaEn,
-        Instant canceladaEn,String motivoCancelacion,UUID reemplaza,UUID reemplazadaPor,Oferta oferta,Correccion correccion){}
+        Instant canceladaEn,String motivoCancelacion,UUID reemplaza,UUID reemplazadaPor,Oferta oferta,Correccion correccion,UUID preparacion){}
     public record Correccion(UUID pedido,UUID solicitud,boolean pendiente){}
     public record Resumen(UUID codigoPublico,long numero,String estado,Instant generadaEn,Instant vigenteHasta,Instant aceptadaEn,String total,String sucursal,int items){}
     public record Pagina(List<Resumen> elementos,long total,int pagina,int tamano){}
@@ -112,15 +112,15 @@ public class CotizacionService {
     @Transactional
     public Opciones opciones(String correo){
         cliente(correo);bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();
-        if(c.configuracion()==null||c.catalogo().actual()==null||c.opciones().isEmpty())return new Opciones(false,"La imprenta está en preparación o no tiene opciones disponibles para cotizar.",null,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of());
+        if(c.configuracion()==null||c.catalogo().actual()==null||c.opciones().isEmpty())return new Opciones(false,"La imprenta está en preparación o no tiene opciones disponibles para cotizar.",null,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),null,List.of());
         var b=c.configuracion();var formatos=new HashSet<UUID>();var papeles=new HashSet<UUID>();var servicios=new HashSet<UUID>();
         c.opciones().forEach(o->{formatos.add(o.formato());papeles.add(o.papel());servicios.add(o.servicio());servicios.addAll(o.terminaciones());});
         var puntos=c.puntos().stream().filter(p->c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(p.sucursal()))).map(p->{var d=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(p.punto())).findFirst().orElseThrow();return new Punto(p.punto(),p.sucursal(),p.nombre(),d.calle()+" "+d.numero()+", "+d.localidad()+", "+d.provincia(),p.costo());}).toList();
         var modalidades=b.entrega().modalidades().stream().filter(m->m!=Modalidad.RETIRO_SUCURSAL||b.entrega().horariosPorSucursal().stream().anyMatch(h->h.retiroUtilizable()&&c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(h.sucursal())))).filter(m->m!=Modalidad.RETIRO_PUNTO_ENTREGA||!puntos.isEmpty()).filter(m->m!=Modalidad.ENVIO_DOMICILIO||b.entrega().zonas().stream().anyMatch(ZonasRepositorio.Zona::utilizable)).toList();
         return new Opciones(!modalidades.isEmpty(),"Los importes y las condiciones se calculan al cotizar. La cotización no reserva capacidad.",b.codigoPublico(),c.catalogo().actual().codigoPublico(),c.sucursales(),c.opciones(),
             c.catalogo().formatos().stream().filter(f->formatos.contains(f.codigoPublico())).map(f->new Nombre(f.codigoPublico(),f.nombre())).toList(),
-            c.catalogo().papeles().stream().filter(p->papeles.contains(p.codigoPublico())).map(p->new Nombre(p.codigoPublico(),p.nombre())).toList(),
-            c.catalogo().actual().servicios().stream().filter(s->servicios.contains(s.servicio())).map(s->new Nombre(s.servicio(),s.nombreVisible())).toList(),modalidades,puntos,b.pagos().medios());
+            c.catalogo().papeles().stream().filter(p->papeles.contains(p.codigoPublico())).map(p->new Nombre(p.codigoPublico(),p.nombre(),p.gramaje(),p.terminacion())).toList(),
+            c.catalogo().actual().servicios().stream().filter(s->servicios.contains(s.servicio())).map(s->new Nombre(s.servicio(),s.nombreVisible())).toList(),modalidades,puntos,b.pagos().medios(),c.sucursales().stream().filter(x->x.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElse(null),c.sucursales().stream().filter(x->b.entrega().horariosPorSucursal().stream().anyMatch(h->h.sucursal().equals(x.codigoPublico())&&h.retiroUtilizable())).toList());
     }
 
     @Transactional
@@ -132,6 +132,7 @@ public class CotizacionService {
         if(b==null||c.catalogo().actual()==null)throw conflicto("La imprenta todavía no está preparada para cotizar.");
         if(!b.codigoPublico().equals(in.configuracion())||!c.catalogo().actual().codigoPublico().equals(in.revisionComercial()))throw conflicto("Cambiaron las opciones o tarifas. Actualizalas antes de solicitar la cotización.");
         var sucursal=c.sucursales().stream().filter(s->s.codigoPublico().equals(in.sucursal())).findFirst().orElseThrow(()->conflicto("La sucursal ya no está disponible para cotizar."));
+        if(in.origenGlobal())exigir(matriz(c).equals(in.sucursal())&&(in.modalidad()!=Modalidad.RETIRO_SUCURSAL||in.destinoRetiro()!=null),"El origen es la casa matriz configurada; seleccioná sólo un destino de retiro.");
         exigir(b.pagos().medios().contains(in.medioPago()),"El medio de pago no está habilitado.");
         exigir((in.modalidad()==Modalidad.ENVIO_DOMICILIO)==(in.direccion()!=null),"Completá la dirección sólo para envío a domicilio.");
         Long solicitud=null,baseCorreccion=null;
@@ -146,26 +147,16 @@ public class CotizacionService {
             if(correccion==null&&enlazada)throw conflicto("Esta oferta pertenece a una corrección. Solicitá su sucesora desde el pedido.");
             if(vieja.detalle().reemplazadaPor()!=null||vieja.detalle().estado().equals("CONFIRMADA")&&(baseCorreccion==null||vieja.id()!=baseCorreccion))throw conflicto("La cotización ya tiene un pedido o una oferta sucesora. Abrí el resultado guardado.");
             if(solicitud!=null&&vieja.id()!=baseCorreccion&&!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_cotizacion=? AND id_solicitud_correccion=?)",Boolean.class,vieja.id(),solicitud))throw conflicto("La cotización anterior no pertenece a esta corrección.");reemplazada=vieja.id();}
-        var items=new ArrayList<ItemCotizado>();var hashes=new HashSet<String>();BigDecimal subtotal=BigDecimal.ZERO;int carillas=0,minutos=0;
-        for(var item:in.items()){
-            exigir(hashes.add(item.documento().sha256()),"Cada PDF debe aparecer una sola vez con una configuración homogénea. Para otra configuración usá una cotización diferente.");
-            String nombre=item.documento().nombre().strip();exigir(nombre.toLowerCase(Locale.ROOT).endsWith(".pdf")&&nombre.codePoints().noneMatch(cp->Character.isISOControl(cp)||cp=='/'||cp=='\\'),"El nombre debe identificar un PDF sin rutas ni caracteres de control.");
-            var t=item.trabajo();boolean compatible=c.opciones().stream().anyMatch(o->o.sucursal().equals(in.sucursal())&&o.servicio().equals(t.servicio())&&o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color()&&(!t.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(t.terminaciones()));
-            if(!compatible)throw conflicto("Uno de los trabajos no tiene tarifa, servicio y capacidad compatibles en la imprenta.");
-            var precio=precios.calcular(c.catalogo(),t);subtotal=subtotal.add(new BigDecimal(precio.subtotal()));carillas=Math.addExact(carillas,precio.carillas());minutos=Math.max(minutos,precio.minimoPreparacionMinutos());
-            String formato=c.catalogo().formatos().stream().filter(x->x.codigoPublico().equals(t.formato())).findFirst().orElseThrow().nombre();
-            String papel=c.catalogo().papeles().stream().filter(x->x.codigoPublico().equals(t.papel())).findFirst().orElseThrow().nombre();
-            items.add(new ItemCotizado(UUID.randomUUID(),new Documento(nombre,item.documento().bytes(),item.documento().sha256()),t,formato,papel,precio));
-        }
-        Instant ahora=ahora();var temporal=operativa.calcularEntrega(c,new SimularEntrega(b.version(),in.sucursal(),in.modalidad(),ahora,in.punto(),in.direccion()==null?null:in.direccion().territorio()),minutos);
+        var trabajo=calcularItems(in.items(),c);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
+        Instant ahora=ahora();var temporal=operativa.calcularEntrega(c,new SimularEntrega(b.version(),in.origenGlobal()&&in.modalidad()==Modalidad.RETIRO_SUCURSAL?in.destinoRetiro():in.sucursal(),in.modalidad(),ahora,in.punto(),in.direccion()==null?null:in.direccion().territorio()),minutos);
         String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
         BigDecimal total=subtotal.add(new BigDecimal(costo));precios.limite(total);
         var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,carillas);
         var instrucciones=economica.instrucciones().stream().filter(x->!x.startsWith("La simulación evalúa")).map(x->x.replace("Este ejemplo","Esta cotización").replace("este ejemplo","esta cotización")).toList();
         var condiciones=new Condiciones(economica.revisionHumana(),economica.cargaRequiereAcreditacion(),economica.pagoPrevioRequerido(),economica.senaRequerida(),economica.saldo(),economica.momento().name(),economica.mediosAcreditacion(),instrucciones,economica.politicaArchivos());
-        String destino=sucursal.direccion();if(in.punto()!=null){var punto=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(in.punto())).findFirst().orElseThrow();destino=punto.nombre()+" · "+punto.calle()+" "+punto.numero()+", "+punto.localidad()+", "+punto.provincia();}
+        String destino=in.origenGlobal()&&in.modalidad()==Modalidad.RETIRO_SUCURSAL?c.sucursales().stream().filter(x->x.codigoPublico().equals(in.destinoRetiro())).findFirst().orElseThrow(()->conflicto("El destino de retiro no está habilitado.")).direccion():sucursal.direccion();if(in.punto()!=null){var punto=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(in.punto())).findFirst().orElseThrow();destino=punto.nombre()+" · "+punto.calle()+" "+punto.numero()+", "+punto.localidad()+", "+punto.provincia();}
         if(in.direccion()!=null)destino=in.direccion().calle().strip()+" "+in.direccion().numero().strip()+", "+in.direccion().territorio().localidad()+", "+in.direccion().territorio().provincia();
-        var oferta=new Oferta(b.codigoPublico(),b.numero(),c.catalogo().actual().codigoPublico(),c.catalogo().actual().numero(),sucursal,List.copyOf(items),in.modalidad(),in.punto(),in.direccion(),destino,in.medioPago(),subtotal.toPlainString(),costo,total.toPlainString(),condiciones,temporal,List.copyOf(b.pagos().medios()));
+        var oferta=new Oferta(b.codigoPublico(),b.numero(),c.catalogo().actual().codigoPublico(),c.catalogo().actual().numero(),sucursal,List.copyOf(items),in.modalidad(),in.punto(),in.direccion(),destino,in.medioPago(),subtotal.toPlainString(),costo,total.toPlainString(),condiciones,temporal,List.copyOf(b.pagos().medios()),in.origenGlobal());
         UUID codigo=UUID.randomUUID();long id=jdbc.queryForObject("""
             INSERT INTO lamontana.cotizacion(codigo_publico,id_usuario_creador,id_sucursal,id_configuracion_version,id_catalogo_revision,id_cotizacion_reemplazada,estado,generada_en,vigente_hasta,subtotal,costo_entrega,total,oferta)
             VALUES (?,?,(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?),(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),(SELECT id_catalogo_revision FROM lamontana.catalogo_revision WHERE codigo_publico=?),?,'VIGENTE',?,?,?,?,?,?::jsonb) RETURNING id_cotizacion
@@ -179,6 +170,36 @@ public class CotizacionService {
         if(reemplazada!=null)jdbc.update("UPDATE lamontana.cotizacion SET estado='CANCELADA',version=version+1,cancelada_en=?,motivo_cancelacion='Sustituida por una nueva cotización solicitada por el cliente.' WHERE id_cotizacion=? AND estado='VIGENTE' AND vigente_hasta>?",Timestamp.from(ahora),reemplazada,Timestamp.from(ahora));
         if(solicitud!=null)jdbc.update("INSERT INTO lamontana.cotizacion_correccion(id_cotizacion,id_solicitud_correccion) VALUES (?,?)",id,solicitud);
         evento(id,actor,in.operacion(),"COTIZAR",hash,null);return propia(codigo,actor).detalle();
+    }
+
+
+    public record Presupuesto(UUID configuracion,UUID revisionComercial,List<ItemCotizado> items,String subtotal){}
+    private record TrabajoCalculado(List<ItemCotizado> items,BigDecimal subtotal,int carillas,int minutos){}
+    public UUID matriz(OfertaOperativaService.Contexto c){
+        var b=c.configuracion();UUID id=b==null||b.entrega()==null?null:b.entrega().casaMatriz();
+        if(id==null||!b.entrega().matrizConfirmada()||c.sucursales().stream().noneMatch(x->x.codigoPublico().equals(id)))
+            throw conflicto("La imprenta debe confirmar una casa matriz activa antes de recibir nuevos trabajos.");
+        return id;
+    }
+    @Transactional public Presupuesto presupuestar(UUID config,UUID comercial,List<Item> entrada,String correo){
+        cliente(correo);bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();matriz(c);
+        if(c.catalogo().actual()==null||!c.configuracion().codigoPublico().equals(config)||!c.catalogo().actual().codigoPublico().equals(comercial))
+            throw conflicto("Cambiaron las opciones o tarifas. Actualizá el presupuesto antes de continuar.");
+        var t=calcularItems(entrada,c);return new Presupuesto(config,comercial,t.items(),t.subtotal().toPlainString());
+    }
+    private TrabajoCalculado calcularItems(List<Item> entrada,OfertaOperativaService.Contexto c){
+        var items=new ArrayList<ItemCotizado>();var hashes=new HashSet<String>();BigDecimal subtotal=BigDecimal.ZERO;int carillas=0,minutos=0;
+        for(var item:entrada){
+            exigir(hashes.add(item.documento().sha256()),"Cada PDF debe aparecer una sola vez con una configuración homogénea. Para otra configuración usá una cotización diferente.");
+            String nombre=item.documento().nombre().strip();exigir(nombre.toLowerCase(Locale.ROOT).endsWith(".pdf")&&nombre.codePoints().noneMatch(cp->Character.isISOControl(cp)||cp=='/'||cp=='\\'),"El nombre debe identificar un PDF sin rutas ni caracteres de control.");
+            var t=item.trabajo();boolean compatible=c.opciones().stream().anyMatch(o->o.servicio().equals(t.servicio())&&o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color()&&(!t.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(t.terminaciones()));
+            if(!compatible)throw conflicto("Uno de los trabajos no tiene tarifa, servicio y capacidad compatibles en la imprenta.");
+            var precio=precios.calcular(c.catalogo(),t);subtotal=subtotal.add(new BigDecimal(precio.subtotal()));carillas=Math.addExact(carillas,precio.carillas());minutos=Math.max(minutos,precio.minimoPreparacionMinutos());
+            String formato=c.catalogo().formatos().stream().filter(x->x.codigoPublico().equals(t.formato())).findFirst().orElseThrow().nombre();
+            String papel=c.catalogo().papeles().stream().filter(x->x.codigoPublico().equals(t.papel())).findFirst().orElseThrow().nombre();
+            items.add(new ItemCotizado(UUID.randomUUID(),new Documento(nombre,item.documento().bytes(),item.documento().sha256()),t,formato,papel,precio));
+        }
+        precios.limite(subtotal);return new TrabajoCalculado(List.copyOf(items),subtotal,carillas,minutos);
     }
 
     @Transactional
@@ -207,11 +228,12 @@ public class CotizacionService {
     private Registro propia(UUID id,long actor){
         var rows=jdbc.query("SELECT c.*,p.codigo_publico AS reemplaza,n.codigo_publico AS reemplazada_por FROM lamontana.cotizacion c LEFT JOIN lamontana.cotizacion p ON p.id_cotizacion=c.id_cotizacion_reemplazada LEFT JOIN lamontana.cotizacion n ON n.id_cotizacion_reemplazada=c.id_cotizacion WHERE c.codigo_publico=? AND c.id_usuario_creador=?",(r,n)->{
             Instant vencimiento=r.getTimestamp("vigente_hasta").toInstant();String estado=r.getString("estado");if(estado.equals("VIGENTE")&&!ahora().isBefore(vencimiento))estado="EXPIRADA";
-            var d=new Detalle(r.getObject("codigo_publico",UUID.class),r.getLong("id_cotizacion"),r.getLong("version"),estado,r.getTimestamp("generada_en").toInstant(),vencimiento,instante(r.getTimestamp("aceptada_en")),instante(r.getTimestamp("cancelada_en")),r.getString("motivo_cancelacion"),r.getObject("reemplaza",UUID.class),r.getObject("reemplazada_por",UUID.class),json.readValue(r.getString("oferta"),Oferta.class),contextoCorreccion(r.getLong("id_cotizacion")));
+            var d=new Detalle(r.getObject("codigo_publico",UUID.class),r.getLong("id_cotizacion"),r.getLong("version"),estado,r.getTimestamp("generada_en").toInstant(),vencimiento,instante(r.getTimestamp("aceptada_en")),instante(r.getTimestamp("cancelada_en")),r.getString("motivo_cancelacion"),r.getObject("reemplaza",UUID.class),r.getObject("reemplazada_por",UUID.class),json.readValue(r.getString("oferta"),Oferta.class),contextoCorreccion(r.getLong("id_cotizacion")),preparacion(r.getLong("id_cotizacion"),actor));
             return new Registro(r.getLong("id_cotizacion"),r.getLong("id_usuario_creador"),d);
         },id,actor);
         if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"La cotización no está disponible en tu cuenta.");return rows.get(0);
     }
+    private UUID preparacion(long quote,long actor){return jdbc.query("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE id_usuario=? AND (id_ultima_cotizacion=? OR lamontana.cotizacion_descendiente(id_ultima_cotizacion,?)) ORDER BY id_preparacion DESC LIMIT 1",(r,n)->r.getObject(1,UUID.class),actor,quote,quote).stream().findFirst().orElse(null);}
     private Correccion contextoCorreccion(long quote){
         var rows=jdbc.query("SELECT p.codigo_publico,s.codigo_publico,s.estado='PENDIENTE' FROM lamontana.solicitud_correccion s JOIN lamontana.pedido p USING(id_pedido) WHERE s.id_cotizacion_base=? OR EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc WHERE cc.id_solicitud_correccion=s.id_solicitud_correccion AND cc.id_cotizacion=?) ORDER BY s.id_solicitud_correccion DESC LIMIT 1",(r,n)->new Correccion(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getBoolean(3)),quote,quote);
         return rows.isEmpty()?null:rows.get(0);

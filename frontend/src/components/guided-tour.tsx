@@ -1,4 +1,5 @@
 "use client";
+import "@/app/guided-tour.css";
 
 import {useCallback,useEffect,useRef,useState} from "react";
 
