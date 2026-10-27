@@ -123,7 +123,7 @@ public class ProduccionService {
   var pdf=p.archivos().stream().filter(f->f.item().equals(in.item())).findFirst().orElseThrow();
   try{archivos.original(pdf.archivo(),pdf.sha256(),pdf.bytes());}catch(java.io.IOException ex){throw conflicto("No se pudo verificar el PDF confirmado. Recuperá su original privado antes de producir.");}
   RecursosRepositorio.Impresora impresora=null;
-  if(in.impresora()!=null)impresora=impresoras(p).stream().filter(i->i.codigoPublico().equals(in.impresora())&&compatible(i,item)).findFirst().orElseThrow(()->conflicto("La impresora declarada no admite este trabajo en la versión y sucursal del pedido."));
+  if(in.impresora()!=null)impresora=impresoras(p).stream().filter(i->i.codigoPublico().equals(in.impresora())&&compatible(i,item)).findFirst().orElseThrow(()->conflicto("La impresora declarada no admite este trabajo en la versión de la imprenta."));
   Instant ahora=Instant.now();UUID codigo=UUID.randomUUID();String tipo=anterior!=null&&anterior.vista().calidad()!=null?"REIMPRESION_CALIDAD":"NORMAL";
   long id=jdbc.queryForObject("""
    INSERT INTO lamontana.trabajo_impresion(codigo_publico,id_pedido,id_cotizacion_item,id_archivo_almacenado,id_aceptacion_vista_previa,id_trabajo_origen,id_impresora,id_configuracion_version,impresora_nombre,id_operador,operador_nombre,tipo,estado,motivo_excepcion,fecha_inicio)
@@ -168,6 +168,7 @@ public class ProduccionService {
   if(!Set.of("APROBADO","EN_PRODUCCION").contains(p.estado()))out.add("Sólo se inicia producción después de la aprobación y antes de superar calidad.");
   if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,p.oferta().sucursal().codigoPublico()))out.add("La sucursal está desactivada: no admite nuevos trabajos.");
   if(cobertura(p).stream().anyMatch(c->new BigDecimal(c.pendiente()).signum()>0))out.add("Falta anticipo acreditado y aplicado por los medios admitidos en las condiciones aceptadas. Un comprobante o dinero sin aplicar no habilita producción.");
+  if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.cobro_bloquea_produccion(?)",Boolean.class,p.numero())))out.add("El plazo económico o una intervención administrativa bloquea la producción. Los archivos no están autorizados.");
   return List.copyOf(out);
  }
  private String bloqueoItem(Trabajo t){if(t==null)return null;return switch(t.estado()){
@@ -175,7 +176,7 @@ public class ProduccionService {
   case "COMPLETADO"->t.calidad()==null?"Controlá la calidad del trabajo terminado.":t.calidad().resultado()==Resultado.APROBADO?"Este ítem ya superó calidad.":null;
   default->null;
  };}
- private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras().stream().filter(i->i.sucursal().equals(p.oferta().sucursal().codigoPublico())&&i.estado().equals("OPERATIVA")&&i.retiradaEn()==null).toList();}
+ private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras().stream().filter(i->i.estado().equals("OPERATIVA")&&i.retiradaEn()==null).toList();}
  private boolean compatible(RecursosRepositorio.Impresora i,CotizacionService.ItemCotizado item){var t=item.trabajo();return i.formatos().contains(t.formato())&&(!t.color().name().equals("COLOR")||i.admiteColor())&&(!t.dobleFaz()||i.admiteDobleFaz())&&item.precio().hojas()<=i.capacidadHojas();}
  private List<Registro> trabajos(long pedido,UUID item){return jdbc.query("""
   SELECT t.*,o.codigo_publico AS origen,a.codigo_publico AS archivo FROM lamontana.trabajo_impresion t

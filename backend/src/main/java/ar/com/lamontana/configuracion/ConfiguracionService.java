@@ -258,7 +258,7 @@ public class ConfiguracionService {
             var medios=jdbc.query("SELECT medio_pago FROM lamontana.configuracion_medio_pago WHERE id_configuracion_version=? ORDER BY medio_pago",(m,n)->MedioPago.valueOf(m.getString(1)),id);
             return new Pagos(medios,rs.getString("instrucciones_transferencia"),rs.getInt("vigencia_cotizacion_minutos"),rs.getBoolean("exigir_sena"),
                     condicion==null?null:CondicionSena.valueOf(condicion),umbral==null?null:condicion.equals("DESDE_CARILLAS")?umbral.toBigIntegerExact().toString():dinero(umbral),
-                    tipo==null?null:TipoSena.valueOf(tipo),valor==null?null:tipo.equals("PORCENTAJE")?valor.stripTrailingZeros().toPlainString():dinero(valor),dinero(rs.getBigDecimal("umbral_aprobacion")));
+                    tipo==null?null:TipoSena.valueOf(tipo),valor==null?null:tipo.equals("PORCENTAJE")?valor.stripTrailingZeros().toPlainString():dinero(valor),dinero(rs.getBigDecimal("umbral_aprobacion")),rs.getString("politica_pago_archivos")==null?null:json.readValue(rs.getString("politica_pago_archivos"),PoliticaPagoArchivos.class));
         },id);
         return result.isEmpty()?null:result.get(0);
     }

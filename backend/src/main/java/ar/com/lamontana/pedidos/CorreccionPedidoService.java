@@ -138,7 +138,6 @@ public class CorreccionPedidoService {
    files=archivosPropuestos(req);for(var f:p.archivos())if(files.stream().noneMatch(x->x.item().equals(f.item())))bloqueos.add("Falta un PDF corregido y su vista previa aceptada: "+f.nombre()+".");
    if(req.tipo()==Tipo.ENTREGA||req.tipo()==Tipo.CANTIDAD)bloqueos.add("Esta corrección requiere una nueva cotización aceptada, con entrega y cantidades actualizadas.");
    var a=p.condiciones().cotizadas();var b=p.condiciones().actuales();
-   if(a.cargaRequiereAcreditacion()&&!cobertura.cubre(req.cotizacion(),a.pagoPrevioRequerido(),a.senaRequerida(),a.mediosAcreditacion())||b.cargaRequiereAcreditacion()&&!cobertura.cubre(req.cotizacion(),b.pagoPrevioRequerido(),b.senaRequerida(),b.mediosAcreditacion()))bloqueos.add("Falta cobertura acreditada de la variante de pago previo o seña. El dinero debe aplicarse por los medios aceptados.");
   }
   String hash=huella(Arrays.asList(p.codigoPublico(),p.version(),req.codigo(),quote,finales==null?null:finales.huella(),files));
   return new Preparacion(req.codigo(),p.version(),quote,cambio,p.oferta().total(),total,new BigDecimal(total).subtract(new BigDecimal(p.oferta().total())).toPlainString(),hash,bloqueos.isEmpty(),List.copyOf(bloqueos),finales,files);

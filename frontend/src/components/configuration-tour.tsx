@@ -8,6 +8,7 @@ const phaseTours:Record<number,{steps:TourStep[];completion:{title:string;descri
   3:{steps:[
     {target:"config-tour-payments",title:"Elegí los medios de pago",description:"Habilitá los medios que puede usar el cliente. La condición elegida en la fase 2 puede exigir acreditación previa o limitar el efectivo."},
     {target:"config-tour-deposit",title:"Definí la regla de seña",description:"Según el modelo, podés exigir una seña y configurar su condición, porcentaje o importe. Si elegiste pago previo total, la seña no se aplica."},
+    {target:"config-tour-archives-policy",title:"Separá pago, conservación y autorización",description:"El PDF se carga privado antes de pagar. Elegí el plazo comercial y un recordatorio anterior; después del vencimiento se conservan los archivos 24, 48 o 72 horas. Un pago informado o una gestión pendiente siempre suspenden la purga. Pagar no omite controles de aprobación ni autoriza al agente por sí solo."},
     {target:"config-tour-payments-actions",title:"Guardá las reglas",description:"Guardar conserva estas decisiones en el borrador. El próximo paso se habilita cuando los requisitos quedan completos; todavía no cambia la configuración activa."},
   ],completion:{title:"Pagos preparados",description:"Revisá las condiciones antes de continuar. La simulación es opcional y no registra cobros ni pedidos."}},
   4:{steps:[
@@ -68,6 +69,6 @@ export function ConfigurationTour({phase,owner,firstSetup,ready,hasDraft,hasSche
     steps=tour.steps;completion=tour.completion;
   }
   const context=phase===4&&printerEditor?":printer-editor":"";
-  const revision=phase===5?"v4":"v1";
+  const revision=phase===5?"v4":phase===3?"v2":"v1";
   return <GuidedTour key={`${owner}:${phase}${context}`} steps={steps} completion={completion} storageKey={`lamontana:configuration-tour:phase-${phase}${context}:${revision}:${owner}`} autoStart={firstSetup&&ready&&phase<=7} helpLabel={`Guía de la fase ${phase}${context?" · formulario de impresora":""}`}/>;
 }

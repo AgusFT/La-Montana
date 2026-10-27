@@ -97,7 +97,7 @@ public class CotizacionService {
         List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios){}
     public record ItemCotizado(UUID codigoPublico,Documento documento,EvaluadorPrecioItem.Item trabajo,String formato,String papel,EvaluadorPrecioItem.Precio precio){}
     public record Condiciones(boolean revisionHumana,boolean cargaRequiereAcreditacion,String pagoPrevioRequerido,String senaRequerida,String saldo,
-        String momento,List<MedioPago> mediosAcreditacion,List<String> instrucciones){}
+        String momento,List<MedioPago> mediosAcreditacion,List<String> instrucciones,PoliticaPagoArchivos politicaArchivos){}
     public record Oferta(UUID configuracion,long numeroConfiguracion,UUID revisionComercial,long numeroRevision,OfertaOperativaService.Sucursal sucursal,
         List<ItemCotizado> items,Modalidad modalidad,UUID punto,Direccion direccion,String destino,MedioPago medioPago,
         String subtotal,String costoEntrega,String total,Condiciones condiciones,EvaluadorCalendario.Simulacion entrega,List<MedioPago> mediosGenerales){}
@@ -162,7 +162,7 @@ public class CotizacionService {
         BigDecimal total=subtotal.add(new BigDecimal(costo));precios.limite(total);
         var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,carillas);
         var instrucciones=economica.instrucciones().stream().filter(x->!x.startsWith("La simulación evalúa")).map(x->x.replace("Este ejemplo","Esta cotización").replace("este ejemplo","esta cotización")).toList();
-        var condiciones=new Condiciones(economica.revisionHumana(),economica.cargaRequiereAcreditacion(),economica.pagoPrevioRequerido(),economica.senaRequerida(),economica.saldo(),economica.momento().name(),economica.mediosAcreditacion(),instrucciones);
+        var condiciones=new Condiciones(economica.revisionHumana(),economica.cargaRequiereAcreditacion(),economica.pagoPrevioRequerido(),economica.senaRequerida(),economica.saldo(),economica.momento().name(),economica.mediosAcreditacion(),instrucciones,economica.politicaArchivos());
         String destino=sucursal.direccion();if(in.punto()!=null){var punto=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(in.punto())).findFirst().orElseThrow();destino=punto.nombre()+" · "+punto.calle()+" "+punto.numero()+", "+punto.localidad()+", "+punto.provincia();}
         if(in.direccion()!=null)destino=in.direccion().calle().strip()+" "+in.direccion().numero().strip()+", "+in.direccion().territorio().localidad()+", "+in.direccion().territorio().provincia();
         var oferta=new Oferta(b.codigoPublico(),b.numero(),c.catalogo().actual().codigoPublico(),c.catalogo().actual().numero(),sucursal,List.copyOf(items),in.modalidad(),in.punto(),in.direccion(),destino,in.medioPago(),subtotal.toPlainString(),costo,total.toPlainString(),condiciones,temporal,List.copyOf(b.pagos().medios()));

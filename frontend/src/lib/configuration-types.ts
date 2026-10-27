@@ -71,11 +71,14 @@
  */
 //#endregion
 
+import {validArchivePolicy,type ArchivePaymentPolicy} from "./payment-archive-policy";
+
 export type OperatingModel = "MANUAL" | "CONDICIONAL";
 export type ApprovalCriterion = "PAGO_PREVIO" | "SENA" | "MONTO_TOTAL";
 export type PaymentMethod = "TRANSFERENCIA" | "EFECTIVO";
 export type DepositCondition = "SIEMPRE" | "DESDE_CARILLAS" | "DESDE_MONTO" | "SUPERAR_UMBRAL_APROBACION";
 export type PaymentConfiguration = {
+  politicaArchivos?: import("./payment-archive-policy").ArchivePaymentPolicy|null;
   medios: PaymentMethod[]; instruccionesTransferencia: string | null; vigenciaCotizacionMinutos: number;
   exigirSena: boolean; condicionSena: DepositCondition | null; umbralSena: string | null;
   tipoSena: "PORCENTAJE" | "FIJA" | null; valorSena: string | null; umbralAprobacion: string | null;
@@ -113,10 +116,10 @@ export function isActivationOutcome(v:unknown):v is ActivationOutcome{return rec
 export function isConfigurationSchedule(v:unknown):v is ConfigurationSchedule{return record(v)&&isConfigurationDraft(v.configuracion)&&["PROGRAMADA","ACTIVA","HISTORICA","CANCELADA"].includes(v.configuracion.estado)&&["confirmadaEn","previstaEn","zonaHoraria","programador","motivo"].every(k=>typeof v[k]==="string")&&(v.proximoIntentoEn===null||typeof v.proximoIntentoEn==="string")&&Array.isArray(v.intentos)&&v.intentos.every(i=>record(i)&&["codigo","origen","estado","iniciadoEn"].every(k=>typeof i[k]==="string")&&["terminadoEn","atrasoDetectadoEn","resultado","detalle"].every(k=>i[k]===null||typeof i[k]==="string"));}
 export type ConfigurationState = { borrador: ConfigurationDraft | null; historial: ConfigurationDraft[];activa:ConfigurationVersion|null;programada:ConfigurationSchedule|null;intentos:ConfigurationAttempt[] };
 export const modelLabels: Record<OperatingModel,string> = {MANUAL:"Control manual",CONDICIONAL:"Control condicional"};
-export const criterionLabels: Record<ApprovalCriterion,string> = {PAGO_PREVIO:"Pago previo total",SENA:"Pago de seña",MONTO_TOTAL:"Monto total del pedido"};
+export const criterionLabels: Record<ApprovalCriterion,string> = {PAGO_PREVIO:"Pago total previo",SENA:"Seña previa",MONTO_TOTAL:"Aprobación según monto"};
 function record(value:unknown):value is Record<string,unknown>{return !!value&&typeof value==="object";}
 export function isPaymentConfiguration(value:unknown):value is PaymentConfiguration {
-  return record(value)&&Array.isArray(value.medios)&&value.medios.length>0&&value.medios.every(item=>["TRANSFERENCIA","EFECTIVO"].includes(String(item)))&&
+  return record(value)&&(value.politicaArchivos===undefined||value.politicaArchivos===null||record(value.politicaArchivos)&&validArchivePolicy(value.politicaArchivos as ArchivePaymentPolicy))&&Array.isArray(value.medios)&&value.medios.length>0&&value.medios.every(item=>["TRANSFERENCIA","EFECTIVO"].includes(String(item)))&&
     (value.instruccionesTransferencia===null||typeof value.instruccionesTransferencia==="string")&&Number.isSafeInteger(value.vigenciaCotizacionMinutos)&&Number(value.vigenciaCotizacionMinutos)>0&&typeof value.exigirSena==="boolean"&&
     (value.condicionSena===null||["SIEMPRE","DESDE_CARILLAS","DESDE_MONTO","SUPERAR_UMBRAL_APROBACION"].includes(String(value.condicionSena)))&&
     (value.tipoSena===null||["PORCENTAJE","FIJA"].includes(String(value.tipoSena)))&&["umbralSena","valorSena","umbralAprobacion"].every(key=>value[key]===null||typeof value[key]==="string");

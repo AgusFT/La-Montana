@@ -117,7 +117,10 @@ public class ConfiguracionController {
     public record Pagos(@NotNull @Size(min=1,max=2) List<@NotNull MedioPago> medios,
                         @Size(max=2000) String instruccionesTransferencia,@NotNull @Positive Integer vigenciaCotizacionMinutos,
                         @NotNull Boolean exigirSena,CondicionSena condicionSena,@Size(max=32) String umbralSena,
-                        TipoSena tipoSena,@Size(max=32) String valorSena,@Size(max=32) String umbralAprobacion) {}
+                        TipoSena tipoSena,@Size(max=32) String valorSena,@Size(max=32) String umbralAprobacion,
+                        @Valid PoliticaPagoArchivos politicaArchivos) {
+        public Pagos(List<MedioPago> medios,String instrucciones,Integer vigencia,Boolean sena,CondicionSena condicion,String umbral,TipoSena tipo,String valor,String aprobacion){this(medios,instrucciones,vigencia,sena,condicion,umbral,tipo,valor,aprobacion,null);}
+    }
     public record GuardarPagos(@NotNull UUID operacion,@NotNull @Min(1) Long version,@NotNull @Valid Pagos pagos) {}
     public record SimularPagos(@NotNull @Min(1) Long version,@NotBlank @Size(max=32) String total,@NotNull @Positive Integer carillas) {}
     public record CrearBorrador(@NotNull UUID operacion) {}

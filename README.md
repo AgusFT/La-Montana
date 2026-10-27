@@ -4,7 +4,7 @@ Aplicación local con Spring Boot, Next.js y PostgreSQL para una imprenta con va
 
 ## Estado actual · demo v0.1 y plan v6 completos
 
-La demo cumple los once criterios originales y los nueve agregados en la revisión 6 del plan. La suite completa aprobó 165 pruebas; backend y frontend compilan, incluido el tipado. La aceptación conserva la evidencia original de modelos manual/condicionales, permisos, D1/D2 y las tres modalidades de entrega, y agrega regresión de pedidos, pruebas del sitio, instalación vacía, migración, persistencia y presentación responsive.
+**Certificación histórica de la revisión 6 (23/09/2026):** la demo cumplió los once criterios originales y los nueve agregados en esa revisión. Su suite completa aprobó 165 pruebas; backend y frontend compilan, incluido el tipado. La aceptación conserva la evidencia original de modelos manual/condicionales, permisos, D1/D2 y las tres modalidades de entrega, y agrega regresión de pedidos, pruebas del sitio, instalación vacía, migración, persistencia y presentación responsive.
 
 El configurador operativo conserva el menú general en escritorio y móvil e incluye ayudas en cada fase. Un borrador guarda el avance sin activar reglas: la activación se autoriza en el paso 7. Al salir de un formulario con cambios sin guardar se puede seguir editando o descartarlos; las solicitudes y autorizaciones pendientes se resuelven o revocan desde el formulario. El navegador de fases mantiene visible el paso seleccionado en pantallas angostas.
 
@@ -104,10 +104,12 @@ El configurador presenta ocho fases: configuración actual, modelo, pagos, recur
 
 | Modelo | Comportamiento configurable |
 |---|---|
-| Manual | Revisión humana; elegir sin seña o seña fija/porcentual, siempre o desde carillas/importe. La seña aplicable se exige antes de producir. |
-| Pago previo total | Total acreditado y aplicado por transferencia antes de cargar el PDF. |
-| Seña previa | Seña fija/porcentual acreditada y aplicada por transferencia antes de cargar; efectivo puede habilitarse para el saldo. |
-| Condicional por monto, D1 | Hasta el umbral inclusive no se exige seña por esa regla. Por encima se revisa/corrige el PDF y se aprueba; después se exige seña para producir sólo si fue habilitada. Sin seña conserva revisión humana y cobra el saldo antes de entregar. |
+| Manual | Revisión y aprobación humanas; seña opcional según carillas/importe. La seña aplicable debe estar acreditada y aplicada antes de aprobar/producir, no antes de cargar. |
+| Pago total previo | PDF privado y pedido antes del pago; total acreditado y aplicado por transferencia antes de aprobar/producir. |
+| Seña previa | PDF privado y pedido antes del pago; seña acreditada y aplicada antes de aprobar/producir. Efectivo opcional para el saldo. |
+| Aprobación según monto | Hasta el umbral inclusive no se exige seña por esa regla. Por encima aplica la seña configurada, sin revisión humana automática. Saldo antes de entregar. |
+
+**Regla vigente · 27/10/2026:** el PDF se recibe/valida privado y el pedido puede crearse antes de acreditar. Fase 3 separa plazo comercial (minutos/horas/días), recordatorio opcional y conservación certificada de 24/48/72 h desde el vencimiento. Informar pago, presentar comprobante o una intervención pendiente suspenden la purga en backend. Casos tardíos/rechazados y cancelaciones con dinero requieren resolución administrativa; borrar contenido nunca borra historia. Ver [contrato de pagos y archivos](docs/pagos-archivos-y-retencion.md) y [RN/RF/HU/CU y wireflows](docs/trazabilidad-pagos-archivos.md). Reemplaza las leyendas anteriores de pago antes de subir PDF.
 
 Medios generales, instrucciones de transferencia, vigencia de cotización, umbrales, porcentajes y montos se ingresan expresamente. No existe la antigua regla fija de 200 carillas/30%. La seña fija se limita al total; porcentajes se redondean a centavos con HALF_UP, sin inventar un cargo mínimo si el resultado es cero.
 
@@ -170,7 +172,7 @@ Cambiar contenido manteniendo páginas/opciones conserva el precio y requiere nu
 La composición recupera MC-CLI-003 (preparar), MC-CLI-005 (resumen) y MC-CLI-006 (pedido actual) de la primera etapa Web. La deprecación de Supabase no descarta esas referencias visuales; las reglas actuales del motor determinan las opciones y los requisitos.
 
 1. **Prepará tu trabajo:** archivo, sucursal, servicio, tamaño, papel e impresión. Cada PDF comienza con una copia. Los selectores conservan sólo combinaciones disponibles y los opcionales aparecen cuando la combinación elegida los admite. Cambiarla limpia selecciones incompatibles. Entrega y medio preferido permiten obtener el importe real del resumen.
-2. **Revisá y confirmá:** resumen compacto de archivo/trabajo, importe, entrega y condiciones aplicables. El precio detallado y las acciones secundarias quedan desplegables. Aceptar el resumen registra la aceptación de la oferta. Después se muestra un único subpaso a la vez: pago previo **sólo cuando el backend lo exige**, revisión de archivos y confirmación final. No se presenta todo el panel financiero y de archivos junto al presupuesto. Informar una transferencia no acredita dinero. El acceso a archivos se consulta nuevamente y el backend agrega `carga.codigo=PAGO_PENDIENTE` cuando la causa del bloqueo es financiera; otros bloqueos no se interpretan como una obligación de pagar. No hay cambios en el cálculo ni en los controles de autorización/cobertura.
+2. **Revisá y confirmá:** resumen compacto de archivo/trabajo, importe, entrega y condiciones aplicables. El precio detallado y las acciones secundarias quedan desplegables. Aceptar el resumen registra la aceptación de la oferta. Después se muestra un único subpaso a la vez: revisión de archivos y confirmación final. El pago requerido condiciona aprobación/producción, no la carga ni la existencia del pedido. No se presenta todo el panel financiero y de archivos junto al presupuesto. Informar una transferencia no acredita dinero. El acceso a archivos se consulta nuevamente; los bloqueos técnicos y de permisos no se interpretan como una obligación de pagar para subir. No hay cambios en el cálculo ni en los controles de autorización/cobertura.
 3. **Seguí tu pedido:** sólo después de crearlo aparece el pedido con su timeline conectado, detalles y entrega. Las correcciones llevan al pedido original para responderlas; no crean otro pedido.
 
 El PDF elegido se conserva únicamente en memoria de la misma pestaña durante la navegación al resumen. No se vuelve a pedir si sigue disponible y corresponde al ítem/huella. No se carga automáticamente: el cliente decide enviarlo cuando el servidor habilita la carga y acepta la vista previa de todas las páginas. Recargar o cerrar la pestaña pierde esa selección local; cerrar sesión o crear el pedido limpia la memoria. Los archivos ya recibidos y sus aceptaciones permanecen en el backend.
@@ -189,7 +191,7 @@ Las fechas provienen de hechos guardados. No se inventan fechas de movimientos l
 
 Informar una transferencia no acredita dinero. El interno con permiso verifica la recepción real, registra referencia, importe, fecha y motivo, y después aplica expresamente el importe a una cotización aceptada. Registrar efectivo requiere su permiso específico. Referencias de transferencia son únicas en la instalación y recibos de efectivo por sucursal. No se genera una transacción bancaria ni se puede aplicar dos veces el mismo dinero.
 
-El panel distingue recibido, aplicado, disponible, pendiente y devuelto. Sólo los medios admitidos pueden cubrir cada requisito; un pago sin aplicar no habilita carga ni producción. Las cotizaciones antecesoras conservan el historial financiero.
+El panel distingue recibido, aplicado, disponible, pendiente y devuelto. Sólo los medios admitidos pueden cubrir cada requisito; un pago sin aplicar no cubre aprobación ni producción; la carga privada no requiere pago previo. Las cotizaciones antecesoras conservan el historial financiero.
 
 **Pago tardío, D2:** el pago permanece aunque venza la oferta. El cliente solicita y acepta una sucesora; un interno autorizado puede aplicar allí el dinero anterior, mostrando diferencias. No se crea un pedido automáticamente ni se cobra nuevamente lo recibido. Sólo se admite la misma oferta o su cadena de sucesoras del mismo particular, no una billetera genérica. La aplicación entre sucursales exige acceso a origen y destino.
 
@@ -201,7 +203,7 @@ Los comprobantes son PDF privados de hasta 10 MiB, con inspección, versiones, v
 
 Abrir **Operación → sucursal → pedido**. El detalle se organiza en secciones: resumen/historia, revisión, correcciones, producción/calidad, entrega/cierre, reprogramación, PDF y pagos según rol/permisos. Al entrar se muestra la etapa del pedido; los enlaces con fragmento conservan la sección tras recargar. Cambiar de sección conserva borradores en memoria. Recargar vuelve al estado persistido y no conserva cambios sin guardar. Desde calidad el PDF abre en otra pestaña para no perder el formulario.
 
-El personal revisa datos y PDF, registra notas privadas, aprueba, pide correcciones o rechaza. Las notas internas no se entregan al cliente. En manual/D1 la revisión precede a la aprobación; la seña configurada se exige después para producir. Cliente o personal autorizado pueden cancelar antes de producción según las acciones disponibles; se libera cupo y se conservan dinero/historia, sin devolución automática.
+El personal revisa datos y PDF, registra notas privadas, aprueba, pide correcciones o rechaza. Las notas internas no se entregan al cliente. En control manual la revisión humana precede a la aprobación; el anticipo configurado debe acreditarse y aplicarse antes de aprobar/producir. Superar el umbral de monto no impone revisión humana automática. Cliente o personal autorizado pueden cancelar antes de producción según las acciones disponibles; se libera cupo y se conservan dinero/historia, sin devolución automática.
 
 La solicitud de corrección tiene mensaje para el cliente y motivo privado. El cliente responde con nuevas versiones de PDF aceptadas, contacto corregido o cotización sucesora para cambios materiales. Se conserva el pedido y su recorrido. Una nueva oferta requiere aceptación, revalidación de cupo y aplicación explícita del dinero cuando corresponda; no cambia silenciosamente el precio original.
 
@@ -268,7 +270,7 @@ La landing funcionó en localhost y 127.0.0.1 sin solicitudes externas, con los 
 
 1. Iniciar con el comando de arriba y crear el propietario desde `/instalacion`. Completar correo, dos sucursales, empleados y permisos expresos; usar Mailpit para los códigos.
 2. Ingresar el catálogo y las tarifas propias. Completar fases2–6 con recursos manuales y calendarios/franjas/cupos para las tres modalidades. Simular, revisar advertencias y activar con contraseña/código.
-3. Registrar un particular, acceder y preparar un PDF: elegir sucursal, opciones, pago y entrega. Aceptar la oferta. En pago previo/seña pura, acreditar y aplicar primero desde el usuario autorizado; en D1, revisar/corregir antes de la seña.
+3. Registrar un particular, acceder y preparar un PDF: elegir sucursal, opciones, pago y entrega. Aceptar la oferta. Cargar/validar PDF y confirmar pedido incluso sin anticipo; después acreditar/aplicar desde el usuario autorizado para habilitar aprobación/producción. El control manual conserva su revisión humana.
 4. Enviar el PDF, abrir y aceptar sus páginas, revisar las condiciones finales y confirmar. Recargar y consultar el pedido desde Inicio o Mis pedidos.
 5. Entrar con un empleado de la sucursal responsable, revisar y aprobar. Si corresponde, pedir corrección y esperar PDF/respuesta/revisión nuevos. Registrar y aplicar el anticipo necesario desde un usuario con permiso financiero.
 6. Registrar inicio/fin manuales; inspeccionar los cinco controles de calidad. Una reimpresión conserva el intento anterior. El resultado listo todavía no constituye una entrega.
@@ -337,7 +339,7 @@ Verificación: 16 pruebas backend pertinentes de catálogo, programación, migra
 
 ### Ajustes de configuración · revisión 12
 
-- En pagos se elige explícitamente usar o no seña. El modelo por monto mantiene su umbral de revisión humana aunque no haya anticipo y permite efectivo sin transferencia en ese caso. Si se desactiva «Seña previa», se avisa y al guardar cambia atómicamente a control manual; pago total previo mantiene su requisito.
+- En pagos se elige explícitamente usar o no seña. El modelo por monto mantiene el umbral económico, sin revisión humana automática (corrección del 27/10/2026), y permite efectivo sin transferencia cuando no exige anticipo. Si se desactiva «Seña previa», se avisa y al guardar cambia atómicamente a control manual; pago total previo mantiene su requisito.
 - Los importes financieros muestran $ / ARS y usan formato argentino: `1.500,50` o `1500,50`, con punto para miles y coma para centavos. Se transforman a decimales exactos para el backend. Los porcentajes indican `%` y las cantidades de carillas conservan su unidad.
 - El alta/edición de impresoras permite seleccionar todos los formatos o quitar la selección, además de marcar cada uno. La asignación automática sigue deshabilitada con un distintivo amarillo «En construcción».
 - En fase 5, el selector muestra tanto sucursales pendientes como calendarios agregados. Cambiar de sucursal conserva los datos que se están editando. Los botones de puntos y zonas guardan primero los cambios pendientes y navegan sólo después de confirmar el guardado; los reintentos conservan operación y destino sin duplicar cambios. Los errores mantienen el formulario.

@@ -106,7 +106,7 @@ public class ArchivoService {
         public Acceso(boolean habilitada,String motivo){this(habilitada,motivo,habilitada?"HABILITADA":"BLOQUEADA");}
     }
     public record Archivo(UUID codigoPublico,UUID item,String nombre,String estado,boolean activo,Instant creadoEn,Instant cargarHasta,
-                          Long bytes,String sha256,Integer paginas,String codigoResultado,String mensaje,Instant aceptadaEn){}
+                          Long bytes,String sha256,Integer paginas,String codigoResultado,String mensaje,Instant aceptadaEn,boolean revocado){}
     public record Item(UUID codigoPublico,String nombre,List<Archivo> archivos,boolean admiteCarga){}
     public record Vista(UUID cotizacion,String sucursal,Acceso carga,List<Item> items,long version,UUID correccion){}
     private record Correccion(long id,UUID codigo,long version){}
@@ -205,14 +205,14 @@ public class ArchivoService {
     });}
 
     public Contenido contenido(UUID quote,UUID file,Integer pagina,String correo,boolean interno){
-        Archivo f=consultar(quote,file,correo,interno);
+        Archivo f=consultar(quote,file,correo,interno);exigirContenido(file);
         if(!Set.of("VALIDO","REQUIERE_COTIZACION").contains(f.estado()))throw conflicto("El archivo todavía no tiene un resultado de inspección seguro.");
         if(pagina!=null&&(pagina<1||pagina>f.paginas()))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Página inválida.");
         try{
             Path original=storage.original(file,f.sha256(),f.bytes());
-            if(pagina==null){byte[] data=Files.readAllBytes(original);consultar(quote,file,correo,interno);return new Contenido(data,"application/pdf",f.nombre());}
+            if(pagina==null){byte[] data=Files.readAllBytes(original);consultar(quote,file,correo,interno);exigirContenido(file);return new Contenido(data,"application/pdf",f.nombre());}
             Path output=storage.carpeta(file).resolve("preview-"+UUID.randomUUID()+".png");
-            try{inspector.preview(original,output,pagina-1);consultar(quote,file,correo,interno);return new Contenido(Files.readAllBytes(output),"image/png","pagina-"+pagina+".png");}
+            try{inspector.preview(original,output,pagina-1);consultar(quote,file,correo,interno);exigirContenido(file);return new Contenido(Files.readAllBytes(output),"image/png","pagina-"+pagina+".png");}
             finally{Files.deleteIfExists(output);}
         }catch(IOException e){throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,"No se pudo recuperar o renderizar el archivo privado. Volvé a intentar.");}
     }
@@ -239,13 +239,7 @@ public class ArchivoService {
         if(c.aceptada()==null)return new Acceso(false,"Aceptá la cotización antes de enviar los PDF.");
         var current=operativa.leer();var b=current.configuracion();
         if(b==null||current.sucursales().stream().noneMatch(s->s.codigoPublico().equals(c.oferta().sucursal().codigoPublico())))return new Acceso(false,"La sucursal no está disponible para recibir el trabajo.");
-        int faces=c.oferta().items().stream().mapToInt(i->i.precio().carillas()).sum();
-        var actual=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),new java.math.BigDecimal(c.oferta().total()),faces);
-        var ofrecida=c.oferta().condiciones();
-        if(ofrecida.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),ofrecida.pagoPrevioRequerido(),ofrecida.senaRequerida(),ofrecida.mediosAcreditacion())
-            ||actual.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),actual.pagoPrevioRequerido(),actual.senaRequerida(),actual.mediosAcreditacion()))
-            return new Acceso(false,"Falta acreditar y aplicar el anticipo requerido mediante los medios admitidos. Informar una transferencia no acredita dinero.","PAGO_PENDIENTE");
-        return new Acceso(true,"Podés enviar los PDF para su análisis y vista previa. La seña exigible después de aprobar sigue siendo un requisito independiente.");
+        return new Acceso(true,"Podés cargar y validar los PDF antes de pagar. La aprobación y producción requieren las condiciones económicas correspondientes.");
     }
     private Correccion correccion(Cotizacion c){
         if(!c.estado().equals("CONFIRMADA"))return null;
@@ -261,14 +255,19 @@ public class ArchivoService {
         if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_solicitud_correccion=?)",Boolean.class,s.id()))return new Acceso(false,"Ya hay una nueva oferta para la corrección. Cargá los PDF en esa cotización y respondé desde el pedido.");
         if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,c.oferta().sucursal().codigoPublico()))return new Acceso(false,"La sucursal está desactivada.");
         if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.solicitud_correccion_item WHERE id_solicitud_correccion=? AND requiere_reemplazo)",Boolean.class,s.id()))return new Acceso(false,"Esta solicitud no requiere reemplazar PDF. Corregí los datos al responder desde el pedido.");
-        var fin=jdbc.queryForObject("SELECT condiciones_finales FROM lamontana.pedido_actual WHERE id_cotizacion=?",(r,n)->json.readValue(r.getString(1),ar.com.lamontana.pedidos.PedidoService.Condiciones.class),c.id());var a=fin.cotizadas();var b=fin.actuales();
-        if(a.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),a.pagoPrevioRequerido(),a.senaRequerida(),a.mediosAcreditacion())||b.cargaRequiereAcreditacion()&&!cobertura.cubre(c.id(),b.pagoPrevioRequerido(),b.senaRequerida(),b.mediosAcreditacion()))return new Acceso(false,"Falta cobertura acreditada del anticipo aceptado para la carga.","PAGO_PENDIENTE");
         return new Acceso(true,"Cargá sólo los PDF solicitados, aceptá cada vista previa y enviá tu respuesta desde el pedido. Los originales siguen en su historial.");
     }
     private void exigirCarga(Cotizacion c){var a=gate(c);if(!a.habilitada())throw conflicto(a.motivo());}
     private long itemId(long quote,UUID item){var ids=jdbc.query("SELECT id_cotizacion_item FROM lamontana.cotizacion_item WHERE id_cotizacion=? AND codigo_publico=?",(r,n)->r.getLong(1),quote,item);if(ids.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"El ítem no está disponible.");return ids.get(0);}
+    private boolean revocado(UUID file){return Boolean.TRUE.equals(jdbc.queryForObject("""
+        SELECT EXISTS(SELECT 1 FROM lamontana.eliminacion_archivo e JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) WHERE a.codigo_publico=?)
+        OR EXISTS(SELECT 1 FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado)
+        JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.pedido_actual p ON lamontana.cotizacion_descendiente(p.id_cotizacion,ci.id_cotizacion)
+        JOIN lamontana.cobro_pedido cp USING(id_pedido) WHERE a.codigo_publico=? AND p.estado IN ('CANCELADO','RECHAZADO'))
+        """,Boolean.class,file,file));}
+    private void exigirContenido(UUID file){if(revocado(file))throw new ResponseStatusException(HttpStatus.GONE,"El contenido de este PDF fue revocado; se conserva la trazabilidad del pedido.");}
     private Archivo archivo(UUID quote,UUID file){
-        var rows=jdbc.query("SELECT a.*,ci.codigo_publico AS item,t.activo,p.fecha AS aceptada FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.cotizacion c USING(id_cotizacion) LEFT JOIN lamontana.aceptacion_vista_previa p USING(id_archivo_almacenado) WHERE a.codigo_publico=? AND c.codigo_publico=?",(r,n)->new Archivo(r.getObject("codigo_publico",UUID.class),r.getObject("item",UUID.class),r.getString("nombre_original"),r.getString("estado"),r.getBoolean("activo"),r.getTimestamp("fecha_creacion").toInstant(),r.getTimestamp("cargar_hasta").toInstant(),r.getObject("cantidad_bytes",Long.class),r.getString("sha256"),r.getObject("cantidad_paginas",Integer.class),r.getString("codigo_resultado"),r.getString("mensaje"),r.getTimestamp("aceptada")==null?null:r.getTimestamp("aceptada").toInstant()),file,quote);
+        var rows=jdbc.query("SELECT a.*,ci.codigo_publico AS item,t.activo,p.fecha AS aceptada FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_trabajo t USING(id_archivo_almacenado) JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.cotizacion c USING(id_cotizacion) LEFT JOIN lamontana.aceptacion_vista_previa p USING(id_archivo_almacenado) WHERE a.codigo_publico=? AND c.codigo_publico=?",(r,n)->new Archivo(r.getObject("codigo_publico",UUID.class),r.getObject("item",UUID.class),r.getString("nombre_original"),r.getString("estado"),r.getBoolean("activo"),r.getTimestamp("fecha_creacion").toInstant(),r.getTimestamp("cargar_hasta").toInstant(),r.getObject("cantidad_bytes",Long.class),r.getString("sha256"),r.getObject("cantidad_paginas",Integer.class),r.getString("codigo_resultado"),r.getString("mensaje"),r.getTimestamp("aceptada")==null?null:r.getTimestamp("aceptada").toInstant(),revocado(file)),file,quote);
         if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"El archivo no está disponible.");return rows.get(0);
     }
     private void validacion(UUID file,String type,String result,String engine,String version,String code){jdbc.update("INSERT INTO lamontana.validacion_archivo(id_archivo_almacenado,tipo_validacion,resultado,motor,version_motor,codigo_resultado) VALUES ((SELECT id_archivo_almacenado FROM lamontana.archivo_almacenado WHERE codigo_publico=?),?,?,?,?,?)",file,type,result,engine,version,code);}

@@ -48,6 +48,11 @@ public class CorreoService {
         try { sender.send(mensaje); }
         catch (MailException ex) { throw new CorreoNoDisponible(); }
     }
+    public void enviarAviso(String destino,String asunto,String texto){
+        var mensaje=new SimpleMailMessage();mensaje.setFrom(remitente);mensaje.setTo(destino);
+        mensaje.setSubject("La Montaña · "+asunto);mensaje.setText(texto);
+        try{sender.send(mensaje);}catch(MailException ex){throw new CorreoNoDisponible();}
+    }
     public static class CorreoNoDisponible extends RuntimeException {
         public CorreoNoDisponible() { super("No se pudo entregar el correo al servidor configurado."); }
     }

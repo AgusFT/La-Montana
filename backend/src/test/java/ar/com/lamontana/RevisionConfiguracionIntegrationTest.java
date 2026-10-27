@@ -133,7 +133,7 @@ class RevisionConfiguracionIntegrationTest {
         papel=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.papel",String.class);
         terminacion=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.servicio WHERE codigo='TERM'",String.class);
         var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio","MONTO_TOTAL"));aceptar(put(admin,base()+"/modelo",m));
-        var p=comando();p.put("pagos",Map.of("medios",List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SUPERAR_UMBRAL_APROBACION","tipoSena","PORCENTAJE","valorSena","25","umbralAprobacion","30"));aceptar(put(admin,base()+"/pagos",p));
+        var p=comando();p.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SUPERAR_UMBRAL_APROBACION","tipoSena","PORCENTAJE","valorSena","25","umbralAprobacion","30")));aceptar(put(admin,base()+"/pagos",p));
         var r=comando();r.put("metodoAsignacion","MANUAL");r.put("serviciosPorSucursal",List.of(Map.of("sucursal",a,"servicios",List.of(servicio,terminacion)),Map.of("sucursal",b,"servicios",List.of(servicio))));aceptar(put(admin,base()+"/recursos",r));
         for(String origen:List.of(a,b)){var i=comando();i.putAll(Map.of("sucursal",origen,"nombre","Impresora "+origen,"formatos",List.of(formato),"admiteColor",false,"admiteDobleFaz",true,"capacidadHojas",2,"estado","OPERATIVA"));aceptar(post(admin,base()+"/impresoras",i));}
         guardar("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));
@@ -159,7 +159,7 @@ class RevisionConfiguracionIntegrationTest {
     @Test void precioDobleFazD1CostoDeEntregaTiemposYLecturasSinEscrituras()throws Exception{
         preparar();String antes=estado().toString();int eventos=contar("evento_configuracion");
         var local=simular(ejemplo("RETIRO_SUCURSAL"));assertThat(local.get("precio").get("carillas").asInt()).isEqualTo(6);assertThat(local.get("precio").get("hojas").asInt()).isEqualTo(4);assertThat(local.get("precio").get("subtotal").asString()).isEqualTo("20.00");assertThat(local.get("finanzas").get("revisionHumana").asBoolean()).isFalse();assertThat(local.get("recorrido").toString()).contains("Listo para entregar en local; no pasa por En viaje");assertInstante(local.get("entrega"),"finPreparacion","2026-09-28T14:00:00Z");
-        var domicilio=simular(ejemplo("ENVIO_DOMICILIO"));assertThat(domicilio.get("total").asString()).isEqualTo("32.50");assertThat(domicilio.get("finanzas").get("senaRequerida").asString()).isEqualTo("8.13");assertThat(domicilio.get("finanzas").get("revisionHumana").asBoolean()).isTrue();assertThat(domicilio.get("finanzas").get("cargaRequiereAcreditacion").asBoolean()).isFalse();assertThat(domicilio.get("finanzas").get("momento").asString()).isEqualTo("DESPUES_APROBACION_ANTES_PRODUCCION");assertInstante(domicilio.get("entrega"),"disponibleDesde","2026-09-28T15:00:00Z");
+        var domicilio=simular(ejemplo("ENVIO_DOMICILIO"));assertThat(domicilio.get("total").asString()).isEqualTo("32.50");assertThat(domicilio.get("finanzas").get("senaRequerida").asString()).isEqualTo("8.13");assertThat(domicilio.get("finanzas").get("revisionHumana").asBoolean()).isFalse();assertThat(domicilio.get("finanzas").get("cargaRequiereAcreditacion").asBoolean()).isFalse();assertThat(domicilio.get("finanzas").get("momento").asString()).isEqualTo("ANTES_APROBACION_Y_PRODUCCION");assertInstante(domicilio.get("entrega"),"disponibleDesde","2026-09-28T15:00:00Z");
         assertThat(estado().toString()).isEqualTo(antes);assertThat(contar("evento_configuracion")).isEqualTo(eventos);
         app.close();arrancar();assertThat(simular(ejemplo("ENVIO_DOMICILIO"))).isEqualTo(domicilio);
         var malo=ejemplo("RETIRO_SUCURSAL");malo.put("sucursal",b);status(post(admin,base()+"/revision/simular",malo),409);
@@ -224,4 +224,8 @@ class RevisionConfiguracionIntegrationTest {
     private HttpResponse<String> post(HttpClient c,String path,Object data)throws Exception{return c.send(request(c,"POST",path,data),HttpResponse.BodyHandlers.ofString());}
     private void login(HttpClient c,String correo)throws Exception{var r=HttpRequest.newBuilder(uri("/api/auth/login")).header("Content-Type","application/x-www-form-urlencoded").header("X-CSRF-TOKEN",csrf(c)).POST(HttpRequest.BodyPublishers.ofString("username="+URLEncoder.encode(correo,StandardCharsets.UTF_8)+"&password="+URLEncoder.encode(CLAVE,StandardCharsets.UTF_8))).build();status(c.send(r,HttpResponse.BodyHandlers.ofString()),200);}
     private void status(HttpResponse<String> r,int codigo){assertThat(r.statusCode()).withFailMessage("Esperado %s, recibido %s: %s",codigo,r.statusCode(),r.body()).isEqualTo(codigo);}
+    private static Map<String,Object> conPoliticaArchivos(Map<String,?> origen){
+        var p=new HashMap<String,Object>(origen);
+        p.putIfAbsent("politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72));return p;
+    }
 }

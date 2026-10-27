@@ -12,7 +12,6 @@ export function quoteStage(quote:Quote,files:FileView|null,now:number):QuoteStag
   if(quote.estado!=="VIGENTE"||quote.reemplazadaPor||!Number.isFinite(Date.parse(quote.vigenteHasta))||now>=Date.parse(quote.vigenteHasta)||quote.correccion&&!quote.correccion.pendiente)return "blocked";
   if(!quote.aceptadaEn)return "summary";
   if(!files||files.cotizacion!==quote.codigoPublico)return "blocked";
-  if(files.carga.codigo==="PAGO_PENDIENTE"&&!files.carga.habilitada)return "payment";
   if(!files.carga.habilitada)return "blocked";
   const ready=quote.oferta.items.length>0&&quote.oferta.items.every(item=>files.items.some(i=>i.codigoPublico===item.codigoPublico&&i.archivos.some(f=>f.activo&&f.estado==="VALIDO"&&!!f.aceptadaEn)));
   return ready?"confirm":"files";

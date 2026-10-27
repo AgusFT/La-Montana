@@ -26,6 +26,7 @@ Manifiesto de la aplicación: nombre y versión, versión de pnpm, rango de Node
 - `start`: inicia Next.js en producción.
 - `typecheck`: ejecuta TypeScript sin emitir archivos.
 - `test:journey`: comprueba transiciones, bloqueos, pagos condicionales y conservación temporal de PDF del recorrido en tres partes.
+- `test:payment-archives`: comprueba unidades y límites del plazo comercial, recordatorio anterior al vencimiento y conservación certificada 24/48/72 h.
 - `test:schedules`: comprueba la edición semanal, conservación de excepciones, cupos y franjas de retiro sin duplicados.
 - `test:tracking`: prueba el recorrido del cliente según estado general, logística, modalidad y condiciones del pedido con el runner de Node.
 - `dependencies` y `devDependencies`: bibliotecas de ejecución y herramientas de desarrollo.

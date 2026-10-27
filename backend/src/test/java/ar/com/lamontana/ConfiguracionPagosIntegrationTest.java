@@ -112,7 +112,7 @@ class ConfiguracionPagosIntegrationTest {
         var s=simular("100.00",199);assertSim(s,true,false,"0.00","0.00","100.00","ANTES_ENTREGA");
         assertThat(s.get("mediosAcreditacion").size()).isZero();
         guardar(pagos(true,"SIEMPRE",null,"PORCENTAJE","30",null,false));
-        s=simular("100.00",1);assertSim(s,true,false,"0.00","30.00","70.00","ANTES_PRODUCCION");
+        s=simular("100.00",1);assertSim(s,true,false,"0.00","30.00","70.00","ANTES_APROBACION_Y_PRODUCCION");
         assertThat(s.get("mediosAcreditacion").get(0).asString()).isEqualTo("EFECTIVO");
         guardar(pagos(true,"DESDE_CARILLAS","200","PORCENTAJE","12.3456",null,true));
         assertThat(simular("100.00",199).get("senaRequerida").asString()).isEqualTo("0.00");
@@ -120,23 +120,23 @@ class ConfiguracionPagosIntegrationTest {
         assertThat(borrador.get("pagos").get("valorSena").asString()).isEqualTo("12.3456");
         guardar(pagos(true,"DESDE_MONTO","100.00","FIJA","400.00",null,true));
         assertThat(simular("99.99",1).get("senaRequerida").asString()).isEqualTo("0.00");
-        assertSim(simular("100.00",1),true,false,"0.00","100.00","0.00","ANTES_PRODUCCION");
+        assertSim(simular("100.00",1),true,false,"0.00","100.00","0.00","ANTES_APROBACION_Y_PRODUCCION");
 
         modelo("CONDICIONAL","PAGO_PREVIO");assertThat(borrador.get("pagos").isNull()).isTrue();
         var prepago=pagos(false,null,null,null,null,null,true);status(put(admin,ruta(),comando(prepago)),400);
         prepago.put("medios",List.of("TRANSFERENCIA"));guardar(prepago);
-        assertSim(simular("17.55",1),false,true,"17.55","0.00","0.00","ANTES_CARGA");
+        assertSim(simular("17.55",1),false,false,"17.55","0.00","0.00","ANTES_APROBACION_Y_PRODUCCION");
         modelo("CONDICIONAL","SENA");guardar(pagos(true,"SIEMPRE",null,"FIJA","10.00",null,true));
-        s=simular("5.00",1);assertSim(s,false,true,"0.00","5.00","0.00","ANTES_CARGA");
+        s=simular("5.00",1);assertSim(s,false,false,"0.00","5.00","0.00","ANTES_APROBACION_Y_PRODUCCION");
         assertThat(s.get("mediosGenerales").size()).isEqualTo(2);assertThat(s.get("mediosAcreditacion").size()).isEqualTo(1);
         assertThat(s.get("mediosAcreditacion").get(0).asString()).isEqualTo("TRANSFERENCIA");
         guardar(pagos(true,"SIEMPRE",null,"PORCENTAJE","0.0001",null,true));
-        s=simular("0.01",1);assertSim(s,false,false,"0.00","0.00","0.01","ANTES_CARGA");
-        assertThat(s.get("mediosAcreditacion").size()).isZero();assertThat(s.get("instrucciones").toString()).contains("redondea a 0.00","no hay importe exigible");
+        s=simular("0.01",1);assertSim(s,false,false,"0.00","0.00","0.01","ANTES_ENTREGA");
+        assertThat(s.get("mediosAcreditacion").size()).isZero();assertThat(s.get("instrucciones").toString()).contains("No hay anticipo exigible");
         modelo("CONDICIONAL","MONTO_TOTAL");guardar(pagos(true,"SUPERAR_UMBRAL_APROBACION",null,"PORCENTAJE","25","1000.00",true));
         assertSim(simular("1000.00",500),false,false,"0.00","0.00","1000.00","ANTES_ENTREGA");
-        s=simular("1000.01",1);assertSim(s,true,false,"0.00","250.00","750.01","DESPUES_APROBACION_ANTES_PRODUCCION");
-        assertThat(s.get("instrucciones").toString()).contains("revisar el PDF","Después de aprobar");
+        s=simular("1000.01",1);assertSim(s,false,false,"0.00","250.00","750.01","ANTES_APROBACION_Y_PRODUCCION");
+        assertThat(s.get("instrucciones").toString()).contains("no genera revisión humana automática");
         assertThat(borrador.get("estado").asString()).isEqualTo("EN_PREPARACION");assertThat(contar("catalogo_revision")).isZero();
         int eventos=contar("evento_configuracion"),comprobantes=contar("comprobante_configuracion");String antes=estado().toString();
         simular("100.00",1);simular("1100.00",200);
@@ -216,12 +216,12 @@ class ConfiguracionPagosIntegrationTest {
         guardar(pagos(false,null,null,null,null,"1500.50",false));
         assertSim(simular("1500.50",2),false,false,"0.00","0.00","1500.50","ANTES_ENTREGA");
         var superior=simular("1500.51",2);
-        assertSim(superior,true,false,"0.00","0.00","1500.51","ANTES_ENTREGA");
-        assertThat(superior.get("instrucciones").toString()).contains("revisión humana","sin anticipo");
+        assertSim(superior,false,false,"0.00","0.00","1500.51","ANTES_ENTREGA");
+        assertThat(superior.get("instrucciones").toString()).contains("no genera revisión humana automática");
         assertThat(superior.get("mediosGenerales").get(0).asString()).isEqualTo("EFECTIVO");
         assertThat(superior.get("mediosAcreditacion").size()).isZero();
         guardar(pagos(true,"SUPERAR_UMBRAL_APROBACION",null,"PORCENTAJE","25","1500.50",true));
-        assertSim(simular("1500.51",2),true,false,"0.00","375.13","1125.38","DESPUES_APROBACION_ANTES_PRODUCCION");
+        assertSim(simular("1500.51",2),false,false,"0.00","375.13","1125.38","ANTES_APROBACION_Y_PRODUCCION");
         guardar(pagos(false,null,null,null,null,"1500.50",false));
         assertThat(borrador.get("pagos").get("valorSena").isNull()).isTrue();
         modelo("CONDICIONAL","SENA");guardar(pagos(true,"SIEMPRE",null,"FIJA","100",null,true));
@@ -239,7 +239,7 @@ class ConfiguracionPagosIntegrationTest {
 
     private Map<String,Object> pagos(boolean sena,String condicion,String umbral,String tipo,String valor,String aprobacion,boolean transferencia){
         var p=new HashMap<String,Object>();p.put("medios",transferencia?List.of("EFECTIVO","TRANSFERENCIA"):List.of("EFECTIVO"));p.put("instruccionesTransferencia",transferencia?"Transferir a la cuenta indicada por la imprenta y presentar comprobante.":null);
-        p.put("vigenciaCotizacionMinutos",30);p.put("exigirSena",sena);p.put("condicionSena",condicion);p.put("umbralSena",umbral);p.put("tipoSena",tipo);p.put("valorSena",valor);p.put("umbralAprobacion",aprobacion);return p;
+        p.put("vigenciaCotizacionMinutos",30);p.put("exigirSena",sena);p.put("condicionSena",condicion);p.put("umbralSena",umbral);p.put("tipoSena",tipo);p.put("valorSena",valor);p.put("umbralAprobacion",aprobacion);p.put("politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72));return p;
     }
     private void modelo(String modelo,String criterio)throws Exception{var datos=new HashMap<String,Object>();datos.put("operacion",UUID.randomUUID().toString());datos.put("version",version());datos.put("modelo",modelo);datos.put("criterio",criterio);var r=put(admin,"/api/admin/configuracion/borradores/"+id+"/modelo",datos);status(r,200);borrador=JSON.readTree(r.body());}
     private Map<String,Object> comando(Map<String,Object> pagos){return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"version",version(),"pagos",pagos));}
@@ -259,4 +259,8 @@ class ConfiguracionPagosIntegrationTest {
     private HttpResponse<String> post(HttpClient c,String path,Object data)throws Exception{return c.send(request(c,"POST",path,data),HttpResponse.BodyHandlers.ofString());}
     private void login(HttpClient c,String correo)throws Exception{var r=HttpRequest.newBuilder(uri("/api/auth/login")).header("Content-Type","application/x-www-form-urlencoded").header("X-CSRF-TOKEN",csrf(c)).POST(HttpRequest.BodyPublishers.ofString("username="+URLEncoder.encode(correo,StandardCharsets.UTF_8)+"&password="+URLEncoder.encode(CLAVE,StandardCharsets.UTF_8))).build();status(c.send(r,HttpResponse.BodyHandlers.ofString()),200);}
     private void status(HttpResponse<String> r,int codigo){assertThat(r.statusCode()).withFailMessage("Esperado %s, recibido %s: %s",codigo,r.statusCode(),r.body()).isEqualTo(codigo);}
+    private static Map<String,Object> conPoliticaArchivos(Map<String,?> origen){
+        var p=new HashMap<String,Object>(origen);
+        p.putIfAbsent("politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72));return p;
+    }
 }

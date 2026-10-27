@@ -42,6 +42,7 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -63,21 +64,21 @@ public class PagosConfiguracionService {
         var repetido=configuracion.reintento(input.operacion(),"GUARDAR_PAGOS",codigo,actor,huella);
         if(repetido!=null)return repetido;
         var borrador=configuracion.cargar(codigo);exigirEditable(borrador,input.version());
-        Pagos p=input.pagos();Modelo modelo=borrador.modelo();Criterio criterio=borrador.criterio();
+        Pagos p=input.pagos();exigir(p!=null&&p.politicaArchivos()!=null&&p.politicaArchivos().valida(),"Definí plazo comercial (1–43200 minutos), recordatorio anterior y retención certificada de 24, 48 o 72 horas.");Modelo modelo=borrador.modelo();Criterio criterio=borrador.criterio();
         // Desactivar el anticipo de «Seña previa» conserva la aprobación humana.
         if(criterio==Criterio.SENA&&p!=null&&Boolean.FALSE.equals(p.exigirSena())) {modelo=Modelo.MANUAL;criterio=null;}
         var valores=validar(modelo,criterio,p);
         long id=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?",Long.class,codigo);
         jdbc.update("""
                 INSERT INTO lamontana.configuracion_financiera(id_configuracion_version,vigencia_cotizacion_minutos,instrucciones_transferencia,
-                    exigir_sena,condicion_sena,umbral_sena,tipo_sena,valor_sena,umbral_aprobacion)
-                VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id_configuracion_version) DO UPDATE SET
+                    exigir_sena,condicion_sena,umbral_sena,tipo_sena,valor_sena,umbral_aprobacion,politica_pago_archivos)
+                VALUES (?,?,?,?,?,?,?,?,?,?::jsonb) ON CONFLICT(id_configuracion_version) DO UPDATE SET
                     vigencia_cotizacion_minutos=EXCLUDED.vigencia_cotizacion_minutos,instrucciones_transferencia=EXCLUDED.instrucciones_transferencia,
                     exigir_sena=EXCLUDED.exigir_sena,condicion_sena=EXCLUDED.condicion_sena,umbral_sena=EXCLUDED.umbral_sena,
-                    tipo_sena=EXCLUDED.tipo_sena,valor_sena=EXCLUDED.valor_sena,umbral_aprobacion=EXCLUDED.umbral_aprobacion
+                    tipo_sena=EXCLUDED.tipo_sena,valor_sena=EXCLUDED.valor_sena,umbral_aprobacion=EXCLUDED.umbral_aprobacion,politica_pago_archivos=EXCLUDED.politica_pago_archivos
                 """,id,p.vigenciaCotizacionMinutos(),p.instruccionesTransferencia()==null?null:p.instruccionesTransferencia().strip(),
                 p.exigirSena(),p.condicionSena()==null?null:p.condicionSena().name(),valores.umbralSena(),
-                p.tipoSena()==null?null:p.tipoSena().name(),valores.valorSena(),valores.umbralAprobacion());
+                p.tipoSena()==null?null:p.tipoSena().name(),valores.valorSena(),valores.umbralAprobacion(),tools.jackson.databind.json.JsonMapper.builder().build().writeValueAsString(p.politicaArchivos()));
         jdbc.update("DELETE FROM lamontana.configuracion_medio_pago WHERE id_configuracion_version=?",id);
         for(MedioPago medio:p.medios())jdbc.update("INSERT INTO lamontana.configuracion_medio_pago(id_configuracion_version,medio_pago) VALUES (?,?)",id,medio.name());
         jdbc.update("UPDATE lamontana.configuracion_version SET modelo=?,criterio=?,version=version+1,fecha_actualizacion=clock_timestamp() WHERE id_configuracion_version=?",modelo.name(),criterio==null?null:criterio.name(),id);
@@ -98,7 +99,7 @@ public class PagosConfiguracionService {
             throw error(HttpStatus.CONFLICT,"El borrador cambió o ya no se puede editar. Consultá su versión actual.");
         if(borrador.modelo()==null)throw error(HttpStatus.CONFLICT,"Seleccioná primero el modelo operativo.");
     }
-    void comprobar(ConfiguracionService.Borrador b){validar(b.modelo(),b.criterio(),b.pagos());}
+    void comprobar(ConfiguracionService.Borrador b){validar(b.modelo(),b.criterio(),b.pagos());if(!Set.of("ACTIVA","HISTORICA").contains(b.estado()))exigir(b.pagos().politicaArchivos()!=null&&b.pagos().politicaArchivos().valida(),"Completá el plazo comercial, recordatorio y retención certificada en Fase 3.");}
     private record Valores(BigDecimal umbralSena,BigDecimal valorSena,BigDecimal umbralAprobacion) {}
     private Valores validar(Modelo modelo,Criterio criterio,Pagos p) {
         exigir(p!=null&&p.medios()!=null&&!p.medios().isEmpty()&&p.medios().size()<=2,"Elegí al menos un medio de pago habilitado.");
@@ -115,14 +116,14 @@ public class PagosConfiguracionService {
             if(criterio==Criterio.PAGO_PREVIO||p.exigirSena())exigir(transferencia,"Habilitá transferencia para acreditar el pago previo o la seña del modelo condicional.");
             switch(criterio) {
                 case PAGO_PREVIO -> {
-                    exigir(!p.medios().contains(MedioPago.EFECTIVO),"El pago total previo debe acreditarse por transferencia antes de cargar el PDF.");
+                    exigir(!p.medios().contains(MedioPago.EFECTIVO),"El pago total previo debe acreditarse por transferencia antes de aprobar y producir; el PDF puede cargarse antes.");
                     exigir(!p.exigirSena()&&p.umbralAprobacion()==null,"Pago previo no admite una seña adicional ni umbral de aprobación.");
                 }
                 case SENA -> {
                     exigir(p.exigirSena()&&p.condicionSena()==CondicionSena.SIEMPRE,"La seña previa es obligatoria para todos los pedidos de este modelo.");
                     exigir(p.umbralAprobacion()==null,"La condición de seña previa no usa umbral de aprobación.");
                 }
-                case MONTO_TOTAL -> exigir(!p.exigirSena()||p.condicionSena()==CondicionSena.SUPERAR_UMBRAL_APROBACION,"Si habilitás seña por monto, se aplica sobre el umbral después de la aprobación humana.");
+                case MONTO_TOTAL -> exigir(!p.exigirSena()||p.condicionSena()==CondicionSena.SUPERAR_UMBRAL_APROBACION,"Si habilitás seña por monto, se aplica sobre el umbral antes de aprobar y producir. Superar el umbral no impone revisión humana.");
             }
         }
         BigDecimal umbralAprobacion=criterio==Criterio.MONTO_TOTAL?decimalPositivo(p.umbralAprobacion(),2,"El umbral de aprobación"):null;

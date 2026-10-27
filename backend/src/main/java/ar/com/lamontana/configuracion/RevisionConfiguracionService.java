@@ -131,7 +131,7 @@ public class RevisionConfiguracionService {
         var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,precio.carillas());
         var impresoras=b.recursos().impresoras().stream().filter(p->OpcionesImpresion.compatible(p,item.formato(),item.color(),item.dobleFaz())).map(p->new Impresora(p.codigoPublico(),p.nombre())).toList();
         var recorrido=new ArrayList<String>();recorrido.add("Cotización de ejemplo con la revisión comercial "+r.catalogo().actual().numero()+": ARS "+total.toPlainString()+". Vigencia configurada: "+b.pagos().vigenciaCotizacionMinutos()+" minutos.");
-        recorrido.addAll(economica.instrucciones());recorrido.add(economica.cargaRequiereAcreditacion()?"Archivo: carga del PDF bloqueada hasta acreditar el importe requerido; después se inspecciona su contenido real.":"Archivo: carga e inspección real del PDF; las discrepancias y correcciones se resuelven antes de producir.");
+        recorrido.addAll(economica.instrucciones());recorrido.add("Archivo: carga y almacenamiento privado antes del pago, inspección y cotización; la autorización para producir depende del anticipo acreditado y las demás reglas.");
         if(economica.revisionHumana())recorrido.add("Revisión humana: aprobar o pedir correcciones. Si la seña se exige después de aprobar, producción espera su acreditación.");
         recorrido.add("Reloj del ejemplo: supone ya resueltos los requisitos anteriores; preparación comienza según la apertura del origen. El mínimo de los servicios seleccionados también se respeta.");
         recorrido.add("Asignación manual a una impresora compatible; registrar producción, control de calidad y eventual reimpresión. Ningún trabajo se envía a CUPS.");

@@ -79,3 +79,18 @@ test('una estimación vencida no avanza el timeline sin movimiento real',()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'PENDIENTE_PREPARACION',oferta:{entrega:{llegadaEstimada:'2000-01-01T12:00:00Z'}}});
  assert.equal(actual(p)[0].id,'preparing');
 });
+
+test('esperar anticipo no inventa una revisión humana en modo condicional',()=>{
+ const p=pedido({condiciones:{revisionHumana:false},cobro:{estado:'PENDIENTE_PAGO'}});
+ const r=orderTracking(p);assert.equal(actual(p)[0].id,'payment');assert(!r.steps.some(s=>s.id==='review'));
+ assert.match(orderTrackingLabel(p),/condición económica/);
+});
+test('informar un pago mantiene pendiente la aprobación y el inicio de producción',()=>{
+ const p=pedido({condiciones:{revisionHumana:false},cobro:{estado:'PAGO_INFORMADO_FUERA_TERMINO'}});
+ assert.equal(actual(p)[0].id,'payment');assert.match(orderTrackingLabel(p),/pendiente de verificación/);
+ assert.equal(orderTracking(p).steps.find(s=>s.id==='approved').state,'pending');
+});
+test('manual sin anticipo espera revisión humana, no un cobro inexistente',()=>{
+ const p=pedido({cobro:{estado:'SIN_ANTICIPO'}});assert.equal(actual(p)[0].id,'review');
+ assert(!orderTrackingLabel(p).includes('condición económica'));
+});

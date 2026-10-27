@@ -133,6 +133,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/produccion/iniciar", "/api/operacion/pedidos/*/produccion/trabajos/*/estado", "/api/operacion/pedidos/*/produccion/trabajos/*/calidad").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/pedidos/*/gestion").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/gestion", "/api/operacion/pedidos/*/observaciones").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
+                        .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/cobro/resolver").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/cliente/pedidos/*/cancelar").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/pedidos/*/correcciones", "/api/cliente/pedidos/*/correcciones/respuesta").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.POST, "/api/cliente/pedidos/*/correcciones/respuesta", "/api/cliente/pedidos/*/correcciones/*/cotizaciones").hasRole("CLIENTE")

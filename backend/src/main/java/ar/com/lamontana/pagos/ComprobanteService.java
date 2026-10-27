@@ -67,12 +67,13 @@ public class ComprobanteService {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
     private final PagoService pagos;
+    private final CobroPedidoService cobro;
     private final ArchivosPrivados storage;
     private final Antivirus antivirus;
     private final InspectorPdf inspector;
     private final Clock clock=Clock.systemUTC();
-    public ComprobanteService(JdbcTemplate jdbc,PlatformTransactionManager manager,PagoService pagos,ArchivosPrivados storage,Antivirus antivirus,InspectorPdf inspector){
-        this.jdbc=jdbc;this.tx=new TransactionTemplate(manager);this.pagos=pagos;this.storage=storage;this.antivirus=antivirus;this.inspector=inspector;
+    public ComprobanteService(JdbcTemplate jdbc,PlatformTransactionManager manager,PagoService pagos,CobroPedidoService cobro,ArchivosPrivados storage,Antivirus antivirus,InspectorPdf inspector){
+        this.jdbc=jdbc;this.tx=new TransactionTemplate(manager);this.pagos=pagos;this.cobro=cobro;this.storage=storage;this.antivirus=antivirus;this.inspector=inspector;
     }
     public record Archivo(UUID codigoPublico,String nombre,String estado,Instant creadoEn,Instant cargarHasta,Long bytes,String sha256,Integer paginas,
                           String codigoResultado,String mensaje,String tipo,String detalle,String actor,String rol,String origen,UUID predecesor,boolean puedeEnviar){}
@@ -115,6 +116,7 @@ public class ComprobanteService {
             bloquear();var r=registro(quote,file,correo,interno);if(!r.archivo().estado().equals("PENDIENTE"))return false;
             var acceso=carga(r);if(!acceso.habilitada())throw conflicto(acceso.motivo());
             if(declaredLength>ArchivosPrivados.MAX_BYTES)throw error(HttpStatus.PAYLOAD_TOO_LARGE,"El comprobante supera el máximo de 10 MiB.");
+            if(r.intento()!=null)cobro.comprobantePresentado(r.acceso().cotizacion(),file,r.acceso().usuario());
             jdbc.update("UPDATE lamontana.archivo_almacenado SET estado='VALIDANDO',fecha_inicio=now() WHERE codigo_publico=?",file);return true;
         }));
         if(!iniciar)return consultar(quote,file,correo,interno);

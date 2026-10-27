@@ -34,7 +34,7 @@ public class CopiaParametrosConfiguracion {
  private final JdbcTemplate jdbc;
  public CopiaParametrosConfiguracion(JdbcTemplate jdbc){this.jdbc=jdbc;}
  public void copiar(long origen,long destino){
-  copiar("configuracion_financiera","vigencia_cotizacion_minutos,instrucciones_transferencia,exigir_sena,condicion_sena,umbral_sena,tipo_sena,valor_sena,umbral_aprobacion",origen,destino);
+  copiar("configuracion_financiera","vigencia_cotizacion_minutos,instrucciones_transferencia,exigir_sena,condicion_sena,umbral_sena,tipo_sena,valor_sena,umbral_aprobacion,politica_pago_archivos",origen,destino);
   copiar("configuracion_medio_pago","medio_pago",origen,destino);
   copiar("configuracion_recursos","metodo_asignacion",origen,destino);
   copiarImpresoras(origen,destino);

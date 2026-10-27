@@ -92,6 +92,15 @@ class RecuperacionImpresorasSecurityTest {
         comprobar("POST",RUTA,sesion,csrf,401,false);
     }
 
+    @Test void resolucionCobroSoloAdminConCsrfYMetodoExacto()throws Exception{
+        String ruta="/api/operacion/pedidos/11111111-1111-1111-1111-111111111111/cobro/resolver";
+        var admin=sesion("ADMIN_ADMIN");comprobar("POST",ruta,admin,token(admin),200,true);
+        for(String rol:new String[]{"EMPLEADO","CLIENTE"}){var s=sesion(rol);comprobar("POST",ruta,s,token(s),403,false);}
+        comprobar("POST",ruta,sesion("ADMIN_ADMIN"),null,403,false);
+        for(String metodo:new String[]{"GET","DELETE","PATCH"}){var s=sesion("ADMIN_ADMIN");comprobar(metodo,ruta,s,token(s),403,false);}
+        var s=sesion("ADMIN_ADMIN");comprobar("POST",ruta+"-otra",s,token(s),403,false);
+    }
+
     private MockHttpSession sesion(String rol){
         var usuario=new UsuarioSesion(rol.toLowerCase()+"@example.test","hash-no-utilizado",rol,true,1L);
         var auth=UsernamePasswordAuthenticationToken.authenticated(usuario,null,usuario.getAuthorities());

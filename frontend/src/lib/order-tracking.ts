@@ -10,10 +10,10 @@
 
 import {orderState,logisticsState,type Order} from "./order-types";
 
-export type TrackingOrder=Pick<Order,"estado"|"estadoLogistico"|"confirmadaEn"|"aprobadaEn"|"finalizadaEn"|"condiciones"|"reserva"|"historial">&{retiroConTraslado?:boolean;oferta?:Pick<Order["oferta"],"entrega">};
+export type TrackingOrder=Pick<Order,"estado"|"estadoLogistico"|"confirmadaEn"|"aprobadaEn"|"finalizadaEn"|"condiciones"|"reserva"|"historial">&{cobro?:Order["cobro"];retiroConTraslado?:boolean;oferta?:Pick<Order["oferta"],"entrega">};
 export type TrackingStep={id:string;label:string;state:"complete"|"current"|"pending"|"recorded"|"stopped";date:string|null};
 export type OrderTracking={label:string;steps:TrackingStep[];notice:string|null;unavailable:boolean};
-const labels:Record<string,string>={received:"Pedido recibido",review:"Revisión humana",approved:"Aprobado",production:"Producción y calidad",ready:"Listo para retirar",preparing:"Preparación del envío",prepared:"Preparado para salir",travel:"En viaje",point:"Disponible en destino de retiro",delivered:"Entregado",closed:"Cerrado"};
+const labels:Record<string,string>={received:"Pedido recibido",payment:"Condición económica",review:"Revisión humana",approved:"Aprobado",production:"Producción y calidad",ready:"Listo para retirar",preparing:"Preparación del envío",prepared:"Preparado para salir",travel:"En viaje",point:"Disponible en destino de retiro",delivered:"Entregado",closed:"Cerrado"};
 const knownOrders=["PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","CANCELADO","RECHAZADO"];
 const shipmentStates:Record<string,string>={PENDIENTE_PREPARACION:"preparing",PREPARADO:"prepared",EN_VIAJE:"travel",DISPONIBLE_PUNTO:"point"};
 
@@ -21,8 +21,9 @@ function actionDate(order:TrackingOrder,action:string){return order.historial.fi
 function readyDate(order:TrackingOrder){return order.historial.find(e=>e.estado==="LISTO_PARA_ENTREGA")?.fecha??null;}
 function lastEvent(order:TrackingOrder,state:string){return order.historial.filter(e=>e.estado===state).slice(-1)[0]?.fecha??null;}
 
-export function orderTrackingLabel(order:Pick<Order,"estado"|"estadoLogistico"|"reserva">){
+export function orderTrackingLabel(order:Pick<Order,"estado"|"estadoLogistico"|"reserva">&{cobro?:Order["cobro"]}){
   const mode=order.reserva.modalidad;
+  if(order.estado==="PENDIENTE_REVISION"&&order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado))return order.cobro.estado.startsWith("PAGO_INFORMADO")?"Pago informado · pendiente de verificación":order.cobro.estado==="PAGO_VENCIDO_RECUPERABLE"?"Pago vencido · recuperable":"Pendiente de condición económica";
   const compatible=mode==="RETIRO_SUCURSAL"?(order.estadoLogistico==="LISTO_RETIRO"||Object.hasOwn(shipmentStates,order.estadoLogistico)):
     ["RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"].includes(mode)&&Object.hasOwn(shipmentStates,order.estadoLogistico)&&(order.estadoLogistico!=="DISPONIBLE_PUNTO"||mode==="RETIRO_PUNTO_ENTREGA");
   if(order.estado==="LISTO_PARA_ENTREGA"&&compatible)return logisticsState(order.estadoLogistico);
@@ -35,9 +36,9 @@ export function orderTracking(order:TrackingOrder):OrderTracking{
   if(!knownOrders.includes(order.estado)||!["RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"].includes(mode))return {label,steps:[],notice:"El seguimiento no está disponible para este estado. Actualizá el pedido para consultar su situación.",unavailable:true};
   const externalPickup=mode==="RETIRO_SUCURSAL"&&(order.retiroConTraslado??!!order.oferta?.entrega?.llegadaEstimada);
   const directPickup=mode==="RETIRO_SUCURSAL"&&!externalPickup;
-  const review=order.condiciones.revisionHumana||order.historial.some(e=>["PENDIENTE_REVISION","CORRECCION_SOLICITADA"].includes(e.estado))||["PENDIENTE_REVISION","CORRECCION_SOLICITADA"].includes(order.estado);
+  const review=order.condiciones.revisionHumana||order.historial.some(e=>e.accion==="REVISAR"||e.estado==="CORRECCION_SOLICITADA")||!order.cobro&&(order.historial.some(e=>e.estado==="PENDIENTE_REVISION")||order.estado==="PENDIENTE_REVISION");
   const correction=order.estado==="CORRECCION_SOLICITADA";
-  const ids=["received",...(review?["review"]:[]),"approved","production",...(directPickup?["ready"]:["preparing","prepared","travel",...(mode==="RETIRO_PUNTO_ENTREGA"||externalPickup?["point"]:[])]),"delivered","closed"];
+  const ids=["received",...(order.cobro?["payment"]:[]),...(review?["review"]:[]),"approved","production",...(directPickup?["ready"]:["preparing","prepared","travel",...(mode==="RETIRO_PUNTO_ENTREGA"||externalPickup?["point"]:[])]),"delivered","closed"];
   const dates:Record<string,string|null>={received:order.confirmadaEn,review:lastEvent(order,"PENDIENTE_REVISION"),approved:lastEvent(order,"APROBADO")??order.aprobadaEn,production:lastEvent(order,"EN_PRODUCCION"),ready:readyDate(order),preparing:readyDate(order),prepared:actionDate(order,"PREPARAR_ENVIO"),travel:actionDate(order,"SALIR_REPARTO"),point:actionDate(order,"LLEGAR_PUNTO"),delivered:lastEvent(order,"ENTREGADO"),closed:lastEvent(order,"CERRADO")??(order.estado==="CERRADO"?order.finalizadaEn:null)};
   if(correction){dates.review=lastEvent(order,"CORRECCION_SOLICITADA");dates.approved=null;}
   if(["CANCELADO","RECHAZADO"].includes(order.estado)){
@@ -48,7 +49,8 @@ export function orderTracking(order:TrackingOrder):OrderTracking{
   }
   let current: string;
   switch(order.estado){
-    case "PENDIENTE_REVISION":case "CORRECCION_SOLICITADA":current="review";break;
+    case "PENDIENTE_REVISION":current=order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado)?"payment":review?"review":"approved";break;
+    case "CORRECCION_SOLICITADA":current="review";break;
     case "APROBADO":current="approved";break;
     case "EN_PRODUCCION":current="production";break;
     case "ENTREGADO":current="delivered";break;

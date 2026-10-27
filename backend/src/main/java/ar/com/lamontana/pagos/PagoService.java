@@ -117,9 +117,9 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class PagoService {
     private final JdbcTemplate jdbc;private final OrganizacionService organizacion;private final OfertaOperativaService operativa;
-    private final EvaluadorFinanciero reglas;private final CoberturaPagos cobertura;
+    private final EvaluadorFinanciero reglas;private final CoberturaPagos cobertura;private final CobroPedidoService cobro;
     private final JsonMapper json=JsonMapper.builder().build();private final Clock clock=Clock.systemUTC();
-    public PagoService(JdbcTemplate jdbc,OrganizacionService organizacion,OfertaOperativaService operativa,EvaluadorFinanciero reglas,CoberturaPagos cobertura){this.jdbc=jdbc;this.organizacion=organizacion;this.operativa=operativa;this.reglas=reglas;this.cobertura=cobertura;}
+    public PagoService(JdbcTemplate jdbc,OrganizacionService organizacion,OfertaOperativaService operativa,EvaluadorFinanciero reglas,CoberturaPagos cobertura,CobroPedidoService cobro){this.jdbc=jdbc;this.organizacion=organizacion;this.operativa=operativa;this.reglas=reglas;this.cobertura=cobertura;this.cobro=cobro;}
     private record Actor(long id,String nombre,String rol){}
     private record Oferta(long id,UUID codigo,long cliente,UUID sucursal,boolean activa,String estado,Instant vence,Instant aceptada,CotizacionService.Oferta datos){}
     private record Fondos(long id,UUID codigo,long origen,MedioPago medio,BigDecimal importe,BigDecimal devuelto,BigDecimal aplicado,BigDecimal disponible){}
@@ -133,7 +133,7 @@ public class PagoService {
     public record Evento(String tipo,String actor,String rol,Instant fecha,String motivo){}
     public record Vista(UUID cotizacion,long numero,String cliente,String sucursal,String estado,boolean aceptada,String total,String aplicado,String pendiente,
         String anticipoOfertado,String coberturaAnticipoOfertado,String anticipoActual,String coberturaAnticipoActual,List<MedioPago> mediosAnticipo,
-        boolean puedeInformar,List<MedioPago> mediosRecepcion,List<String> permisos,List<Intento> intentos,List<Pago> pagos,List<OfertaRelacionada> relacionadas,List<Evento> historial,boolean pedidoFinalizado,boolean cotizacionSustituida,boolean pedidoCerrado){}
+        boolean puedeInformar,List<MedioPago> mediosRecepcion,List<String> permisos,List<Intento> intentos,List<Pago> pagos,List<OfertaRelacionada> relacionadas,List<Evento> historial,boolean pedidoFinalizado,boolean cotizacionSustituida,boolean pedidoCerrado,CobroPedidoService.Vista plazoPago){}
     public record Fila(UUID cotizacion,long numero,String cliente,String estado,String total,String aplicado,long pendientes){}
     public record Bandeja(List<Fila> elementos,long total,int pagina){}
 
@@ -164,16 +164,19 @@ public class PagoService {
         if(replay(in.operacion(),"INFORMAR",hash,a))return leer(q,a,correo,false);
         if(pedidoFinalizado(q)||pedidoCerrado(q)||cotizacionSustituida(q))throw conflicto("El pedido finalizó o esta cotización fue sustituida. Continuá desde su versión actual; un interno puede registrar dinero efectivamente recibido o su devolución.");
         exigir(q.aceptada()!=null,"Aceptá la oferta antes de informar una transferencia.");exigir(admite(q,MedioPago.TRANSFERENCIA),"Esta cotización no admite transferencia.");
+        cobro.exigirInformable(q.id());
         BigDecimal importe=importe(in.importe());texto(in.referencia());texto(in.motivo());
         if(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_pago i LEFT JOIN lamontana.resolucion_intento_pago r USING(id_intento_pago) WHERE i.id_cotizacion=? AND r.id_intento_pago IS NULL",Integer.class,q.id())>=20)throw conflicto("Hay veinte transferencias pendientes de verificar. Revisá las existentes antes de informar otra.");
         long e=evento(in.operacion(),q.id(),a,"INFORMAR",hash,in.motivo());
         jdbc.update("INSERT INTO lamontana.intento_pago(codigo_publico,id_cotizacion,id_evento,importe_informado,referencia_informada) VALUES (?,?,?,?,?)",UUID.randomUUID(),q.id(),e,importe,in.referencia().strip());
+        cobro.movimiento(q.id(),in.operacion(),a.id(),"INFORMAR",in.motivo());
         return leer(q,a,correo,false);
     }
     @Transactional public Vista descartar(UUID quote,Descartar in,String correo,boolean interno){
         bloquear();var a=actor(correo,interno);var q=autorizar(quote,a,correo);if(interno)organizacion.exigirPermiso(correo,"ACREDITAR_PAGO");String hash=huella(quote,in);
         if(replay(in.operacion(),"DESCARTAR",hash,a))return leer(q,a,correo,interno);long intento=intentoPendiente(q,in.intento());texto(in.motivo());
         long e=evento(in.operacion(),q.id(),a,"DESCARTAR",hash,in.motivo());jdbc.update("INSERT INTO lamontana.resolucion_intento_pago(id_intento_pago,id_evento,resultado) VALUES (?,?,'DESCARTADO')",intento,e);
+        cobro.movimiento(q.id(),in.operacion(),a.id(),"DESCARTAR",in.motivo());
         return leer(q,a,correo,interno);
     }
     @Transactional public Vista recibir(UUID quote,Recibir in,String correo){
@@ -189,6 +192,7 @@ public class PagoService {
         long e=evento(in.operacion(),q.id(),a,"RECIBIR",hash,in.motivo());
         if(intento!=null)jdbc.update("INSERT INTO lamontana.resolucion_intento_pago(id_intento_pago,id_evento,resultado) VALUES (?,?,'ACREDITADO')",intento,e);
         jdbc.update("INSERT INTO lamontana.pago(codigo_publico,id_cotizacion,id_intento_pago,id_evento,medio,importe,referencia,clave_referencia,recibido_en) VALUES (?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),q.id(),intento,e,in.medio().name(),importe,in.referencia().strip(),clave,Timestamp.from(in.recibidoEn()));
+        cobro.movimiento(q.id(),in.operacion(),a.id(),"RECIBIR",in.motivo());
         return leer(q,a,correo,true);
     }
     @Transactional public Vista aplicar(UUID quote,Aplicar in,String correo){
@@ -209,6 +213,7 @@ public class PagoService {
         long e=evento(in.operacion(),q.id(),a,"APLICAR",hash,in.motivo());
         for(var old:liberar)jdbc.update("INSERT INTO lamontana.liberacion_aplicacion_pago(id_aplicacion,id_evento,importe) VALUES (?,?,?)",old.id(),e,old.neto());
         jdbc.update("INSERT INTO lamontana.aplicacion_pago_cotizacion(id_pago,id_cotizacion,id_evento,importe) VALUES (?,?,?,?)",p.id(),q.id(),e,cantidad);
+        cobro.movimiento(q.id(),in.operacion(),a.id(),"APLICAR",in.motivo());
         return leer(q,a,correo,true);
     }
     @Transactional public Vista devolver(UUID quote,Devolver in,String correo){
@@ -224,6 +229,7 @@ public class PagoService {
         long e=evento(in.operacion(),q.id(),a,"DEVOLVER",hash,in.motivo());long id=jdbc.queryForObject("INSERT INTO lamontana.reembolso(codigo_publico,id_pago,id_evento,importe,medio,referencia,clave_referencia,devuelto_en) VALUES (?,?,?,?,?,?,?,?) RETURNING id_reembolso",Long.class,UUID.randomUUID(),p.id(),e,cantidad,in.medio().name(),in.referencia().strip(),clave,Timestamp.from(in.devueltoEn()));
         BigDecimal restar=cantidad.subtract(p.disponible()).max(BigDecimal.ZERO);
         for(var asignacion:asignaciones){if(restar.signum()==0)break;BigDecimal parte=restar.min(asignacion.neto());jdbc.update("INSERT INTO lamontana.reembolso_aplicacion(id_reembolso,id_aplicacion,importe) VALUES (?,?,?)",id,asignacion.id(),parte);restar=restar.subtract(parte);}
+        cobro.movimiento(q.id(),in.operacion(),a.id(),"DEVOLVER",in.motivo());
         return leer(q,a,correo,true);
     }
     private void reservarAnticipo(Oferta q,MedioPago medio,BigDecimal cantidad){
@@ -255,7 +261,7 @@ public class PagoService {
         var relacionadas=jdbc.query("SELECT codigo_publico FROM lamontana.cotizacion WHERE id_cotizacion<>? AND (lamontana.cotizacion_descendiente(id_cotizacion,?) OR lamontana.cotizacion_descendiente(?,id_cotizacion)) ORDER BY id_cotizacion",(r,n)->r.getObject(1,UUID.class),q.id(),q.id(),q.id()).stream().map(this::oferta).filter(o->!interno||acceso(o,a,correo)).map(o->new OfertaRelacionada(o.codigo(),o.id(),o.datos().total(),estado(o.estado(),o.vence()),o.aceptada()!=null,o.datos().sucursal().nombre())).toList();
         var eventos=jdbc.query("SELECT tipo,actor_nombre,actor_rol,fecha,motivo FROM lamontana.evento_financiero WHERE id_cotizacion=? ORDER BY id_evento DESC LIMIT 100",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5)),q.id());
         String cliente=jdbc.queryForObject("SELECT nombre||' '||apellido FROM lamontana.usuario WHERE id_usuario=?",String.class,q.cliente());
-        return new Vista(q.codigo(),q.id(),cliente,q.datos().sucursal().nombre(),estado(q.estado(),q.vence()),q.aceptada()!=null,q.datos().total(),dinero(asignado),(terminado||sustituida)?"0.00":dinero(new BigDecimal(q.datos().total()).subtract(asignado)),anticipo,dinero(cobertura.acreditado(q.id(),c.mediosAcreditacion())),actual==null?null:dinero(new BigDecimal(actual.pagoPrevioRequerido()).add(new BigDecimal(actual.senaRequerida()))),actual==null?null:dinero(cobertura.acreditado(q.id(),actual.mediosAcreditacion())),actual==null?List.of():actual.mediosAcreditacion(),!terminado&&!sustituida&&!cerrado&&!interno&&q.aceptada()!=null&&admite(q,MedioPago.TRANSFERENCIA),Arrays.stream(MedioPago.values()).filter(m->admite(q,m)).toList(),permisos,intentos,pagos,relacionadas,eventos,terminado,sustituida,cerrado);
+        return new Vista(q.codigo(),q.id(),cliente,q.datos().sucursal().nombre(),estado(q.estado(),q.vence()),q.aceptada()!=null,q.datos().total(),dinero(asignado),(terminado||sustituida)?"0.00":dinero(new BigDecimal(q.datos().total()).subtract(asignado)),anticipo,dinero(cobertura.acreditado(q.id(),c.mediosAcreditacion())),actual==null?null:dinero(new BigDecimal(actual.pagoPrevioRequerido()).add(new BigDecimal(actual.senaRequerida()))),actual==null?null:dinero(cobertura.acreditado(q.id(),actual.mediosAcreditacion())),actual==null?List.of():actual.mediosAcreditacion(),!terminado&&!sustituida&&!cerrado&&!interno&&q.aceptada()!=null&&admite(q,MedioPago.TRANSFERENCIA)&&(cobro.pedido(q.id())==null||cobro.vista(cobro.pedido(q.id()),false)==null||cobro.vista(cobro.pedido(q.id()),false).puedeInformar()),Arrays.stream(MedioPago.values()).filter(m->admite(q,m)).toList(),permisos,intentos,pagos,relacionadas,eventos,terminado,sustituida,cerrado,cobro.pedido(q.id())==null?null:cobro.vista(cobro.pedido(q.id()),a.rol().equals("ADMIN_ADMIN")));
     }
     private BigDecimal maximoAplicable(Oferta q,Fondos p,Actor a,String correo,boolean interno){
         if(!interno||!organizacion.contexto(correo).permisos().contains(permiso(p.medio()))||!admiteAplicacion(q)||q.aceptada()==null||!q.activa())return BigDecimal.ZERO;

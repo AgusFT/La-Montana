@@ -62,6 +62,7 @@ const sections=[
  {id:"pedido-pagos",label:"Pagos",financial:true},
 ];
 function defaultSection(order:Order,internal:boolean){
+ if(order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado)&&order.estado==="PENDIENTE_REVISION")return "pedido-pagos";
  if(order.estado==="CORRECCION_SOLICITADA")return "pedido-correcciones";
  if(["LISTO_PARA_ENTREGA","ENTREGADO","CERRADO"].includes(order.estado))return "pedido-entrega";
  if(internal&&["APROBADO","EN_PRODUCCION"].includes(order.estado))return "pedido-produccion";
