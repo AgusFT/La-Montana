@@ -1,6 +1,6 @@
 # La Montaña · piloto v0.1
 
-Aplicación local con Spring Boot, Next.js y PostgreSQL para una imprenta con varias sucursales. El administrador configura el sistema desde cero; los clientes particulares cotizan PDF y el personal completa revisión, producción manual, calidad, entrega y cierre. No hay cuentas, sucursales, precios, reglas comerciales ni pedidos de muestra precargados. La implementación de Supabase quedó sustituida y permanece solamente en el historial Git.
+Aplicación local con Spring Boot, Next.js y PostgreSQL para una imprenta con varias sucursales. En la instalación normal, el administrador configura el sistema desde cero; los clientes particulares cotizan PDF y el personal completa revisión, producción manual, calidad, entrega y cierre. No hay cuentas, sucursales, precios, reglas comerciales ni pedidos de muestra precargados fuera del perfil aislado de pruebas. La implementación de Supabase quedó sustituida y permanece solamente en el historial Git.
 
 ## Estado actual · demo v0.1 y plan v6 completos
 
@@ -15,6 +15,8 @@ Este README es el único manual de producto. Describe el comportamiento vigente;
 ## Arranque local
 
 Requisitos: Docker Engine y Docker Compose accesibles desde la terminal, Internet para descargar las imágenes/dependencias/firmas iniciales y los puertos locales disponibles. ClamAV tiene un límite de memoria de 4 GiB en Compose; los otros servicios requieren memoria adicional.
+
+Para probar la aplicación con cuentas, sucursales, puntos de entrega, catálogo y configuración ficticios sin tocar la instalación normal, usar la rama `pruebas` y seguir [Entorno de pruebas funcionales](docs/entorno-pruebas-funcionales.md).
 
 ```bash
 cd /home/agus/proyectos/LaMontaña/desarrollo

@@ -37,5 +37,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es-AR" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:themeBootstrap}}/></head><body>{children}</body></html>;
+  const testEnvironment=process.env.TEST_ENVIRONMENT==="true";
+  return <html lang="es-AR" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:themeBootstrap}}/></head><body>{testEnvironment&&<a className="test-environment-banner" href="/pruebas">ENTORNO DE PRUEBAS · datos ficticios</a>}{children}</body></html>;
 }

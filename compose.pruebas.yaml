@@ -1,0 +1,14 @@
+name: lamontana-pruebas
+
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: pruebas
+      LAMONTANA_PRUEBAS_CLAVE: ${TEST_USER_PASSWORD:-MontanaPrueba2026!}
+  frontend:
+    build:
+      args:
+        TEST_ENVIRONMENT: "true"
+    environment:
+      TEST_ENVIRONMENT: "true"
+      TEST_USER_PASSWORD: ${TEST_USER_PASSWORD:-MontanaPrueba2026!}

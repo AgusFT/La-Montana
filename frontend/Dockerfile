@@ -28,6 +28,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
+ARG TEST_ENVIRONMENT=false
+ENV TEST_ENVIRONMENT=${TEST_ENVIRONMENT}
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
