@@ -165,7 +165,6 @@ public class RevisionPedidoService {
  private void verificarPdf(PedidoService.Detalle d){
   if(d.archivos().size()!=d.oferta().items().size())throw conflicto("El pedido no tiene todos sus PDF aceptados.");
   for(var file:d.archivos()){
-   if(file.aceptadaEn()==null)throw conflicto("Falta aceptar una vista previa.");
    try{archivos.original(file.archivo(),file.sha256(),file.bytes());}
    catch(java.io.IOException ex){throw conflicto("No se pudo verificar un PDF confirmado. Conservá el pedido y recuperá su original privado antes de aprobar.");}
   }

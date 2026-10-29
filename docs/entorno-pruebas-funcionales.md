@@ -61,7 +61,9 @@ cd backend
 mvn -Dtest=DatosPruebaIntegrationTest test
 ```
 
-La prueba arranca PostgreSQL real con las 43 migraciones, comprueba todos los estados, gramajes y tarifas, consultas HTTP con las siete cuentas, aislamiento entre perfiles, históricos de configuración/caja, integridad y vista previa de PDF, continuación operativa e idempotencia tras reiniciar. También verifica la conservación de la base básica anterior.
+La prueba arranca PostgreSQL real con las 44 migraciones, comprueba todos los estados, gramajes y tarifas, consultas HTTP con las siete cuentas, aislamiento entre perfiles, históricos de configuración/caja, integridad y vista previa de PDF, continuación operativa e idempotencia tras reiniciar. También verifica la conservación de la base básica anterior.
+
+La consulta de los PDF es opcional al crear un pedido. Para actualizar una instalación que ya contiene el escenario de seis meses, alcanza con `git pull --ff-only origin pruebas` y `./infra/pruebas/iniciar.sh`; V44 conserva esos datos. Ver [consulta opcional de PDF](cliente-vista-previa-opcional.md).
 
 ## Puertos
 

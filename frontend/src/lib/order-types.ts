@@ -42,7 +42,7 @@
 //#endregion
 
 import {type Quote,type Mode} from "./quote-types";
-export type OrderPdf={item:string;archivo:string;nombre:string;sha256:string;bytes:number;paginas:number;aceptadaEn:string};
+export type OrderPdf={item:string;archivo:string;nombre:string;sha256:string;bytes:number;paginas:number;aceptadaEn:string|null};
 export type OrderSlot={modalidad:Mode;destino:string;origen:string;nombre:string;zonaHoraria:string;fecha:string;apertura:string;cierre:string;desde:string;hasta:string;cupoConfigurado:number;plazasLibres:number;costo:string};
 export type OrderConditions={cotizadas:Quote["oferta"]["condiciones"];actuales:Quote["oferta"]["condiciones"];revisionHumana:boolean};
 export type OrderReview={pedido:string|null;version:number;configuracion:string|null;numeroConfiguracion:number;huella:string|null;habilitada:boolean;bloqueos:string[];condiciones:OrderConditions|null;franja:OrderSlot|null;archivos:OrderPdf[]};

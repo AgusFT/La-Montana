@@ -116,7 +116,7 @@ function PrepareWork(){
    </fieldset>
    <div id="client-budget-action" className="workspace-next"><div><strong>{prep?.archivos.length?`${configuredCount} de ${prep.archivos.length} archivos configurados`:'Agregá tu primer archivo'}</strong><small>Las opciones se guardan al revisar el presupuesto.</small></div><button className="client-button" disabled={!prep?.archivos.length||locked}>Revisar presupuesto →</button></div>
   </form>
-  {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<section className="workspace-panel workspace-optional-preview"><PreparedFileReview optional quote={prep.codigoPublico} version={prep.version} total={prep.archivos.length} accepted={prep.archivos.filter(f=>!!f.aceptadaEn).length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>}
+  {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<section className="workspace-panel workspace-optional-preview"><PreparedFileReview optional quote={prep.codigoPublico} version={prep.version} total={prep.archivos.length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>}
   {prep&&<ClientContextTour stage={1} ready={!!options?.disponible&&!busy}/>}
  </div>;
 }
