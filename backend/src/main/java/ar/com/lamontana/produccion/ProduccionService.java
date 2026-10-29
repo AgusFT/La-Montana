@@ -117,7 +117,8 @@ public class ProduccionService {
  @Transactional public Vista iniciar(UUID pedido,Inicio in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_PRODUCCION");var actor=actor(correo);var hash=huella(List.of(pedido,"INICIAR",in));
   if(recuperar(in.operacion(),hash,p,actor))return vista(p,correo);
-  version(p,in.version());texto(in.motivo());confirmar(in.confirmacionManual());var bloqueos=bloqueos(p,true);if(!bloqueos.isEmpty())throw conflicto(String.join(" ",bloqueos));
+  String motivo=motivo(in.motivo(),"Inicio manual de producción confirmado por el operador.",in.impresora()==null);
+  version(p,in.version());confirmar(in.confirmacionManual());var bloqueos=bloqueos(p,true);if(!bloqueos.isEmpty())throw conflicto(String.join(" ",bloqueos));
   var item=p.oferta().items().stream().filter(i->i.codigoPublico().equals(in.item())).findFirst().orElseThrow(()->error(HttpStatus.NOT_FOUND,"El ítem no pertenece al trabajo efectivo de este pedido."));
   var anteriores=trabajos(p.numero(),in.item());var anterior=anteriores.isEmpty()?null:anteriores.get(anteriores.size()-1);String bloqueo=bloqueoItem(anterior==null?null:anterior.vista());if(bloqueo!=null)throw conflicto(bloqueo);
   var pdf=p.archivos().stream().filter(f->f.item().equals(in.item())).findFirst().orElseThrow();
@@ -130,32 +131,34 @@ public class ProduccionService {
    SELECT ?,i.id_pedido,i.id_cotizacion_item,i.id_archivo_almacenado,i.id_aceptacion_vista_previa,?,(SELECT id_impresora FROM lamontana.impresora WHERE codigo_publico=?),p.id_configuracion_version,?,?,?,?,'IMPRIMIENDO',?,?
    FROM lamontana.pedido_archivo_actual i JOIN lamontana.pedido_actual p USING(id_pedido) JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item)
    WHERE i.id_pedido=? AND ci.codigo_publico=? RETURNING id_trabajo_impresion
-   """,Long.class,codigo,anterior==null?null:anterior.id(),in.impresora(),impresora==null?null:impresora.nombre(),actor.id(),actor.nombre(),tipo,impresora==null?in.motivo().strip():null,Timestamp.from(ahora),p.numero(),in.item());
-  evento(p,actor,in.operacion(),hash,id,"INICIAR_TRABAJO",null,"IMPRIMIENDO","EN_PRODUCCION",in.motivo(),"La imprenta inició manualmente "+(tipo.equals("NORMAL")?"un trabajo de impresión.":"una reimpresión para completar el control de calidad."),ahora);
+   """,Long.class,codigo,anterior==null?null:anterior.id(),in.impresora(),impresora==null?null:impresora.nombre(),actor.id(),actor.nombre(),tipo,impresora==null?motivo:null,Timestamp.from(ahora),p.numero(),in.item());
+  evento(p,actor,in.operacion(),hash,id,"INICIAR_TRABAJO",null,"IMPRIMIENDO","EN_PRODUCCION",motivo,"La imprenta inició manualmente "+(tipo.equals("NORMAL")?"un trabajo de impresión.":"una reimpresión para completar el control de calidad."),ahora);
   return vista(pedidos.detalle(pedido,correo,true),correo);
  }
  @Transactional public Vista cambiar(UUID pedido,UUID trabajo,Cambio in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_PRODUCCION");var actor=actor(correo);var hash=huella(List.of(pedido,trabajo,"ESTADO",in));
   if(recuperar(in.operacion(),hash,p,actor))return vista(p,correo);
-  version(p,in.version());texto(in.motivo());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
+  String motivo=motivo(in.motivo(),"Trabajo terminado por el operador.",in.accion()!=Accion.COMPLETAR);
+  version(p,in.version());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
   if(!p.estado().equals("EN_PRODUCCION")||!t.vista().estado().equals("IMPRIMIENDO"))throw conflicto("Sólo un trabajo manual en curso admite completar, registrar un error o cancelar.");
   String estado=switch(in.accion()){case COMPLETAR->"COMPLETADO";case ERROR->"ERROR";case CANCELAR->"CANCELADO";};Instant ahora=Instant.now();
   jdbc.update("UPDATE lamontana.trabajo_impresion SET estado=?,fecha_fin=? WHERE id_trabajo_impresion=?",estado,Timestamp.from(ahora),t.id());
   String publico=in.accion()==Accion.COMPLETAR?"La imprenta registró un trabajo terminado; falta controlar su calidad.":"La imprenta registró una incidencia de producción. El pedido sigue pendiente de completar el trabajo.";
-  evento(p,actor,in.operacion(),hash,t.id(),in.accion().name()+"_TRABAJO","IMPRIMIENDO",estado,"EN_PRODUCCION",in.motivo(),publico,ahora);
+  evento(p,actor,in.operacion(),hash,t.id(),in.accion().name()+"_TRABAJO","IMPRIMIENDO",estado,"EN_PRODUCCION",motivo,publico,ahora);
   return vista(pedidos.detalle(pedido,correo,true),correo);
  }
  @Transactional public Vista calidad(UUID pedido,UUID trabajo,Inspeccion in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"CONTROLAR_CALIDAD");var actor=actor(correo);var hash=huella(List.of(pedido,trabajo,"CALIDAD",in));
   if(recuperar(in.operacion(),hash,p,actor))return vista(p,correo);
-  version(p,in.version());texto(in.observaciones());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
+  String motivo=motivo(in.observaciones(),"Control de calidad aprobado por el inspector.",in.resultado()!=Resultado.APROBADO);
+  version(p,in.version());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
   if(!p.estado().equals("EN_PRODUCCION")||!t.vista().estado().equals("COMPLETADO")||t.vista().calidad()!=null)throw conflicto("La inspección requiere un trabajo terminado y todavía sin control de calidad.");
   if(in.resultado()==Resultado.APROBADO&&!in.checklist().completo())throw error(HttpStatus.BAD_REQUEST,"Marcá todos los controles para aprobar; si existe un problema elegí reimpresión o incidencia.");
   var c=in.checklist();Instant ahora=Instant.now();
-  jdbc.update("INSERT INTO lamontana.control_calidad(id_trabajo_impresion,id_inspector,inspector_nombre,resultado,impresion_completa,calidad_correcta,alineacion_correcta,orden_correcto,terminaciones_correctas,observaciones,fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",t.id(),actor.id(),actor.nombre(),in.resultado().name(),c.impresionCompleta(),c.calidadCorrecta(),c.alineacionCorrecta(),c.ordenCorrecto(),c.terminacionesCorrectas(),in.observaciones().strip(),Timestamp.from(ahora));
+  jdbc.update("INSERT INTO lamontana.control_calidad(id_trabajo_impresion,id_inspector,inspector_nombre,resultado,impresion_completa,calidad_correcta,alineacion_correcta,orden_correcto,terminaciones_correctas,observaciones,fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",t.id(),actor.id(),actor.nombre(),in.resultado().name(),c.impresionCompleta(),c.calidadCorrecta(),c.alineacionCorrecta(),c.ordenCorrecto(),c.terminacionesCorrectas(),motivo,Timestamp.from(ahora));
   boolean lista=jdbc.queryForObject("SELECT lamontana.calidad_pedido_aprobada(?)",Boolean.class,p.numero());
   String publico=lista?(p.reserva().modalidad().name().equals("RETIRO_SUCURSAL")&&!p.retiroConTraslado()?"Todos los trabajos superaron calidad. El pedido está listo para entregar en la sucursal; resta verificar el saldo y registrar la entrega.":"Todos los trabajos superaron calidad. El pedido está listo para preparar su despacho; todavía no salió hacia el destino."):in.resultado()==Resultado.APROBADO?"Un trabajo superó el control de calidad. Faltan otros ítems para completar el pedido.":"La imprenta detectó una incidencia de calidad y debe repetir el trabajo antes de continuar.";
-  evento(p,actor,in.operacion(),hash,t.id(),"CONTROLAR_CALIDAD","COMPLETADO","COMPLETADO",lista?"LISTO_PARA_ENTREGA":"EN_PRODUCCION",in.observaciones(),publico,ahora);
+  evento(p,actor,in.operacion(),hash,t.id(),"CONTROLAR_CALIDAD","COMPLETADO","COMPLETADO",lista?"LISTO_PARA_ENTREGA":"EN_PRODUCCION",motivo,publico,ahora);
   return vista(pedidos.detalle(pedido,correo,true),correo);
  }
  private List<Cobertura> cobertura(PedidoService.Detalle p){
@@ -198,6 +201,7 @@ public class ProduccionService {
  private void bloquear(){for(long id:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+id+")");}
  private void version(PedidoService.Detalle p,long v){if(p.version()!=v)throw conflicto("El pedido cambió. Actualizá su estado antes de registrar otro hecho.");}
  private void texto(String v){if(v==null||v.isBlank()||v.length()>500||v.codePoints().anyMatch(c->Character.isISOControl(c)&&c!='\n'&&c!='\r'&&c!='\t'))throw error(HttpStatus.BAD_REQUEST,"Completá el motivo sin caracteres de control.");}
+ private String motivo(String v,String predeterminado,boolean requerido){if(!requerido&&(v==null||v.isBlank()))return predeterminado;texto(v);return v.strip();}
  private void confirmar(boolean v){if(!v)throw error(HttpStatus.BAD_REQUEST,"Confirmá el hecho manual que estás registrando.");}
  private String huella(Object v){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.writeValueAsString(v).getBytes(StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
  private ResponseStatusException conflicto(String m){return error(HttpStatus.CONFLICT,m);}

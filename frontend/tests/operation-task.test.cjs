@@ -11,13 +11,13 @@ test('un empleado de producción espera la revisión sin recibir un botón de ap
  const task=operationTask(order(),['GESTIONAR_PRODUCCION'],facts({review:review([action('REVISAR')])}));
  assert.equal(task.panel,'pedido-resumen');assert.equal(task.waiting,true);assert.match(task.title,/Esperando revisión/);
 });
-test('se prioriza registrar la revisión antes de aprobar y sin saltarla por un anticipo pendiente',()=>{
+test('el responsable ve el bloqueo económico antes de poder aprobar, aunque pueda registrar revisión',()=>{
  const task=operationTask(order(undefined,{cobro:{estado:'PENDIENTE'}}),['GESTIONAR_PEDIDOS','ACREDITAR_PAGO'],facts({review:review([action('REVISAR'),action('APROBAR',false)])}));
- assert.equal(task.panel,'pedido-revision');assert.equal(task.title,'Revisar el trabajo');assert.equal(task.waiting,false);
+ assert.equal(task.panel,'pedido-revision');assert.equal(task.title,'Falta resolver el pago requerido');assert.equal(task.waiting,true);
 });
 test('aprobar se propone solamente con la autorización actual del servidor',()=>{
  const permissions=['GESTIONAR_PEDIDOS'];
- assert.equal(operationTask(order(),permissions,facts({review:review([action('REVISAR',false),action('APROBAR')])})).title,'Aprobar el pedido revisado');
+ assert.equal(operationTask(order(),permissions,facts({review:review([action('REVISAR'),action('APROBAR')])})).title,'Revisar y aprobar el pedido');
  const blocked=operationTask(order(),permissions,facts({review:review([action('APROBAR',false,'Falta revisión humana.')])}));
  assert.equal(blocked.waiting,true);assert.equal(blocked.description,'Falta revisión humana.');
 });
@@ -28,7 +28,7 @@ test('caja ve el anticipo y otro perfil ve quién debe resolverlo',()=>{
 });
 test('una versión vieja no habilita revisar, producir ni cerrar',()=>{
  const stale=3;
- assert.notEqual(operationTask(order(),['GESTIONAR_PEDIDOS'],facts({review:{...review([action('APROBAR')]),version:stale}})).title,'Aprobar el pedido revisado');
+ assert.notEqual(operationTask(order(),['GESTIONAR_PEDIDOS'],facts({review:{...review([action('APROBAR')]),version:stale}})).title,'Revisar y aprobar el pedido');
  const job=production({version:stale,items:[{puedeIniciar:true,trabajos:[]}]});
  assert.notEqual(operationTask(order('APROBADO'),['GESTIONAR_PRODUCCION'],facts({production:job})).title,'Preparar e iniciar la impresión');
  assert.equal(operationTask(order('ENTREGADO'),['CERRAR_PEDIDOS'],facts({delivery:delivery({version:stale,puedeCerrar:true})})).waiting,true);

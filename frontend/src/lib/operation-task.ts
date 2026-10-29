@@ -19,14 +19,14 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
  if(['CANCELADO','RECHAZADO','CERRADO'].includes(order.estado))return task(order.estado==='CERRADO'?'Pedido cerrado':'Pedido finalizado','Consultá el historial, los archivos y los movimientos conservados.','pedido-resumen',true);
  if(order.estado==='CORRECCION_SOLICITADA')return task('Esperando la respuesta del cliente','La imprenta solicitó una corrección. Consultá el mensaje y los archivos; el trabajo continúa cuando el cliente responda.','pedido-correcciones',true);
  if(order.estado==='PENDIENTE_REVISION'){
-  if(has('GESTIONAR_PEDIDOS')&&review?.acciones.some(a=>a.accion==='REVISAR'&&a.habilitada))return task('Revisar el trabajo','Abrí los PDF, comprobá las opciones y registrá la revisión. Después podrás aprobar el pedido.','pedido-revision');
+  if(has('GESTIONAR_PEDIDOS')){
+   const approval=review?.acciones.find(a=>a.accion==='APROBAR');
+   if(approval?.habilitada)return task('Revisar y aprobar el pedido','Comprobá el trabajo y confirmá la aprobación para habilitar la preparación de producción.','pedido-revision');
+   return task(advance?'Falta resolver el pago requerido':'Revisar el pedido',approval?.motivo??'Comprobando las condiciones del motor para aprobar.','pedido-revision',!!review);
+  }
   if(advance){
    if(finance)return task('Resolver el pago pendiente','Comprobá el anticipo y los movimientos informados. Registrar o informar un pago no equivale a aprobar el trabajo.','pedido-pagos');
    return task('Esperando la condición de pago','Caja debe verificar el pago necesario antes de que el pedido pueda avanzar. Podés consultar el trabajo mientras tanto.','pedido-resumen',true);
-  }
-  if(has('GESTIONAR_PEDIDOS')){
-   if(review?.acciones.some(a=>a.accion==='APROBAR'&&a.habilitada))return task('Aprobar el pedido revisado','La revisión está registrada. Confirmá la aprobación para habilitar la producción.','pedido-revision');
-   return task('Revisión del pedido',review?.acciones.find(a=>a.accion==='APROBAR')?.motivo??'Comprobando los requisitos y las acciones disponibles.','pedido-revision',!!review);
   }
   return task('Esperando revisión y aprobación','El responsable de pedidos debe revisar el trabajo. Tu perfil podrá intervenir cuando llegue su etapa.','pedido-resumen',true);
  }

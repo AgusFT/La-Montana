@@ -60,10 +60,18 @@ class VistaPreviaOpcionalIntegrationTest {
    order=corrections.responder(orderId,answer,CLIENTE);assertThat(order.archivos().get(0).archivo()).isEqualTo(next.codigoPublico());assertThat(order.archivos().get(0).aceptadaEn()).isNull();
    assertThat(corrections.responder(orderId,answer,CLIENTE).version()).isEqualTo(order.version());assertThat(corrections.consultar(orderId,CLIENTE,false).solicitudes().get(0).respuesta().archivos().get(0).aceptadaEn()).isNull();
    assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.aceptacion_vista_previa WHERE tipo_registro='ENVIO_PEDIDO'",Integer.class)).isEqualTo(2);
-   var review=app.getBean(RevisionPedidoService.class);order=review.decidir(orderId,new RevisionPedidoController.Decision(UUID.randomUUID(),order.version(),RevisionPedidoController.Accion.REVISAR,true,"PDF comprobado por la imprenta",null),ADMIN);
-   order=review.decidir(orderId,new RevisionPedidoController.Decision(UUID.randomUUID(),order.version(),RevisionPedidoController.Accion.APROBAR,true,"Aprobado por la imprenta",null),ADMIN);
+   var review=app.getBean(RevisionPedidoService.class);var approve=new RevisionPedidoController.Decision(UUID.randomUUID(),order.version(),RevisionPedidoController.Accion.APROBAR,true,"",null);
+   long beforeApproval=order.version();order=review.decidir(orderId,approve,ADMIN);
+   assertThat(order.version()).isEqualTo(beforeApproval+2);assertThat(review.decidir(orderId,approve,ADMIN).version()).isEqualTo(order.version());
+   assertThat(review.consultar(orderId,ADMIN).revisadaEn()).isNotNull();
    var production=app.getBean(ProduccionService.class);var item=production.consultar(orderId,ADMIN).items().get(0);assertThat(item.puedeIniciar()).isTrue();
-   assertThat(production.iniciar(orderId,new ProduccionController.Inicio(UUID.randomUUID(),order.version(),item.codigoPublico(),item.impresoras().get(0).codigoPublico(),"Inicio sin aceptación de vista previa",true),ADMIN).estado()).isEqualTo("EN_PRODUCCION");
+   var started=production.iniciar(orderId,new ProduccionController.Inicio(UUID.randomUUID(),order.version(),item.codigoPublico(),item.impresoras().get(0).codigoPublico(),"",true),ADMIN);assertThat(started.estado()).isEqualTo("EN_PRODUCCION");
+   var job=started.items().get(0).trabajos().get(0);
+   var completed=production.cambiar(orderId,job.codigoPublico(),new ProduccionController.Cambio(UUID.randomUUID(),started.version(),ProduccionController.Accion.COMPLETAR,"",true),ADMIN);
+   var allChecks=new ProduccionController.Checklist(true,true,true,true,true);
+   long qualityVersion=completed.version();
+   assertThatThrownBy(()->production.calidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.REIMPRESION_REQUERIDA,allChecks,"",true),ADMIN)).hasMessageContaining("motivo");
+   assertThat(production.calidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.APROBADO,allChecks,"",true),ADMIN).estado()).isEqualTo("LISTO_PARA_ENTREGA");
    assertThat(jdbc.queryForList("SELECT id_aceptacion_vista_previa,fecha,sha256,tipo_registro FROM lamontana.aceptacion_vista_previa WHERE tipo_registro='VISTA_PREVIA' ORDER BY id_aceptacion_vista_previa")).isEqualTo(historicos);
    // Invalid PDFs and antivirus rejection never become printable files.
    UUID fresh=prep.abrir("cliente2@prueba.local").codigoPublico();var invalid=upload.crear(fresh,UUID.randomUUID(),"invalido.pdf","cliente2@prueba.local");

@@ -104,7 +104,9 @@ public class RevisionPedidoService {
   String hash=huella(List.of(id,"DECISION",in));
   if(recuperar(in.operacion(),hash,d,a))return d;
   version(d,in.version());String bloqueo=bloqueo(d,estado(d.numero()),in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
-  texto(in.motivo(),500);
+  String motivo=in.motivo();
+  if((in.accion()==Accion.REVISAR||in.accion()==Accion.APROBAR)&&(motivo==null||motivo.isBlank()))motivo=in.accion()==Accion.REVISAR?"Revisión de archivos y datos confirmada por el responsable.":"Pedido aprobado por el responsable tras revisar archivos y datos.";
+  texto(motivo,500);
   if(in.accion()==Accion.APROBAR)cobro.exigirAprobable(d.numero());
   if(in.accion()==Accion.REVISAR||in.accion()==Accion.APROBAR){
    if(!in.archivosYDatosRevisados())throw error(HttpStatus.BAD_REQUEST,"Confirmá que revisaste los PDF y los datos del pedido.");
@@ -115,7 +117,14 @@ public class RevisionPedidoService {
    case APROBAR -> "La imprenta aprobó el pedido. La producción requiere cumplir las condiciones de pago aceptadas y que un usuario interno la inicie.";
    case RECHAZAR,CANCELAR -> {texto(in.mensajeCliente(),500);yield in.mensajeCliente().strip();}
   };
-  transicion(d,a,in.operacion(),hash,in.accion(),in.motivo().strip(),publico);
+  // One confirmation, two audited facts in the same transaction. A failed approval
+  // rolls back the review too; retries recover the original approval operation.
+  if(in.accion()==Accion.APROBAR&&estado(d.numero()).revisada()==null){
+   UUID revision=UUID.nameUUIDFromBytes((in.operacion()+":revision").getBytes(StandardCharsets.UTF_8));
+   transicion(d,a,revision,hash,Accion.REVISAR,motivo.strip(),"La imprenta confirmó la revisión de los archivos y datos al aprobar el pedido.");
+   d=pedidos.detalle(id,correo,true);
+  }
+  transicion(d,a,in.operacion(),hash,in.accion(),motivo.strip(),publico);
   return pedidos.detalle(id,correo,true);
  }
  @Transactional public PedidoService.Detalle cancelar(UUID id,Cancelacion in,String correo){
@@ -157,7 +166,7 @@ public class RevisionPedidoService {
   if(accion==Accion.APROBAR)try{cobro.exigirAprobable(d.numero());}catch(ResponseStatusException ex){return ex.getReason();}
   return switch(accion){
    case REVISAR -> !d.estado().equals("PENDIENTE_REVISION")?"La aprobación ya fue registrada.":e.revisada()!=null?"La revisión de estos PDF ya está registrada.":null;
-   case APROBAR -> !d.estado().equals("PENDIENTE_REVISION")?"El pedido ya está aprobado.":e.revisada()==null?"Registrá primero la revisión de los PDF y los datos.":null;
+   case APROBAR -> !d.estado().equals("PENDIENTE_REVISION")?"El pedido ya está aprobado.":null;
    case RECHAZAR -> !Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA").contains(d.estado())?"El rechazo corresponde a la etapa de revisión. Antes de producción podés cancelar con motivo.":null;
    case CANCELAR -> null;
   };

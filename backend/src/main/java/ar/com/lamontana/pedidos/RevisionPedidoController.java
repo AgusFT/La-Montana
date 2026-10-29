@@ -51,7 +51,7 @@ public class RevisionPedidoController {
  public enum Accion { REVISAR, APROBAR, RECHAZAR, CANCELAR }
  public enum Importancia { INFORMATIVA, RELEVANTE, CRITICA }
  public record Decision(@NotNull UUID operacion,@Min(1) long version,@NotNull Accion accion,
-   boolean archivosYDatosRevisados,@NotBlank @Size(max=500) String motivo,@Size(max=500) String mensajeCliente){}
+   boolean archivosYDatosRevisados,@Size(max=500) String motivo,@Size(max=500) String mensajeCliente){}
  public record Cancelacion(@NotNull UUID operacion,@Min(1) long version,@NotBlank @Size(max=500) String motivo){}
  public record Observacion(@NotNull UUID operacion,@Min(1) long version,@NotNull Importancia importancia,@NotBlank @Size(max=2000) String texto){}
  @GetMapping("/api/operacion/pedidos/{id}/gestion")
