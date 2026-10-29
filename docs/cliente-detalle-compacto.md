@@ -1,11 +1,13 @@
 # Cliente: detalle compacto del pedido
 
-Mejora UX/UI del paso 3 · 27/10/2026. Continúa el [recorrido cliente](cliente-tres-etapas.md) y los [paneles de las etapas 1 y 2](cliente-paneles-compactos.md).
+Mejora UX/UI del paso 3 · actualizada el 29/10/2026. Continúa el [recorrido cliente](cliente-tres-etapas.md) y los [paneles de las etapas 1 y 2](cliente-paneles-compactos.md).
 
 ## Presentación
 
 - Número, estado actual, fecha de confirmación y controles de actualización reunidos en la cabecera.
-- Recorrido completo desplegable. Los avisos de estado desconocido, cancelación, producción, corrección y cobro permanecen visibles sin abrirlo, cuando corresponden al pedido.
+- Las tres etapas de creación quedan en una línea pequeña, como referencia del proceso completado.
+- El seguimiento del pedido permanece abierto y destacado, con el estado actual, etapas y fechas reales. Los avisos de estado desconocido, cancelación y producción aparecen en el seguimiento; las acciones de corrección y cobro se conservan debajo.
+- En móviles, el recorrido tiene desplazamiento horizontal propio y se centra en la etapa actual. Se pueden consultar todas las etapas sin desplegar una columna extensa; el listado admite foco y desplazamiento con teclado.
 - Resumen en tres paneles de escritorio: trabajo/archivos, importe/saldo y destino/franja. En tabletas y móviles se reordena según el ancho disponible.
 - Lista acotada de trabajos con desplazamiento propio. Adicionales y metadatos del PDF se consultan por archivo; veinte PDF no generan veinte tarjetas extensas abiertas sobre toda la página.
 - Historial y opciones de gestión/cancelación desplegables al final del resumen.
@@ -19,6 +21,10 @@ El estado y las fechas proceden del pedido y del evaluador de seguimiento existe
 Se mantienen permisos, versiones, huellas, recuperación de operaciones, cancelación controlada, correcciones, pagos, reprogramación, código de recepción, archivos confirmados, revocación e historial. El contenido revocado no recibe enlaces de descarga. No se modifica backend, esquema, configuración, precios, etapas 1/2, inicio del cliente ni la presentación interna del administrador/empleado.
 
 ## Verificación
+
+Actualización del 29/10: TypeScript, build de producción y 41 pruebas de seguimiento/recorrido cliente aprobados. Revisión visual interactiva pendiente: el entorno de preview añade argumentos de Vite incompatibles con `next dev`, según el diagnóstico de la actualización anterior. La comprobación visual se realiza en la instalación de pruebas; no se atribuyen a esta actualización las comprobaciones Chromium de la versión anterior.
+
+### Verificación de la composición anterior (27/10)
 
 Build de producción y TypeScript del frontend aprobados; 56 pruebas frontend/proxy existentes aprobadas. Chromium con componentes React reales y **API simulada**: resumen y lista de veinte PDF acotada; despliegue del recorrido; acceso a pagos y PDF confirmados; borrador de cancelación conservado al cambiar de sección; error financiero sin saldo inventado; aviso de pedido cancelado visible con recorrido cerrado; contenido revocado sin descarga.
 

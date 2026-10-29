@@ -96,13 +96,12 @@ export function OrderDetail({id,internal=false,financial=true,globalAdmin=false}
  const saved=()=>{setRefresh(v=>v+1);void load();};
  const controls=<div className={internal?"client-actions":"client-order-heading-actions"}><a className="client-button secondary" href={globalAdmin?"/administracion/pedidos":internal?order?`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`:"/operacion":"/cliente/pedidos"}>Volver a pedidos</a><button className="client-button secondary" disabled={busy} onClick={()=>void load()}>Actualizar pedido</button></div>;
  const tracking=order?orderTracking(order):null;
- const content=<>{!internal&&<ClientJourney part={3}/>} {busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
+ const content=<>{!internal&&<ClientJourney part={3} compact/>} {busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
   {(internal||!order)&&controls}
   {order&&<><header className="order-overview order-detail-heading">
    {internal?<><div><h2>Pedido PED-{order.numero}</h2><p>{order.oferta.sucursal.nombre} · Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></>:<><div className="client-order-heading-state"><div><h2>Tu pedido PED-{order.numero}</h2><p>Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></div>{controls}</>}
   </header>
-   {!internal&&<><details id="client-order-progress" className="client-order-tracking"><summary>Ver recorrido completo <span>Etapas y fechas registradas de tu pedido</span></summary><OrderProgress order={order}/></details>
-    {tracking?.notice&&order.estado!=="CORRECCION_SOLICITADA"&&<p className={tracking.unavailable?"client-warning":"client-note"}>{tracking.notice}</p>}
+   {!internal&&<><div id="client-order-progress" className="client-order-tracking"><OrderProgress order={order} featured/></div>
     {order.cobro&&<p className="client-note"><strong>Situación del pedido:</strong> {order.cobro.mensaje} <a href="#pedido-pagos">Consultar pagos y próximos pasos</a></p>}
     {order.estado==="CORRECCION_SOLICITADA"&&<p className="client-note"><strong>{tracking?.notice??"Tu pedido requiere una corrección."}</strong> <a href="#pedido-correcciones">Consultar lo solicitado y responder</a>.</p>}
    </>}
