@@ -42,7 +42,7 @@ import {ClientJourney} from "./client-journey";
 import {ClientContextTour} from "./client-context-tour";
 import {ClientOrderSummary} from "./client-order-summary";
 import {OrderProgress} from "./order-progress";
-import {orderTracking,orderTrackingLabel} from "@/lib/order-tracking";
+import {orderTrackingLabel} from "@/lib/order-tracking";
 import {PaymentPanel} from "./payment-panel";
 import {OrderReschedule} from "./order-reschedule";
 import {OrderDelivery} from "./order-delivery";
@@ -79,7 +79,7 @@ function WorkSummary({order,internal}:{order:Order;internal:boolean}){
  </section>;
 }
 function Summary({order,internal,onSaved}:{order:Order;internal:boolean;onSaved:()=>void}){
- if(!internal)return <ClientOrderSummary order={order} actions={<OrderManagement order={order} internal={false} onSaved={onSaved}/>}/>;
+ if(!internal)return <ClientOrderSummary order={order} onSaved={onSaved} actions={<OrderManagement order={order} internal={false} onSaved={onSaved} compact/>}/>;
  return <><div className="client-grid"><section className="client-card"><h3>Recorrido del pedido</h3><ol className="order-timeline">{order.historial.map((e,i)=><li key={i}><strong>{orderState(e.estado,order.reserva.modalidad)}</strong><span>{date(e.fecha)}</span><p>{e.motivo}</p></li>)}</ol></section>
   <section className="client-card"><h3>{order.estadoReserva==="LIBERADA"?"Reserva liberada":order.estadoReserva==="CUMPLIDA"?"Reserva cumplida":"Entrega reservada"}</h3><p><strong>{modeLabels[order.reserva.modalidad]}</strong></p><p>{order.reserva.nombre}</p><p>{order.reserva.fecha} · {order.reserva.apertura}–{order.reserva.cierre}<br/>{order.reserva.zonaHoraria}</p>{order.contacto&&<p>Recibe: {order.contacto.receptor}<br/>Contacto: {order.contacto.telefono}</p>}
    <p className="client-muted">{["LIBERADA","CUMPLIDA"].includes(order.estadoReserva)?"Esta franja quedó en el historial y ya no ocupa capacidad.":"Un cupo reservado para el pedido completo. La fecha reservada no indica que el trabajo ya esté listo."}</p><a href="#pedido-entrega">Consultar entrega y saldo</a></section></div><WorkSummary order={order} internal={internal}/></>;
@@ -92,20 +92,18 @@ export function OrderDetail({id,internal=false,financial=true,globalAdmin=false}
  useEffect(()=>{const read=()=>setRequested(window.location.hash.slice(1));read();window.addEventListener("hashchange",read);return()=>window.removeEventListener("hashchange",read);},[id]);
  const available=sections.filter(s=>(!s.internal||internal)&&(!s.financial||financial));
  const current=available.some(s=>s.id===requested)?requested:order?defaultSection(order,internal):"pedido-resumen";
- useEffect(()=>{if(!order||!requested)return;const frame=requestAnimationFrame(()=>document.getElementById("pedido-secciones")?.scrollIntoView({block:"start"}));return()=>cancelAnimationFrame(frame);},[current,requested,!!order]);
+ useEffect(()=>{if(!internal||!order||!requested)return;const frame=requestAnimationFrame(()=>document.getElementById("pedido-secciones")?.scrollIntoView({block:"start"}));return()=>cancelAnimationFrame(frame);},[current,requested,!!order,internal]);
  const saved=()=>{setRefresh(v=>v+1);void load();};
  const controls=<div className={internal?"client-actions":"client-order-heading-actions"}><a className="client-button secondary" href={globalAdmin?"/administracion/pedidos":internal?order?`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`:"/operacion":"/cliente/pedidos"}>Volver a pedidos</a><button className="client-button secondary" disabled={busy} onClick={()=>void load()}>Actualizar pedido</button></div>;
- const tracking=order?orderTracking(order):null;
  const content=<>{!internal&&<ClientJourney part={3} compact/>} {busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}
   {(internal||!order)&&controls}
   {order&&<><header className="order-overview order-detail-heading">
    {internal?<><div><h2>Pedido PED-{order.numero}</h2><p>{order.oferta.sucursal.nombre} · Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></>:<><div className="client-order-heading-state"><div><h2>Tu pedido PED-{order.numero}</h2><p>Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></div>{controls}</>}
   </header>
    {!internal&&<><div id="client-order-progress" className="client-order-tracking"><OrderProgress order={order} featured/></div>
-    {order.cobro&&<p className="client-note"><strong>Situación del pedido:</strong> {order.cobro.mensaje} <a href="#pedido-pagos">Consultar pagos y próximos pasos</a></p>}
-    {order.estado==="CORRECCION_SOLICITADA"&&<p className="client-note"><strong>{tracking?.notice??"Tu pedido requiere una corrección."}</strong> <a href="#pedido-correcciones">Consultar lo solicitado y responder</a>.</p>}
    </>}
-   <div id="client-order-details"><nav id="pedido-secciones" className="order-sections" aria-label="Secciones del pedido">{available.map(s=><a key={s.id} href={`#${s.id}`} aria-current={current===s.id?"page":undefined} data-attention={!internal&&s.id==="pedido-correcciones"&&order.estado==="CORRECCION_SOLICITADA"?true:undefined}>{!internal&&s.id==="pedido-resumen"?"Resumen":s.label}</a>)}</nav></div>
+   {!internal&&<ClientOrderSummary order={order} onSaved={saved} actions={<OrderManagement order={order} internal={false} onSaved={saved} compact/>}/>}
+   {internal&&<><div id="client-order-details"><nav id="pedido-secciones" className="order-sections" aria-label="Secciones del pedido">{available.map(s=><a key={s.id} href={`#${s.id}`} aria-current={current===s.id?"page":undefined} data-attention={!internal&&s.id==="pedido-correcciones"&&order.estado==="CORRECCION_SOLICITADA"?true:undefined}>{!internal&&s.id==="pedido-resumen"?"Resumen":s.label}</a>)}</nav></div>
    {/* Keep each form mounted so switching sections preserves drafts and recoverable operations. */}
    <div id="pedido-resumen" className="order-section" hidden={current!=="pedido-resumen"}><Summary order={order} internal={internal} onSaved={saved}/></div>
    {internal&&<div id="pedido-revision" className="order-section" hidden={current!=="pedido-revision"}><WorkSummary order={order} internal/><OrderManagement order={order} internal onSaved={saved}/></div>}
@@ -115,8 +113,9 @@ export function OrderDetail({id,internal=false,financial=true,globalAdmin=false}
    <div className="order-section" hidden={current!=="pedido-reprogramacion"}><OrderReschedule order={order} internal={internal} onSaved={saved}/></div>
    <div id="pedido-pdf" className="order-section" hidden={current!=="pedido-pdf"}>{internal?<PrivateFiles quote={order.cotizacion} version={0} internal confirmed snapshot={order.archivos.map(f=>f.archivo)}/>:<div className="workspace-review-body client-order-file-panel"><PrivateFiles compact quote={order.cotizacion} version={0} confirmed snapshot={order.archivos.map(f=>f.archivo)}/></div>}</div>
    {financial&&<div id="pedido-pagos" className="order-section" hidden={current!=="pedido-pagos"}><PaymentPanel key={refresh} quote={order.cotizacion} internal={internal}/></div>}
+   </>}
    {!internal&&<ClientContextTour stage={3} ready={!busy}/>}
-   <details className="order-pilot-limits"><summary>Funciones del piloto <span className="client-construction">En construcción</span></summary><p>CUPS, aplicación móvil, licencias, pasarelas de pago y reclamos siguen en construcción.</p></details>
+   {internal&&<details className="order-pilot-limits"><summary>Funciones del piloto <span className="client-construction">En construcción</span></summary><p>CUPS, aplicación móvil, licencias, pasarelas de pago y reclamos siguen en construcción.</p></details>}
   </>}
  </>;
  return internal?content:<div className="client-experience client-compact-experience client-order-experience">{content}</div>;

@@ -1,31 +1,36 @@
-# Cliente: detalle compacto del pedido
+# Cliente: pedido actual en una sola pantalla
 
-Mejora UX/UI del paso 3 · actualizada el 29/10/2026. Continúa el [recorrido cliente](cliente-tres-etapas.md) y los [paneles de las etapas 1 y 2](cliente-paneles-compactos.md).
+Actualización del 29/10/2026 en `pruebas`. Retoma el concepto de MC-CLI-006: seguimiento, datos claros y una acción de cancelación visible.
 
 ## Presentación
 
-- Número, estado actual, fecha de confirmación y controles de actualización reunidos en la cabecera.
-- Las tres etapas de creación quedan en una línea pequeña, como referencia del proceso completado.
-- El seguimiento del pedido permanece abierto y destacado, con el estado actual, etapas y fechas reales. Los avisos de estado desconocido, cancelación y producción aparecen en el seguimiento; las acciones de corrección y cobro se conservan debajo.
-- En móviles, el recorrido tiene desplazamiento horizontal propio y se centra en la etapa actual. Se pueden consultar todas las etapas sin desplegar una columna extensa; el listado admite foco y desplazamiento con teclado.
-- Resumen en tres paneles de escritorio: trabajo/archivos, importe/saldo y destino/franja. En tabletas y móviles se reordena según el ancho disponible.
-- Lista acotada de trabajos con desplazamiento propio. Adicionales y metadatos del PDF se consultan por archivo; veinte PDF no generan veinte tarjetas extensas abiertas sobre toda la página.
-- Historial y opciones de gestión/cancelación desplegables al final del resumen.
-- Se conservan las secciones y sus enlaces `#pedido-*`. Los formularios siguen montados al alternar secciones para preservar borradores e intentos recuperables.
-- El visor confirmado utiliza el modo compacto existente, con lista y páginas en paralelo cuando hay espacio. No pide aceptar nuevamente el archivo ni cambia los endpoints privados.
+- El seguimiento queda abierto. Las tres etapas de creación se mantienen en una línea discreta; las fechas provienen del historial real y las etapas pendientes no tienen fechas inventadas.
+- Se elimina del cliente la fila de pestañas Resumen, Correcciones, Entrega y cierre, Reprogramación, Archivos PDF y Pagos.
+- Las tarjetas muestran **Detalles del trabajo**, **Archivo**, **Información del pedido**, **Método de pago** y **Lugar de retiro / Punto de entrega / Dirección de entrega** según su modalidad.
+- Si hay varios PDF, un selector permite consultar uno por vez. Las opciones de impresión, nombre, tamaño y descarga corresponden al archivo seleccionado. Veinte PDF no generan veinte tarjetas abiertas ni un scroll dentro de la ficha.
+- La descarga usa el original confirmado y sólo se ofrece cuando los metadatos autorizados indican disponibilidad. El visor abre la primera página del archivo elegido en una ventana con cierre por botón/Escape y retorno del foco.
+- El precio total, la franja guardada, el destino y el saldo siguen accesibles. Los movimientos y formularios de pago se despliegan dentro de su tarjeta y conservan su borrador al cerrar y volver a abrir.
+- Las correcciones pendientes aparecen directamente en la página. Las anteriores quedan plegadas. Las propuestas de fecha aparecen junto al destino cuando existen; se conservan sus controles de aceptación, rechazo y cupo.
+- El código de retiro utiliza el componente real de entrega dentro de Información del pedido. Se muestra cuando el estado permite generarlo, con su vencimiento y renovación; se informa la recepción cuando fue registrada.
+- **Cancelar pedido** queda al pie, mientras su estado lo permite. Solicita una confirmación explícita y ofrece un motivo opcional. Si se omite, la auditoría registra «Cancelación solicitada por el cliente». No se realiza una devolución automática y se conserva la recuperación de operaciones inciertas.
+- El historial completo y las condiciones permanecen en un único desplegable secundario. Se mantienen los enlaces contextuales `#pedido-*`.
 
-## Datos y alcance
+## Alcance
 
-El estado y las fechas proceden del pedido y del evaluador de seguimiento existente. El destino y la franja son los guardados en su reserva; no se derivan de la matriz vigente. El importe confirmado no se presenta como dinero cobrado: aplicado y pendiente se consultan en la API de pagos. Si falla esa consulta, se muestra el error sin inventar saldo cero.
-
-Se mantienen permisos, versiones, huellas, recuperación de operaciones, cancelación controlada, correcciones, pagos, reprogramación, código de recepción, archivos confirmados, revocación e historial. El contenido revocado no recibe enlaces de descarga. No se modifica backend, esquema, configuración, precios, etapas 1/2, inicio del cliente ni la presentación interna del administrador/empleado.
+Cambian la composición y la presentación del cliente. Se reutilizan los componentes y endpoints de pagos, archivos, cancelación, correcciones, reprogramación y entrega. No se modifica el backend, el esquema, los precios, permisos ni los estados. Las etapas 1 y 2 conservan su presentación. La vista interna mantiene sus pestañas, formularios y decisiones; las variantes compactas/contextuales son optativas.
 
 ## Verificación
 
-Actualización del 29/10: TypeScript, build de producción y 41 pruebas de seguimiento/recorrido cliente aprobados. Revisión visual interactiva pendiente: el entorno de preview añade argumentos de Vite incompatibles con `next dev`, según el diagnóstico de la actualización anterior. La comprobación visual se realiza en la instalación de pruebas; no se atribuyen a esta actualización las comprobaciones Chromium de la versión anterior.
+- `pnpm typecheck`, build de producción y 41 pruebas existentes de seguimiento/recorrido cliente aprobadas.
+- Navegador con los componentes React reales compilados en un banco aislado y **API simulada**: cinco tarjetas, ausencia de pestañas del cliente, selector entre veinte PDF, descarga no ofrecida para contenido revocado, error de saldo sin dinero inventado, apertura directa del visor y cierre por Escape con devolución del foco.
+- Comprobados los anchos de celular/tableta de 320, 390 y 768 px, y el escritorio disponible, sin desborde horizontal del documento. El timeline conserva su desplazamiento propio.
+- Comprobadas en ese banco la aparición de correcciones y propuestas de fecha, la presentación del código ficticio de retiro, la ausencia de cancelación cuando está listo para entregar, la conservación de borradores al plegar pagos y la recuperación de una cancelación con respuesta incierta.
+- El banco de interfaz no certifica una integración contra Docker/PostgreSQL/ClamAV. Los originales, movimientos financieros, códigos y decisiones de una instalación siguen bajo los controles reales del servidor.
 
-### Verificación de la composición anterior (27/10)
+## Actualizar la instalación
 
-Build de producción y TypeScript del frontend aprobados; 56 pruebas frontend/proxy existentes aprobadas. Chromium con componentes React reales y **API simulada**: resumen y lista de veinte PDF acotada; despliegue del recorrido; acceso a pagos y PDF confirmados; borrador de cancelación conservado al cambiar de sección; error financiero sin saldo inventado; aviso de pedido cancelado visible con recorrido cerrado; contenido revocado sin descarga.
+```bash
+git pull --no-rebase --no-edit origin pruebas && ./infra/pruebas/iniciar.sh
+```
 
-Revisión a 320, 390, 768 y 1440 px sin desborde horizontal de página. La guía del paso 3 mantiene sus identificadores y se adapta a la nueva composición. No equivale a una prueba integral contra Docker/PostgreSQL/ClamAV: la aceptación final del equipo se realiza en su instalación habitual.
+Se conservan los datos actuales. El merge permite mantener también los commits locales del equipo.

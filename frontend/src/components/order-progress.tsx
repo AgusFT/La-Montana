@@ -23,8 +23,8 @@ export function OrderProgress({order,compact=false,featured=false}:{order:Order;
     {tracking.notice&&<p className={tracking.unavailable?"client-warning":"order-progress-note"}>{tracking.notice}</p>}
     {tracking.steps.length>0&&<ol ref={list} className="order-progress-steps" tabIndex={0} aria-label="Recorrido del pedido">{tracking.steps.map((step,index)=><li key={step.id} data-state={step.state} aria-current={step.state==="current"||step.state==="stopped"?"step":undefined}>
       <span className="order-progress-marker" aria-hidden="true">{step.state==="complete"?"✓":step.state==="stopped"?"!":index+1}</span>
-      <div><strong>{step.label}</strong><span className="order-progress-status">{stepStates[step.state]}</span>{step.date&&<time dateTime={step.date}>{date(step.date)}</time>}</div>
+      <div><strong>{step.label}</strong>{(!featured||step.state==="current"||step.state==="stopped")&&<span className="order-progress-status">{stepStates[step.state]}</span>}{step.date&&<time dateTime={step.date}>{date(step.date)}</time>}</div>
     </li>)}</ol>}
-    <p className="order-progress-footnote">Recorrido según las condiciones de este pedido · configuración v{order.numeroConfiguracion}. Las próximas etapas no tienen una fecha confirmada.</p>
+    <p className="order-progress-footnote">{featured?"Las etapas se actualizan con el avance registrado por la imprenta.":<>Recorrido según las condiciones de este pedido · configuración v{order.numeroConfiguracion}. Las próximas etapas no tienen una fecha confirmada.</>}</p>
   </section>;
 }

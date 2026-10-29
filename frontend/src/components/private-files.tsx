@@ -12,7 +12,7 @@
  * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
  * - [export]
  *   PrivateFiles({quote,version,internal=false,prepared=false,compact=false,refresh=0,onChange,confirmed=false,snapshot,correction,onLockChange}:
- *   {quote:string;version:number;internal?:boolean;prepared?:boolean;compact?:boolean;refresh?:number;onChange?:()=>void;confirmed?:boolean;snapshot?:string[];correction?:{pedido:string;solicitud:string};onLockChange?:(locked:boolean)=>void})
+ *   {quote:string;version:number;internal?:boolean;prepared?:boolean;compact?:boolean;refresh?:number;onChange?:()=>void;confirmed?:boolean;snapshot?:string[];correction?:{pedido:string;solicitud:string};onLockChange?:(locked:boolean)=>void;initialPreview?:string})
  *   Componente de interfaz.
  * - [async] PrivateFiles :: load()
  * - PrivateFiles :: open(file: PrivateFile)
@@ -33,14 +33,14 @@ import {preparedFile} from "@/lib/prepared-files";
 import {quoteRead,date} from "@/lib/quote-types";
 import {isFile,isFileView,type PrivateFile,type FileView} from "@/lib/file-types";
 
-export function PrivateFiles({quote,version,internal=false,prepared=false,compact=false,refresh=0,onChange,confirmed=false,snapshot,correction,onLockChange}:{quote:string;version:number;internal?:boolean;prepared?:boolean;compact?:boolean;refresh?:number;onChange?:()=>void;confirmed?:boolean;snapshot?:string[];correction?:{pedido:string;solicitud:string};onLockChange?:(locked:boolean)=>void}){
+export function PrivateFiles({quote,version,internal=false,prepared=false,compact=false,refresh=0,onChange,confirmed=false,snapshot,correction,onLockChange,initialPreview}:{quote:string;version:number;internal?:boolean;prepared?:boolean;compact?:boolean;refresh?:number;onChange?:()=>void;confirmed?:boolean;snapshot?:string[];correction?:{pedido:string;solicitud:string};onLockChange?:(locked:boolean)=>void;initialPreview?:string}){
  const stateNames:Record<string,string>={PENDIENTE:"Pendiente de carga",VALIDANDO:"Analizando",VALIDO:"PDF válido",REQUIERE_COTIZACION:"Necesita una nueva cotización",RECHAZADO:"Archivo rechazado",FALLIDO:"Carga interrumpida"};
  const base=prepared?`/api/cliente/preparaciones/${quote}/archivos`:`/api/${internal?"operacion":"cliente"}/cotizaciones/${quote}/archivos`;
  const[view,setView]=useState<FileView|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[selected,setSelected]=useState<Record<string,File>>({}),[preview,setPreview]=useState<PrivateFile|null>(null),[page,setPage]=useState(1),[imageError,setImageError]=useState(false);
  const running=useRef(false),command=useRef<{kind:"upload";item:string;file:File;body:string;id?:string}|null>(null);
  const locked=busy||uncertain;
  useEffect(()=>{onLockChange?.(locked);return()=>onLockChange?.(false);},[locked,onLockChange]);
- async function load(){try{const data=await quoteRead(base,isFileView);setSelected(old=>{const next={...old};for(const i of data.items){const file=preparedFile(quote,i.codigoPublico);if(!next[i.codigoPublico]&&file&&!i.archivos.some(f=>f.activo&&["VALIDANDO","VALIDO","REQUIERE_COTIZACION"].includes(f.estado)))next[i.codigoPublico]=file;}return next;});setView(snapshot?{...data,items:data.items.map(i=>({...i,archivos:i.archivos.filter(f=>snapshot.includes(f.codigoPublico))}))}:data);setPreview(current=>current?data.items.flatMap(i=>i.archivos).find(f=>f.codigoPublico===current.codigoPublico)??current:null);}catch(e){setError(e instanceof Error?e.message:"No pudimos consultar los archivos.");}}
+ async function load(){try{const data=await quoteRead(base,isFileView);setSelected(old=>{const next={...old};for(const i of data.items){const file=preparedFile(quote,i.codigoPublico);if(!next[i.codigoPublico]&&file&&!i.archivos.some(f=>f.activo&&["VALIDANDO","VALIDO","REQUIERE_COTIZACION"].includes(f.estado)))next[i.codigoPublico]=file;}return next;});setView(snapshot?{...data,items:data.items.map(i=>({...i,archivos:i.archivos.filter(f=>snapshot.includes(f.codigoPublico))})).filter(i=>i.archivos.length>0)}:data);setPreview(current=>current?data.items.flatMap(i=>i.archivos).find(f=>f.codigoPublico===current.codigoPublico)??current:initialPreview?data.items.flatMap(i=>i.archivos).find(f=>f.codigoPublico===initialPreview&&!f.revocado&&["VALIDO","REQUIERE_COTIZACION"].includes(f.estado))??null:null);}catch(e){setError(e instanceof Error?e.message:"No pudimos consultar los archivos.");}}
  useEffect(()=>{void load();},[quote,version,internal,refresh,snapshot?.join(":")]);
  useEffect(()=>{if(!view?.items.some(i=>i.archivos.some(f=>f.estado==="VALIDANDO")))return;const timer=setTimeout(()=>void load(),3000);return()=>clearTimeout(timer);},[view]);
  function open(file:PrivateFile){setPreview(file);setPage(1);setImageError(false);}
