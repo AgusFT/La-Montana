@@ -10,11 +10,10 @@ import {useNavigationGuard} from './navigation-boundary';
 import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {isOptions,quoteRead,type QuoteOptions,type WorkItem} from '@/lib/quote-types';
 import {isFile} from '@/lib/file-types';
+import {globalPrintChoices,defaultServiceChoice,printChoiceKey as key} from '@/lib/print-options';
 import {isPreparation,type Preparation} from '@/lib/prepared-work';
 
 type Row={archivo:string;choice:string;copies:string;double:boolean;ends:string[]};
-type Combination=QuoteOptions['combinaciones'][number];
-const key=(o:Combination)=>[o.servicio,o.formato,o.papel,o.color].join(':');
 export function QuoteForm(props:{replaces?:string;inspectedFile?:string;correction?:{pedido:string;solicitud:string}}){
  return props.replaces?<LegacyQuoteForm {...props}/>:<PrepareWork/>;
 }
@@ -53,7 +52,9 @@ function PrepareWork(){
   });
  }
  function update(id:string,change:Partial<Row>){setRows(old=>old.map(r=>r.archivo===id?{...r,...change}:r));}
- const choices=Array.from(new Map((options?.combinaciones??[]).map(o=>[key(o),o])).values());
+ const choices=globalPrintChoices(options?.combinaciones??[]);
+ const singleService=new Set(choices.map(o=>o.servicio)).size===1;
+ function effectiveRow(row:Row):Row{return {...row,choice:defaultServiceChoice(row.choice,choices)};}
  const names=new Map([...(options?.formatos??[]),...(options?.papeles??[]),...(options?.servicios??[])].map(n=>[n.codigoPublico,n.nombre+(n.gramaje?` · ${n.gramaje} g/m²`:'')+(n.terminacion?` · ${n.terminacion}`:'')]));
  function choose(row:Row,index:number,value:string){
   const parts=Array.from({length:4},(_,i)=>row.choice.split(':')[i]??'');parts[index]=value;
@@ -67,7 +68,7 @@ function PrepareWork(){
  }
  async function submit(e:FormEvent){
   e.preventDefault();if(locked||!prep||!options?.configuracion||!options.revisionComercial)return;
-  const items=[];for(const f of prep.archivos){const row=rows.find(x=>x.archivo===f.codigoPublico),o=choices.find(x=>key(x)===row?.choice),copies=Number(row?.copies);
+  const items=[];for(const f of prep.archivos){const stored=rows.find(x=>x.archivo===f.codigoPublico),row=stored?effectiveRow(stored):undefined,o=choices.find(x=>key(x)===row?.choice),copies=Number(row?.copies);
    if(f.estado!=='VALIDO'||!f.paginas||!row||!o||!Number.isInteger(copies)||copies<1||copies>10000){setActiveFile(f.codigoPublico);setError(`Completá las opciones de ${f.nombre} y verificá su análisis.`);return;}
    const trabajo:WorkItem={servicio:o.servicio,formato:o.formato,papel:o.papel,color:o.color,paginas:f.paginas,copias:copies,dobleFaz:row.double,terminaciones:row.ends};items.push({archivo:f.codigoPublico,trabajo});
   }
@@ -76,10 +77,10 @@ function PrepareWork(){
   await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');router.push(`/cliente/preparaciones/${p.codigoPublico}`);});
  }
  const selectedFile=prep?.archivos.find(f=>f.codigoPublico===activeFile)??prep?.archivos[0];
- const row=rows.find(r=>r.archivo===selectedFile?.codigoPublico)??{archivo:selectedFile?.codigoPublico??'',choice:'',copies:'1',double:false,ends:[]};
+ const row=effectiveRow(rows.find(r=>r.archivo===selectedFile?.codigoPublico)??{archivo:selectedFile?.codigoPublico??'',choice:'',copies:'1',double:false,ends:[]});
  const parts=row.choice.split(':'),selected=choices.find(x=>key(x)===row.choice);
  const lists=[...Array(4)].map((_,n)=>Array.from(new Set(choices.filter(o=>{const p=key(o).split(':');return parts.every((v,j)=>j>=n||!v||v===p[j]);}).map(o=>key(o).split(':')[n]))));
- function configured(id:string){const r=rows.find(x=>x.archivo===id),f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
+ function configured(id:string){const stored=rows.find(x=>x.archivo===id),r=stored?effectiveRow(stored):undefined,f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
  const configuredCount=prep?.archivos.filter(f=>configured(f.codigoPublico)).length??0;
  return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>
   <p className="client-compact-intro">Agregá tus PDF y configurá cada uno. En el siguiente paso elegís entrega y pago.</p>
@@ -104,14 +105,14 @@ function PrepareWork(){
     {selectedFile?<><section className="workspace-panel">
      <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">2</span><h2>Detalles de impresión</h2></header>
      <div className="workspace-selected-file"><div><strong>{selectedFile.nombre}</strong><small>{selectedFile.estado==='VALIDO'?`✓ PDF analizado · ${selectedFile.paginas} páginas · ${((selectedFile.bytes??0)/1024).toLocaleString('es-AR',{maximumFractionDigits:1})} KiB`:selectedFile.estado==='VALIDANDO'?'Analizando seguridad y páginas…':selectedFile.mensaje??'Carga pendiente. Quitalo y volvé a seleccionarlo si no terminó.'}</small></div><button type="button" disabled={selectedFile.estado==='VALIDANDO'} onClick={()=>void remove(selectedFile.codigoPublico)}>Quitar</button></div>
-     <div className="workspace-print-fields">{['Servicio de impresión','Tamaño de hoja','Papel y gramaje','Impresión'].map((label,n)=><label key={label}>{label}<select aria-label={label} required disabled={selectedFile.estado!=='VALIDO'||n>0&&!parts[n-1]} value={parts[n]??''} onChange={e=>choose(row,n,e.target.value)}><option value="">Elegí una opción</option>{lists[n].map(v=><option key={v} value={v}>{n===3?(v==='COLOR'?'Color':'Blanco y negro'):names.get(v)??v}</option>)}</select></label>)}
+     <div className="workspace-print-fields">{['Servicio de impresión','Tamaño de hoja','Papel y gramaje','Impresión'].map((label,n)=>n===0&&singleService?null:<label key={label} data-field={n===0?'service':n===2?'paper':undefined}>{label}<select aria-label={label} required disabled={selectedFile.estado!=='VALIDO'||n>0&&!parts[n-1]} value={parts[n]??''} onChange={e=>choose(row,n,e.target.value)}><option value="">Elegí una opción</option>{lists[n].map(v=><option key={v} value={v}>{n===3?(v==='COLOR'?'Color':'Blanco y negro'):names.get(v)??v}</option>)}</select></label>)}
       <label>Cantidad de copias<input aria-label="Copias" type="number" required min={1} max={10000} step={1} value={row.copies} onChange={e=>update(selectedFile.codigoPublico,{copies:e.target.value})}/></label>
       <label>Caras<select aria-label="Caras" disabled={!selected} value={row.double?'doble':'simple'} onChange={e=>update(selectedFile.codigoPublico,{double:e.target.value==='doble'})}><option value="simple">Simple faz</option>{selected?.dobleFaz&&<option value="doble">Doble faz</option>}</select></label>
      </div>
     </section><section className="workspace-panel workspace-additions">
-     <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">3</span><h2>Adicionales</h2></header>
-     {!selected?<p>Completá la impresión para ver los servicios compatibles.</p>:selected.terminaciones.length===0?<p>No hay adicionales compatibles para esta selección.</p>:<div className="workspace-additions-list">{selected.terminaciones.map(id=><label key={id} className="client-check"><input type="checkbox" checked={row.ends.includes(id)} onChange={e=>update(selectedFile.codigoPublico,{ends:e.target.checked?[...row.ends,id]:row.ends.filter(x=>x!==id)})}/>{names.get(id)??id}</label>)}</div>}
-     <p>Opcionales para este archivo. El destino de retiro no limita los servicios de la imprenta.</p>
+     <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">3</span><h2>Adicionales</h2>{selected&&<small>{selected.terminaciones.length} disponibles</small>}</header>
+     {!selected?<p>Completá la impresión para ver los servicios compatibles.</p>:selected.terminaciones.length===0?<p>No hay adicionales habilitados para este tamaño y papel.</p>:<div className="workspace-additions-list">{selected.terminaciones.map(id=><label key={id} className="client-check"><input type="checkbox" checked={row.ends.includes(id)} onChange={e=>update(selectedFile.codigoPublico,{ends:e.target.checked?[...row.ends,id]:row.ends.filter(x=>x!==id)})}/>{names.get(id)??id}</label>)}</div>}
+     <p>Elegí los adicionales que quieras agregar a este archivo.</p>
     </section></>:<section className="workspace-panel workspace-placeholder"><span aria-hidden="true">▤</span><h2>Tu trabajo empieza con un PDF</h2><p>Subí un archivo para elegir impresión, papel, copias y adicionales.</p></section>}
    </fieldset>
    <div id="client-budget-action" className="workspace-next"><div><strong>{prep?.archivos.length?`${configuredCount} de ${prep.archivos.length} archivos configurados`:'Agregá tu primer archivo'}</strong><small>Las opciones se guardan al revisar el presupuesto.</small></div><button className="client-button" disabled={!prep?.archivos.length||locked}>Revisar presupuesto →</button></div>
