@@ -65,8 +65,12 @@ public class PagoController {
         @NotBlank @Size(max=160) String referencia,@NotBlank @Size(max=300) String motivo){}
     public record Descartar(@NotNull UUID operacion,@NotNull UUID intento,@NotBlank @Size(max=300) String motivo){}
     public record Recibir(@NotNull UUID operacion,UUID intento,@NotNull MedioPago medio,
-        @NotBlank @Pattern(regexp="[0-9]{1,17}(\\.[0-9]{1,2})?") String importe,@NotBlank @Size(max=160) String referencia,
-        @NotNull @PastOrPresent Instant recibidoEn,@AssertTrue boolean verificado,@NotBlank @Size(max=300) String motivo){}
+        @NotBlank @Pattern(regexp="[0-9]{1,17}(\\.[0-9]{1,2})?") String importe,@Size(max=160) String referencia,
+        @PastOrPresent Instant recibidoEn,@AssertTrue boolean verificado,@Size(max=300) String motivo,Boolean aplicarAlPedido){
+        public Recibir(UUID operacion,UUID intento,MedioPago medio,String importe,String referencia,Instant recibidoEn,boolean verificado,String motivo){
+            this(operacion,intento,medio,importe,referencia,recibidoEn,verificado,motivo,false);
+        }
+    }
     public record Aplicar(@NotNull UUID operacion,@NotNull UUID pago,@Min(1) long version,
         @NotBlank @Pattern(regexp="[0-9]{1,17}(\\.[0-9]{1,2})?") String importe,@NotBlank @Size(max=300) String motivo){}
     public record Devolver(@NotNull UUID operacion,@NotNull UUID pago,@Min(1) long version,@NotNull MedioPago medio,

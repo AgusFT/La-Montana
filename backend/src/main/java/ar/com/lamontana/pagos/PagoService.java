@@ -124,13 +124,15 @@ public class PagoService {
     private record Oferta(long id,UUID codigo,long cliente,UUID sucursal,boolean activa,String estado,Instant vence,Instant aceptada,CotizacionService.Oferta datos){}
     private record Fondos(long id,UUID codigo,long origen,MedioPago medio,BigDecimal importe,BigDecimal devuelto,BigDecimal aplicado,BigDecimal disponible){}
     private record Asignacion(long id,long cotizacion,UUID codigo,BigDecimal neto){}
+    // Preserve fingerprints for commands sent before the optional combined flow existed.
+    private record RecepcionAnterior(UUID operacion,UUID intento,MedioPago medio,String importe,String referencia,Instant recibidoEn,boolean verificado,String motivo){}
     public record Intento(UUID codigoPublico,UUID cotizacion,String importe,String referencia,String estado,Instant fecha){}
     public record Aplicacion(UUID cotizacion,long numero,String importe,String vigente,Instant fecha,String motivo){}
     public record Devolucion(UUID codigoPublico,String importe,String medio,String referencia,Instant fecha,String motivo){}
     public record Pago(UUID codigoPublico,UUID cotizacionOrigen,long numeroOrigen,String sucursal,String medio,String importe,String referencia,Instant recibidoEn,
         String aplicado,String devuelto,String disponible,String maximoAplicable,long version,List<Aplicacion> aplicaciones,List<Devolucion> devoluciones,boolean puedeAplicar,boolean puedeDevolver){}
     public record OfertaRelacionada(UUID codigoPublico,long numero,String total,String estado,boolean aceptada,String sucursal){}
-    public record Evento(String tipo,String actor,String rol,Instant fecha,String motivo){}
+    public record Evento(String tipo,String actor,String rol,Instant fecha,String motivo,String importe,String medio,String referencia,Instant movimientoEn){}
     public record Vista(UUID cotizacion,long numero,String cliente,String sucursal,String estado,boolean aceptada,String total,String aplicado,String pendiente,
         String anticipoOfertado,String coberturaAnticipoOfertado,String anticipoActual,String coberturaAnticipoActual,List<MedioPago> mediosAnticipo,
         boolean puedeInformar,List<MedioPago> mediosRecepcion,List<String> permisos,List<Intento> intentos,List<Pago> pagos,List<OfertaRelacionada> relacionadas,List<Evento> historial,boolean pedidoFinalizado,boolean cotizacionSustituida,boolean pedidoCerrado,CobroPedidoService.Vista plazoPago){}
@@ -180,19 +182,31 @@ public class PagoService {
         return leer(q,a,correo,interno);
     }
     @Transactional public Vista recibir(UUID quote,Recibir in,String correo){
-        bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo);organizacion.exigirPermiso(correo,permiso(in.medio()));String hash=huella(quote,in);
+        bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo);organizacion.exigirPermiso(correo,permiso(in.medio()));String hash=huella(quote,Boolean.TRUE.equals(in.aplicarAlPedido())?in:new RecepcionAnterior(in.operacion(),in.intento(),in.medio(),in.importe(),in.referencia(),in.recibidoEn(),in.verificado(),in.motivo()));
         if(replay(in.operacion(),"RECIBIR",hash,a))return leer(q,a,correo,true);
-        exigir(in.verificado(),"Confirmá que verificaste el dinero efectivamente recibido.");BigDecimal importe=importe(in.importe());texto(in.referencia());texto(in.motivo());fecha(in.recibidoEn());
+        exigir(in.verificado(),"Confirmá que verificaste el dinero efectivamente recibido.");BigDecimal importe=importe(in.importe());
+        String referencia=in.referencia()==null||in.referencia().isBlank()?"Registro interno "+in.operacion():in.referencia().strip();
+        String motivo=in.motivo()==null||in.motivo().isBlank()?"Recepción de "+dinero(importe)+" ARS por "+(in.medio()==MedioPago.EFECTIVO?"efectivo":"transferencia")+" confirmada por el responsable.":in.motivo().strip();
+        Instant recibidoEn=in.recibidoEn()==null?clock.instant():in.recibidoEn();texto(referencia);texto(motivo);fecha(recibidoEn);
         exigir(q.aceptada()!=null,"El dinero debe vincularse a una cotización aceptada por su cliente, incluso si ya venció.");
         exigir(in.intento()==null||in.medio()==MedioPago.TRANSFERENCIA,"Una transferencia informada no puede convertirse en efectivo.");
         // Un hecho real tardío se registra con sus condiciones históricas, sin activar por sí mismo producción.
         exigir(admite(q,in.medio()),"El medio no corresponde a esta oferta ni a la configuración vigente.");
-        Long intento=in.intento()==null?null:intentoPendiente(q,in.intento());String clave=clave(q,in.medio(),in.referencia());
+        Long intento=in.intento()==null?null:intentoPendiente(q,in.intento());String clave=clave(q,in.medio(),referencia);
         if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pago WHERE clave_referencia=?)",Boolean.class,clave))throw conflicto("Ese movimiento o recibo ya fue registrado. Consultá el pago existente.");
-        long e=evento(in.operacion(),q.id(),a,"RECIBIR",hash,in.motivo());
+        long e=evento(in.operacion(),q.id(),a,"RECIBIR",hash,motivo);UUID pago=UUID.randomUUID();
         if(intento!=null)jdbc.update("INSERT INTO lamontana.resolucion_intento_pago(id_intento_pago,id_evento,resultado) VALUES (?,?,'ACREDITADO')",intento,e);
-        jdbc.update("INSERT INTO lamontana.pago(codigo_publico,id_cotizacion,id_intento_pago,id_evento,medio,importe,referencia,clave_referencia,recibido_en) VALUES (?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),q.id(),intento,e,in.medio().name(),importe,in.referencia().strip(),clave,Timestamp.from(in.recibidoEn()));
-        cobro.movimiento(q.id(),in.operacion(),a.id(),"RECIBIR",in.motivo());
+        jdbc.update("INSERT INTO lamontana.pago(codigo_publico,id_cotizacion,id_intento_pago,id_evento,medio,importe,referencia,clave_referencia,recibido_en) VALUES (?,?,?,?,?,?,?,?,?)",pago,q.id(),intento,e,in.medio().name(),importe,referencia,clave,Timestamp.from(recibidoEn));
+        cobro.movimiento(q.id(),in.operacion(),a.id(),"RECIBIR",motivo);
+        // Una confirmación, dos hechos auditables en la misma transacción. Nunca consume
+        // más que el saldo/medio permitido, ni mueve fondos de otros pagos del cliente.
+        if(Boolean.TRUE.equals(in.aplicarAlPedido())){
+            var fondos=fondos(pago);BigDecimal aplicable=maximoAplicable(q,fondos,a,correo,true);
+            if(aplicable.signum()>0){
+                UUID operacionAplicar=UUID.nameUUIDFromBytes((in.operacion()+":aplicar").getBytes(StandardCharsets.UTF_8));
+                return aplicar(quote,new Aplicar(operacionAplicar,pago,version(fondos),dinero(aplicable),"Aplicación del dinero recibido al saldo de este trabajo."),correo);
+            }
+        }
         return leer(q,a,correo,true);
     }
     @Transactional public Vista aplicar(UUID quote,Aplicar in,String correo){
@@ -259,7 +273,21 @@ public class PagoService {
         }
         // Sólo predecesoras/sucesoras del trabajo, nunca una billetera de otros pedidos del cliente.
         var relacionadas=jdbc.query("SELECT codigo_publico FROM lamontana.cotizacion WHERE id_cotizacion<>? AND (lamontana.cotizacion_descendiente(id_cotizacion,?) OR lamontana.cotizacion_descendiente(?,id_cotizacion)) ORDER BY id_cotizacion",(r,n)->r.getObject(1,UUID.class),q.id(),q.id(),q.id()).stream().map(this::oferta).filter(o->!interno||acceso(o,a,correo)).map(o->new OfertaRelacionada(o.codigo(),o.id(),o.datos().total(),estado(o.estado(),o.vence()),o.aceptada()!=null,o.datos().sucursal().nombre())).toList();
-        var eventos=jdbc.query("SELECT tipo,actor_nombre,actor_rol,fecha,motivo FROM lamontana.evento_financiero WHERE id_cotizacion=? ORDER BY id_evento DESC LIMIT 100",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5)),q.id());
+        var eventos=jdbc.query("""
+            SELECT e.tipo,e.actor_nombre,e.actor_rol,e.fecha,e.motivo,
+              coalesce(p.importe,ap.importe,re.importe,i.importe_informado) AS importe,
+              coalesce(p.medio,pa.medio,re.medio,CASE WHEN i.id_intento_pago IS NOT NULL THEN 'TRANSFERENCIA' END) AS medio,
+              coalesce(p.referencia,pa.referencia,re.referencia,i.referencia_informada) AS referencia,
+              coalesce(p.recibido_en,re.devuelto_en) AS movimiento_en
+            FROM lamontana.evento_financiero e
+            LEFT JOIN lamontana.pago p ON p.id_evento=e.id_evento
+            LEFT JOIN lamontana.aplicacion_pago_cotizacion ap ON ap.id_evento=e.id_evento
+            LEFT JOIN lamontana.pago pa ON pa.id_pago=ap.id_pago
+            LEFT JOIN lamontana.reembolso re ON re.id_evento=e.id_evento
+            LEFT JOIN lamontana.resolucion_intento_pago ri ON ri.id_evento=e.id_evento
+            LEFT JOIN lamontana.intento_pago i ON i.id_evento=e.id_evento OR i.id_intento_pago=ri.id_intento_pago
+            WHERE e.id_cotizacion=? ORDER BY e.id_evento DESC LIMIT 100
+            """,(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5),r.getString(6),r.getString(7),r.getString(8),r.getTimestamp(9)==null?null:r.getTimestamp(9).toInstant()),q.id());
         String cliente=jdbc.queryForObject("SELECT nombre||' '||apellido FROM lamontana.usuario WHERE id_usuario=?",String.class,q.cliente());
         return new Vista(q.codigo(),q.id(),cliente,q.datos().sucursal().nombre(),estado(q.estado(),q.vence()),q.aceptada()!=null,q.datos().total(),dinero(asignado),(terminado||sustituida)?"0.00":dinero(new BigDecimal(q.datos().total()).subtract(asignado)),anticipo,dinero(cobertura.acreditado(q.id(),c.mediosAcreditacion())),actual==null?null:dinero(new BigDecimal(actual.pagoPrevioRequerido()).add(new BigDecimal(actual.senaRequerida()))),actual==null?null:dinero(cobertura.acreditado(q.id(),actual.mediosAcreditacion())),actual==null?List.of():actual.mediosAcreditacion(),!terminado&&!sustituida&&!cerrado&&!interno&&q.aceptada()!=null&&admite(q,MedioPago.TRANSFERENCIA)&&(cobro.pedido(q.id())==null||cobro.vista(cobro.pedido(q.id()),false)==null||cobro.vista(cobro.pedido(q.id()),false).puedeInformar()),Arrays.stream(MedioPago.values()).filter(m->admite(q,m)).toList(),permisos,intentos,pagos,relacionadas,eventos,terminado,sustituida,cerrado,cobro.pedido(q.id())==null?null:cobro.vista(cobro.pedido(q.id()),a.rol().equals("ADMIN_ADMIN")));
     }

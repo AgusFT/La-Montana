@@ -28,6 +28,31 @@ class DatosPruebaIntegrationTest {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
 
+    @Test void cobroSimpleConservaAuditoriaYNoDuplicaUnaConfirmacion() throws Exception {
+        Path files=Files.createTempDirectory("lamontana-cobro-simple-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);var pagos=app.getBean(PagoService.class);
+            UUID quote=jdbc.queryForObject("SELECT c.codigo_publico FROM lamontana.cotizacion c JOIN lamontana.pedido_actual pa USING(id_cotizacion) JOIN lamontana.pedido p USING(id_pedido) WHERE p.estado='PENDIENTE_REVISION' AND c.total>coalesce((SELECT sum(a.neto) FROM lamontana.aplicacion_pago_neta a WHERE a.id_cotizacion=c.id_cotizacion),0) ORDER BY p.id_pedido DESC LIMIT 1",UUID.class);
+            var before=pagos.vista(quote,ADMIN,true);BigDecimal amount=new BigDecimal(before.pendiente()).add(new BigDecimal("50.00"));UUID op=UUID.randomUUID();
+            var command=new ar.com.lamontana.pagos.PagoController.Recibir(op,null,ar.com.lamontana.configuracion.ConfiguracionController.MedioPago.TRANSFERENCIA,amount.toPlainString(),null,null,true,"",true);
+            long paymentsBeforeFailure=count(jdbc,"pago"),eventsBeforeFailure=count(jdbc,"evento_financiero");
+            jdbc.execute("CREATE FUNCTION lamontana.fallar_aplicacion_prueba() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de aplicación para comprobar rollback'; END $$");
+            jdbc.execute("CREATE TRIGGER fallar_aplicacion_prueba BEFORE INSERT ON lamontana.aplicacion_pago_cotizacion FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_aplicacion_prueba()");
+            try{assertThatThrownBy(()->pagos.recibir(quote,command,ADMIN)).hasStackTraceContaining("fallo de aplicación");assertThat(count(jdbc,"pago")).isEqualTo(paymentsBeforeFailure);assertThat(count(jdbc,"evento_financiero")).isEqualTo(eventsBeforeFailure);}
+            finally{jdbc.execute("DROP TRIGGER fallar_aplicacion_prueba ON lamontana.aplicacion_pago_cotizacion");jdbc.execute("DROP FUNCTION lamontana.fallar_aplicacion_prueba()");}
+            long countBefore=count(jdbc,"pago");var result=pagos.recibir(quote,command,ADMIN);
+            assertThat(count(jdbc,"pago")).isEqualTo(countBefore+1);assertThat(result.pendiente()).isEqualTo("0.00");
+            var received=result.pagos().stream().filter(p->p.referencia().equals("Registro interno "+op)).findFirst().orElseThrow();
+            assertThat(received.disponible()).isEqualTo("50.00");assertThat(received.recibidoEn()).isNotNull();
+            var receipt=result.historial().stream().filter(e->e.tipo().equals("RECIBIR")&&e.referencia().equals(received.referencia())).findFirst().orElseThrow();
+            assertThat(receipt.actor()).isNotBlank();assertThat(receipt.fecha()).isNotNull();assertThat(receipt.importe()).isEqualTo(amount.setScale(2).toPlainString());assertThat(receipt.medio()).isEqualTo("TRANSFERENCIA");
+            assertThat(result.historial().stream().filter(e->e.tipo().equals("APLICAR")&&received.referencia().equals(e.referencia()))).hasSize(1);
+            long events=count(jdbc,"evento_financiero");pagos.recibir(quote,command,ADMIN);assertThat(count(jdbc,"pago")).isEqualTo(countBefore+1);assertThat(count(jdbc,"evento_financiero")).isEqualTo(events);
+            var conflict=new ar.com.lamontana.pagos.PagoController.Recibir(op,null,command.medio(),"1.00",null,null,true,"",true);
+            assertThatThrownBy(()->pagos.recibir(quote,conflict,ADMIN)).hasMessageContaining("otros datos");
+        }finally{limpiar(files);}
+    }
+
     @Test void seisMesesSonConsultablesPorAdminCajaYLosCuatroClientesYPersistenAlReiniciar() throws Exception {
         Path files=Files.createTempDirectory("lamontana-seis-meses-");
         try(var pg=postgres()) {
