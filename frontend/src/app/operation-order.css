@@ -1,0 +1,61 @@
+/* Task workspace, scoped to internal order detail. */
+.operation-order{color:var(--ui-text,#173b60);font-size:14px}
+.operation-order-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin:0 0 20px;padding-bottom:18px;border-bottom:1px solid var(--ui-border,#dce5ef)}
+.operation-back{color:var(--ui-link,#224d80);font-size:13px;text-decoration:none}
+.operation-order .operation-order-heading h2{font-size:26px;margin:12px 0 6px}
+.operation-order-heading p{margin:0;color:var(--ui-muted,#61748d);font-size:12px;line-height:1.6}
+.operation-order-heading>div:last-child{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.operation-order-heading .client-button{font-size:12px;min-height:38px;padding:9px 12px}
+.operation-order-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,.85fr);gap:20px;align-items:start}
+.operation-order-main,.operation-order-context{min-width:0;display:grid;gap:16px}
+.operation-task-heading{padding:22px 24px;border-radius:12px;background:var(--ui-info-bg,#edf4ff);border-left:4px solid var(--ui-accent,#075bff)}
+.operation-task-heading>span{font-size:10px;font-weight:700;letter-spacing:1.4px;color:var(--ui-link,#224d80)}
+.operation-order .operation-task-heading h2{font-size:23px;margin:9px 0;line-height:1.35}
+.operation-task-heading p{margin:0;font-size:14px;line-height:1.65}
+.operation-task-heading>a{display:inline-block;font-size:13px;margin-top:12px;color:var(--ui-link,#224d80)}
+.operation-task-waiting{border-left-color:var(--ui-warning-solid,#f58020)}
+.operation-task-area,.operation-context-card,.operation-other-tools{min-width:0;padding:22px;border:1px solid var(--ui-border,#dce5ef);border-radius:12px;background:var(--ui-surface,#fff)}
+.operation-task-area>h2{font-size:17px;margin:0 0 18px;scroll-margin-top:24px}
+.operation-task-area>h2:focus{outline:none}
+.operation-task-area>div[hidden]{display:none!important}
+.operation-task-area .operation-task-component{padding:0;border:0;box-shadow:none;margin:0;border-radius:0}
+.operation-task-component>.order-management-heading{display:none}
+.operation-task-component .order-decision-grid{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.operation-task-component .order-decision-grid>div{flex:0 1 auto}
+.operation-task-component .client-button{min-height:40px;padding:10px 14px;white-space:normal;font-size:13px}
+.operation-task-area p{font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.operation-task-area .client-grid{gap:16px}
+.operation-task-area .order-decision-form,.operation-task-area .production-form{margin-top:20px;border-top:1px solid var(--ui-border,#dce5ef);padding-top:20px}
+.operation-task-area .client-form textarea{min-height:88px}
+.operation-task-area .order-private-notes,.operation-secondary-decisions{margin:18px 0;font-size:13px}
+.operation-task-area summary{cursor:pointer;color:var(--ui-link,#224d80);line-height:1.6;font-size:13px}
+.operation-task-area .production-work-grid,.operation-task-area .delivery-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+.operation-task-area .production-item{padding:16px}
+.operation-task-area .production-quality-grid{grid-template-columns:minmax(0,1fr)}
+.operation-task-area .delivery-summary>section:last-child{grid-column:1/-1}
+.operation-pdf-panel .private-files{width:100%;min-width:0}
+.operation-other-tools>summary{font-size:13px;font-weight:600;cursor:pointer}
+.operation-other-tools>div{display:grid;gap:12px;margin-top:16px;font-size:13px}
+.operation-other-tools a,.operation-context-card>a{color:var(--ui-link,#224d80);line-height:1.6}
+.operation-context-card{padding:18px}
+.operation-context-card h2{font-size:15px;margin:0 0 12px}
+.operation-context-card h3{font-size:16px;margin:12px 0;overflow-wrap:anywhere}
+.operation-context-card p{font-size:12px;line-height:1.65;margin:9px 0;overflow-wrap:anywhere}
+.operation-context-card dl{margin:12px 0;display:grid;gap:10px}
+.operation-context-card dl>div{display:grid;gap:3px;font-size:12px;line-height:1.55}
+.operation-context-card dt{color:var(--ui-muted,#61748d)}
+.operation-context-card dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.operation-context-card select{width:100%;box-sizing:border-box;min-width:0;margin-top:6px;font-size:13px}
+.operation-context-card label{font-size:12px}
+.operation-context-card>a{display:block;margin-top:12px;font-size:12px}
+.operation-work-card .client-text-action{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 14px;border:1px solid var(--ui-accent,#075bff);border-radius:6px;background:var(--ui-accent,#075bff);color:#fff;font:inherit;font-size:13px;cursor:pointer;text-decoration:none}
+.operation-work-card .workspace-review-dialog .client-button{font-size:13px}
+.operation-order-total{font-size:22px}
+.operation-order-facts>div{border-top:1px solid var(--ui-border,#dce5ef);margin-top:14px;padding-top:14px}
+.operation-order-facts>div>h3{font-size:13px;margin:0 0 8px}
+.operation-order-facts a{font-size:12px;color:var(--ui-link,#224d80)}
+.operation-readonly-note{margin-top:0}
+.operation-order .order-timeline{max-height:420px;overflow:auto;padding-right:12px;scrollbar-width:thin}
+.operation-order button:focus-visible,.operation-order a:focus-visible,.operation-order summary:focus-visible,.operation-order select:focus-visible{outline:3px solid var(--ui-warning-solid,#f58020);outline-offset:3px}
+@media(max-width:1100px){.operation-order-grid{grid-template-columns:minmax(0,1fr)}.operation-order-context{grid-template-columns:repeat(2,minmax(0,1fr))}.operation-order .operation-order-heading h2{font-size:23px}}
+@media(max-width:600px){.operation-order-context,.operation-task-area .production-work-grid,.operation-task-area .delivery-summary{grid-template-columns:minmax(0,1fr)}.operation-task-heading,.operation-task-area,.operation-context-card,.operation-other-tools{padding:16px}.operation-order .operation-task-heading h2{font-size:20px}.operation-order-heading>div:last-child{width:100%;justify-content:space-between}.operation-task-area .client-actions{flex-wrap:wrap}.operation-task-area .client-actions>.client-button{flex:1 1 100%}}

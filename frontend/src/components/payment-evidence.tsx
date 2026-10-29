@@ -41,10 +41,11 @@ type Evidence={codigoPublico:string;nombre:string;estado:string;creadoEn:string;
 type List={elementos:Evidence[];total:number;pagina:number;puedeCargar:boolean;motivo:string};
 const isEvidence=(v:unknown):v is Evidence=>!!v&&typeof v==="object"&&typeof(v as Evidence).codigoPublico==="string"&&typeof(v as Evidence).estado==="string";
 const states:Record<string,string>={PENDIENTE:"Pendiente de carga",VALIDANDO:"Analizando",VALIDO:"Documento inspeccionado",FALLIDO:"Carga interrumpida",RECHAZADO:"Documento rechazado"};
-export function PaymentEvidence({quote,parent,kind,internal=false,onClose}:{quote:string;parent:string;kind:"intento"|"pago";internal?:boolean;onClose:()=>void}){
+export function PaymentEvidence({quote,parent,kind,internal=false,onClose,onLockChange}:{quote:string;parent:string;kind:"intento"|"pago";internal?:boolean;onClose:()=>void;onLockChange?:(locked:boolean)=>void}){
  const base=`/api/${internal?"operacion":"cliente"}/cotizaciones/${quote}/comprobantes`;
  const[view,setView]=useState<List|null>(null),[page,setPage]=useState(0),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(""),[selected,setSelected]=useState<File|null>(null),[detail,setDetail]=useState(""),[inputKey,setInputKey]=useState(0),[preview,setPreview]=useState<Evidence|null>(null),[previewPage,setPreviewPage]=useState(1),[imageError,setImageError]=useState(false);
  const command=useRef<{file:File;body?:string;id?:string}|null>(null),running=useRef(false),panel=useRef<HTMLElement>(null);const locked=busy||uncertain||loading;
+ useEffect(()=>{onLockChange?.(busy||uncertain);return()=>onLockChange?.(false);},[busy,uncertain,onLockChange]);
  async function load(){setLoading(true);try{const response=await fetch(`${base}?${kind}=${parent}&pagina=${page}`,{cache:"no-store"}),data=await response.json();if(!response.ok||!Array.isArray(data.elementos)||!data.elementos.every(isEvidence))throw new Error(data.mensaje??"No pudimos consultar los comprobantes.");setView(data);}catch(e){setError(e instanceof Error?e.message:"No pudimos consultar.");}finally{setLoading(false);}}
  useEffect(()=>{void load();panel.current?.scrollIntoView({behavior:"smooth",block:"start"});},[quote,parent,kind,page]);
  useEffect(()=>{if(!view?.elementos.some(f=>f.estado==="VALIDANDO"))return;const timer=setTimeout(()=>void load(),3000);return()=>clearTimeout(timer);},[view]);

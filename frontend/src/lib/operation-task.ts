@@ -1,0 +1,55 @@
+import type {Order} from './order-types';
+import type {Permission} from './organization-types';
+import type {Management} from '@/components/order-management';
+import type {Production} from '@/components/order-production';
+import type {Delivery} from '@/components/order-delivery';
+
+export type OperationPanel='pedido-resumen'|'pedido-revision'|'pedido-correcciones'|'pedido-produccion'|'pedido-entrega'|'pedido-reprogramacion'|'pedido-pdf'|'pedido-pagos';
+export type OperationTask={title:string;description:string;panel:OperationPanel;waiting:boolean};
+export type OperationFacts={review:Management|null;production:Production|null;delivery:Delivery|null};
+
+/** Prioritize this person's work; actual buttons still use the server's action flags. */
+export function operationTask(order:Order,permissions:Permission[],facts:OperationFacts):OperationTask{
+ const has=(p:Permission)=>permissions.includes(p),finance=has('ACREDITAR_PAGO')||has('REGISTRAR_COBRO')||has('REGISTRAR_DEVOLUCION');
+ const review=facts.review?.version===order.version?facts.review:null;
+ const production=facts.production?.version===order.version?facts.production:null;
+ const delivery=facts.delivery?.version===order.version?facts.delivery:null;
+ const task=(title:string,description:string,panel:OperationPanel,waiting=false)=>({title,description,panel,waiting});
+ const advance=!!order.cobro&&!['PAGO_ACREDITADO','SIN_ANTICIPO'].includes(order.cobro.estado);
+ if(['CANCELADO','RECHAZADO','CERRADO'].includes(order.estado))return task(order.estado==='CERRADO'?'Pedido cerrado':'Pedido finalizado','Consultá el historial, los archivos y los movimientos conservados.','pedido-resumen',true);
+ if(order.estado==='CORRECCION_SOLICITADA')return task('Esperando la respuesta del cliente','La imprenta solicitó una corrección. Consultá el mensaje y los archivos; el trabajo continúa cuando el cliente responda.','pedido-correcciones',true);
+ if(order.estado==='PENDIENTE_REVISION'){
+  if(has('GESTIONAR_PEDIDOS')&&review?.acciones.some(a=>a.accion==='REVISAR'&&a.habilitada))return task('Revisar el trabajo','Abrí los PDF, comprobá las opciones y registrá la revisión. Después podrás aprobar el pedido.','pedido-revision');
+  if(advance){
+   if(finance)return task('Resolver el pago pendiente','Comprobá el anticipo y los movimientos informados. Registrar o informar un pago no equivale a aprobar el trabajo.','pedido-pagos');
+   return task('Esperando la condición de pago','Caja debe verificar el pago necesario antes de que el pedido pueda avanzar. Podés consultar el trabajo mientras tanto.','pedido-resumen',true);
+  }
+  if(has('GESTIONAR_PEDIDOS')){
+   if(review?.acciones.some(a=>a.accion==='APROBAR'&&a.habilitada))return task('Aprobar el pedido revisado','La revisión está registrada. Confirmá la aprobación para habilitar la producción.','pedido-revision');
+   return task('Revisión del pedido',review?.acciones.find(a=>a.accion==='APROBAR')?.motivo??'Comprobando los requisitos y las acciones disponibles.','pedido-revision',!!review);
+  }
+  return task('Esperando revisión y aprobación','El responsable de pedidos debe revisar el trabajo. Tu perfil podrá intervenir cuando llegue su etapa.','pedido-resumen',true);
+ }
+ if(['APROBADO','EN_PRODUCCION'].includes(order.estado)){
+  if(has('CONTROLAR_CALIDAD')&&production?.puedeControlarCalidad&&production.items.some(i=>{const j=i.trabajos.at(-1);return j?.estado==='COMPLETADO'&&!j.calidad;}))return task('Controlar la calidad del trabajo','Hay impresiones terminadas que necesitan inspección. Registrá el resultado de cada PDF.','pedido-produccion');
+  if(has('GESTIONAR_PRODUCCION')&&production?.puedeProducir){
+   if(production.items.some(i=>i.trabajos.at(-1)?.estado==='IMPRIMIENDO'))return task('Continuar el trabajo en producción','Registrá los trabajos que terminaste. Si hubo un problema, informalo desde el trabajo afectado.','pedido-produccion');
+   if(production.items.some(i=>i.puedeIniciar))return task('Preparar e iniciar la impresión','Usá el PDF confirmado y sus opciones. Elegí el recurso y registrá el inicio manual.','pedido-produccion');
+  }
+  if(finance&&production?.cobertura.some(c=>Number(c.pendiente)>0))return task('Completar el anticipo para producir','Falta dinero acreditado y aplicado por los medios admitidos. Consultá los pagos antes de continuar.','pedido-pagos');
+  if(has('GESTIONAR_PRODUCCION')||has('CONTROLAR_CALIDAD'))return task('Estado de producción',production?.bloqueos[0]??'Comprobando los trabajos y los controles disponibles.','pedido-produccion',!!production);
+  return task('Esperando producción y calidad','El equipo de producción debe completar las impresiones y sus controles antes de preparar la entrega.','pedido-resumen',true);
+ }
+ if(order.estado==='LISTO_PARA_ENTREGA'){
+  if(has('GESTIONAR_ENTREGAS')&&delivery?.puedeGestionar)return task('Preparar y entregar el pedido','Registrá el próximo movimiento físico disponible. Para entregar al cliente, validá su código y comprobá el saldo.','pedido-entrega');
+  if(finance&&delivery&&Number(delivery.saldo)>0)return task('Cobrar el saldo antes de entregar','El trabajo está listo y tiene un saldo pendiente. Registrá y aplicá el dinero realmente recibido.','pedido-pagos');
+  if(has('GESTIONAR_ENTREGAS'))return task('Entrega del pedido','Comprobando el recorrido y las acciones de entrega disponibles.','pedido-entrega',!!delivery);
+  return task('Esperando la entrega','El trabajo está listo. El personal autorizado de entregas continúa con el recorrido y la recepción.','pedido-resumen',true);
+ }
+ if(order.estado==='ENTREGADO'){
+  if(has('CERRAR_PEDIDOS'))return task('Comprobar y cerrar el pedido','La entrega está registrada. Verificá la conciliación y resolvé los requisitos pendientes antes del cierre.','pedido-entrega',!delivery?.puedeCerrar);
+  if(finance&&delivery&&Number(delivery.saldo)>0)return task('Revisar la conciliación del pedido','La entrega figura registrada y queda un saldo por resolver. Comprobá los movimientos reales.','pedido-pagos');
+  return task('Esperando cierre administrativo','La entrega está registrada. El responsable debe completar la conciliación y el cierre.','pedido-resumen',true);
+ }
+ return task('Comprobar el estado del pedido','Este estado necesita una consulta actualizada antes de indicar una acción.','pedido-resumen',true);
+}

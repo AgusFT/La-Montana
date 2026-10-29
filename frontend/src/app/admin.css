@@ -285,3 +285,6 @@
 .rate-editor-actions{border-top:1px solid var(--ui-border,#dce6ef);padding-top:16px}.rate-editor-actions p{flex-basis:100%;margin:0}
 .pricing-state.is-editing,.pricing-state.is-pending{background:var(--ui-warning-bg,#fff0d0);color:var(--ui-warning-text,#85530b)}.pricing-state.is-scheduled{background:var(--ui-info-bg,#e6f0ff);color:var(--ui-link,#285b9b)}
 @media(max-width:760px){.rate-summary-actions,.rate-editor-actions{align-items:stretch;flex-direction:column}.rate-summary-actions button,.rate-editor-actions button{width:100%}}
+/* Staff navigation has fewer entries; each link keeps a normal control height. */
+.admin-layout.operation-mode .admin-sidebar nav{flex:0 0 auto;grid-auto-rows:max-content;align-content:start}
+.admin-layout.operation-mode .admin-sidebar nav a{min-height:44px}

@@ -14,6 +14,7 @@
     "test:tracking": "node --test tests/order-tracking.test.cjs",
     "test:journey": "node --test tests/client-journey.test.cjs",
     "test:print-options": "node --test tests/print-options.test.cjs",
+    "test:operation-task": "node --test tests/operation-task.test.cjs",
     "test:payment-archives": "node --test tests/payment-archive-policy.test.cjs",
     "test:schedules": "node --test tests/schedule-presets.test.cjs"
   },
