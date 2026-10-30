@@ -1,0 +1,9 @@
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
+require.extensions['.ts']=(m,p)=>m._compile(ts.transpileModule(fs.readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,p);
+const {isPrinterState,isPrinterCandidate,isPrinterPanel}=require('../src/lib/printer-types.ts');
+const state={impresora:'printer',habilitada:true,hojas:null,version:0,actualizadaEn:null,actor:null};
+const printer={codigoPublico:'printer',nombre:'Equipo',formatos:[{codigoPublico:'a4',nombre:'A4'}],color:true,dobleFaz:true,capacidadHojas:250,estadoConfigurado:'OPERATIVA',operacion:state,compatible:true,recomendada:true,motivos:[]};
+test('papel sin informar y sin registro previo son estados válidos y distintos de cero',()=>{assert.equal(isPrinterState(state),true);assert.equal(isPrinterState({...state,hojas:0}),true);for(const hojas of [-1,1.5,'100',undefined])assert.equal(isPrinterState({...state,hojas}),false);});
+test('una recomendación incompatible no se acepta como candidata válida',()=>{assert.equal(isPrinterCandidate(printer),true);assert.equal(isPrinterCandidate({...printer,compatible:false}),false);assert.equal(isPrinterCandidate({...printer,compatible:false,recomendada:false,motivos:['Falta papel']}),true);});
+test('no se acepta el estado de otro equipo ni una respuesta anterior sin capacidades',()=>{assert.equal(isPrinterCandidate({...printer,operacion:{...state,impresora:'otro'}}),false);assert.equal(isPrinterCandidate({codigoPublico:'printer',nombre:'Equipo'}),false);});
+test('el panel necesita permisos explícitos y equipos completos',()=>{const p={puedeGestionar:false,impresoras:[{...printer,ubicacion:null,retirada:false}]};assert.equal(isPrinterPanel(p),true);assert.equal(isPrinterPanel({...p,puedeGestionar:undefined}),false);});

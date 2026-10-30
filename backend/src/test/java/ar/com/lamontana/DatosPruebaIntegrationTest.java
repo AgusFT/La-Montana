@@ -28,6 +28,31 @@ class DatosPruebaIntegrationTest {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
 
+    @Test void operacionDiariaDeImpresorasYPuntosNoReescribeElMotor()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-operacion-diaria-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);var printers=app.getBean(ar.com.lamontana.produccion.OperacionImpresoraService.class);var production=app.getBean(ar.com.lamontana.produccion.ProduccionService.class);var points=app.getBean(DisponibilidadPuntoService.class);
+            String versions=jdbc.queryForObject("SELECT jsonb_agg(to_jsonb(c) ORDER BY numero_version)::text FROM lamontana.configuracion_version c",String.class);
+            var approved=jdbc.query("SELECT codigo_publico FROM lamontana.pedido WHERE estado='APROBADO' ORDER BY id_pedido DESC",(r,n)->r.getObject(1,UUID.class));
+            UUID order=null,printer=null,item=null;int sheets=0;
+            for(UUID candidate:approved){var view=production.consultar(candidate,ADMIN);for(var i:view.items())if(i.puedeIniciar())for(var p:i.impresoras())if(p.compatible()){order=candidate;printer=p.codigoPublico();item=i.codigoPublico();sheets=app.getBean(PedidoService.class).detalle(candidate,ADMIN,true).oferta().items().stream().filter(o->o.codigoPublico().equals(i.codigoPublico())).findFirst().orElseThrow().precio().hojas();break;}if(order!=null)break;}
+            assertThat(order).isNotNull();final UUID target=printer,orderId=order,itemId=item;
+            var initial=printers.estado(target);var count=new ar.com.lamontana.produccion.OperacionImpresoraController.Cambio(UUID.randomUUID(),initial.version(),ar.com.lamontana.produccion.OperacionImpresoraController.Accion.CONTAR,sheets+500,"");
+            var counted=printers.cambiar(target,count,ADMIN);printers.cambiar(target,count,ADMIN);assertThat(printers.estado(target).hojas()).isEqualTo(sheets+500);
+            var disabled=printers.cambiar(target,new ar.com.lamontana.produccion.OperacionImpresoraController.Cambio(UUID.randomUUID(),counted.version(),ar.com.lamontana.produccion.OperacionImpresoraController.Accion.DESHABILITAR,null,""),ADMIN);
+            long orderVersion=production.consultar(orderId,ADMIN).version();var start=new ar.com.lamontana.produccion.ProduccionController.Inicio(UUID.randomUUID(),orderVersion,itemId,target,"",true);
+            assertThatThrownBy(()->production.iniciar(orderId,start,ADMIN)).hasMessageContaining("disponibilidad");
+            printers.cambiar(target,new ar.com.lamontana.produccion.OperacionImpresoraController.Cambio(UUID.randomUUID(),disabled.version(),ar.com.lamontana.produccion.OperacionImpresoraController.Accion.HABILITAR,null,""),ADMIN);
+            production.iniciar(orderId,start,ADMIN);production.iniciar(orderId,start,ADMIN);assertThat(printers.estado(target).hojas()).isEqualTo(500);assertThat(printers.historial(target,0,ADMIN).eventos().stream().filter(e->e.accion().equals("ASIGNAR_TRABAJO"))).hasSize(1);
+            var beforeFailure=printers.estado(target);jdbc.execute("CREATE FUNCTION lamontana.fallar_papel_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de auditoría de papel'; END $$");jdbc.execute("CREATE TRIGGER fallar_papel_test BEFORE INSERT ON lamontana.evento_operacion_impresora FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_papel_test()");
+            try{assertThatThrownBy(()->printers.cambiar(target,new ar.com.lamontana.produccion.OperacionImpresoraController.Cambio(UUID.randomUUID(),beforeFailure.version(),ar.com.lamontana.produccion.OperacionImpresoraController.Accion.RECARGAR,25,""),ADMIN)).hasStackTraceContaining("fallo de auditoría");assertThat(printers.estado(target)).isEqualTo(beforeFailure);}finally{jdbc.execute("DROP TRIGGER fallar_papel_test ON lamontana.evento_operacion_impresora");jdbc.execute("DROP FUNCTION lamontana.fallar_papel_test()");}
+            var point=points.listar(ADMIN).puntos().get(0);var state=point.disponibilidad();var next=state.estado().equals("HABILITADO")?DisponibilidadPuntoController.Estado.DESHABILITADO:DisponibilidadPuntoController.Estado.HABILITADO;
+            var change=new DisponibilidadPuntoController.Cambiar(UUID.randomUUID(),state.version(),next);points.cambiar(point.codigoPublico(),change,ADMIN);points.cambiar(point.codigoPublico(),change,ADMIN);assertThat(points.historial(point.codigoPublico(),0,ADMIN).eventos()).isNotEmpty();
+            assertThatThrownBy(()->printers.listar("caja@prueba.local")).hasMessageContaining("acceso");assertThatThrownBy(()->points.listar("caja@prueba.local")).hasMessageContaining("permiso");
+            assertThat(jdbc.queryForObject("SELECT jsonb_agg(to_jsonb(c) ORDER BY numero_version)::text FROM lamontana.configuracion_version c",String.class)).isEqualTo(versions);
+        }finally{limpiar(files);}
+    }
+
     @Test void cobroSimpleConservaAuditoriaYNoDuplicaUnaConfirmacion() throws Exception {
         Path files=Files.createTempDirectory("lamontana-cobro-simple-");
         try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){

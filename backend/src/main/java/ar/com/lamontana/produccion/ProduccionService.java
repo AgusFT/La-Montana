@@ -88,11 +88,11 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class ProduccionService {
  private final JdbcTemplate jdbc;private final PedidoService pedidos;private final OrganizacionService organizacion;
- private final ArchivosPrivados archivos;private final CoberturaPagos cobertura;private final RecursosRepositorio recursos;
+ private final ArchivosPrivados archivos;private final CoberturaPagos cobertura;private final RecursosRepositorio recursos;private final OperacionImpresoraService operacionImpresoras;
  private final JsonMapper json=JsonMapper.builder().build();
- public ProduccionService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,ArchivosPrivados archivos,CoberturaPagos cobertura,RecursosRepositorio recursos){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.archivos=archivos;this.cobertura=cobertura;this.recursos=recursos;}
+ public ProduccionService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,ArchivosPrivados archivos,CoberturaPagos cobertura,RecursosRepositorio recursos,OperacionImpresoraService operacionImpresoras){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.archivos=archivos;this.cobertura=cobertura;this.recursos=recursos;this.operacionImpresoras=operacionImpresoras;}
  public record Cobertura(String condiciones,String requerido,String aplicado,String pendiente){}
- public record Impresora(UUID codigoPublico,String nombre){}
+ public record Impresora(UUID codigoPublico,String nombre,List<OperacionImpresoraService.Formato> formatos,boolean color,boolean dobleFaz,int capacidadHojas,String estadoConfigurado,OperacionImpresoraService.Estado operacion,boolean compatible,boolean recomendada,List<String> motivos){}
  public record Calidad(Resultado resultado,Checklist checklist,String observaciones,String inspector,Instant fecha){}
  public record Evento(String accion,String estadoOrigen,String estadoDestino,String actor,String motivo,Instant fecha){}
  public record Trabajo(UUID codigoPublico,long numero,UUID origen,String tipo,String estado,UUID archivo,String impresora,String motivoExcepcion,String operador,Instant inicio,Instant fin,Calidad calidad,List<Evento> historial){}
@@ -110,7 +110,10 @@ public class ProduccionService {
    var trabajos=trabajos(p.numero(),item.codigoPublico()).stream().map(Registro::vista).toList();var ultimo=trabajos.isEmpty()?null:trabajos.get(trabajos.size()-1);
    String bloqueo=!bloqueos.isEmpty()?String.join(" ",bloqueos):bloqueoItem(ultimo);
    var file=p.archivos().stream().filter(f->f.item().equals(item.codigoPublico())).findFirst().orElseThrow();
-   items.add(new Item(item.codigoPublico(),file.archivo(),file.nombre(),declaradas.stream().filter(i->compatible(i,item)).map(i->new Impresora(i.codigoPublico(),i.nombre())).toList(),bloqueo==null,bloqueo,trabajos));
+   var estados=new HashMap<UUID,OperacionImpresoraService.Estado>();for(var printer:declaradas)estados.put(printer.codigoPublico(),operacionImpresoras.estado(printer.codigoPublico()));
+   var recommended=declaradas.stream().filter(i->motivos(i,item,estados.get(i.codigoPublico())).isEmpty()).sorted(Comparator.comparing((RecursosRepositorio.Impresora i)->estados.get(i.codigoPublico()).hojas()==null).thenComparingInt(RecursosRepositorio.Impresora::capacidadHojas).thenComparing(RecursosRepositorio.Impresora::nombre).thenComparing(RecursosRepositorio.Impresora::codigoPublico)).findFirst().map(RecursosRepositorio.Impresora::codigoPublico).orElse(null);
+   var opciones=declaradas.stream().map(i->{var state=estados.get(i.codigoPublico());var reasons=motivos(i,item,state);return new Impresora(i.codigoPublico(),i.nombre(),operacionImpresoras.formatosPorCodigo(i.formatos()),i.admiteColor(),i.admiteDobleFaz(),i.capacidadHojas(),i.estado(),state,reasons.isEmpty(),i.codigoPublico().equals(recommended),reasons);}).toList();
+   items.add(new Item(item.codigoPublico(),file.archivo(),file.nombre(),opciones,bloqueo==null,bloqueo,trabajos));
   }
   return new Vista(p.version(),p.estado(),producir,calidad,cobertura(p),bloqueos,List.copyOf(items));
  }
@@ -124,7 +127,7 @@ public class ProduccionService {
   var pdf=p.archivos().stream().filter(f->f.item().equals(in.item())).findFirst().orElseThrow();
   try{archivos.original(pdf.archivo(),pdf.sha256(),pdf.bytes());}catch(java.io.IOException ex){throw conflicto("No se pudo verificar el PDF confirmado. Recuperá su original privado antes de producir.");}
   RecursosRepositorio.Impresora impresora=null;
-  if(in.impresora()!=null)impresora=impresoras(p).stream().filter(i->i.codigoPublico().equals(in.impresora())&&compatible(i,item)).findFirst().orElseThrow(()->conflicto("La impresora declarada no admite este trabajo en la versión de la imprenta."));
+  if(in.impresora()!=null)impresora=impresoras(p).stream().filter(i->i.codigoPublico().equals(in.impresora())&&motivos(i,item,operacionImpresoras.estado(i.codigoPublico())).isEmpty()).findFirst().orElseThrow(()->conflicto("La impresora no admite este trabajo o cambió su disponibilidad o papel. Actualizá la selección."));
   Instant ahora=Instant.now();UUID codigo=UUID.randomUUID();String tipo=anterior!=null&&anterior.vista().calidad()!=null?"REIMPRESION_CALIDAD":"NORMAL";
   long id=jdbc.queryForObject("""
    INSERT INTO lamontana.trabajo_impresion(codigo_publico,id_pedido,id_cotizacion_item,id_archivo_almacenado,id_aceptacion_vista_previa,id_trabajo_origen,id_impresora,id_configuracion_version,impresora_nombre,id_operador,operador_nombre,tipo,estado,motivo_excepcion,fecha_inicio)
@@ -132,6 +135,7 @@ public class ProduccionService {
    FROM lamontana.pedido_archivo_actual i JOIN lamontana.pedido_actual p USING(id_pedido) JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item)
    WHERE i.id_pedido=? AND ci.codigo_publico=? RETURNING id_trabajo_impresion
    """,Long.class,codigo,anterior==null?null:anterior.id(),in.impresora(),impresora==null?null:impresora.nombre(),actor.id(),actor.nombre(),tipo,impresora==null?motivo:null,Timestamp.from(ahora),p.numero(),in.item());
+  if(in.impresora()!=null)operacionImpresoras.asignar(in.impresora(),item.precio().hojas(),id,in.operacion(),correo);
   evento(p,actor,in.operacion(),hash,id,"INICIAR_TRABAJO",null,"IMPRIMIENDO","EN_PRODUCCION",motivo,"La imprenta inició manualmente "+(tipo.equals("NORMAL")?"un trabajo de impresión.":"una reimpresión para completar el control de calidad."),ahora);
   return vista(pedidos.detalle(pedido,correo,true),correo);
  }
@@ -179,8 +183,18 @@ public class ProduccionService {
   case "COMPLETADO"->t.calidad()==null?"Controlá la calidad del trabajo terminado.":t.calidad().resultado()==Resultado.APROBADO?"Este ítem ya superó calidad.":null;
   default->null;
  };}
- private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras().stream().filter(i->i.estado().equals("OPERATIVA")&&i.retiradaEn()==null).toList();}
- private boolean compatible(RecursosRepositorio.Impresora i,CotizacionService.ItemCotizado item){var t=item.trabajo();return i.formatos().contains(t.formato())&&(!t.color().name().equals("COLOR")||i.admiteColor())&&(!t.dobleFaz()||i.admiteDobleFaz())&&item.precio().hojas()<=i.capacidadHojas();}
+ private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras();}
+ private List<String> motivos(RecursosRepositorio.Impresora i,CotizacionService.ItemCotizado item,OperacionImpresoraService.Estado estado){
+  var razones=new ArrayList<String>();var t=item.trabajo();
+  if(i.retiradaEn()!=null)razones.add("Equipo retirado en esta configuración.");else if(!i.estado().equals("OPERATIVA"))razones.add("El motor no lo declara operativo.");
+  if(!estado.habilitada())razones.add("Deshabilitada para nuevos trabajos.");
+  if(!i.formatos().contains(t.formato()))razones.add("No admite el formato "+item.formato()+".");
+  if(t.color().name().equals("COLOR")&&!i.admiteColor())razones.add("Este trabajo requiere color.");
+  if(t.dobleFaz()&&!i.admiteDobleFaz())razones.add("Este trabajo requiere doble faz.");
+  if(item.precio().hojas()>i.capacidadHojas())razones.add("El trabajo supera la capacidad declarada.");
+  if(estado.hojas()!=null&&estado.hojas()<item.precio().hojas())razones.add("No alcanza el saldo de papel registrado: recargá o corregí el conteo.");
+  return List.copyOf(razones);
+ }
  private List<Registro> trabajos(long pedido,UUID item){return jdbc.query("""
   SELECT t.*,o.codigo_publico AS origen,a.codigo_publico AS archivo FROM lamontana.trabajo_impresion t
   JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado)

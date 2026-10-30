@@ -61,7 +61,9 @@ cd backend
 mvn -Dtest=DatosPruebaIntegrationTest test
 ```
 
-La prueba arranca PostgreSQL real con las 44 migraciones, comprueba todos los estados, gramajes y tarifas, consultas HTTP con las siete cuentas, aislamiento entre perfiles, históricos de configuración/caja, integridad y vista previa de PDF, continuación operativa e idempotencia tras reiniciar. También verifica la conservación de la base básica anterior.
+La prueba utiliza PostgreSQL real y las migraciones del repositorio (incluida V45), comprueba todos los estados, gramajes y tarifas, consultas HTTP con las siete cuentas, aislamiento entre perfiles, históricos de configuración/caja, integridad y vista previa de PDF, continuación operativa e idempotencia tras reiniciar. También verifica la conservación de la base básica anterior. El ensayo agregado para operación diaria de impresoras/puntos compiló, pero su ejecución con V45 queda pendiente en este entorno.
+
+Impresoras y papel y Puntos de entrega tienen accesos diarios fuera del configurador. En una base ya iniciada, el administrador puede asignar a empleados los permisos nuevos Gestionar impresoras y papel y Habilitar puntos de entrega; actualizar no los concede automáticamente. El escenario creado desde cero los incluye en Producción. No hay que borrar pedidos ni reiniciar datos para aplicar V45. Ver `operacion-diaria-impresoras-y-puntos.md`.
 
 La consulta de los PDF es opcional al crear un pedido. Para actualizar una instalación que ya contiene el escenario de seis meses, alcanza con `git pull --ff-only origin pruebas` y `./infra/pruebas/iniciar.sh`; V44 conserva esos datos. Ver [consulta opcional de PDF](cliente-vista-previa-opcional.md).
 

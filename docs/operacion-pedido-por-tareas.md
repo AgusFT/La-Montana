@@ -20,7 +20,7 @@ La consulta de acciones APROBAR ya no exige una operación REVISAR previa: la re
 
 ## Producción y calidad
 
-- Preparar producción abre la selección de impresora o recurso para el PDF confirmado. **Iniciar producción** registra el comienzo manual y cambia el pedido a EN_PRODUCCION.
+- Preparar producción abre tarjetas de impresoras con capacidades, estado diario, papel estimado y motivos de compatibilidad. La recomendación respeta los datos del motor y los registros actuales. **Iniciar producción** registra el comienzo manual y cambia el pedido a EN_PRODUCCION.
 - Una impresora declarada admite observaciones opcionales. Un recurso fuera del inventario exige describir la excepción.
 - Registrar trabajo terminado admite observaciones opcionales y mantiene la confirmación del hecho físico.
 - Controlar calidad abre datos del trabajo, checklist y resultado en columnas. La aprobación exige todos los controles y la confirmación del inspector; observaciones opcionales.
@@ -30,6 +30,8 @@ La consulta de acciones APROBAR ya no exige una operación REVISAR previa: la re
 Los textos de auditoría de acciones normales sin observaciones los genera el servidor como descripción del hecho. No se inventa una nota redactada por el empleado. Los permisos, restricciones de pago, integridad de archivos y guardas de producción se comprueban en el servidor.
 
 Esta versión registra trabajo manual. No envía instrucciones a CUPS ni muestra impresoras como Online.
+
+La operación diaria de impresoras, recargas y puntos se describe en [Operación diaria de impresoras y puntos](operacion-diaria-impresoras-y-puntos.md). Usa la migración V45 y no modifica capacidades ni configuraciones históricas.
 
 ## Consulta y navegación
 

@@ -60,6 +60,7 @@ export type Branch = {
   correo: string | null; telefono: string | null; estado: "ACTIVA" | "DESACTIVADA"; version: number;
 };
 export const permissionLabels = {
+  GESTIONAR_IMPRESORAS: "Gestionar impresoras y papel", GESTIONAR_PUNTOS_ENTREGA: "Habilitar puntos de entrega",
   GESTIONAR_PRODUCCION: "Registrar producción manual", CONTROLAR_CALIDAD: "Controlar calidad",
   GESTIONAR_ENTREGAS: "Gestionar entregas", CERRAR_PEDIDOS: "Cerrar pedidos",
   GESTIONAR_PEDIDOS: "Revisar y decidir pedidos",

@@ -49,16 +49,27 @@ import org.springframework.web.server.ResponseStatusException;
 public class DisponibilidadPuntoService {
     private final JdbcTemplate jdbc;
     private final ConfiguracionService configuracion;
-    public DisponibilidadPuntoService(JdbcTemplate jdbc,ConfiguracionService configuracion){this.jdbc=jdbc;this.configuracion=configuracion;}
+    private final ar.com.lamontana.organizacion.OrganizacionService organizacion;
+    public DisponibilidadPuntoService(JdbcTemplate jdbc,ConfiguracionService configuracion,ar.com.lamontana.organizacion.OrganizacionService organizacion){this.jdbc=jdbc;this.configuracion=configuracion;this.organizacion=organizacion;}
     public record Disponibilidad(UUID punto,String estado,long version,Instant actualizadaEn,String actor){}
     public record Punto(UUID codigoPublico,String codigo,String nombre,String direccion,String zonaHoraria,Disponibilidad disponibilidad){}
     public record Panel(String contexto,UUID borrador,List<Punto> puntos,long deshabilitados){}
     private record Comprobante(long punto,long actor,String huella){}
     private record Destino(UUID punto,DisponibilidadPuntoController.Cambiar comando){}
+    public record Evento(String anterior,String nuevo,String actor,Instant fecha){}
+    public record Historial(List<Evento> eventos,long total,int pagina){}
+    private long operador(String correo){organizacion.exigirPermiso(correo,"GESTIONAR_PUNTOS_ENTREGA");return jdbc.queryForObject("SELECT id_usuario FROM lamontana.usuario WHERE lower(correo)=lower(?) AND estado='ACTIVO'",Long.class,correo);}
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Historial historial(UUID codigo,int pagina,String correo){
+        operador(correo);if(pagina<0||pagina>100000)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Página inválida.");
+        var rows=jdbc.query("SELECT id_punto_entrega FROM lamontana.punto_entrega WHERE codigo_publico=?",(r,n)->r.getLong(1),codigo);if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"El punto no existe.");long id=rows.get(0);
+        var eventos=jdbc.query("SELECT e.estado_anterior,e.estado_nuevo,u.nombre||' '||u.apellido,e.fecha FROM lamontana.evento_disponibilidad_punto e JOIN lamontana.usuario u ON u.id_usuario=e.id_actor WHERE e.id_punto_entrega=? ORDER BY e.version_nueva DESC LIMIT 25 OFFSET ?",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant()),id,(long)pagina*25);
+        return new Historial(eventos,jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_disponibilidad_punto WHERE id_punto_entrega=?",Long.class,id),pagina);
+    }
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Panel listar(String correo){
-        configuracion.propietario(correo);
+        operador(correo);
         var borradores=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='EN_PREPARACION'",(rs,row)->rs.getObject(1,UUID.class));
         boolean activa=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado='ACTIVA')",Boolean.class));
         var puntos=jdbc.query("""
@@ -74,7 +85,7 @@ public class DisponibilidadPuntoService {
     @Transactional
     public Disponibilidad cambiar(UUID codigo,DisponibilidadPuntoController.Cambiar input,String correo){
         // Compartido con alta/edición/cancelación para no operar sobre una definición retirada en paralelo.
-        configuracion.bloquear();long actor=configuracion.propietario(correo);
+        configuracion.bloquear();long actor=operador(correo);
         if(input.operacion()==null||input.version()==null||input.version()<0||input.estado()==null)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Elegí un estado e indicá la edición de disponibilidad.");
         String huella=configuracion.huella(new Destino(codigo,input));
         var ids=jdbc.query("SELECT id_punto_entrega FROM lamontana.punto_entrega WHERE codigo_publico=?",(rs,row)->rs.getLong(1),codigo);

@@ -110,6 +110,14 @@ class RecuperacionImpresorasSecurityTest {
         return sesion;
     }
 
+    @Test void operacionDiariaRespetaRolMetodoYCsrf()throws Exception{
+        String printer="/api/operacion/impresoras/11111111-1111-1111-1111-111111111111";
+        String point="/api/operacion/puntos-entrega/disponibilidad/11111111-1111-1111-1111-111111111111";
+        for(String rol:new String[]{"ADMIN_ADMIN","EMPLEADO"}){var s=sesion(rol);comprobar("GET","/api/operacion/impresoras",s,null,200,true);comprobar("POST",printer,s,token(s),200,true);comprobar("PUT",point,s,token(s),200,true);comprobar("GET",printer+"/historial",s,null,200,true);}
+        var client=sesion("CLIENTE");comprobar("GET","/api/operacion/impresoras",client,null,403,false);comprobar("POST",printer,client,token(client),403,false);
+        var employee=sesion("EMPLEADO");comprobar("POST",printer,employee,null,403,false);comprobar("DELETE",printer,employee,token(employee),403,false);comprobar("GET","/api/admin/puntos-entrega/disponibilidad",employee,null,403,false);
+    }
+
     private MockHttpServletRequest request(String metodo,String ruta,MockHttpSession sesion){
         var request=new MockHttpServletRequest(context.getServletContext(),metodo,ruta);
         request.setServletPath(ruta);request.setSession(sesion);return request;

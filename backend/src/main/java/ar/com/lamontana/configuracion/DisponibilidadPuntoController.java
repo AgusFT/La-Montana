@@ -39,12 +39,13 @@ import java.util.UUID;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/admin/puntos-entrega/disponibilidad")
+@RequestMapping({"/api/admin/puntos-entrega/disponibilidad","/api/operacion/puntos-entrega/disponibilidad"})
 public class DisponibilidadPuntoController {
     private final DisponibilidadPuntoService disponibilidad;
     public DisponibilidadPuntoController(DisponibilidadPuntoService disponibilidad){this.disponibilidad=disponibilidad;}
     @GetMapping public DisponibilidadPuntoService.Panel listar(Principal actor){return disponibilidad.listar(actor.getName());}
     @PutMapping("/{punto}") public DisponibilidadPuntoService.Disponibilidad cambiar(@PathVariable UUID punto,@Valid @RequestBody Cambiar input,Principal actor){return disponibilidad.cambiar(punto,input,actor.getName());}
+    @GetMapping("/{punto}/historial") public DisponibilidadPuntoService.Historial historial(@PathVariable UUID punto,@RequestParam(defaultValue="0") int pagina,Principal actor){return disponibilidad.historial(punto,pagina,actor.getName());}
     public enum Estado { HABILITADO,DESHABILITADO }
     public record Cambiar(@NotNull UUID operacion,@NotNull @PositiveOrZero Long version,@NotNull Estado estado){}
 }

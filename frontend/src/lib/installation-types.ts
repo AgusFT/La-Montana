@@ -26,5 +26,6 @@ export function installationAllowed(data:Preparation|null,area:string){
   if(area==="catalogo")return !!data.guia.etapas.find(s=>s.codigo==="papeles")?.habilitada;
   if(area==="configuracion")return !!data.guia.etapas.find(s=>s.codigo==="modelo")?.habilitada;
   if(area==="puntos")return data.guia.faseDisponible>=5;
+  if(area==="impresoras")return data.guia.faseDisponible>=4;
   return false;
 }
