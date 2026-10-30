@@ -13,6 +13,7 @@ import {orderState,logisticsState,type Order} from "./order-types";
 export type TrackingOrder=Pick<Order,"estado"|"estadoLogistico"|"confirmadaEn"|"aprobadaEn"|"finalizadaEn"|"condiciones"|"reserva"|"historial">&{cobro?:Order["cobro"];retiroConTraslado?:boolean;oferta?:Pick<Order["oferta"],"entrega">};
 export type TrackingStep={id:string;label:string;state:"complete"|"current"|"pending"|"recorded"|"stopped";date:string|null};
 export type OrderTracking={label:string;steps:TrackingStep[];notice:string|null;unavailable:boolean};
+export type TrackingSummaryStep=TrackingStep&{detailIds:string[]};
 const labels:Record<string,string>={received:"Pedido recibido",payment:"Condición económica",review:"Revisión humana",approved:"Aprobado",production:"Producción y calidad",ready:"Listo para retirar",preparing:"Preparación del envío",prepared:"Preparado para salir",travel:"En viaje",point:"Disponible en destino de retiro",delivered:"Entregado",closed:"Cerrado"};
 const knownOrders=["PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","CANCELADO","RECHAZADO"];
 const shipmentStates:Record<string,string>={PENDIENTE_PREPARACION:"preparing",PREPARADO:"prepared",EN_VIAJE:"travel",DISPONIBLE_PUNTO:"point"};
@@ -24,6 +25,7 @@ function lastEvent(order:TrackingOrder,state:string){return order.historial.filt
 export function orderTrackingLabel(order:Pick<Order,"estado"|"estadoLogistico"|"reserva">&{cobro?:Order["cobro"]}){
   const mode=order.reserva.modalidad;
   if(order.estado==="PENDIENTE_REVISION"&&order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado))return order.cobro.estado.startsWith("PAGO_INFORMADO")?"Pago informado · pendiente de verificación":order.cobro.estado==="PAGO_VENCIDO_RECUPERABLE"?"Pago vencido · recuperable":"Pendiente de condición económica";
+  if(order.estado==="LISTO_PARA_ENTREGA"&&mode==="RETIRO_SUCURSAL"&&order.estadoLogistico==="LISTO_RETIRO")return `Disponible para retirar en ${(order.reserva.nombre??"la sucursal").split(" · ")[0]}`;
   const compatible=mode==="RETIRO_SUCURSAL"?(order.estadoLogistico==="LISTO_RETIRO"||Object.hasOwn(shipmentStates,order.estadoLogistico)):
     ["RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"].includes(mode)&&Object.hasOwn(shipmentStates,order.estadoLogistico)&&(order.estadoLogistico!=="DISPONIBLE_PUNTO"||mode==="RETIRO_PUNTO_ENTREGA");
   if(order.estado==="LISTO_PARA_ENTREGA"&&compatible)return logisticsState(order.estadoLogistico);
@@ -62,4 +64,25 @@ export function orderTracking(order:TrackingOrder):OrderTracking{
   const index=ids.indexOf(current);
   const steps:TrackingStep[]=ids.map((id,i)=>({id,label:id==="review"&&correction?"Corrección solicitada":labels[id],state:i<index?"complete":i===index?"current":"pending",date:i<=index?dates[id]??null:null}));
   return {label,steps,notice:correction?"La imprenta solicitó una corrección. Revisá lo solicitado para poder continuar.":current==="production"?"Producción y control de calidad comparten esta etapa. El pedido estará listo cuando el personal registre los controles requeridos.":current==="point"?"El pedido ya llegó al destino acordado. Consultá la franja de retiro; la llegada no significa que ya fue entregado al cliente.":null,unavailable:false};
+}
+
+/** Five public milestones keep the overview readable; the original events remain available as detail. */
+export function orderTrackingSummary(order:TrackingOrder,steps:TrackingStep[]):TrackingSummaryStep[]{
+  if(!steps.length)return [];
+  const directPickup=order.reserva.modalidad==="RETIRO_SUCURSAL"&&!order.retiroConTraslado;
+  const groups=[
+    {id:"received",label:"Pedido recibido",detailIds:["received"]},
+    {id:"approval",label:"Revisión y aprobación",detailIds:["payment","review","approved"]},
+    {id:"production",label:"Producción y calidad",detailIds:["production"]},
+    {id:"delivery",label:directPickup?"Retiro en sucursal":order.reserva.modalidad==="ENVIO_DOMICILIO"?"Entrega a domicilio":"Traslado y retiro",detailIds:["ready","preparing","prepared","travel","point"]},
+    {id:"finished",label:"Entrega y cierre",detailIds:["delivered","closed","stopped"]},
+  ];
+  return groups.map(group=>{
+    const members=steps.filter(step=>group.detailIds.includes(step.id));
+    const active=members.find(step=>step.state==="current"||step.state==="stopped");
+    const completed=members.length>0&&members.every(step=>["complete","recorded"].includes(step.state));
+    const state=active?.state??(completed?"complete":"pending");
+    const dated=[...members].reverse().find(step=>step.date)?.date??null;
+    return {...group,state,date:active?.date??dated};
+  });
 }

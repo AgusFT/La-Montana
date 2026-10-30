@@ -83,6 +83,14 @@ test('entrega distingue operador, caja y empleado sin permisos',()=>{
  assert.equal(operationTask(order('LISTO_PARA_ENTREGA'),['REGISTRAR_COBRO'],data).panel,'pedido-pagos');
  assert.equal(operationTask(order('LISTO_PARA_ENTREGA'),['CONTROLAR_CALIDAD'],data).waiting,true);
 });
+test('entrega local evita un viaje ficticio y el traslado muestra una acción principal por estado',()=>{
+ const local=order('LISTO_PARA_ENTREGA',{reserva:{modalidad:'RETIRO_SUCURSAL'},retiroConTraslado:false,oferta:{sucursal:{nombre:'Casa Matriz Floresta'}}});
+ assert.equal(operationTask(local,['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'LISTO_RETIRO'})})).title,'Disponible para retirar en Casa Matriz Floresta');
+ const transfer=state=>order('LISTO_PARA_ENTREGA',{reserva:{modalidad:'RETIRO_PUNTO_ENTREGA'},retiroConTraslado:false});
+ assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'PENDIENTE_PREPARACION'})})).title,'Preparar para el despacho');
+ assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'PREPARADO'})})).title,'Despachar · poner en viaje');
+ assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'EN_VIAJE'})})).title,'Registrar llegada al destino');
+});
 test('cierre conserva la espera mientras el servidor no lo habilita',()=>{
  assert.equal(operationTask(order('ENTREGADO'),['CERRAR_PEDIDOS'],facts({delivery:delivery({puedeCerrar:false})})).waiting,true);
  assert.equal(operationTask(order('ENTREGADO'),['CERRAR_PEDIDOS'],facts({delivery:delivery({puedeCerrar:true})})).waiting,false);

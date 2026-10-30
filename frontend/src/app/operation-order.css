@@ -89,6 +89,7 @@
 .operation-task-area .production-item{padding:16px}
 .operation-task-area .production-quality-grid{grid-template-columns:minmax(0,1fr)}
 .operation-task-area .delivery-summary>section:last-child{grid-column:1/-1}
+.operation-delivery-status.local-pickup-ready,.delivery-code.local-pickup-ready{border-color:var(--ui-success-border,#77b68f);background:var(--ui-success-bg,#e8f7ed)}.operation-delivery-status.local-pickup-ready>p:first-child strong{font-size:16px;color:var(--ui-success-text,#146b3a)}.operation-delivery-status.local-pickup-ready span{display:inline-block;margin-top:5px;color:var(--ui-muted,#4e6a5a)}.delivery-next-step{margin:0 0 14px;padding:12px 14px;border-radius:8px;background:var(--ui-info-bg,#edf4ff);color:var(--ui-text,#18334d)}.delivery-primary-actions{margin-bottom:16px}.delivery-primary-actions>.client-button{min-width:220px}
 .operation-pdf-panel .private-files{width:100%;min-width:0}
 .operation-other-tools>summary{font-size:13px;font-weight:600;cursor:pointer}
 .operation-other-tools>div{display:grid;gap:12px;margin-top:16px;font-size:13px}

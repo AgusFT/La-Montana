@@ -8,7 +8,7 @@ const assert=require('node:assert/strict');
 const ts=require('typescript');
 const fs=require('node:fs');
 require.extensions['.ts']=(module,filename)=>module._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2017}}).outputText,filename);
-const {orderTracking,orderTrackingLabel}=require('../src/lib/order-tracking.ts');
+const {orderTracking,orderTrackingLabel,orderTrackingSummary}=require('../src/lib/order-tracking.ts');
 function pedido(changes={}){return {estado:'PENDIENTE_REVISION',estadoLogistico:'NO_DISPONIBLE',confirmadaEn:'2026-10-20T12:00:00Z',aprobadaEn:null,finalizadaEn:null,condiciones:{revisionHumana:true},reserva:{modalidad:'RETIRO_SUCURSAL'},historial:[{estado:'PENDIENTE_REVISION',fecha:'2026-10-20T12:00:00Z'}],...changes};}
 function actual(value){return orderTracking(value).steps.filter(s=>s.state==='current');}
 test('manual: revisión actual y producción pendiente; sin viaje en retiro local',()=>{
@@ -26,7 +26,12 @@ test('producción y calidad se agrupan sin inventar una aprobación de calidad',
  const r=orderTracking(pedido({estado:'EN_PRODUCCION'}));assert.equal(r.steps.find(s=>s.state==='current').id,'production');assert.equal(r.steps.find(s=>s.id==='ready').state,'pending');
 });
 test('retiro local listo no muestra logística de reparto',()=>{
- const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'LISTO_RETIRO'});assert.equal(actual(p)[0].id,'ready');assert.equal(orderTrackingLabel(p),'Listo para entregar');assert(!orderTracking(p).steps.some(s=>s.id==='travel'));
+ const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'LISTO_RETIRO'});assert.equal(actual(p)[0].id,'ready');assert.match(orderTrackingLabel(p),/Disponible para retirar/);assert(!orderTracking(p).steps.some(s=>s.id==='travel'));
+});
+test('el resumen público agrupa el recorrido real en cinco etapas y conserva el detalle',()=>{
+ const local=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'LISTO_RETIRO'}),tracking=orderTracking(local),summary=orderTrackingSummary(local,tracking.steps);
+ assert.equal(summary.length,5);assert.equal(summary.find(s=>s.state==='current').id,'delivery');assert.equal(summary[3].label,'Retiro en sucursal');
+ assert.ok(tracking.steps.length>summary.length);assert.ok(tracking.steps.some(s=>s.id==='review'));
 });
 for(const [logistic,id] of [['PENDIENTE_PREPARACION','preparing'],['PREPARADO','prepared'],['EN_VIAJE','travel'],['DISPONIBLE_PUNTO','point']])test(`punto de entrega: ${logistic} usa el estado logístico real`,()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:logistic,reserva:{modalidad:'RETIRO_PUNTO_ENTREGA'}});assert.equal(actual(p)[0].id,id);assert.equal(actual(p)[0].date,null);assert.equal(orderTracking(p).steps.find(s=>s.id==='delivered').state,'pending');
