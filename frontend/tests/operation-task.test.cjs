@@ -49,7 +49,7 @@ test('control de calidad tiene prioridad sólo para el inspector autorizado',()=
 test('un trabajo activo propone registrar su finalización y una incidencia habilita reimpresión',()=>{
  const task=jobs=>operationTask(order('EN_PRODUCCION'),['GESTIONAR_PRODUCCION'],facts({production:production({items:[{puedeIniciar:jobs[0].estado!=='IMPRIMIENDO',trabajos:jobs}]})}));
  assert.equal(task([{estado:'IMPRIMIENDO'}]).title,'Impresión en curso');
- assert.equal(task([{estado:'COMPLETADO',calidad:{resultado:'REIMPRESION_REQUERIDA'}}]).title,'Preparar e iniciar la impresión');
+ assert.equal(task([{estado:'COMPLETADO',calidad:{resultado:'REIMPRESION_REQUERIDA'}}]).title,'Preparar la reimpresión requerida');
 });
 test('el recorrido avanza a impresión y calidad al iniciar y conserva las etapas anteriores',()=>{
  assert.equal(operationStage(order(),null),0);

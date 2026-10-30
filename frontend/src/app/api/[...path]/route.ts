@@ -43,6 +43,7 @@ const allowed: Record<string, readonly string[]> = {
   "admin/configuracion": ["GET"], "admin/configuracion/borradores": ["POST"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "operacion/impresoras": ["GET"], "operacion/puntos-entrega/disponibilidad": ["GET"],
+  "operacion/entregas/lotes": ["POST"],
   "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
   "auth/recuperacion/solicitar": ["POST"], "auth/recuperacion/confirmar": ["POST"],
 };

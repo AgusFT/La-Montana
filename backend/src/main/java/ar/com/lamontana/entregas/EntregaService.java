@@ -104,6 +104,7 @@ public class EntregaService {
   Codigo codigo,Verificacion validacion,Constancia entrega,Cierre cierre,String aplicado,String saldo,List<String> bloqueosEntrega,List<String> bloqueosCierre,List<Evento> historial){}
  public record Generacion(Vista vista,String codigo,String aviso){@Override public String toString(){return "Generacion[código privado]";}}
  public record Validacion(Vista vista,boolean aceptado,String mensaje){}
+ public record ResultadoLote(UUID operacion,Accion accion,int cantidad,Instant fecha){}
  private record Actor(long id,String nombre,String rol){}
  private record Secreto(long id,UUID codigo,String hash,long reserva,Instant emision,Instant vence,Instant revocado,Instant utilizado,int intentos){}
  @Transactional public Vista consultar(UUID pedido,String correo,boolean interno){bloquear();var p=pedidos.detalle(pedido,correo,interno);codigos.asegurar(p.numero());return vista(p,correo,interno);}
@@ -133,6 +134,26 @@ public class EntregaService {
   jdbc.update("INSERT INTO lamontana.movimiento_entrega(id_pedido,id_reserva_entrega,id_evento_pedido,estado_origen,estado_destino) VALUES (?,?,?,?,?)",p.numero(),reserva(p),event,estado,destino);
   if(in.accion()==Accion.SALIR_REPARTO)codigos.asegurar(p.numero());
   return vista(pedidos.detalle(pedido,correo,true),correo,true);
+ }
+ /** All selected orders are checked before the first write; retries recover the same audited group. */
+ @Transactional public ResultadoLote moverLote(MovimientoLote in,String correo){
+  bloquear();organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);
+  if(in.accion()!=Accion.PREPARAR_ENVIO&&in.accion()!=Accion.SALIR_REPARTO)throw error(HttpStatus.BAD_REQUEST,"El grupo sólo permite preparar pedidos o confirmar su salida.");
+  if(in.pedidos()==null||in.pedidos().isEmpty()||in.pedidos().size()>25||in.pedidos().stream().map(PedidoLote::pedido).distinct().count()!=in.pedidos().size())throw error(HttpStatus.BAD_REQUEST,"Seleccioná entre 1 y 25 pedidos sin repetir.");
+  var ordered=in.pedidos().stream().sorted(Comparator.comparing(PedidoLote::pedido)).toList();String hash=huella(List.of(in.accion(),ordered));
+  var saved=jdbc.query("SELECT id_actor,huella,fecha FROM lamontana.lote_movimiento_entrega WHERE id_operacion=?",(r,n)->{
+   if(r.getLong(1)!=a.id()||!hash.equals(r.getString(2)))throw conflicto("El grupo ya fue utilizado con otros datos.");return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),r.getTimestamp(3).toInstant());
+  },in.operacion());if(!saved.isEmpty())return saved.get(0);
+  for(var item:ordered){
+   var p=pedidos.detalle(item.pedido(),correo,true);version(p,item.version());
+   if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.calidad_pedido_aprobada(?)",Boolean.class,p.numero())))throw conflicto("PED-"+p.numero()+": falta aprobar la calidad de todos sus trabajos. Actualizá la lista.");
+   String blocked=bloqueoMovimiento(p,logistica(p),in.accion(),true);if(blocked!=null)throw conflicto("PED-"+p.numero()+": "+blocked+" No se modificó ningún pedido del grupo.");
+  }
+  for(var item:ordered){UUID operation=UUID.nameUUIDFromBytes((in.operacion()+":"+item.pedido()).getBytes(StandardCharsets.UTF_8));
+   mover(item.pedido(),new Movimiento(operation,item.version(),in.accion(),(in.accion()==Accion.SALIR_REPARTO?"Salida conjunta confirmada":"Preparación conjunta confirmada")+" · grupo "+in.operacion(),true),correo);
+  }
+  Instant now=clock.instant();jdbc.update("INSERT INTO lamontana.lote_movimiento_entrega(id_operacion,id_actor,actor_nombre,huella,accion,pedidos,fecha) VALUES (?,?,?,?,?,?::jsonb,?)",in.operacion(),a.id(),a.nombre(),hash,in.accion().name(),json.writeValueAsString(ordered),Timestamp.from(now));
+  return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),now);
  }
  @Transactional public Validacion validar(UUID pedido,Validar in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"VALIDAR",in));

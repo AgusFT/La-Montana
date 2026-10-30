@@ -8,3 +8,14 @@ test('la ruta global no habilita escrituras ni rutas administrativas vecinas',as
  for(const method of ['POST','PUT']){const r=await m.exports[method](new Request('http://app.test/api/admin/pedidos',{method,body:'{}'}),{params:Promise.resolve({path:['admin','pedidos']})});assert.equal(r.status,405);}
  for(const path of [['admin','pedidos','otro'],['admin','pedidos-globales']]){const r=await m.exports.GET(new Request('http://app.test/api/'+path.join('/')),{params:Promise.resolve({path})});assert.equal(r.status,404);}
 });
+test('la bandeja conserva el orden temporal y el grupo sólo habilita POST a su ruta exacta',async()=>{
+ const old=global.fetch;process.env.BACKEND_INTERNAL_URL='http://backend.test';const calls=[];
+ global.fetch=async(url,init)=>{calls.push({url,init});return Response.json({cantidad:2});};
+ try{
+  await m.exports.GET(new Request('http://app.test/api/admin/pedidos?estado=LISTO_PARA_ENTREGA&orden=MOVIMIENTO_ASC'),{params:Promise.resolve({path:['admin','pedidos']})});
+  assert.match(calls[0].url,/orden=MOVIMIENTO_ASC/);
+  const request=new Request('http://app.test/api/operacion/entregas/lotes',{method:'POST',body:'{"pedidos":[]}',headers:{Cookie:'SESSION=operador','X-CSRF-TOKEN':'csrf','Content-Type':'application/json'}});
+  const out=await m.exports.POST(request,{params:Promise.resolve({path:['operacion','entregas','lotes']})});assert.equal(out.status,200);assert.equal(calls[1].init.headers.get('X-CSRF-TOKEN'),'csrf');
+  const invalid=await m.exports.GET(new Request('http://app.test/api/operacion/entregas/lotes'),{params:Promise.resolve({path:['operacion','entregas','lotes']})});assert.equal(invalid.status,405);
+ }finally{global.fetch=old;}
+});

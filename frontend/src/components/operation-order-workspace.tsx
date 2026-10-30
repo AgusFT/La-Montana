@@ -6,6 +6,8 @@ import type {Permission} from '@/lib/organization-types';
 import {operationTask,type OperationPanel} from '@/lib/operation-task';
 import {OperationStageProgress} from './operation-stage-progress';
 import {orderTrackingLabel} from '@/lib/order-tracking';
+import {productionSituation} from '@/lib/order-operational-status';
+import {OrderOperationalBadge} from './order-operational-badge';
 import {useNavigationGuard} from './navigation-boundary';
 import {OrderManagement,type Management} from './order-management';
 import {OrderProduction,type Production} from './order-production';
@@ -40,7 +42,7 @@ export function OperationOrderWorkspace({order,permissions,financial,globalAdmin
  const work=order.oferta.items.find(i=>i.codigoPublico===selected)??order.oferta.items[0],file=work?order.archivos.find(f=>f.item===work.codigoPublico):undefined;
  const currentReview=review?.version===order.version?review:null,currentDelivery=delivery?.version===order.version?delivery:null;
  return <div className="operation-order operation-order-simple" onClickCapture={protect}>
-  <header className="operation-order-heading"><div><a href={back} className="operation-back">← Volver a pedidos</a><div className="operation-order-number"><h2>Pedido PED-{order.numero}</h2><span className="client-state">{orderTrackingLabel(order)}</span></div><p>{order.oferta.sucursal.nombre} · Recibido el {date(order.confirmadaEn)}</p></div><button type="button" className="client-button secondary" disabled={busy||blocked} onClick={onRefresh}>{busy?'Actualizando…':'Actualizar'}</button></header>
+  <header className="operation-order-heading"><div><a href={back} className="operation-back">← Volver a pedidos</a><div className="operation-order-number"><h2>Pedido PED-{order.numero}</h2>{order.estado==='EN_PRODUCCION'&&production?.version===order.version?<OrderOperationalBadge order={{estado:order.estado,estadoLogistico:order.estadoLogistico,modalidad:order.reserva.modalidad,...productionSituation(production)}}/>:<span className="client-state">{orderTrackingLabel(order)}</span>}</div><p>{order.oferta.sucursal.nombre} · Recibido el {date(order.confirmadaEn)}</p></div><button type="button" className="client-button secondary" disabled={busy||blocked} onClick={onRefresh}>{busy?'Actualizando…':'Actualizar'}</button></header>
   <OperationStageProgress order={order} production={production}/>
   {error&&<p role="alert" className="client-warning">{error}</p>}{notice&&<p role="alert" className="client-warning">{notice}</p>}
   <div className="operation-summary-grid" aria-label="Resumen del pedido">

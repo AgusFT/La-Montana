@@ -3,6 +3,7 @@ import type {Permission} from './organization-types';
 import type {Management} from '@/components/order-management';
 import type {Production} from '@/components/order-production';
 import type {Delivery} from '@/components/order-delivery';
+import {productionSituation} from './order-operational-status';
 
 export type OperationPanel='pedido-resumen'|'pedido-revision'|'pedido-correcciones'|'pedido-produccion'|'pedido-entrega'|'pedido-reprogramacion'|'pedido-pdf'|'pedido-pagos';
 export type OperationTask={title:string;description:string;panel:OperationPanel;waiting:boolean};
@@ -45,6 +46,7 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
   return task('Esperando revisión y aprobación','El responsable de pedidos debe revisar el trabajo. Tu perfil podrá intervenir cuando llegue su etapa.','pedido-resumen',true);
  }
  if(['APROBADO','EN_PRODUCCION'].includes(order.estado)){
+  if(production?.puedeProducir&&has('GESTIONAR_PRODUCCION')&&production.items.some(i=>i.puedeIniciar)&&productionSituation(production).situacionOperativa==='REIMPRESION_REQUERIDA')return task('Preparar la reimpresión requerida','Un trabajo no aprobó calidad. Prepará la reimpresión e inspeccionala antes de habilitar el despacho.','pedido-produccion');
   if(has('CONTROLAR_CALIDAD')&&production?.puedeControlarCalidad&&production.items.some(i=>{const j=i.trabajos.at(-1);return j?.estado==='COMPLETADO'&&!j.calidad;}))return task('Controlar la calidad del trabajo','Hay impresiones terminadas que necesitan inspección. Registrá el resultado de cada PDF.','pedido-produccion');
   if(has('GESTIONAR_PRODUCCION')&&production?.puedeProducir){
    if(production.items.some(i=>i.puedeIniciar))return task('Preparar e iniciar la impresión','Usá el PDF confirmado y sus opciones. Elegí el recurso y registrá el inicio manual.','pedido-produccion');

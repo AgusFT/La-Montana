@@ -28,8 +28,10 @@
 
 "use client";
 import {useEffect,useState} from "react";
-import {isOrderList,logisticsState,type OrderList} from "@/lib/order-types";
-import {date,money,modeLabels} from "@/lib/quote-types";
+import {isOrderList,type OrderList} from "@/lib/order-types";
+import {date,money} from "@/lib/quote-types";
+import {OrderOperationalBadge} from './order-operational-badge';
+import {recentMovementLabel} from '@/lib/order-operational-status';
 import {operationQueues} from '@/lib/operation-queues';
 
 const stages=[
@@ -52,7 +54,7 @@ export function AdminDashboard(){
    {loading&&<p role="status">Consultando todos los pedidos de la imprenta…</p>}
    {lists?.some(list=>!list)&&<p role="alert" className="admin-error">No pudimos consultar todos los estados. Actualizá el resumen; los datos no disponibles no se cuentan como cero.</p>}
    <div className="dashboard-metrics">{stages.map((stage,i)=><article key={stage.state} className={`dashboard-metric ${stage.tone}`}><span className="dashboard-symbol" aria-hidden="true">{stage.symbol}</span><div><h2>{stage.title}</h2><strong aria-label={`${stage.title}: ${lists?.[i]?.total??"no disponible"}`}>{lists?.[i]?.total??"—"}</strong><a href={href(stage.state)}>Ver todos <span aria-hidden="true">→</span></a></div></article>)}</div>
-   <div className="dashboard-queues">{stages.filter(s=>s.state!=="CORRECCION_SOLICITADA").map(stage=>{const list=lists?.[stages.indexOf(stage)];return <section key={stage.state} className={`dashboard-queue ${stage.tone}`} aria-label={stage.title}><header><h2>{stage.title}</h2><a href={href(stage.state)}>Ver todos</a></header>{list?list.total>0?<><div className="dashboard-table-wrap"><table><thead><tr><th>Pedido</th><th>Confirmado</th><th>{stage.state==="LISTO_PARA_ENTREGA"?"Situación":"Entrega"}</th><th>Destino de entrega</th><th>Total</th><th>Acción</th></tr></thead><tbody>{list.elementos.slice(0,5).map(p=><tr key={p.codigoPublico}><td><strong>PED-{p.numero}</strong></td><td>{date(p.confirmadaEn)}</td><td>{stage.state==="LISTO_PARA_ENTREGA"?logisticsState(p.estadoLogistico):p.retiroConTraslado?"Retiro con traslado":modeLabels[p.modalidad]}</td><td>{p.destino??"Consultar en el pedido"}</td><td>{money(p.total)}</td><td><a href={`/operacion/pedidos/${p.codigoPublico}`}>Ver pedido</a></td></tr>)}</tbody></table></div><footer>Mostrando {Math.min(5,list.elementos.length)} de {list.total} pedidos</footer></>:<p className="dashboard-empty">No hay pedidos en este estado.</p>:<p className="dashboard-empty">{loading?"Consultando…":"No disponible. Actualizá el resumen para volver a consultar."}</p>}</section>;})}</div>
+   <div className="dashboard-queues">{stages.filter(s=>s.state!=="CORRECCION_SOLICITADA").map(stage=>{const list=lists?.[stages.indexOf(stage)];return <section key={stage.state} className={`dashboard-queue ${stage.tone}`} aria-label={stage.title}><header><h2>{stage.title}</h2><a href={href(stage.state)}>Ver todos</a></header>{list?list.total>0?<><div className="dashboard-table-wrap"><table><thead><tr><th>Pedido</th><th>Último movimiento</th><th>Situación actual</th><th>Destino de entrega</th><th>Total</th><th>Acción</th></tr></thead><tbody>{list.elementos.slice(0,5).map(p=><tr key={p.codigoPublico}><td><strong>PED-{p.numero}</strong></td><td className="order-last-movement"><strong>{recentMovementLabel(p.ultimoMovimiento?.accion,p.modalidad)}</strong><time dateTime={p.ultimoMovimiento?.fecha??p.confirmadaEn}>{date(p.ultimoMovimiento?.fecha??p.confirmadaEn)}</time></td><td><OrderOperationalBadge order={p}/></td><td>{p.destino??"Consultar en el pedido"}</td><td>{money(p.total)}</td><td><a href={`/operacion/pedidos/${p.codigoPublico}`}>Ver pedido</a></td></tr>)}</tbody></table></div><footer>Mostrando {Math.min(5,list.elementos.length)} de {list.total} pedidos</footer></>:<p className="dashboard-empty">No hay pedidos en este estado.</p>:<p className="dashboard-empty">{loading?"Consultando…":"No disponible. Actualizá el resumen para volver a consultar."}</p>}</section>;})}</div>
    <p className="dashboard-all"><a href={href()}>Abrir todos los pedidos de la imprenta →</a></p>
  </section>;
 }

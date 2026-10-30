@@ -102,8 +102,9 @@ public class PedidoService {
  public record Revision(UUID pedido,long version,UUID configuracion,long numeroConfiguracion,String huella,boolean habilitada,List<String> bloqueos,Condiciones condiciones,Franja franja,List<Pdf> archivos){}
  public record Evento(String estado,String motivo,Instant fecha,String accion){}
  public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro){}
- public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado){}
- public record Pagina(List<Resumen> elementos,long total,int pagina){}
+ public record MovimientoReciente(String accion,Instant fecha,String actor){}
+ public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega){}
+ public record Pagina(List<Resumen> elementos,long total,int pagina,boolean puedeGestionarEntregas){}
  private record Actor(long id,String rol){}
 
  @Transactional public Revision revisar(UUID quote,String correo){bloquear();actor(correo,false);var q=cotizaciones.detalle(quote,correo);var vinculo=vinculado(quote);return vinculo==null?evaluar(q):new Revision(vinculo,q.version(),null,0,null,false,List.of(),null,null,List.of());}
@@ -193,22 +194,68 @@ public class PedidoService {
   },codigo,interno,a.id());if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pedido no está disponible en tu cuenta.");return rows.get(0);
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String correo){
+  return listar(branch,pagina,estado,"CONFIRMADO_DESC",correo);
+ }
+ @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String orden,String correo){
   var a=actor(correo,branch!=null);if(branch!=null&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,branch);
-  return pagina(branch==null?"p.id_usuario_creador=?":"s.codigo_publico=?",List.of(branch==null?a.id():branch),pagina,estado);
+  return pagina(branch==null?"p.id_usuario_creador=?":"s.codigo_publico=?",List.of(branch==null?a.id():branch),pagina,estado,orden,branch!=null,branch!=null&&organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS"));
  }
  /** Bandeja única del propietario. El destino del cliente no determina su visibilidad. */
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listarGlobal(int pagina,String estado,String correo){
-  var a=actor(correo,true);if(!a.rol().equals("ADMIN_ADMIN"))throw error(HttpStatus.FORBIDDEN,"Sólo el administrador puede consultar todos los pedidos de la imprenta.");
-  return pagina("TRUE",List.of(),pagina,estado);
+  return listarGlobal(pagina,estado,"CONFIRMADO_DESC",correo);
  }
- private Pagina pagina(String alcance,List<Object> parametros,int pagina,String estado){
+ @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listarGlobal(int pagina,String estado,String orden,String correo){
+  var a=actor(correo,true);if(!a.rol().equals("ADMIN_ADMIN"))throw error(HttpStatus.FORBIDDEN,"Sólo el administrador puede consultar todos los pedidos de la imprenta.");
+  return pagina("TRUE",List.of(),pagina,estado,orden,true,organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS"));
+ }
+ private Pagina pagina(String alcance,List<Object> parametros,int pagina,String estado,String orden,boolean interno,boolean gestiona){
   if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
+  String ordenar=switch(orden){case "MOVIMIENTO_ASC"->"coalesce(h.fecha,p.confirmada_en) ASC,p.id_pedido ASC";case "MOVIMIENTO_DESC"->"coalesce(h.fecha,p.confirmada_en) DESC,p.id_pedido DESC";case "CONFIRMADO_ASC"->"p.confirmada_en ASC,p.id_pedido ASC";case "CONFIRMADO_DESC"->"p.confirmada_en DESC,p.id_pedido DESC";default->throw error(HttpStatus.BAD_REQUEST,"Orden de pedidos inválido.");};
   if(estado!=null&&!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","RECHAZADO","CANCELADO").contains(estado))throw error(HttpStatus.BAD_REQUEST,"Estado de pedido inválido.");
   String from=" FROM lamontana.pedido_actual p JOIN lamontana.sucursal s USING(id_sucursal) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE "+alcance+" AND (?::text IS NULL OR p.estado=?)";
   var args=new ArrayList<Object>(parametros);args.add(estado);args.add(estado);
   long count=jdbc.queryForObject("SELECT count(*)"+from,Long.class,args.toArray());args.add((long)pagina*25);
-  var ids=jdbc.query("SELECT p.codigo_publico,p.id_pedido,p.estado,p.confirmada_en,s.nombre,p.total,c.oferta->>'modalidad' AS modalidad,lamontana.estado_logistico(p.id_pedido),(SELECT r.nombre_destino FROM lamontana.reserva_entrega r WHERE r.id_pedido=p.id_pedido ORDER BY r.id_reserva_entrega DESC LIMIT 1),lamontana.retiro_con_traslado(p.id_pedido)"+from+" ORDER BY p.id_pedido DESC LIMIT 25 OFFSET ?",(r,n)->new Resumen(r.getObject(1,UUID.class),r.getLong(2),r.getString(3),r.getTimestamp(4).toInstant(),r.getString(5),r.getBigDecimal(6).toPlainString(),Modalidad.valueOf(r.getString(7)),r.getString(8),r.getString(9),r.getBoolean(10)),args.toArray());
-  return new Pagina(ids,count,pagina);
+  String joins="""
+   LEFT JOIN LATERAL (SELECT h.accion,h.fecha,coalesce(h.actor_nombre,u.nombre||' '||u.apellido) AS actor_nombre,cc.resultado FROM lamontana.historial_estado_pedido h
+    LEFT JOIN lamontana.usuario u ON u.id_usuario=h.id_actor
+    LEFT JOIN lamontana.historial_trabajo_impresion ht ON ht.id_evento_pedido=h.id_evento
+    LEFT JOIN lamontana.control_calidad cc ON cc.id_trabajo_impresion=ht.id_trabajo_impresion AND h.accion='CONTROLAR_CALIDAD'
+    WHERE h.id_pedido=p.id_pedido ORDER BY h.fecha DESC,h.id_evento DESC LIMIT 1) h ON true
+   LEFT JOIN LATERAL (SELECT max(fecha) AS fecha FROM lamontana.historial_estado_pedido
+    WHERE id_pedido=p.id_pedido AND (estado_origen IS DISTINCT FROM estado_destino OR accion IN ('PREPARAR_ENVIO','SALIR_REPARTO','LLEGAR_PUNTO'))) cambio ON true
+   LEFT JOIN LATERAL (SELECT count(*) FILTER(WHERE cc.resultado='REIMPRESION_REQUERIDA') AS reimpresion,
+    count(*) FILTER(WHERE cc.resultado='INCIDENCIA' OR t.estado IN ('ERROR','CANCELADO')) AS incidencia,
+    count(*) FILTER(WHERE t.id_trabajo_impresion IS NULL) AS sin_iniciar,
+    count(*) FILTER(WHERE cc.resultado IS NULL AND t.estado IN ('IMPRIMIENDO','COMPLETADO')) AS calidad,
+    max(cc.fecha) FILTER(WHERE cc.resultado='REIMPRESION_REQUERIDA') AS reimpresion_desde,
+    max(coalesce(cc.fecha,t.fecha_fin)) FILTER(WHERE cc.resultado='INCIDENCIA' OR t.estado IN ('ERROR','CANCELADO')) AS incidencia_desde,
+    max(coalesce(t.fecha_fin,t.fecha_inicio)) FILTER(WHERE cc.resultado IS NULL AND t.estado IN ('IMPRIMIENDO','COMPLETADO')) AS calidad_desde
+    FROM lamontana.pedido_archivo_actual i LEFT JOIN LATERAL (SELECT t.* FROM lamontana.trabajo_impresion t
+     WHERE t.id_pedido=i.id_pedido AND t.id_cotizacion_item=i.id_cotizacion_item ORDER BY t.id_trabajo_impresion DESC LIMIT 1) t ON true
+    LEFT JOIN lamontana.control_calidad cc USING(id_trabajo_impresion) WHERE i.id_pedido=p.id_pedido) produccion ON true
+   """;
+  String select="""
+   SELECT p.codigo_publico,p.id_pedido,p.estado,p.confirmada_en,s.nombre,p.total,c.oferta->>'modalidad' AS modalidad,
+    lamontana.estado_logistico(p.id_pedido) AS logistica,
+    (SELECT r.nombre_destino FROM lamontana.reserva_entrega r WHERE r.id_pedido=p.id_pedido ORDER BY r.id_reserva_entrega DESC LIMIT 1) AS destino,
+    lamontana.retiro_con_traslado(p.id_pedido) AS traslado,p.version,h.accion,h.fecha,h.actor_nombre,h.resultado,
+    coalesce(cambio.fecha,p.confirmada_en) AS estado_desde,produccion.*,lamontana.calidad_pedido_aprobada(p.id_pedido) AS calidad_aprobada
+   """;
+  String dataFrom=from.replace(" WHERE "," "+joins+" WHERE ");
+  var ids=jdbc.query(select+dataFrom+" ORDER BY "+ordenar+" LIMIT 25 OFFSET ?",(r,n)->{
+   String state=r.getString("estado"),logistics=r.getString("logistica"),situation=state;Instant since=r.getTimestamp("estado_desde").toInstant();
+   if(interno&&state.equals("EN_PRODUCCION")){
+    if(r.getLong("reimpresion")>0){situation="REIMPRESION_REQUERIDA";since=r.getTimestamp("reimpresion_desde").toInstant();}
+    else if(r.getLong("incidencia")>0){situation="INCIDENCIA_PRODUCCION";since=r.getTimestamp("incidencia_desde").toInstant();}
+    else if(r.getLong("sin_iniciar")>0)situation="PREPARACION_PENDIENTE";
+    else if(r.getLong("calidad")>0){situation="CALIDAD_PENDIENTE";since=r.getTimestamp("calidad_desde").toInstant();}
+   }else if(state.equals("LISTO_PARA_ENTREGA"))situation=logistics;
+   String movement=r.getString("accion");if(r.getString("resultado")!=null)movement+="_"+r.getString("resultado");
+   var recent=new MovimientoReciente(movement,r.getTimestamp("fecha")==null?r.getTimestamp("confirmada_en").toInstant():r.getTimestamp("fecha").toInstant(),interno?r.getString("actor_nombre"):null);
+   String action=gestiona&&state.equals("LISTO_PARA_ENTREGA")&&r.getBoolean("calidad_aprobada")?switch(logistics){case "PENDIENTE_PREPARACION"->"PREPARAR_ENVIO";case "PREPARADO"->"SALIR_REPARTO";default->null;}:null;
+   return new Resumen(r.getObject("codigo_publico",UUID.class),r.getLong("id_pedido"),state,r.getTimestamp("confirmada_en").toInstant(),r.getString("nombre"),r.getBigDecimal("total").toPlainString(),Modalidad.valueOf(r.getString("modalidad")),logistics,r.getString("destino"),r.getBoolean("traslado"),r.getLong("version"),situation,since,recent,action);
+  },args.toArray());
+  return new Pagina(ids,count,pagina,gestiona);
  }
  private boolean esCorreccion(UUID quote){return jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE c.codigo_publico=?)",Boolean.class,quote);}
  private UUID vinculado(UUID quote){var ids=jdbc.query("SELECT p.codigo_publico FROM lamontana.pedido p JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE c.codigo_publico=? UNION SELECT p.codigo_publico FROM lamontana.cotizacion_correccion cc JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.solicitud_correccion s USING(id_solicitud_correccion) JOIN lamontana.pedido p USING(id_pedido) WHERE c.codigo_publico=?",(r,n)->r.getObject(1,UUID.class),quote,quote);return ids.isEmpty()?null:ids.get(0);}

@@ -28,6 +28,36 @@ class DatosPruebaIntegrationTest {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
 
+    @Test void bandejaOperativaYDespachoConjuntoConservanCalidadVersionYAuditoria()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-bandeja-despacho-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);var orders=app.getBean(PedidoService.class);var delivery=app.getBean(EntregaService.class);
+            var production=orders.listarGlobal(0,"EN_PRODUCCION","MOVIMIENTO_DESC",ADMIN);
+            assertThat(production.elementos()).isNotEmpty();assertThat(production.elementos()).extracting(PedidoService.Resumen::situacionOperativa).contains("REIMPRESION_REQUERIDA");assertThat(production.elementos()).allSatisfy(p->{assertThat(p.ultimoMovimiento().fecha()).isNotNull();assertThat(p.situacionDesde()).isNotNull();assertThat(p.accionEntrega()).isNull();});
+            var ascending=orders.listarGlobal(0,null,"MOVIMIENTO_ASC",ADMIN).elementos();
+            assertThat(ascending).isSortedAccordingTo(Comparator.comparing(p->p.ultimoMovimiento().fecha()));
+            var ready=orders.listarGlobal(0,"LISTO_PARA_ENTREGA",ADMIN).elementos();
+            var candidates=ready.stream().filter(p->p.accionEntrega()!=null).toList();assertThat(candidates).hasSizeGreaterThanOrEqualTo(2);
+            for(var p:candidates)if(p.accionEntrega().equals("PREPARAR_ENVIO"))delivery.mover(p.codigoPublico(),new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),p.version(),ar.com.lamontana.entregas.EntregaController.Accion.PREPARAR_ENVIO,null,true),ADMIN);
+            var prepared=orders.listarGlobal(0,"LISTO_PARA_ENTREGA",ADMIN).elementos().stream().filter(p->"SALIR_REPARTO".equals(p.accionEntrega())).limit(2).toList();assertThat(prepared).hasSize(2);
+            var entries=prepared.stream().map(p->new ar.com.lamontana.entregas.EntregaController.PedidoLote(p.codigoPublico(),p.version())).toList();
+            long before=count(jdbc,"movimiento_entrega");
+            var invalid=new ArrayList<>(entries);var last=entries.get(1);invalid.set(1,new ar.com.lamontana.entregas.EntregaController.PedidoLote(last.pedido(),last.version()-1));
+            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid),ADMIN)).hasMessageContaining("cambió");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
+            var notReady=production.elementos().get(0);invalid.set(1,new ar.com.lamontana.entregas.EntregaController.PedidoLote(notReady.codigoPublico(),notReady.version()));
+            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid),ADMIN)).hasMessageContaining("calidad");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
+            var command=new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,entries);
+            // A failure in the final group audit must roll back every order and automatic code.
+            jdbc.execute("CREATE FUNCTION lamontana.fallar_lote_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de auditoría de lote'; END $$");
+            jdbc.execute("CREATE TRIGGER fallar_lote_test BEFORE INSERT ON lamontana.lote_movimiento_entrega FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_lote_test()");
+            try{assertThatThrownBy(()->delivery.moverLote(command,ADMIN)).hasStackTraceContaining("fallo de auditoría de lote");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);}finally{jdbc.execute("DROP TRIGGER fallar_lote_test ON lamontana.lote_movimiento_entrega");jdbc.execute("DROP FUNCTION lamontana.fallar_lote_test()");}
+            var result=delivery.moverLote(command,ADMIN);assertThat(result.cantidad()).isEqualTo(2);assertThat(delivery.moverLote(command,ADMIN)).isEqualTo(result);assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before+2);
+            for(var entry:entries){var view=delivery.consultar(entry.pedido(),ADMIN,true);assertThat(view.estadoLogistico()).isEqualTo("EN_VIAJE");assertThat(view.codigo()).isNotNull();assertThat(view.historial().get(view.historial().size()-1).motivo()).contains(command.operacion().toString());}
+            assertThat(jdbc.queryForObject("SELECT actor_nombre FROM lamontana.lote_movimiento_entrega WHERE id_operacion=?",String.class,command.operacion())).isNotBlank();
+            assertThatThrownBy(()->delivery.moverLote(command,"cliente1@prueba.local")).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+        }finally{limpiar(files);}
+    }
+
     @Test void operacionDiariaDeImpresorasYPuntosNoReescribeElMotor()throws Exception{
         Path files=Files.createTempDirectory("lamontana-operacion-diaria-");
         try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
