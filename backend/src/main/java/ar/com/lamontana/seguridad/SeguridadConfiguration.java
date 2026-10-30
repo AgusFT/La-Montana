@@ -136,7 +136,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/operacion/pedidos/*/entrega").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/entrega/movimientos", "/api/operacion/pedidos/*/entrega/validar", "/api/operacion/pedidos/*/entrega/confirmar", "/api/operacion/pedidos/*/entrega/cerrar").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/pedidos/*/produccion").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
-                        .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/produccion/iniciar", "/api/operacion/pedidos/*/produccion/trabajos/*/estado", "/api/operacion/pedidos/*/produccion/trabajos/*/calidad").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
+                        .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/produccion/iniciar", "/api/operacion/pedidos/*/produccion/trabajos/*/estado", "/api/operacion/pedidos/*/produccion/trabajos/*/calidad", "/api/operacion/pedidos/*/produccion/trabajos/*/finalizar-calidad").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/pedidos/*/gestion").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/gestion", "/api/operacion/pedidos/*/observaciones").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/pedidos/*/cobro/resolver").hasRole("ADMIN_ADMIN")

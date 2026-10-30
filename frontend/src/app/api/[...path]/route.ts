@@ -84,7 +84,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const fulfillmentRoute=["cliente","operacion"].includes(path[0])&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")&&path[3]==="entrega";
   const fulfillmentMethods=fulfillmentRoute?(path.length===4?["GET"]:path.length===5&&(path[0]==="cliente"&&path[4]==="codigo"||path[0]==="operacion"&&["movimientos","validar","confirmar","cerrar"].includes(path[4]))?["POST"]:null):null;
   const productionRoute=path[0]==="operacion"&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")&&path[3]==="produccion";
-  const productionMethods=productionRoute?(path.length===4?["GET"]:path.length===5&&path[4]==="iniciar"?["POST"]:path.length===7&&path[4]==="trabajos"&&uuidPattern.test(path[5])&&["estado","calidad"].includes(path[6])?["POST"]:null):null;
+  const productionMethods=productionRoute?(path.length===4?["GET"]:path.length===5&&path[4]==="iniciar"?["POST"]:path.length===7&&path[4]==="trabajos"&&uuidPattern.test(path[5])&&["estado","calidad","finalizar-calidad"].includes(path[6])?["POST"]:null):null;
   const correctionRoute=["cliente","operacion"].includes(path[0])&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")&&path[3]==="correcciones";
   const correctionQuote=correctionRoute&&path[0]==="cliente"&&path.length===6&&uuidPattern.test(path[4])&&path[5]==="cotizaciones";
   const correctionMethods=correctionRoute?(path.length===4?(path[0]==="operacion"?["GET","POST"]:["GET"]):path[0]==="cliente"&&path.length===5&&path[4]==="respuesta"?["GET","POST"]:correctionQuote?["POST"]:null):null;

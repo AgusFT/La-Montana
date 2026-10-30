@@ -8,6 +8,20 @@ export type OperationPanel='pedido-resumen'|'pedido-revision'|'pedido-correccion
 export type OperationTask={title:string;description:string;panel:OperationPanel;waiting:boolean};
 export type OperationFacts={review:Management|null;production:Production|null;delivery:Delivery|null};
 
+export const operationStages=['Revisión','Preparación','Impresión y calidad','Entrega','Cierre'];
+export function operationStage(order:Order,production:Production|null){
+ if(['CERRADO','ENTREGADO'].includes(order.estado))return 4;
+ if(order.estado==='LISTO_PARA_ENTREGA')return 3;
+ if(order.estado==='EN_PRODUCCION'){
+  // Do not jump backwards while the matching snapshot is loading.
+  if(production?.version!==order.version)return 2;
+  const pendingPreparation=production.items.some(i=>{const j=i.trabajos.at(-1);return !j||['ERROR','CANCELADO'].includes(j.estado)||j.calidad&&j.calidad.resultado!=='APROBADO';});
+  const printing=production.items.some(i=>{const j=i.trabajos.at(-1);return j?.estado==='IMPRIMIENDO'||j?.estado==='COMPLETADO'&&!j.calidad;});
+  return pendingPreparation&&!printing?1:2;
+ }
+ return order.estado==='APROBADO'?1:0;
+}
+
 /** Prioritize this person's work; actual buttons still use the server's action flags. */
 export function operationTask(order:Order,permissions:Permission[],facts:OperationFacts):OperationTask{
  const has=(p:Permission)=>permissions.includes(p),finance=has('ACREDITAR_PAGO')||has('REGISTRAR_COBRO')||has('REGISTRAR_DEVOLUCION');
@@ -33,8 +47,8 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
  if(['APROBADO','EN_PRODUCCION'].includes(order.estado)){
   if(has('CONTROLAR_CALIDAD')&&production?.puedeControlarCalidad&&production.items.some(i=>{const j=i.trabajos.at(-1);return j?.estado==='COMPLETADO'&&!j.calidad;}))return task('Controlar la calidad del trabajo','Hay impresiones terminadas que necesitan inspección. Registrá el resultado de cada PDF.','pedido-produccion');
   if(has('GESTIONAR_PRODUCCION')&&production?.puedeProducir){
-   if(production.items.some(i=>i.trabajos.at(-1)?.estado==='IMPRIMIENDO'))return task('Continuar el trabajo en producción','Registrá los trabajos que terminaste. Si hubo un problema, informalo desde el trabajo afectado.','pedido-produccion');
    if(production.items.some(i=>i.puedeIniciar))return task('Preparar e iniciar la impresión','Usá el PDF confirmado y sus opciones. Elegí el recurso y registrá el inicio manual.','pedido-produccion');
+   if(production.items.some(i=>i.trabajos.at(-1)?.estado==='IMPRIMIENDO'))return task(production.puedeControlarCalidad&&has('CONTROLAR_CALIDAD')?'Impresión y control de calidad':'Impresión en curso',production.puedeControlarCalidad&&has('CONTROLAR_CALIDAD')?'Cuando termine la impresión, inspeccioná el trabajo y registrá su resultado en una sola ventana.':'Cuando termine la impresión, registrá su finalización. El personal de calidad hará la inspección.','pedido-produccion');
   }
   if(finance&&production?.cobertura.some(c=>Number(c.pendiente)>0))return task('Completar el anticipo para producir','Falta dinero acreditado y aplicado por los medios admitidos. Consultá los pagos antes de continuar.','pedido-pagos');
   if(has('GESTIONAR_PRODUCCION')||has('CONTROLAR_CALIDAD'))return task('Estado de producción',production?.bloqueos[0]??'Comprobando los trabajos y los controles disponibles.','pedido-produccion',!!production);

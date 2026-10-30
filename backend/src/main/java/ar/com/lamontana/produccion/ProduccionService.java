@@ -151,6 +151,20 @@ public class ProduccionService {
   evento(p,actor,in.operacion(),hash,t.id(),in.accion().name()+"_TRABAJO","IMPRIMIENDO",estado,"EN_PRODUCCION",motivo,publico,ahora);
   return vista(pedidos.detalle(pedido,correo,true),correo);
  }
+ /** One operator gesture, two audited facts in one transaction. Existing separate endpoints remain available. */
+ @Transactional public Vista finalizarCalidad(UUID pedido,UUID trabajo,Inspeccion in,String correo){
+  bloquear();var p=pedidos.detalle(pedido,correo,true);
+  organizacion.exigirPermiso(correo,"GESTIONAR_PRODUCCION");organizacion.exigirPermiso(correo,"CONTROLAR_CALIDAD");
+  var inspector=new Inspeccion(in.operacion(),Math.addExact(in.version(),1),in.resultado(),in.checklist(),in.observaciones(),in.confirmacionManual());
+  // The main operation is the quality event. Replay is checked before versions/states change.
+  if(recuperar(in.operacion(),huella(List.of(pedido,trabajo,"CALIDAD",inspector)),p,actor(correo)))return vista(p,correo);
+  version(p,in.version());confirmar(in.confirmacionManual());
+  motivo(in.observaciones(),"Control de calidad aprobado por el inspector.",in.resultado()!=Resultado.APROBADO);
+  if(in.resultado()==Resultado.APROBADO&&!in.checklist().completo())throw error(HttpStatus.BAD_REQUEST,"Marcá todos los controles para aprobar; si existe un problema elegí reimpresión o incidencia.");
+  var fin=UUID.nameUUIDFromBytes((in.operacion()+":fin-impresion").getBytes(StandardCharsets.UTF_8));
+  cambiar(pedido,trabajo,new Cambio(fin,in.version(),Accion.COMPLETAR,"Impresión terminada; inspección registrada en la misma operación.",true),correo);
+  return calidad(pedido,trabajo,inspector,correo);
+ }
  @Transactional public Vista calidad(UUID pedido,UUID trabajo,Inspeccion in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"CONTROLAR_CALIDAD");var actor=actor(correo);var hash=huella(List.of(pedido,trabajo,"CALIDAD",in));
   if(recuperar(in.operacion(),hash,p,actor))return vista(p,correo);

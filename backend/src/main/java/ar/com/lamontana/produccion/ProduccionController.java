@@ -67,4 +67,5 @@ public class ProduccionController {
  @PostMapping("/iniciar") public ProduccionService.Vista iniciar(@PathVariable UUID pedido,@Valid @RequestBody Inicio in,Principal p){return service.iniciar(pedido,in,p.getName());}
  @PostMapping("/trabajos/{trabajo}/estado") public ProduccionService.Vista cambiar(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Cambio in,Principal p){return service.cambiar(pedido,trabajo,in,p.getName());}
  @PostMapping("/trabajos/{trabajo}/calidad") public ProduccionService.Vista calidad(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Inspeccion in,Principal p){return service.calidad(pedido,trabajo,in,p.getName());}
+ @PostMapping("/trabajos/{trabajo}/finalizar-calidad") public ProduccionService.Vista finalizarCalidad(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Inspeccion in,Principal p){return service.finalizarCalidad(pedido,trabajo,in,p.getName());}
 }

@@ -67,11 +67,20 @@ class VistaPreviaOpcionalIntegrationTest {
    var production=app.getBean(ProduccionService.class);var item=production.consultar(orderId,ADMIN).items().get(0);assertThat(item.puedeIniciar()).isTrue();
    var started=production.iniciar(orderId,new ProduccionController.Inicio(UUID.randomUUID(),order.version(),item.codigoPublico(),item.impresoras().get(0).codigoPublico(),"",true),ADMIN);assertThat(started.estado()).isEqualTo("EN_PRODUCCION");
    var job=started.items().get(0).trabajos().get(0);
-   var completed=production.cambiar(orderId,job.codigoPublico(),new ProduccionController.Cambio(UUID.randomUUID(),started.version(),ProduccionController.Accion.COMPLETAR,"",true),ADMIN);
    var allChecks=new ProduccionController.Checklist(true,true,true,true,true);
-   long qualityVersion=completed.version();
-   assertThatThrownBy(()->production.calidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.REIMPRESION_REQUERIDA,allChecks,"",true),ADMIN)).hasMessageContaining("motivo");
-   assertThat(production.calidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.APROBADO,allChecks,"",true),ADMIN).estado()).isEqualTo("LISTO_PARA_ENTREGA");
+   long qualityVersion=started.version();
+   assertThatThrownBy(()->production.finalizarCalidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.REIMPRESION_REQUERIDA,allChecks,"",true),ADMIN)).hasMessageContaining("motivo");
+   var finish=new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.APROBADO,allChecks,"",true);
+   // A failure in the second event must roll back the first event and the job's completion.
+   jdbc.execute("CREATE FUNCTION lamontana.qa_fallo_calidad() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.accion='CONTROLAR_CALIDAD' THEN RAISE EXCEPTION 'qa fallo calidad'; END IF; RETURN NEW; END $$");
+   jdbc.execute("CREATE TRIGGER qa_fallo_calidad BEFORE INSERT ON lamontana.historial_estado_pedido FOR EACH ROW EXECUTE FUNCTION lamontana.qa_fallo_calidad()");
+   try{assertThatThrownBy(()->production.finalizarCalidad(orderId,job.codigoPublico(),finish,ADMIN)).hasMessageContaining("qa fallo calidad");
+    var unchanged=production.consultar(orderId,ADMIN);assertThat(unchanged.version()).isEqualTo(qualityVersion);assertThat(unchanged.items().get(0).trabajos().get(0).estado()).isEqualTo("IMPRIMIENDO");
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.historial_estado_pedido WHERE id_operacion=?",Integer.class,finish.operacion())).isZero();
+   }finally{jdbc.execute("DROP TRIGGER qa_fallo_calidad ON lamontana.historial_estado_pedido");jdbc.execute("DROP FUNCTION lamontana.qa_fallo_calidad()");}
+   var finished=production.finalizarCalidad(orderId,job.codigoPublico(),finish,ADMIN);assertThat(finished.estado()).isEqualTo("LISTO_PARA_ENTREGA");assertThat(finished.version()).isEqualTo(qualityVersion+2);
+   assertThat(production.finalizarCalidad(orderId,job.codigoPublico(),finish,ADMIN).version()).isEqualTo(finished.version());
+   assertThat(finished.items().get(0).trabajos().get(0).historial()).extracting(ProduccionService.Evento::accion).containsExactly("INICIAR_TRABAJO","COMPLETAR_TRABAJO","CONTROLAR_CALIDAD");
    assertThat(jdbc.queryForList("SELECT id_aceptacion_vista_previa,fecha,sha256,tipo_registro FROM lamontana.aceptacion_vista_previa WHERE tipo_registro='VISTA_PREVIA' ORDER BY id_aceptacion_vista_previa")).isEqualTo(historicos);
    // Invalid PDFs and antivirus rejection never become printable files.
    UUID fresh=prep.abrir("cliente2@prueba.local").codigoPublico();var invalid=upload.crear(fresh,UUID.randomUUID(),"invalido.pdf","cliente2@prueba.local");

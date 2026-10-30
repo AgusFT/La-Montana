@@ -31,6 +31,8 @@ La migración V45 agrega estado y eventos por identidad de impresora, separados 
 
 - Informar papel guarda un conteo observado, incluido cero.
 - Recargar papel suma únicamente las hojas agregadas y requiere un conteo anterior conocido.
+- La ventana ofrece **Llenar por completo**, **1 resma (500 hojas)** y **Otra cantidad**. Llenar calcula sólo la diferencia hasta la capacidad declarada (1.988 → 2.000 agrega 12); queda deshabilitado si el saldo ya alcanza o supera esa capacidad. Resma y cantidad manual suman lo efectivamente agregado. Se muestra el saldo resultante antes de confirmar. La capacidad es la declarada en el motor, no una lectura ni una especificación física obtenida del equipo.
+- Las opciones rápidas usan el mismo registro RECARGAR, versión e identificador estable: una recuperación incierta no vuelve a sumar. El primer conteo y las correcciones siguen siendo cantidades observadas, sin inventar el saldo anterior.
 - Iniciar un trabajo asigna sus hojas previstas y las descuenta del saldo registrado si se conoce. Se guarda ASIGNAR_TRABAJO con vínculo al trabajo y su responsable, en la misma transacción del inicio.
 - El saldo es una **estimación manual**, no una lectura física, un inventario por gramaje/formato ni una señal del equipo. El operador comprueba el papel apropiado para el trabajo.
 - Error/cancelación no devuelven papel automáticamente: puede haberse utilizado o descartado. Corregir conteo permite registrar el remanente físico; reimpresión asigna nuevas hojas.

@@ -8,6 +8,9 @@
 .operation-stages b{display:grid;place-items:center;border-radius:50%;width:24px;height:24px;background:var(--ui-soft,#e7eef5)}
 .operation-stages [aria-current=step]{color:var(--ui-text,#173b60);font-weight:700}
 .operation-stages [aria-current=step] b{color:#fff;background:var(--ui-warning-solid,#f58020)}
+.operation-stages .completed{color:var(--ui-success-text,#197448)}
+.operation-stages .completed b{background:#dcf5e7;color:#166d3d}
+.operation-stage-status{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .operation-order-simple .operation-context-card{padding:18px 20px;box-shadow:0 2px 8px #173b6004}
 .operation-order-simple .operation-context-card h2{font-size:15px;margin:0 0 14px}
 .operation-order-simple .operation-context-card dl>div{grid-template-columns:minmax(90px,.85fr) minmax(0,1.15fr);gap:10px}

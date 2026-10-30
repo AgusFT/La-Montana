@@ -1,6 +1,6 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
 require.extensions['.ts']=(m,p)=>m._compile(ts.transpileModule(fs.readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,p);
-const {operationTask}=require('../src/lib/operation-task.ts');
+const {operationTask,operationStage}=require('../src/lib/operation-task.ts');
 const order=(estado='PENDIENTE_REVISION',changes={})=>({version:4,estado,cobro:{estado:'SIN_ANTICIPO'},...changes});
 const facts=(changes={})=>({review:null,production:null,delivery:null,...changes});
 const review=acciones=>({version:4,acciones});
@@ -48,8 +48,30 @@ test('control de calidad tiene prioridad sólo para el inspector autorizado',()=
 });
 test('un trabajo activo propone registrar su finalización y una incidencia habilita reimpresión',()=>{
  const task=jobs=>operationTask(order('EN_PRODUCCION'),['GESTIONAR_PRODUCCION'],facts({production:production({items:[{puedeIniciar:jobs[0].estado!=='IMPRIMIENDO',trabajos:jobs}]})}));
- assert.equal(task([{estado:'IMPRIMIENDO'}]).title,'Continuar el trabajo en producción');
+ assert.equal(task([{estado:'IMPRIMIENDO'}]).title,'Impresión en curso');
  assert.equal(task([{estado:'COMPLETADO',calidad:{resultado:'REIMPRESION_REQUERIDA'}}]).title,'Preparar e iniciar la impresión');
+});
+test('el recorrido avanza a impresión y calidad al iniciar y conserva las etapas anteriores',()=>{
+ assert.equal(operationStage(order(),null),0);
+ assert.equal(operationStage(order('APROBADO'),null),1);
+ assert.equal(operationStage(order('EN_PRODUCCION'),null),2);
+ const jobs=trabajos=>production({items:[{trabajos}]});
+ assert.equal(operationStage(order('EN_PRODUCCION'),jobs([{estado:'IMPRIMIENDO'}])),2);
+ assert.equal(operationStage(order('EN_PRODUCCION'),jobs([{estado:'COMPLETADO',calidad:null}])),2);
+ assert.equal(operationStage(order('LISTO_PARA_ENTREGA'),null),3);
+ assert.equal(operationStage(order('ENTREGADO'),null),4);
+ assert.equal(operationStage(order('CERRADO'),null),4);
+});
+test('varios archivos no ocultan la impresión en curso; una reimpresión vuelve a preparación',()=>{
+ const data=production({items:[{trabajos:[{estado:'IMPRIMIENDO'}]},{trabajos:[]}]});
+ assert.equal(operationStage(order('EN_PRODUCCION'),data),2);
+ assert.equal(operationStage(order('EN_PRODUCCION'),production({items:[{trabajos:[{estado:'COMPLETADO',calidad:{resultado:'REIMPRESION_REQUERIDA'}}]}]})),1);
+});
+test('el operador con ambos permisos recibe una sola tarea para terminar e inspeccionar',()=>{
+ const data=production({items:[{puedeIniciar:false,trabajos:[{estado:'IMPRIMIENDO'}]}]});
+ const task=operationTask(order('EN_PRODUCCION'),['GESTIONAR_PRODUCCION','CONTROLAR_CALIDAD'],facts({production:data}));
+ assert.equal(task.title,'Impresión y control de calidad');assert.match(task.description,/una sola ventana/);
+ assert.notEqual(operationTask(order('EN_PRODUCCION'),['GESTIONAR_PRODUCCION'],facts({production:data})).title,task.title);
 });
 test('la cobertura pendiente orienta a caja y no habilita una impresión',()=>{
  const task=operationTask(order('APROBADO'),['ACREDITAR_PAGO'],facts({production:production({cobertura:[{pendiente:'300.00'}]})}));

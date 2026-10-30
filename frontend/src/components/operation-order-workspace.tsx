@@ -4,6 +4,7 @@ import {date,money,modeLabels} from '@/lib/quote-types';
 import {orderState,type Order} from '@/lib/order-types';
 import type {Permission} from '@/lib/organization-types';
 import {operationTask,type OperationPanel} from '@/lib/operation-task';
+import {OperationStageProgress} from './operation-stage-progress';
 import {orderTrackingLabel} from '@/lib/order-tracking';
 import {useNavigationGuard} from './navigation-boundary';
 import {OrderManagement,type Management} from './order-management';
@@ -38,11 +39,9 @@ export function OperationOrderWorkspace({order,permissions,financial,globalAdmin
  const back=globalAdmin?'/administracion/pedidos':`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`;
  const work=order.oferta.items.find(i=>i.codigoPublico===selected)??order.oferta.items[0],file=work?order.archivos.find(f=>f.item===work.codigoPublico):undefined;
  const currentReview=review?.version===order.version?review:null,currentDelivery=delivery?.version===order.version?delivery:null;
- const stage=order.estado==='CERRADO'||order.estado==='ENTREGADO'?4:order.estado==='LISTO_PARA_ENTREGA'?3:order.estado==='EN_PRODUCCION'&&production?.version===order.version&&production.items.some(i=>{const j=i.trabajos.at(-1);return j?.estado==='COMPLETADO'&&!j.calidad;})?2:['APROBADO','EN_PRODUCCION'].includes(order.estado)?1:0;
- const ended=['CANCELADO','RECHAZADO'].includes(order.estado);
  return <div className="operation-order operation-order-simple" onClickCapture={protect}>
   <header className="operation-order-heading"><div><a href={back} className="operation-back">← Volver a pedidos</a><div className="operation-order-number"><h2>Pedido PED-{order.numero}</h2><span className="client-state">{orderTrackingLabel(order)}</span></div><p>{order.oferta.sucursal.nombre} · Recibido el {date(order.confirmadaEn)}</p></div><button type="button" className="client-button secondary" disabled={busy||blocked} onClick={onRefresh}>{busy?'Actualizando…':'Actualizar'}</button></header>
-  <nav className="operation-stages" aria-label="Etapas del trabajo">{['Revisión','Producción','Calidad','Entrega','Cierre'].map((label,index)=><span key={label} aria-current={!ended&&stage===index?'step':undefined}><b>{index+1}</b>{label}</span>)}</nav>
+  <OperationStageProgress order={order} production={production}/>
   {error&&<p role="alert" className="client-warning">{error}</p>}{notice&&<p role="alert" className="client-warning">{notice}</p>}
   <div className="operation-summary-grid" aria-label="Resumen del pedido">
    <section className="operation-context-card"><h2>Cliente</h2><p className="operation-customer"><strong>{currentReview?.cliente??currentDelivery?.cliente??'Consultando datos…'}</strong></p>{(currentReview?.correo??currentDelivery?.correo)&&<p>{currentReview?.correo??currentDelivery?.correo}</p>}{order.contacto&&<p>Recibe: {order.contacto.receptor}<br/>{order.contacto.telefono}</p>}</section>

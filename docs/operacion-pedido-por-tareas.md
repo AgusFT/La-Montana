@@ -2,6 +2,8 @@
 
 El detalle /operacion/pedidos/[id] utiliza seis cuadros para cliente, trabajo, documentos, entrega, importes e historial. Debajo se muestran la tarea y las acciones disponibles según el estado y los permisos. El recorrido superior señala la etapa actual, sin inventar nuevos estados persistidos ni fechas.
 
+El recorrido visible es **Revisión → Preparación → Impresión y calidad → Entrega → Cierre**. Al aprobar se tilda Revisión; al iniciar la impresión se activa el paso 3 y se tildan los dos anteriores. Una reimpresión que aún necesita preparación vuelve al paso 2. Si hay varios archivos, una impresión en curso sigue mostrando el paso 3 aunque otros archivos todavía necesiten preparación. Se usan sólo los trabajos de la versión vigente; mientras llegan, el estado EN_PRODUCCION mantiene el paso 3. CERRADO deja todo completado; cancelación/rechazo no simulan etapas superadas.
+
 ## Revisión y aprobación
 
 El responsable consulta el PDF desde Documentos y pulsa **Aprobar pedido**. Una ventana breve pide confirmar la revisión de archivos, opciones y entrega. Las observaciones son opcionales. Solicitar corrección es una alternativa visible; rechazar y cancelar quedan en Otras acciones y conservan motivos y confirmaciones obligatorias.
@@ -22,7 +24,9 @@ La consulta de acciones APROBAR ya no exige una operación REVISAR previa: la re
 
 - Preparar producción abre tarjetas de impresoras con capacidades, estado diario, papel estimado y motivos de compatibilidad. La recomendación respeta los datos del motor y los registros actuales. **Iniciar producción** registra el comienzo manual y cambia el pedido a EN_PRODUCCION.
 - Una impresora declarada admite observaciones opcionales. Un recurso fuera del inventario exige describir la excepción.
-- Registrar trabajo terminado admite observaciones opcionales y mantiene la confirmación del hecho físico.
+- Con permisos de producción y calidad, **Terminar impresión y controlar calidad** abre una sola ventana con datos, checklist y resultado. Al confirmar se registran el fin de impresión y la inspección en una misma transacción, con dos eventos auditados y versiones consecutivas. El pedido sólo queda listo cuando todos sus ítems superan calidad. No hay otra pantalla de confirmación del mismo trabajo después.
+- POST `/api/operacion/pedidos/{pedido}/produccion/trabajos/{trabajo}/finalizar-calidad` exige ambos permisos, trabajo en curso del pedido, versión vigente, confirmación física y checklist completo para aprobar; una incidencia/reimpresión exige motivo. La operación principal identifica calidad; el fin usa un identificador derivado estable. Recuperar la misma petición no duplica ninguno de los hechos. Un fallo en el segundo evento revierte también el primero.
+- Con perfiles separados se conserva **Registrar fin de impresión** para producción y **Controlar calidad** para el inspector autorizado. Los trabajos ya terminados antes de actualizar siguen admitiendo la inspección separada. No se amplían permisos de empleados.
 - Controlar calidad abre datos del trabajo, checklist y resultado en columnas. La aprobación exige todos los controles y la confirmación del inspector; observaciones opcionales.
 - Reimpresión, incidencia, error y cancelación de un trabajo exigen motivo.
 - Sólo cuando todos los ítems superan calidad se avanza a LISTO_PARA_ENTREGA. Los ítems conservan sus intentos, recursos y controles anteriores.
@@ -55,3 +59,15 @@ mvn -Dtest=OperacionSimpleServiceTest,VistaPreviaOpcionalIntegrationTest test
 ```
 
 No hay migraciones nuevas. La actualización del entorno de pruebas conserva los pedidos y pagos existentes.
+
+### Recargas rápidas y control conjunto (30/10/2026)
+
+- Build Next.js y TypeScript aprobados. 21 pruebas web (tarea/recorrido operativo y contratos/recargas) y 28 backend (fin/calidad conjunto, selección de equipos, papel diario y cadena de seguridad) aprobadas.
+- `FinalizarCalidadServiceTest` comprueba los dos eventos con actor/fecha/versiones, recuperación sin duplicados, rechazo de contenido diferente, ambos permisos, checklist/confirmación/versión, pertenencia y compatibilidad con inspección separada.
+- Se amplió `VistaPreviaOpcionalIntegrationTest` con recuperación y rollback ante un fallo en el segundo evento. Compiló; la ejecución con PostgreSQL real sigue pendiente en este entorno. Los dobles JDBC no prueban el rollback de la base.
+- Navegador con componentes React reales y API simulada: inicio → paso 3 con los anteriores tildados → ventana única de inspección → paso 4; recarga total 1.988 → 2.000 y cantidad personalizada. A 320 px la ventana de recarga no desborda horizontalmente.
+
+```bash
+cd backend
+mvn -Dtest=FinalizarCalidadServiceTest,OperacionImpresoraServiceTest,SeleccionImpresoraServiceTest,RecuperacionImpresorasSecurityTest,VistaPreviaOpcionalIntegrationTest test
+```

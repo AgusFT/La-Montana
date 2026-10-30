@@ -118,6 +118,12 @@ class RecuperacionImpresorasSecurityTest {
         var employee=sesion("EMPLEADO");comprobar("POST",printer,employee,null,403,false);comprobar("DELETE",printer,employee,token(employee),403,false);comprobar("GET","/api/admin/puntos-entrega/disponibilidad",employee,null,403,false);
     }
 
+    @Test void finalizarCalidadConservaRolesCsrfYMetodoExacto()throws Exception{
+        String path="/api/operacion/pedidos/11111111-1111-1111-1111-111111111111/produccion/trabajos/22222222-2222-2222-2222-222222222222/finalizar-calidad";
+        for(String rol:new String[]{"ADMIN_ADMIN","EMPLEADO"}){var s=sesion(rol);comprobar("POST",path,s,token(s),200,true);comprobar("POST",path,s,null,403,false);for(String method:new String[]{"GET","PUT","DELETE"})comprobar(method,path,s,token(s),403,false);}
+        var client=sesion("CLIENTE");comprobar("POST",path,client,token(client),403,false);
+    }
+
     private MockHttpServletRequest request(String metodo,String ruta,MockHttpSession sesion){
         var request=new MockHttpServletRequest(context.getServletContext(),metodo,ruta);
         request.setServletPath(ruta);request.setSession(sesion);return request;
