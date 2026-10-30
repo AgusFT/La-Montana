@@ -32,7 +32,7 @@ class SeleccionImpresoraServiceTest {
   when(jdbc.query(anyString(),any(RowMapper.class),any(Object[].class))).thenReturn(List.of());
   when(jdbc.queryForObject(anyString(),any(RowMapper.class),any(Object[].class))).thenAnswer(i->{ResultSet rs=mock(ResultSet.class);when(rs.getLong(1)).thenReturn(9L);when(rs.getString(2)).thenReturn("Operadora");when(rs.getString(3)).thenReturn("EMPLEADO");return ((RowMapper<?>)i.getArgument(1)).mapRow(rs,0);});
   when(runtime.estado(any())).thenAnswer(i->new OperacionImpresoraService.Estado(i.getArgument(0),true,null,0,null,null));when(runtime.formatosPorCodigo(anyList())).thenReturn(List.of(new OperacionImpresoraService.Formato(format,"A4")));
-  service=new ProduccionService(jdbc,orders,org,files,coverage,resources,runtime);
+  service=new ProduccionService(jdbc,orders,org,files,coverage,resources,runtime,mock(ar.com.lamontana.entregas.CodigoRetiroService.class));
  }
  private RecursosRepositorio.Impresora printer(UUID id,int capacity,boolean color){return new RecursosRepositorio.Impresora(id,null,id.equals(first)?"Equipo A":"Equipo B",List.of(format),color,true,capacity,"OPERATIVA",null,null);}
  private void machines(RecursosRepositorio.Impresora... printers){when(resources.leer(1)).thenReturn(new RecursosRepositorio.Recursos(null,List.of(printers)));}

@@ -1,5 +1,7 @@
 # Entorno de pruebas funcionales
 
+La actualización de calidad y entrega agrega V46/V47: guía con adicionales reales, confirmaciones breves y código automático al despachar (o al quedar listo para retiro en casa matriz). No requiere reiniciar los datos. Los pedidos que ya estaban en viaje/disponibles recuperan el código al consultar la entrega. Los avisos se capturan en Mailpit, `http://localhost:8125`. Detalle y validaciones pendientes: [Calidad y entrega simples](calidad-y-entrega-simples.md).
+
 La rama `pruebas` agrega una instalación local aislada. No comparte contenedores, volúmenes, base de datos, archivos ni puertos con la ejecución normal de `desarrollo`.
 
 ## Iniciar

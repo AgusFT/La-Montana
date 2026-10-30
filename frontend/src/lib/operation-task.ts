@@ -55,7 +55,10 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
   return task('Esperando producción y calidad','El equipo de producción debe completar las impresiones y sus controles antes de preparar la entrega.','pedido-resumen',true);
  }
  if(order.estado==='LISTO_PARA_ENTREGA'){
-  if(has('GESTIONAR_ENTREGAS')&&delivery?.puedeGestionar)return task('Preparar y entregar el pedido','Registrá el próximo movimiento físico disponible. Para entregar al cliente, validá su código y comprobá el saldo.','pedido-entrega');
+  if(has('GESTIONAR_ENTREGAS')&&delivery?.puedeGestionar){
+   const state=delivery.estadoLogistico;
+   return task(state==='PREPARADO'?'Despachar el pedido':state==='EN_VIAJE'?'Pedido en viaje':state==='DISPONIBLE_PUNTO'||state==='LISTO_RETIRO'?'Entregar al cliente':'Preparar el despacho',state==='EN_VIAJE'?'El código ya acompaña al pedido. Registrá su llegada al destino cuando ocurra.':state==='DISPONIBLE_PUNTO'||state==='LISTO_RETIRO'?'Disponible para retirar. Ingresá el código presentado y confirmá la entrega; el sistema comprueba el saldo.':'Confirmá el próximo movimiento físico. Al despachar se genera el código y se avisa al cliente.','pedido-entrega');
+  }
   if(finance&&delivery&&Number(delivery.saldo)>0)return task('Cobrar el saldo antes de entregar','El trabajo está listo y tiene un saldo pendiente. Registrá y aplicá el dinero realmente recibido.','pedido-pagos');
   if(has('GESTIONAR_ENTREGAS'))return task('Entrega del pedido','Comprobando el recorrido y las acciones de entrega disponibles.','pedido-entrega',!!delivery);
   return task('Esperando la entrega','El trabajo está listo. El personal autorizado de entregas continúa con el recorrido y la recepción.','pedido-resumen',true);

@@ -92,10 +92,10 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class EntregaService {
  private final JdbcTemplate jdbc;private final PedidoService pedidos;private final OrganizacionService organizacion;private final CoberturaPagos cobertura;private final PasswordEncoder encoder;
- private final SecureRandom random=new SecureRandom();private final Clock clock=Clock.systemUTC();private final JsonMapper json=JsonMapper.builder().build();
- public EntregaService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,CoberturaPagos cobertura,PasswordEncoder encoder){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.cobertura=cobertura;this.encoder=encoder;}
+ private final SecureRandom random=new SecureRandom();private final Clock clock=Clock.systemUTC();private final JsonMapper json=JsonMapper.builder().build();private final CodigoRetiroService codigos;
+ public EntregaService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,CoberturaPagos cobertura,PasswordEncoder encoder,CodigoRetiroService codigos){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.cobertura=cobertura;this.encoder=encoder;this.codigos=codigos;}
  public record Opcion(Accion accion,boolean habilitada,String motivo){}
- public record Codigo(UUID codigoPublico,String estado,Instant emitidoEn,Instant venceEn,int intentosRestantes,Instant puedeRenovarEn){}
+ public record Codigo(UUID codigoPublico,String estado,Instant emitidoEn,Instant venceEn,int intentosRestantes,Instant puedeRenovarEn,String texto){@Override public String toString(){return "Codigo[código privado]";}}
  public record Verificacion(UUID codigoPublico,Instant fecha,Instant validoHasta){}
  public record Constancia(UUID codigoPublico,String receptor,String responsable,Instant fecha,String motivo){}
  public record Evento(String accion,String estadoOrigen,String estadoDestino,String actor,String motivo,Instant fecha){}
@@ -106,36 +106,32 @@ public class EntregaService {
  public record Validacion(Vista vista,boolean aceptado,String mensaje){}
  private record Actor(long id,String nombre,String rol){}
  private record Secreto(long id,UUID codigo,String hash,long reserva,Instant emision,Instant vence,Instant revocado,Instant utilizado,int intentos){}
- @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Vista consultar(UUID pedido,String correo,boolean interno){return vista(pedidos.detalle(pedido,correo,interno),correo,interno);}
+ @Transactional public Vista consultar(UUID pedido,String correo,boolean interno){bloquear();var p=pedidos.detalle(pedido,correo,interno);codigos.asegurar(p.numero());return vista(p,correo,interno);}
  private Vista vista(PedidoService.Detalle p,String correo,boolean interno){
   var a=actor(correo);var permisos=interno?organizacion.contexto(correo).permisos():List.<String>of();boolean gestiona=permisos.contains("GESTIONAR_ENTREGAS"),cierra=permisos.contains("CERRAR_PEDIDOS");String estado=logistica(p);
-  var code=ultimoCodigo(p.numero());Instant ahora=clock.instant();Codigo codigo=code==null?null:new Codigo(code.codigo(),estadoCodigo(code,ahora),code.emision(),code.vence(),Math.max(0,5-code.intentos()),code.emision().plusSeconds(30));
+  var code=ultimoCodigo(p.numero());Instant ahora=clock.instant();String plain=null;if(!interno&&p.estado().equals("LISTO_PARA_ENTREGA")&&code!=null&&estadoCodigo(code,ahora).equals("ACTIVO")){var encrypted=jdbc.query("SELECT codigo_cifrado FROM lamontana.codigo_entrega WHERE id_codigo_entrega=?",(r,n)->r.getString(1),code.id());if(!encrypted.isEmpty()&&encrypted.get(0)!=null)plain=codigos.texto(code.codigo(),encrypted.get(0));}Codigo codigo=code==null?null:new Codigo(code.codigo(),estadoCodigo(code,ahora),code.emision(),code.vence(),Math.max(0,5-code.intentos()),code.emision().plusSeconds(30),plain);
   var validation=interno?verificacion(p,code,a.id(),ahora):null;
   var entrega=jdbc.query("SELECT e.codigo_publico,e.receptor_nombre,h.actor_nombre,e.fecha_entrega,e.nota FROM lamontana.entrega e JOIN lamontana.historial_estado_pedido h ON h.id_evento=e.id_evento_pedido WHERE e.id_pedido=?",(r,n)->new Constancia(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),interno?r.getString(5):null),p.numero());
   var cierre=jdbc.query("SELECT c.fecha_cierre,h.actor_nombre,h.motivo,c.total,c.aplicado FROM lamontana.cierre_pedido c JOIN lamontana.historial_estado_pedido h ON h.id_evento=c.id_evento_pedido WHERE c.id_pedido=?",(r,n)->new Cierre(r.getTimestamp(1).toInstant(),r.getString(2),interno?r.getString(3):null,r.getBigDecimal(4).toPlainString(),r.getBigDecimal(5).toPlainString()),p.numero());
   var history=jdbc.query("SELECT h.accion,m.estado_origen,m.estado_destino,h.actor_nombre,h.motivo,h.mensaje_cliente,h.fecha FROM lamontana.movimiento_entrega m JOIN lamontana.historial_estado_pedido h ON h.id_evento=m.id_evento_pedido WHERE m.id_pedido=? ORDER BY m.id_movimiento_entrega",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),interno?r.getString(4):"La imprenta",interno?r.getString(5):r.getString(6),r.getTimestamp(7).toInstant()),p.numero());
   var options=Arrays.stream(Accion.values()).map(op->{String msg=bloqueoMovimiento(p,estado,op,gestiona);return new Opcion(op,msg==null,msg);}).toList();
   var cliente=jdbc.queryForObject("SELECT u.nombre||' '||u.apellido,u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},p.numero());
-  var b=new ArrayList<>(bloqueosEntrega(p));if(interno&&!gestiona)b.add("Se requiere permiso de gestión de entregas.");if(interno&&validation==null)b.add("Validá el código presentado por el cliente con tu propia sesión.");
+  var b=new ArrayList<>(bloqueosEntrega(p));if(interno&&!gestiona)b.add("Se requiere permiso de gestión de entregas.");
   var bc=new ArrayList<>(bloqueosCierre(p));if(interno&&!cierra)bc.add("Se requiere permiso para cerrar pedidos.");
-  BigDecimal aplicado=aplicado(p);return new Vista(p.version(),p.estado(),estado,cliente[0],interno?cliente[1]:null,gestiona,cierra,!interno&&p.estado().equals("LISTO_PARA_ENTREGA")&&(code==null||!ahora.isBefore(code.emision().plusSeconds(30))),options,codigo,validation,entrega.isEmpty()?null:entrega.get(0),cierre.isEmpty()?null:cierre.get(0),dinero(aplicado),dinero(new BigDecimal(p.oferta().total()).subtract(aplicado).max(BigDecimal.ZERO)),List.copyOf(b),List.copyOf(bc),history);
+  BigDecimal aplicado=aplicado(p);return new Vista(p.version(),p.estado(),estado,cliente[0],interno?cliente[1]:null,gestiona,cierra,false,options,codigo,validation,entrega.isEmpty()?null:entrega.get(0),cierre.isEmpty()?null:cierre.get(0),dinero(aplicado),dinero(new BigDecimal(p.oferta().total()).subtract(aplicado).max(BigDecimal.ZERO)),List.copyOf(b),List.copyOf(bc),history);
  }
  @Transactional public Generacion emitir(UUID pedido,Emitir in,String correo){
-  bloquear();var p=pedidos.detalle(pedido,correo,false);var a=actor(correo);String hash=huella(List.of(pedido,"CODIGO",in));
-  if(recuperar(in.operacion(),hash,p,a))return new Generacion(vista(p,correo,false),null,"El código ya fue emitido. Por seguridad no se conserva su texto; podés generar otro cuando termine la espera indicada.");
-  version(p,in.version());if(!p.estado().equals("LISTO_PARA_ENTREGA"))throw conflicto("El código está disponible después de superar calidad y antes de entregar.");
-  Instant ahora=clock.instant();var anterior=ultimoCodigo(p.numero());if(anterior!=null&&ahora.isBefore(anterior.emision().plusSeconds(30)))throw conflicto("Esperá 30 segundos desde la última emisión antes de generar otro código.");
-  jdbc.update("UPDATE lamontana.codigo_entrega SET revocado_en=? WHERE id_pedido=? AND revocado_en IS NULL AND utilizado_en IS NULL",Timestamp.from(ahora),p.numero());
-  String alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";var code=new StringBuilder();for(int i=0;i<8;i++)code.append(alphabet.charAt(random.nextInt(alphabet.length())));String texto=code.toString();
-  jdbc.update("INSERT INTO lamontana.codigo_entrega(codigo_publico,id_pedido,id_reserva_entrega,id_emisor,id_operacion,huella,codigo_hash,emitido_en,vence_en) VALUES (?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),p.numero(),reserva(p),a.id(),in.operacion(),hash,encoder.encode(texto),Timestamp.from(ahora),Timestamp.from(ahora.plusSeconds(1800)));
-  return new Generacion(vista(p,correo,false),texto,"Mostrá este código al personal al recibir el pedido. Vence en 30 minutos y reemplaza cualquier código anterior.");
+  bloquear();var p=pedidos.detalle(pedido,correo,false);codigos.asegurar(p.numero());var view=vista(p,correo,false);
+  if(view.codigo()==null||view.codigo().texto()==null)throw conflicto("El código se genera al despachar o cuando el retiro en imprenta está listo.");
+  return new Generacion(view,view.codigo().texto(),"Este es el código automático del pedido. Se conserva hasta su entrega.");
  }
  @Transactional public Vista mover(UUID pedido,Movimiento in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"MOVIMIENTO",in));
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());texto(in.motivo(),500);confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());String motivo=nota(in.motivo(),switch(in.accion()){case PREPARAR_ENVIO->"Pedido preparado para despacho.";case SALIR_REPARTO->"Salida al destino acordado confirmada.";case LLEGAR_PUNTO->"Llegada al destino de retiro confirmada.";});confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
   String destino=switch(in.accion()){case PREPARAR_ENVIO->"PREPARADO";case SALIR_REPARTO->"EN_VIAJE";case LLEGAR_PUNTO->"DISPONIBLE_PUNTO";};String mensaje=switch(in.accion()){case PREPARAR_ENVIO->"El pedido está preparado para salir hacia el destino acordado.";case SALIR_REPARTO->"El pedido salió de la sucursal y está en viaje hacia el destino acordado.";case LLEGAR_PUNTO->"El pedido llegó al destino de retiro acordado. Consultá su franja de atención para retirarlo. Todavía no fue entregado al cliente.";};Instant ahora=clock.instant();
-  long event=evento(p,a,in.operacion(),hash,in.accion().name(),p.estado(),in.motivo(),mensaje,ahora);
+  long event=evento(p,a,in.operacion(),hash,in.accion().name(),p.estado(),motivo,mensaje,ahora);
   jdbc.update("INSERT INTO lamontana.movimiento_entrega(id_pedido,id_reserva_entrega,id_evento_pedido,estado_origen,estado_destino) VALUES (?,?,?,?,?)",p.numero(),reserva(p),event,estado,destino);
+  if(in.accion()==Accion.SALIR_REPARTO)codigos.asegurar(p.numero());
   return vista(pedidos.detalle(pedido,correo,true),correo,true);
  }
  @Transactional public Validacion validar(UUID pedido,Validar in,String correo){
@@ -148,22 +144,35 @@ public class EntregaService {
   if(resultado.equals("INVALIDO"))jdbc.update("UPDATE lamontana.codigo_entrega SET intentos=intentos+1 WHERE id_codigo_entrega=?",c.id());
   Instant hasta=now.plusSeconds(600).isBefore(c.vence())?now.plusSeconds(600):c.vence();
   jdbc.update("INSERT INTO lamontana.validacion_codigo_entrega(codigo_publico,id_codigo_entrega,id_actor,actor_nombre,id_operacion,huella,version_pedido,resultado,fecha,valido_hasta) VALUES (?,?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),c.id(),a.id(),a.nombre(),in.operacion(),hash,p.version(),resultado,Timestamp.from(now),resultado.equals("VALIDO")?Timestamp.from(hasta):null);
-  return new Validacion(vista(p,correo,true),resultado.equals("VALIDO"),switch(resultado){case "VALIDO"->"Código validado. Comprobá el saldo y confirmá la entrega física.";case "INVALIDO"->"Código incorrecto. Verificá el que presenta el cliente.";case "BLOQUEADO"->"Se agotaron los cinco intentos. El cliente debe generar otro código.";default->"El código venció. El cliente debe generar otro.";});
+  return new Validacion(vista(p,correo,true),resultado.equals("VALIDO"),switch(resultado){case "VALIDO"->"Código comprobado para registrar la entrega.";case "INVALIDO"->"Código incorrecto. Comprobá el que presenta la persona.";case "BLOQUEADO"->"Se agotaron los intentos. Solicitá asistencia a la imprenta.";default->"El código ya no está vigente. Consultá a la imprenta.";});
  }
  @Transactional public Vista entregar(UUID pedido,Entregar in,String correo){
-  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"ENTREGAR",in));
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());texto(in.receptor(),140);texto(in.motivo(),500);confirmar(in.confirmado());var b=bloqueosEntrega(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();var code=ultimoCodigo(p.numero());var validation=verificacion(p,code,a.id(),now);
+  return registrarEntrega(pedido,in,correo,huella(List.of(pedido,"ENTREGAR",in)));
+ }
+ @Transactional public Validacion recibir(UUID pedido,Recibir in,String correo){
+  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"RECIBIR",in));
+  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true),true,"Entrega ya registrada; no se duplicó.");
+  version(p,in.version());confirmar(in.confirmado());nota(in.motivo(),"Entrega física confirmada con el código presentado.");var blocks=bloqueosEntrega(p);if(!blocks.isEmpty())throw conflicto(String.join(" ",blocks));
+  UUID op=UUID.nameUUIDFromBytes((in.operacion()+":codigo").getBytes(StandardCharsets.UTF_8));
+  var check=validar(pedido,new Validar(op,p.version(),in.codigo()),correo);if(!check.aceptado())return check;
+  String receptor=in.receptor();if(receptor==null||receptor.isBlank())receptor="Persona que presentó el código de entrega";
+  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash);
+  return new Validacion(out,true,"Pedido entregado. Se guardaron responsable, fecha y hora.");
+ }
+ private Vista registrarEntrega(UUID pedido,Entregar in,String correo,String hash){
+  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());texto(in.receptor(),140);String motivo=nota(in.motivo(),"Entrega física confirmada con el código presentado.");confirmar(in.confirmado());var b=bloqueosEntrega(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();var code=ultimoCodigo(p.numero());var validation=verificacion(p,code,a.id(),now);
   if(validation==null||!validation.codigoPublico().equals(in.validacion()))throw conflicto("Validá nuevamente el código presentado por el cliente con tu propia sesión.");
-  long event=evento(p,a,in.operacion(),hash,"ENTREGAR","ENTREGADO",in.motivo(),"El pedido completo fue entregado a "+in.receptor().strip()+". El cierre administrativo se verifica por separado.",now);
+  long event=evento(p,a,in.operacion(),hash,"ENTREGAR","ENTREGADO",motivo,"El pedido completo fue entregado a "+in.receptor().strip()+". El cierre administrativo se verifica por separado.",now);
   jdbc.update("UPDATE lamontana.reserva_entrega SET estado='CUMPLIDA' WHERE id_pedido=? AND estado='ACTIVA'",p.numero());
   jdbc.update("UPDATE lamontana.codigo_entrega SET utilizado_en=? WHERE id_codigo_entrega=?",Timestamp.from(now),code.id());
-  jdbc.update("INSERT INTO lamontana.entrega(codigo_publico,id_pedido,id_reserva_entrega,id_evento_pedido,id_validacion_codigo,receptor_nombre,nota,fecha_entrega) SELECT ?,?,?,?,?,?,?,?",UUID.randomUUID(),p.numero(),code.reserva(),event,jdbc.queryForObject("SELECT id_validacion_codigo FROM lamontana.validacion_codigo_entrega WHERE codigo_publico=?",Long.class,validation.codigoPublico()),in.receptor().strip(),in.motivo().strip(),Timestamp.from(now));
+  jdbc.update("INSERT INTO lamontana.entrega(codigo_publico,id_pedido,id_reserva_entrega,id_evento_pedido,id_validacion_codigo,receptor_nombre,nota,fecha_entrega) SELECT ?,?,?,?,?,?,?,?",UUID.randomUUID(),p.numero(),code.reserva(),event,jdbc.queryForObject("SELECT id_validacion_codigo FROM lamontana.validacion_codigo_entrega WHERE codigo_publico=?",Long.class,validation.codigoPublico()),in.receptor().strip(),motivo,Timestamp.from(now));
   return vista(pedidos.detalle(pedido,correo,true),correo,true);
  }
  @Transactional public Vista cerrar(UUID pedido,Cerrar in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"CERRAR_PEDIDOS");var a=actor(correo);String hash=huella(List.of(pedido,"CERRAR",in));
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());texto(in.motivo(),500);confirmar(in.confirmado());var b=bloqueosCierre(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();
-  long event=evento(p,a,in.operacion(),hash,"CERRAR","CERRADO",in.motivo(),"El pedido fue cerrado después de verificar su entrega y los movimientos financieros.",now);
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());String motivo=nota(in.motivo(),"Pedido cerrado después de comprobar entrega y conciliación.");confirmar(in.confirmado());var b=bloqueosCierre(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();
+  long event=evento(p,a,in.operacion(),hash,"CERRAR","CERRADO",motivo,"El pedido fue cerrado después de verificar su entrega y los movimientos financieros.",now);
   jdbc.update("INSERT INTO lamontana.cierre_pedido(id_pedido,id_evento_pedido,total,aplicado,fecha_cierre) VALUES (?,?,?,?,?)",p.numero(),event,new BigDecimal(p.oferta().total()),aplicado(p),Timestamp.from(now));
   return vista(pedidos.detalle(pedido,correo,true),correo,true);
  }
@@ -183,6 +192,7 @@ public class EntregaService {
  private void bloquear(){for(long id:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+id+")");}
  private void version(PedidoService.Detalle p,long v){if(p.version()!=v)throw conflicto("El pedido cambió. Actualizá su estado antes de continuar.");}
  private void texto(String v,int max){if(v==null||v.isBlank()||v.length()>max||v.codePoints().anyMatch(c->Character.isISOControl(c)&&c!='\n'&&c!='\r'&&c!='\t'))throw error(HttpStatus.BAD_REQUEST,"Completá los datos sin caracteres de control.");}
+ private String nota(String value,String fallback){if(value==null||value.isBlank())return fallback;texto(value,500);return value.strip();}
  private void confirmar(boolean v){if(!v)throw error(HttpStatus.BAD_REQUEST,"Confirmá el hecho que vas a registrar.");}
  private String dinero(BigDecimal v){return v.setScale(2).toPlainString();}
  private String huella(Object v){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.writeValueAsString(v).getBytes(StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}}

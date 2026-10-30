@@ -88,12 +88,14 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class ProduccionService {
  private final JdbcTemplate jdbc;private final PedidoService pedidos;private final OrganizacionService organizacion;
- private final ArchivosPrivados archivos;private final CoberturaPagos cobertura;private final RecursosRepositorio recursos;private final OperacionImpresoraService operacionImpresoras;
+ private final ArchivosPrivados archivos;private final CoberturaPagos cobertura;private final RecursosRepositorio recursos;private final OperacionImpresoraService operacionImpresoras;private final ar.com.lamontana.entregas.CodigoRetiroService codigos;
  private final JsonMapper json=JsonMapper.builder().build();
- public ProduccionService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,ArchivosPrivados archivos,CoberturaPagos cobertura,RecursosRepositorio recursos,OperacionImpresoraService operacionImpresoras){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.archivos=archivos;this.cobertura=cobertura;this.recursos=recursos;this.operacionImpresoras=operacionImpresoras;}
+ public ProduccionService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,ArchivosPrivados archivos,CoberturaPagos cobertura,RecursosRepositorio recursos,OperacionImpresoraService operacionImpresoras,ar.com.lamontana.entregas.CodigoRetiroService codigos){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.archivos=archivos;this.cobertura=cobertura;this.recursos=recursos;this.operacionImpresoras=operacionImpresoras;this.codigos=codigos;}
  public record Cobertura(String condiciones,String requerido,String aplicado,String pendiente){}
  public record Impresora(UUID codigoPublico,String nombre,List<OperacionImpresoraService.Formato> formatos,boolean color,boolean dobleFaz,int capacidadHojas,String estadoConfigurado,OperacionImpresoraService.Estado operacion,boolean compatible,boolean recomendada,List<String> motivos){}
- public record Calidad(Resultado resultado,Checklist checklist,String observaciones,String inspector,Instant fecha){}
+ public record Adicional(UUID servicio,String nombre,String base,long unidades){}
+ public record Requisitos(String archivo,String formato,String papel,int paginas,int copias,int hojasPorCopia,int hojasTotales,String impresion,String caras,List<Adicional> adicionales){}
+ public record Calidad(Resultado resultado,Checklist checklist,String observaciones,String inspector,Instant fecha,String modalidadConfirmacion,Requisitos requisitos){}
  public record Evento(String accion,String estadoOrigen,String estadoDestino,String actor,String motivo,Instant fecha){}
  public record Trabajo(UUID codigoPublico,long numero,UUID origen,String tipo,String estado,UUID archivo,String impresora,String motivoExcepcion,String operador,Instant inicio,Instant fin,Calidad calidad,List<Evento> historial){}
  public record Item(UUID codigoPublico,UUID archivo,String nombre,List<Impresora> impresoras,boolean puedeIniciar,String bloqueo,List<Trabajo> trabajos){}
@@ -142,7 +144,7 @@ public class ProduccionService {
  @Transactional public Vista cambiar(UUID pedido,UUID trabajo,Cambio in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_PRODUCCION");var actor=actor(correo);var hash=huella(List.of(pedido,trabajo,"ESTADO",in));
   if(recuperar(in.operacion(),hash,p,actor))return vista(p,correo);
-  String motivo=motivo(in.motivo(),"Trabajo terminado por el operador.",in.accion()!=Accion.COMPLETAR);
+  String motivo=motivo(in.motivo(),switch(in.accion()){case COMPLETAR->"Trabajo terminado por el operador.";case ERROR->"Error de impresión registrado por el operador.";case CANCELAR->"Trabajo de impresión cancelado por el operador.";},false);
   version(p,in.version());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
   if(!p.estado().equals("EN_PRODUCCION")||!t.vista().estado().equals("IMPRIMIENDO"))throw conflicto("Sólo un trabajo manual en curso admite completar, registrar un error o cancelar.");
   String estado=switch(in.accion()){case COMPLETAR->"COMPLETADO";case ERROR->"ERROR";case CANCELAR->"CANCELADO";};Instant ahora=Instant.now();
@@ -159,7 +161,7 @@ public class ProduccionService {
   // The main operation is the quality event. Replay is checked before versions/states change.
   if(recuperar(in.operacion(),huella(List.of(pedido,trabajo,"CALIDAD",inspector)),p,actor(correo)))return vista(p,correo);
   version(p,in.version());confirmar(in.confirmacionManual());
-  motivo(in.observaciones(),"Control de calidad aprobado por el inspector.",in.resultado()!=Resultado.APROBADO);
+  motivo(in.observaciones(),"Control de calidad registrado por el inspector.",false);
   if(in.resultado()==Resultado.APROBADO&&!in.checklist().completo())throw error(HttpStatus.BAD_REQUEST,"Marcá todos los controles para aprobar; si existe un problema elegí reimpresión o incidencia.");
   var fin=UUID.nameUUIDFromBytes((in.operacion()+":fin-impresion").getBytes(StandardCharsets.UTF_8));
   cambiar(pedido,trabajo,new Cambio(fin,in.version(),Accion.COMPLETAR,"Impresión terminada; inspección registrada en la misma operación.",true),correo);
@@ -168,15 +170,42 @@ public class ProduccionService {
  @Transactional public Vista calidad(UUID pedido,UUID trabajo,Inspeccion in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"CONTROLAR_CALIDAD");var actor=actor(correo);var hash=huella(List.of(pedido,trabajo,"CALIDAD",in));
   if(recuperar(in.operacion(),hash,p,actor))return vista(p,correo);
-  String motivo=motivo(in.observaciones(),"Control de calidad aprobado por el inspector.",in.resultado()!=Resultado.APROBADO);
+  return guardarCalidad(pedido,p,trabajo,in,correo,actor,hash,"CHECKLIST",null);
+ }
+ /** A single explicit confirmation covers the complete accepted work, never preselected per-control results. */
+ @Transactional public Vista verificar(UUID pedido,UUID trabajo,Verificacion in,String correo){
+  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"CONTROLAR_CALIDAD");var a=actor(correo);var hash=huella(List.of(pedido,trabajo,"VERIFICAR",in));
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo);
+  version(p,in.version());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
+  var req=requisitos(p,t.vista());boolean ok=in.resultado()==Resultado.APROBADO;
+  // Validate optional text before changing either fact. Defaults describe the action, not an operator-written note.
+  motivo(in.observaciones(),ok?"Conformidad global del trabajo solicitado.":"Trabajo observado en el control de calidad.",false);
+  if(t.vista().estado().equals("IMPRIMIENDO")){
+   organizacion.exigirPermiso(correo,"GESTIONAR_PRODUCCION");
+   var fin=UUID.nameUUIDFromBytes((in.operacion()+":fin-impresion").getBytes(StandardCharsets.UTF_8));
+   cambiar(pedido,trabajo,new Cambio(fin,p.version(),Accion.COMPLETAR,"Impresión terminada; verificación del trabajo registrada en la misma operación.",true),correo);
+   p=pedidos.detalle(pedido,correo,true);
+  }
+  var global=new Inspeccion(in.operacion(),p.version(),in.resultado(),new Checklist(ok,ok,ok,ok,ok),in.observaciones(),true);
+  return guardarCalidad(pedido,p,trabajo,global,correo,a,hash,"CONFORMIDAD_GLOBAL",req);
+ }
+ private Requisitos requisitos(PedidoService.Detalle p,Trabajo job){
+  var pdf=p.archivos().stream().filter(f->f.archivo().equals(job.archivo())).findFirst().orElseThrow(()->conflicto("El archivo del trabajo no coincide con el pedido vigente."));
+  var item=p.oferta().items().stream().filter(i->i.codigoPublico().equals(pdf.item())).findFirst().orElseThrow();var t=item.trabajo();
+  var adicionales=t.terminaciones().stream().map(id->{var line=item.precio().lineas().stream().filter(l->l.servicio().equals(id)).findFirst().orElseThrow(()->conflicto("No se pudo identificar un adicional solicitado. Actualizá los datos del pedido."));return new Adicional(id,line.nombre(),line.base(),line.unidades());}).toList();
+  return new Requisitos(pdf.nombre(),item.formato(),item.papel(),t.paginas(),t.copias(),(t.paginas()+(t.dobleFaz()?1:0))/(t.dobleFaz()?2:1),item.precio().hojas(),t.color().name().equals("COLOR")?"Color":"Blanco y negro",t.dobleFaz()?"Doble faz":"Simple faz",adicionales);
+ }
+ private Vista guardarCalidad(UUID pedido,PedidoService.Detalle p,UUID trabajo,Inspeccion in,String correo,Actor actor,String hash,String modalidad,Requisitos requisitos){
+  String motivo=motivo(in.observaciones(),modalidad.equals("CONFORMIDAD_GLOBAL")?in.resultado()==Resultado.APROBADO?"Conformidad global: el trabajo coincide con las cantidades, impresión y adicionales solicitados; calidad física aprobada.":"Trabajo observado; vuelve a producción para corregirlo.":in.resultado()==Resultado.APROBADO?"Control de calidad aprobado por el inspector.":"Trabajo observado en el control de calidad.",false);
   version(p,in.version());confirmar(in.confirmacionManual());var t=trabajo(p,trabajo);
   if(!p.estado().equals("EN_PRODUCCION")||!t.vista().estado().equals("COMPLETADO")||t.vista().calidad()!=null)throw conflicto("La inspección requiere un trabajo terminado y todavía sin control de calidad.");
   if(in.resultado()==Resultado.APROBADO&&!in.checklist().completo())throw error(HttpStatus.BAD_REQUEST,"Marcá todos los controles para aprobar; si existe un problema elegí reimpresión o incidencia.");
   var c=in.checklist();Instant ahora=Instant.now();
-  jdbc.update("INSERT INTO lamontana.control_calidad(id_trabajo_impresion,id_inspector,inspector_nombre,resultado,impresion_completa,calidad_correcta,alineacion_correcta,orden_correcto,terminaciones_correctas,observaciones,fecha) VALUES (?,?,?,?,?,?,?,?,?,?,?)",t.id(),actor.id(),actor.nombre(),in.resultado().name(),c.impresionCompleta(),c.calidadCorrecta(),c.alineacionCorrecta(),c.ordenCorrecto(),c.terminacionesCorrectas(),motivo,Timestamp.from(ahora));
+  jdbc.update("INSERT INTO lamontana.control_calidad(id_trabajo_impresion,id_inspector,inspector_nombre,resultado,impresion_completa,calidad_correcta,alineacion_correcta,orden_correcto,terminaciones_correctas,observaciones,fecha,modalidad_confirmacion,requisitos) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?::jsonb)",t.id(),actor.id(),actor.nombre(),in.resultado().name(),c.impresionCompleta(),c.calidadCorrecta(),c.alineacionCorrecta(),c.ordenCorrecto(),c.terminacionesCorrectas(),motivo,Timestamp.from(ahora),modalidad,requisitos==null?null:json.writeValueAsString(requisitos));
   boolean lista=jdbc.queryForObject("SELECT lamontana.calidad_pedido_aprobada(?)",Boolean.class,p.numero());
   String publico=lista?(p.reserva().modalidad().name().equals("RETIRO_SUCURSAL")&&!p.retiroConTraslado()?"Todos los trabajos superaron calidad. El pedido está listo para entregar en la sucursal; resta verificar el saldo y registrar la entrega.":"Todos los trabajos superaron calidad. El pedido está listo para preparar su despacho; todavía no salió hacia el destino."):in.resultado()==Resultado.APROBADO?"Un trabajo superó el control de calidad. Faltan otros ítems para completar el pedido.":"La imprenta detectó una incidencia de calidad y debe repetir el trabajo antes de continuar.";
   evento(p,actor,in.operacion(),hash,t.id(),"CONTROLAR_CALIDAD","COMPLETADO","COMPLETADO",lista?"LISTO_PARA_ENTREGA":"EN_PRODUCCION",motivo,publico,ahora);
+  if(lista)codigos.asegurar(p.numero());
   return vista(pedidos.detalle(pedido,correo,true),correo);
  }
  private List<Cobertura> cobertura(PedidoService.Detalle p){
@@ -214,7 +243,7 @@ public class ProduccionService {
   JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado)
   LEFT JOIN lamontana.trabajo_impresion o ON o.id_trabajo_impresion=t.id_trabajo_origen
   WHERE t.id_pedido=? AND ci.codigo_publico=? ORDER BY t.id_trabajo_impresion
-  """,(r,n)->{long id=r.getLong("id_trabajo_impresion");var c=jdbc.query("SELECT * FROM lamontana.control_calidad WHERE id_trabajo_impresion=?",(s,x)->new Calidad(Resultado.valueOf(s.getString("resultado")),new Checklist(s.getBoolean("impresion_completa"),s.getBoolean("calidad_correcta"),s.getBoolean("alineacion_correcta"),s.getBoolean("orden_correcto"),s.getBoolean("terminaciones_correctas")),s.getString("observaciones"),s.getString("inspector_nombre"),s.getTimestamp("fecha").toInstant()),id);
+  """,(r,n)->{long id=r.getLong("id_trabajo_impresion");var c=jdbc.query("SELECT * FROM lamontana.control_calidad WHERE id_trabajo_impresion=?",(s,x)->new Calidad(Resultado.valueOf(s.getString("resultado")),new Checklist(s.getBoolean("impresion_completa"),s.getBoolean("calidad_correcta"),s.getBoolean("alineacion_correcta"),s.getBoolean("orden_correcto"),s.getBoolean("terminaciones_correctas")),s.getString("observaciones"),s.getString("inspector_nombre"),s.getTimestamp("fecha").toInstant(),s.getString("modalidad_confirmacion"),s.getString("requisitos")==null?null:json.readValue(s.getString("requisitos"),Requisitos.class)),id);
    var history=jdbc.query("SELECT accion,estado_origen,estado_destino,actor_nombre,motivo,fecha FROM lamontana.historial_trabajo_impresion WHERE id_trabajo_impresion=? ORDER BY id_historial_trabajo",(s,x)->new Evento(s.getString(1),s.getString(2),s.getString(3),s.getString(4),s.getString(5),s.getTimestamp(6).toInstant()),id);
    return new Registro(id,new Trabajo(r.getObject("codigo_publico",UUID.class),id,r.getObject("origen",UUID.class),r.getString("tipo"),r.getString("estado"),r.getObject("archivo",UUID.class),r.getString("impresora_nombre"),r.getString("motivo_excepcion"),r.getString("operador_nombre"),r.getTimestamp("fecha_inicio").toInstant(),r.getTimestamp("fecha_fin")==null?null:r.getTimestamp("fecha_fin").toInstant(),c.isEmpty()?null:c.get(0),history));
   },pedido,item);}

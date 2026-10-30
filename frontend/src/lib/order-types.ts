@@ -59,5 +59,6 @@ export function isOrderList(v:unknown):v is OrderList{return record(v)&&Number.i
 export const orderState=(s:string,mode?:Mode)=>s==="LISTO_PARA_ENTREGA"&&mode&&mode!=="RETIRO_SUCURSAL"?"Listo para despachar":({PENDIENTE_REVISION:"Pendiente de revisión",CORRECCION_SOLICITADA:"Corrección solicitada",APROBADO:"Aprobado",EN_PRODUCCION:"En producción",LISTO_PARA_ENTREGA:"Listo para entregar",ENTREGADO:"Entregado",CERRADO:"Cerrado",RECHAZADO:"Rechazado",CANCELADO:"Cancelado"}[s]??s);
 
 export const logisticsState=(s:string)=>({NO_DISPONIBLE:"Pendiente de producción y calidad",LISTO_RETIRO:"Listo para entregar",PENDIENTE_PREPARACION:"Pendiente de preparar envío",PREPARADO:"Preparado para salir",EN_VIAJE:"En viaje",DISPONIBLE_PUNTO:"Disponible en el destino de retiro",ENTREGADO:"Entregado"}[s]??s);
+export const orderEventLabel=(event:{estado:string;accion?:string|null},mode?:Mode)=>({PREPARAR_ENVIO:'Preparado para salir',SALIR_REPARTO:'En viaje al destino',LLEGAR_PUNTO:'Disponible para retirar',CONTROLAR_CALIDAD:'Control de calidad registrado',COMPLETAR_TRABAJO:'Fin de impresión registrado',INICIAR_TRABAJO:'Impresión iniciada'}[event.accion??'']??orderState(event.estado,mode));
 
 export const orderStates=["PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","RECHAZADO","CANCELADO"];

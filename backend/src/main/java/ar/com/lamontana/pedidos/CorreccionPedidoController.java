@@ -55,7 +55,7 @@ public class CorreccionPedidoController {
  public CorreccionPedidoController(CorreccionPedidoService correcciones){this.correcciones=correcciones;}
  public enum Tipo { ARCHIVO,DATOS,ENTREGA,CANTIDAD,OTRO }
  public record Solicitar(@NotNull UUID operacion,@Min(1) long version,@NotNull Tipo tipo,
-  @NotBlank @Size(max=500) String motivo,@NotBlank @Size(max=2000) String mensajeCliente,
+  @Size(max=500) String motivo,@NotBlank @Size(max=2000) String mensajeCliente,
   @NotNull @Size(max=20) List<@NotNull UUID> items){}
  public record Responder(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID solicitud,
   @NotBlank @Size(max=2000) String mensaje,@NotBlank @Pattern(regexp="[a-f0-9]{64}") String huella,

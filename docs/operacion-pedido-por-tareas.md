@@ -1,5 +1,7 @@
 # Pedido operativo: revisión, producción y calidad
 
+**Actualización 30/10/2026:** la guía con conformidad global, observaciones opcionales y entrega con código automático reemplaza las casillas y la validación separada de los apartados originales. Contrato vigente y migraciones V46/V47: [Calidad y entrega simples](calidad-y-entrega-simples.md).
+
 El detalle /operacion/pedidos/[id] utiliza seis cuadros para cliente, trabajo, documentos, entrega, importes e historial. Debajo se muestran la tarea y las acciones disponibles según el estado y los permisos. El recorrido superior señala la etapa actual, sin inventar nuevos estados persistidos ni fechas.
 
 El recorrido visible es **Revisión → Preparación → Impresión y calidad → Entrega → Cierre**. Al aprobar se tilda Revisión; al iniciar la impresión se activa el paso 3 y se tildan los dos anteriores. Una reimpresión que aún necesita preparación vuelve al paso 2. Si hay varios archivos, una impresión en curso sigue mostrando el paso 3 aunque otros archivos todavía necesiten preparación. Se usan sólo los trabajos de la versión vigente; mientras llegan, el estado EN_PRODUCCION mantiene el paso 3. CERRADO deja todo completado; cancelación/rechazo no simulan etapas superadas.

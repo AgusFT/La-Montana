@@ -17,6 +17,7 @@
     "test:operation-task": "node --test tests/operation-task.test.cjs",
     "test:payment-receipt": "node --test tests/payment-receipt.test.cjs",
     "test:printers": "node --test tests/printer-types.test.cjs",
+    "test:quality": "node --test tests/quality-guide.test.cjs",
     "test:payment-archives": "node --test tests/payment-archive-policy.test.cjs",
     "test:schedules": "node --test tests/schedule-presets.test.cjs"
   },

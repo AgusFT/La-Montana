@@ -51,9 +51,9 @@ import org.springframework.web.bind.annotation.*;
 public class ReprogramacionController {
  private final ReprogramacionService service;
  public ReprogramacionController(ReprogramacionService service){this.service=service;}
- public record Proponer(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID configuracion,@NotNull LocalDate fecha,@NotNull Instant desde,@NotNull Instant hasta,@NotBlank @Size(max=500) String motivo,@NotBlank @Size(max=500) String mensajeCliente,boolean confirmado){}
+ public record Proponer(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID configuracion,@NotNull LocalDate fecha,@NotNull Instant desde,@NotNull Instant hasta,@Size(max=500) String motivo,@NotBlank @Size(max=500) String mensajeCliente,boolean confirmado){}
  public record Responder(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID propuesta,@NotNull Boolean aceptada,@NotBlank @Size(max=500) String motivo,boolean confirmado){}
- public record Retirar(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID propuesta,@NotBlank @Size(max=500) String motivo,boolean confirmado){}
+ public record Retirar(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID propuesta,@Size(max=500) String motivo,boolean confirmado){}
  @GetMapping("/api/cliente/pedidos/{pedido}/reprogramacion") public ReprogramacionService.Vista cliente(@PathVariable UUID pedido,Principal p){return service.consultar(pedido,p.getName(),false);}
  @GetMapping("/api/operacion/pedidos/{pedido}/reprogramacion") public ReprogramacionService.Vista interno(@PathVariable UUID pedido,Principal p){return service.consultar(pedido,p.getName(),true);}
  @GetMapping("/api/operacion/pedidos/{pedido}/reprogramacion/franjas") public ReprogramacionService.Disponibilidad franjas(@PathVariable UUID pedido,@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate fecha,Principal p){return service.disponibilidad(pedido,fecha,p.getName());}

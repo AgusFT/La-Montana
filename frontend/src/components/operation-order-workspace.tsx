@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useMemo,useRef,useState,type MouseEvent} from 'react';
 import {date,money,modeLabels} from '@/lib/quote-types';
-import {orderState,type Order} from '@/lib/order-types';
+import {orderState,orderEventLabel,type Order} from '@/lib/order-types';
 import type {Permission} from '@/lib/organization-types';
 import {operationTask,type OperationPanel} from '@/lib/operation-task';
 import {OperationStageProgress} from './operation-stage-progress';
@@ -49,7 +49,7 @@ export function OperationOrderWorkspace({order,permissions,financial,globalAdmin
    <section className="operation-context-card operation-document-card"><h2>Documentos</h2>{file?<><div className="operation-document"><span aria-hidden="true">PDF</span><div><strong>{file.nombre}</strong><small>{file.paginas} páginas · {(file.bytes/1024).toFixed(1)} KiB</small></div></div><ClientOrderFilePreview internal quote={order.cotizacion} version={order.version} file={file.archivo}/><a href={'/api/operacion/cotizaciones/'+order.cotizacion+'/archivos/'+file.archivo+'/original'}>Descargar PDF confirmado</a></>:<p>Sin PDF asociado a este ítem.</p>}{order.archivos.length>1&&<a href="#pedido-pdf">Ver todos los documentos ({order.archivos.length})</a>}</section>
    <section className="operation-context-card"><h2>{order.estadoReserva==='LIBERADA'?'Reserva liberada':order.estadoReserva==='CUMPLIDA'?'Entrega realizada':'Detalles de entrega'}</h2><p><strong>{modeLabels[order.reserva.modalidad]}</strong></p><p>{order.reserva.nombre}</p><p>{order.reserva.fecha} · {order.reserva.apertura}–{order.reserva.cierre}</p><a href="#pedido-entrega">Ver entrega →</a></section>
    <section className="operation-context-card operation-financial-card"><h2>Resumen económico</h2><dl><div><dt>Total</dt><dd>{money(order.oferta.total)}</dd></div><div><dt>Medio de pago</dt><dd>{order.oferta.medioPago==='EFECTIVO'?'Efectivo':'Transferencia'}</dd></div>{currentDelivery&&<><div><dt>Acreditado y aplicado</dt><dd>{money(currentDelivery.aplicado)}</dd></div><div className="operation-balance"><dt>Saldo pendiente</dt><dd>{money(currentDelivery.saldo)}</dd></div></>}</dl>{financial&&<a href="#pedido-pagos">Ir a cobros →</a>}</section>
-   <section className="operation-context-card"><h2>Historial del pedido</h2><ol className="operation-short-history">{order.historial.slice(-3).map((event,index)=><li key={index}><strong>{orderState(event.estado,order.reserva.modalidad)}</strong><span>{date(event.fecha)}</span></li>)}</ol><a href="#pedido-resumen">Ver historial completo →</a></section>
+   <section className="operation-context-card"><h2>Historial del pedido</h2><ol className="operation-short-history">{order.historial.slice(-3).map((event,index)=><li key={index}><strong>{orderEventLabel(event,order.reserva.modalidad)}</strong><span>{date(event.fecha)}</span></li>)}</ol><a href="#pedido-resumen">Ver historial completo →</a></section>
   </div>
   <section className={'operation-action-shell'+(task.waiting?' operation-waiting':'')} aria-labelledby="operation-panel-title">
    <header><div><h2 id="operation-panel-title" ref={heading} tabIndex={-1}>{current===task.panel?task.title:panels[current]}</h2><p>{task.description}</p></div>{current!==task.panel&&<a href={'#'+task.panel}>Volver a la tarea actual →</a>}{task.waiting&&financial&&current!=='pedido-pagos'&&['PENDIENTE_REVISION','APROBADO','EN_PRODUCCION'].includes(order.estado)&&<a className="client-button secondary" href="#pedido-pagos">Ir a cobros</a>}</header>

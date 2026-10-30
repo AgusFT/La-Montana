@@ -134,15 +134,15 @@ public class ReprogramacionService {
  }
  @Transactional public Vista proponer(UUID pedido,Proponer in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"PROPONER",in));if(replay(in.operacion(),hash,p,a))return vista(p,correo,true);
-  version(p,in.version());exigirEtapa(p);texto(in.motivo());texto(in.mensajeCliente());confirmar(in.confirmado());
+  version(p,in.version());exigirEtapa(p);String motivo=nota(in.motivo());texto(in.mensajeCliente());confirmar(in.confirmado());
   if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.propuesta_reprogramacion WHERE id_pedido=? AND estado='PENDIENTE')",Boolean.class,p.numero()))throw conflicto("Hay una propuesta pendiente. Retirala antes de proponer otra.");
   var available=ventanas(p,in.fecha());if(!available.configuracion().equals(in.configuracion()))throw conflicto("La configuración cambió. Consultá de nuevo las franjas.");var selected=seleccionar(available,in.desde(),in.hasta());
   if(selected.desde().equals(p.reserva().desde())&&selected.hasta().equals(p.reserva().hasta()))throw conflicto("Esa ya es la fecha y franja reservada.");
-  jdbc.update("INSERT INTO lamontana.propuesta_reprogramacion(codigo_publico,id_pedido,id_reserva_anterior,id_configuracion_version,id_actor,actor_nombre,id_operacion,huella,version_pedido,franja_nueva,motivo_interno,mensaje_cliente,fecha) SELECT ?,?,?,id_configuracion_version,?,?,?,?,?,?::jsonb,?,?,? FROM lamontana.configuracion_version WHERE codigo_publico=?",UUID.randomUUID(),p.numero(),reserva(p),a.id(),a.nombre(),in.operacion(),hash,p.version(),json.writeValueAsString(selected),in.motivo().strip(),in.mensajeCliente().strip(),Timestamp.from(clock.instant()),in.configuracion());
+  jdbc.update("INSERT INTO lamontana.propuesta_reprogramacion(codigo_publico,id_pedido,id_reserva_anterior,id_configuracion_version,id_actor,actor_nombre,id_operacion,huella,version_pedido,franja_nueva,motivo_interno,mensaje_cliente,fecha) SELECT ?,?,?,id_configuracion_version,?,?,?,?,?,?::jsonb,?,?,? FROM lamontana.configuracion_version WHERE codigo_publico=?",UUID.randomUUID(),p.numero(),reserva(p),a.id(),a.nombre(),in.operacion(),hash,p.version(),json.writeValueAsString(selected),motivo,in.mensajeCliente().strip(),Timestamp.from(clock.instant()),in.configuracion());
   return vista(p,correo,true);
  }
  @Transactional public Vista retirar(UUID pedido,Retirar in,String correo){
-  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"RETIRAR",in));if(replay(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());texto(in.motivo());confirmar(in.confirmado());var r=registro(p,in.propuesta());pendiente(r);resolver(r,a,in.operacion(),hash,"RETIRADA",in.motivo(),clock.instant(),p.version(),null,null);return vista(p,correo,true);
+  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"RETIRAR",in));if(replay(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());String motivo=nota(in.motivo());confirmar(in.confirmado());var r=registro(p,in.propuesta());pendiente(r);resolver(r,a,in.operacion(),hash,"RETIRADA",motivo,clock.instant(),p.version(),null,null);return vista(p,correo,true);
  }
  @Transactional public Vista responder(UUID pedido,Responder in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,false);var a=actor(correo);String hash=huella(List.of(pedido,"RESPONDER",in));if(replay(in.operacion(),hash,p,a))return vista(p,correo,false);version(p,in.version());texto(in.motivo());confirmar(in.confirmado());var r=registro(p,in.propuesta());pendiente(r);Instant now=clock.instant();
@@ -169,6 +169,7 @@ public class ReprogramacionService {
  private void pendiente(Registro r){if(!r.estado().equals("PENDIENTE"))throw conflicto("La propuesta ya fue resuelta. Consultá el historial.");}
  private void version(PedidoService.Detalle p,long v){if(p.version()!=v)throw conflicto("El pedido cambió. Actualizá sus datos antes de continuar.");}
  private void confirmar(boolean c){if(!c)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Confirmá la decisión antes de guardarla.");}
+ private String nota(String value){if(value==null||value.isBlank())return "Cambio de fecha registrado por el responsable.";texto(value);return value.strip();}
  private void texto(String t){if(t==null||t.isBlank()||t.length()>500||t.codePoints().anyMatch(c->Character.isISOControl(c)&&c!='\n'&&c!='\r'&&c!='\t'))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Completá el motivo o mensaje sin caracteres de control.");}
  private void bloquear(){for(long id:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+id+")");}
  private String huella(Object in){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.writeValueAsString(in).getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}

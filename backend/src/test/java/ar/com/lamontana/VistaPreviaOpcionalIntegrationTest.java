@@ -69,7 +69,7 @@ class VistaPreviaOpcionalIntegrationTest {
    var job=started.items().get(0).trabajos().get(0);
    var allChecks=new ProduccionController.Checklist(true,true,true,true,true);
    long qualityVersion=started.version();
-   assertThatThrownBy(()->production.finalizarCalidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.REIMPRESION_REQUERIDA,allChecks,"",true),ADMIN)).hasMessageContaining("motivo");
+   assertThatThrownBy(()->production.finalizarCalidad(orderId,job.codigoPublico(),new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.REIMPRESION_REQUERIDA,allChecks,"",false),ADMIN)).hasMessageContaining("Confirm");
    var finish=new ProduccionController.Inspeccion(UUID.randomUUID(),qualityVersion,ProduccionController.Resultado.APROBADO,allChecks,"",true);
    // A failure in the second event must roll back the first event and the job's completion.
    jdbc.execute("CREATE FUNCTION lamontana.qa_fallo_calidad() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.accion='CONTROLAR_CALIDAD' THEN RAISE EXCEPTION 'qa fallo calidad'; END IF; RETURN NEW; END $$");

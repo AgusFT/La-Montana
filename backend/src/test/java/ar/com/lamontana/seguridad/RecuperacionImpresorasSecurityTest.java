@@ -124,6 +124,13 @@ class RecuperacionImpresorasSecurityTest {
         var client=sesion("CLIENTE");comprobar("POST",path,client,token(client),403,false);
     }
 
+    @Test void verificacionGlobalYRecepcionDirectaExigenSesionInternaCsrfYPost()throws Exception{
+        for(String route:new String[]{"/api/operacion/pedidos/11111111-1111-1111-1111-111111111111/entrega/recibir","/api/operacion/pedidos/11111111-1111-1111-1111-111111111111/produccion/trabajos/22222222-2222-2222-2222-222222222222/verificar"}){
+            for(String role:new String[]{"ADMIN_ADMIN","EMPLEADO"}){var s=sesion(role);comprobar("POST",route,s,token(s),200,true);comprobar("POST",route,s,null,403,false);comprobar("GET",route,s,token(s),403,false);}
+            var s=sesion("CLIENTE");comprobar("POST",route,s,token(s),403,false);
+        }
+    }
+
     private MockHttpServletRequest request(String metodo,String ruta,MockHttpSession sesion){
         var request=new MockHttpServletRequest(context.getServletContext(),metodo,ruta);
         request.setServletPath(ruta);request.setSession(sesion);return request;
