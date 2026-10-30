@@ -10,6 +10,10 @@ El propietario `ADMIN_ADMIN` ahora consulta **todos los pedidos de la imprenta**
 
 ## Comportamiento
 
+Actualización 30/10/2026: **Pedidos y tareas** muestra cuatro botones rápidos, con los mismos estados y nombres que los cuatro paneles del dashboard: Pendientes de revisión, Aprobados, En producción y Entregas pendientes. La definición se comparte en `operation-queues.ts`. Correcciones solicitadas conserva su métrica y acceso del dashboard; junto con entregados, cerrados, rechazados y cancelados se consulta desde **Filtros avanzados**, plegado en la vista habitual. Una entrada directa con un estado adicional abre el avanzado y conserva la selección. “Ver todos los pedidos” limpia el filtro y cambiar de estado reinicia la paginación. El selector del cliente conserva su presentación anterior.
+
+Validación del ajuste: TypeScript/build y las dos pruebas del proxy administrativo aprobados. Componentes React reales con API simulada: cuatro botones, avanzado/correcciones, navegación del dashboard mediante router de ensayo, página 2 de producción y regreso a página 1 al cambiar de estado. A 320 px los botones se distribuyen en dos columnas sin desbordar la página. No se modifica la consulta del servidor, su alcance ni sus permisos; no hay migraciones.
+
 - Dashboard sin selector de sucursal, con conteos globales por estado. Los errores de consulta se muestran como no disponibles, nunca como cero.
 - Las filas muestran modalidad, destino persistido y situación logística. «Retiro con traslado» distingue la sucursal secundaria; no se presenta el origen productivo como destino.
 - «Ver todos» abre `/administracion/pedidos?estado=...`, conservando el filtro de estado. El enlace general permite consultar también entregados, cerrados, rechazados y cancelados.

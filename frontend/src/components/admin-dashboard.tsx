@@ -30,13 +30,12 @@
 import {useEffect,useState} from "react";
 import {isOrderList,logisticsState,type OrderList} from "@/lib/order-types";
 import {date,money,modeLabels} from "@/lib/quote-types";
+import {operationQueues} from '@/lib/operation-queues';
 
 const stages=[
- {state:"PENDIENTE_REVISION",title:"Pendientes de revisión",tone:"blue",symbol:"▤"},
+ operationQueues[0],
  {state:"CORRECCION_SOLICITADA",title:"Correcciones solicitadas",tone:"amber",symbol:"↺"},
- {state:"APROBADO",title:"Aprobados",tone:"green",symbol:"✓"},
- {state:"EN_PRODUCCION",title:"En producción",tone:"blue",symbol:"⚙"},
- {state:"LISTO_PARA_ENTREGA",title:"Entregas pendientes",tone:"purple",symbol:"↗"},
+ ...operationQueues.slice(1),
 ];
 type Snapshot={lists:(OrderList|null)[]};
 export function AdminDashboard(){
