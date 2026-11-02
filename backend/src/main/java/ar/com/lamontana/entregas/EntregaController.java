@@ -55,7 +55,7 @@ import org.springframework.web.bind.annotation.*;
 public class EntregaController {
  private final EntregaService service;
  public EntregaController(EntregaService service){this.service=service;}
- public enum Accion { PREPARAR_ENVIO, SALIR_REPARTO, LLEGAR_PUNTO }
+ public enum Accion { PREPARAR_ENVIO, SALIR_REPARTO, LLEGAR_PUNTO, CLIENTE_AUSENTE, REINTENTAR_ENTREGA }
  public record Movimiento(@NotNull UUID operacion,@Min(1) long version,@NotNull Accion accion,@Size(max=500) String motivo,boolean confirmado){}
  public record PedidoLote(@NotNull UUID pedido,@Min(1) long version){}
  public record MovimientoLote(@NotNull UUID operacion,@NotNull Accion accion,@NotEmpty @Size(max=25) List<@NotNull @Valid PedidoLote> pedidos){}

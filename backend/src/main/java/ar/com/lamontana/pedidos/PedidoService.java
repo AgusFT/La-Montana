@@ -222,7 +222,7 @@ public class PedidoService {
     LEFT JOIN lamontana.control_calidad cc ON cc.id_trabajo_impresion=ht.id_trabajo_impresion AND h.accion='CONTROLAR_CALIDAD'
     WHERE h.id_pedido=p.id_pedido ORDER BY h.fecha DESC,h.id_evento DESC LIMIT 1) h ON true
    LEFT JOIN LATERAL (SELECT max(fecha) AS fecha FROM lamontana.historial_estado_pedido
-    WHERE id_pedido=p.id_pedido AND (estado_origen IS DISTINCT FROM estado_destino OR accion IN ('PREPARAR_ENVIO','SALIR_REPARTO','LLEGAR_PUNTO'))) cambio ON true
+    WHERE id_pedido=p.id_pedido AND (estado_origen IS DISTINCT FROM estado_destino OR accion IN ('PREPARAR_ENVIO','SALIR_REPARTO','LLEGAR_PUNTO','CLIENTE_AUSENTE','REINTENTAR_ENTREGA'))) cambio ON true
    LEFT JOIN LATERAL (SELECT count(*) FILTER(WHERE cc.resultado='REIMPRESION_REQUERIDA') AS reimpresion,
     count(*) FILTER(WHERE cc.resultado='INCIDENCIA' OR t.estado IN ('ERROR','CANCELADO')) AS incidencia,
     count(*) FILTER(WHERE t.id_trabajo_impresion IS NULL) AS sin_iniciar,

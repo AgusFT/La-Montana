@@ -28,6 +28,24 @@ class DatosPruebaIntegrationTest {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
 
+    @Test void ausenciaDomiciliariaConservaReservaCodigoYPermiteReintentoAuditable()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-ausencia-domicilio-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);var orders=app.getBean(PedidoService.class);var delivery=app.getBean(EntregaService.class);
+            UUID id=jdbc.queryForObject("SELECT p.codigo_publico FROM lamontana.pedido p JOIN lamontana.reserva_entrega r USING(id_pedido) WHERE p.estado='LISTO_PARA_ENTREGA' AND r.estado='ACTIVA' AND r.modalidad='ENVIO_DOMICILIO' AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE' AND lamontana.saldo_entrega_cubierto(p.id_pedido) ORDER BY p.id_pedido DESC LIMIT 1",UUID.class);
+            var p=orders.detalle(id,ADMIN,true);String client=jdbc.queryForObject("SELECT u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.codigo_publico=?",String.class,id);
+            var original=delivery.consultar(id,client,false).codigo();assertThat(original.texto()).isNotBlank();long before=count(jdbc,"movimiento_entrega");
+            var command=new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),p.version(),ar.com.lamontana.entregas.EntregaController.Accion.CLIENTE_AUSENTE,null,true);
+            var absent=delivery.mover(id,command,ADMIN);assertThat(absent.estadoLogistico()).isEqualTo("CLIENTE_AUSENTE");assertThat(absent.estadoPedido()).isEqualTo("LISTO_PARA_ENTREGA");assertThat(absent.entrega()).isNull();assertThat(delivery.consultar(id,client,false).codigo().texto()).isEqualTo(original.texto());
+            delivery.mover(id,command,ADMIN);assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before+1);assertThat(absent.historial().get(absent.historial().size()-1).actor()).isNotBlank();assertThat(absent.historial().get(absent.historial().size()-1).fecha()).isNotNull();
+            var summary=orders.listarGlobal(0,"LISTO_PARA_ENTREGA","MOVIMIENTO_DESC",ADMIN).elementos().stream().filter(o->o.codigoPublico().equals(id)).findFirst().orElseThrow();assertThat(summary.situacionOperativa()).isEqualTo("CLIENTE_AUSENTE");assertThat(summary.ultimoMovimiento().accion()).isEqualTo("CLIENTE_AUSENTE");assertThat(summary.accionEntrega()).isNull();
+            assertThatThrownBy(()->delivery.recibir(id,new ar.com.lamontana.entregas.EntregaController.Recibir(UUID.randomUUID(),absent.version(),original.texto(),null,null,true),ADMIN)).hasMessageContaining("recorrido");
+            var retry=delivery.mover(id,new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),absent.version(),ar.com.lamontana.entregas.EntregaController.Accion.REINTENTAR_ENTREGA,null,true),ADMIN);assertThat(retry.estadoLogistico()).isEqualTo("EN_VIAJE");assertThat(delivery.consultar(id,client,false).codigo().texto()).isEqualTo(original.texto());
+            var received=delivery.recibir(id,new ar.com.lamontana.entregas.EntregaController.Recibir(UUID.randomUUID(),retry.version(),original.texto(),null,null,true),ADMIN);assertThat(received.aceptado()).isTrue();assertThat(received.vista().estadoPedido()).isEqualTo("ENTREGADO");
+            assertThat(delivery.cerrar(id,new ar.com.lamontana.entregas.EntregaController.Cerrar(UUID.randomUUID(),received.vista().version(),null,true),ADMIN).estadoPedido()).isEqualTo("CERRADO");
+        }finally{limpiar(files);}
+    }
+
     @Test void bandejaOperativaYDespachoConjuntoConservanCalidadVersionYAuditoria()throws Exception{
         Path files=Files.createTempDirectory("lamontana-bandeja-despacho-");
         try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){

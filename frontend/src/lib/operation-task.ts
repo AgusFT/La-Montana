@@ -1,3 +1,4 @@
+import {deliveryExperience} from './delivery-experience';
 import type {Order} from './order-types';
 import type {Permission} from './organization-types';
 import type {Management} from '@/components/order-management';
@@ -58,13 +59,8 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
  }
  if(order.estado==='LISTO_PARA_ENTREGA'){
   if(has('GESTIONAR_ENTREGAS')&&delivery?.puedeGestionar){
-   const state=delivery.estadoLogistico;
-   const local=order.reserva?.modalidad==='RETIRO_SUCURSAL'&&!order.retiroConTraslado;
-   if(local)return task(`Disponible para retirar en ${order.oferta?.sucursal?.nombre??'la sucursal'}`,'No requiere despacho ni viaje. Cuando llegue la persona, ingresá su código y confirmá la entrega; el sistema comprobará el saldo.','pedido-entrega');
-   if(state==='PREPARADO')return task('Despachar · poner en viaje','Confirmá la salida hacia el destino acordado. Se generará el código de entrega y el cliente podrá verlo desde su pedido.','pedido-entrega');
-   if(state==='EN_VIAJE')return task('Registrar llegada al destino','El pedido ya está en viaje. Cuando llegue a la sucursal o punto acordado, registrá la llegada para habilitar el retiro.','pedido-entrega');
-   if(state==='DISPONIBLE_PUNTO'||state==='LISTO_RETIRO')return task('Disponible para retirar','Ingresá el código presentado y confirmá la entrega; el sistema comprobará el saldo.','pedido-entrega');
-   return task('Preparar para el despacho','Confirmá que el pedido completo está preparado. Después aparecerá la acción “Despachar · poner en viaje”.','pedido-entrega');
+   const experience=deliveryExperience(order,delivery.estadoLogistico);
+   return task(experience.title,experience.description,'pedido-entrega');
   }
   if(finance&&delivery&&Number(delivery.saldo)>0)return task('Cobrar el saldo antes de entregar','El trabajo está listo y tiene un saldo pendiente. Registrá y aplicá el dinero realmente recibido.','pedido-pagos');
   if(has('GESTIONAR_ENTREGAS'))return task('Entrega del pedido','Comprobando el recorrido y las acciones de entrega disponibles.','pedido-entrega',!!delivery);

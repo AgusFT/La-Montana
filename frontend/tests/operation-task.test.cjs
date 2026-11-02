@@ -1,7 +1,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript');
 require.extensions['.ts']=(m,p)=>m._compile(ts.transpileModule(fs.readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,p);
 const {operationTask,operationStage}=require('../src/lib/operation-task.ts');
-const order=(estado='PENDIENTE_REVISION',changes={})=>({version:4,estado,cobro:{estado:'SIN_ANTICIPO'},...changes});
+const order=(estado='PENDIENTE_REVISION',changes={})=>({version:4,estado,reserva:{modalidad:'RETIRO_PUNTO_ENTREGA'},oferta:{sucursal:{nombre:'Casa Matriz Floresta'}},cobro:{estado:'SIN_ANTICIPO'},...changes});
 const facts=(changes={})=>({review:null,production:null,delivery:null,...changes});
 const review=acciones=>({version:4,acciones});
 const production=changes=>({version:4,puedeProducir:true,puedeControlarCalidad:true,cobertura:[],bloqueos:[],items:[],...changes});
@@ -98,4 +98,9 @@ test('cierre conserva la espera mientras el servidor no lo habilita',()=>{
 test('corrección espera al cliente y los estados finales no proponen operaciones nuevas',()=>{
  assert.equal(operationTask(order('CORRECCION_SOLICITADA'),['GESTIONAR_PEDIDOS'],facts()).panel,'pedido-correcciones');
  for(const state of ['CERRADO','CANCELADO','RECHAZADO','DESCONOCIDO']){const task=operationTask(order(state),['GESTIONAR_PEDIDOS','GESTIONAR_PRODUCCION'],facts());assert.equal(task.panel,'pedido-resumen');assert.equal(task.waiting,true);}
+});
+test('domicilio en viaje y cliente ausente muestran tareas propias de la entrega domiciliaria',()=>{
+ const home=order('LISTO_PARA_ENTREGA',{reserva:{modalidad:'ENVIO_DOMICILIO'}});
+ assert.equal(operationTask(home,['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'EN_VIAJE'})})).title,'Entrega a domicilio en curso');
+ assert.equal(operationTask(home,['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'CLIENTE_AUSENTE'})})).title,'Entrega pendiente · cliente ausente');
 });

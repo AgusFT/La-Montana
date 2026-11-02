@@ -99,3 +99,8 @@ test('manual sin anticipo espera revisión humana, no un cobro inexistente',()=>
  const p=pedido({cobro:{estado:'SIN_ANTICIPO'}});assert.equal(actual(p)[0].id,'review');
  assert(!orderTrackingLabel(p).includes('condición económica'));
 });
+test('ausencia a domicilio conserva el viaje, la fecha del intento y la entrega pendiente',()=>{
+ const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'CLIENTE_AUSENTE',reserva:{modalidad:'ENVIO_DOMICILIO'},historial:[{estado:'LISTO_PARA_ENTREGA',accion:'SALIR_REPARTO',fecha:'2026-11-02T12:00:00Z'},{estado:'LISTO_PARA_ENTREGA',accion:'CLIENTE_AUSENTE',fecha:'2026-11-02T12:30:00Z'}]});
+ const result=orderTracking(p);assert.equal(result.unavailable,false);assert.equal(actual(p)[0].id,'absent');assert.equal(actual(p)[0].date,'2026-11-02T12:30:00Z');assert.match(result.label,/ausente/);assert.match(result.notice,/Conservá tu código/);assert.equal(result.steps.find(s=>s.id==='delivered').state,'pending');assert.equal(orderTrackingSummary(p,result.steps).find(s=>s.state==='current').id,'delivery');
+ const retry={...p,estadoLogistico:'EN_VIAJE',historial:[...p.historial,{estado:'LISTO_PARA_ENTREGA',accion:'REINTENTAR_ENTREGA',fecha:'2026-11-02T14:00:00Z'}]};assert.equal(actual(retry)[0].id,'travel');assert.equal(actual(retry)[0].date,'2026-11-02T14:00:00Z');
+});

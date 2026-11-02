@@ -14,3 +14,9 @@ test('el último control aprobado no convierte una reimpresión actual en un ped
  const state=productionSituation(production([{estado:'COMPLETADO',calidad:{resultado:'APROBADO'}},{estado:'ERROR',fin:'2026-10-30T15:00:00Z'}]));
  assert.equal(state.situacionOperativa,'INCIDENCIA_PRODUCCION');assert.equal(recentMovementLabel('CONTROLAR_CALIDAD_REIMPRESION_REQUERIDA'),'Calidad: requiere reimpresión');
 });
+test('la ausencia es una entrega pendiente en amarillo y el reintento tiene movimiento propio',()=>{
+ const state=operationalStatus({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'CLIENTE_AUSENTE',modalidad:'ENVIO_DOMICILIO'});
+ assert.equal(state.tone,'warning');assert.match(state.label,/ausente.*pendiente/);
+ assert.equal(recentMovementLabel('CLIENTE_AUSENTE','ENVIO_DOMICILIO'),'Intento de entrega sin receptor');
+ assert.equal(recentMovementLabel('REINTENTAR_ENTREGA','ENVIO_DOMICILIO'),'Nuevo intento de entrega en viaje');
+});

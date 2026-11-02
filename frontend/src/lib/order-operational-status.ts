@@ -11,6 +11,7 @@ const situations:Record<string,{label:string;tone:string}>={
  APROBADO:{label:'Aprobado · preparar impresión',tone:'success'},
  PENDIENTE_PREPARACION:{label:'Calidad aprobada · preparar despacho',tone:'warning'},
  PREPARADO:{label:'Preparado para despachar',tone:'success'},
+ CLIENTE_AUSENTE:{label:'Cliente ausente · entrega pendiente',tone:'warning'},
  EN_VIAJE:{label:'En viaje',tone:'info'},
  LISTO_RETIRO:{label:'Disponible para retirar en sucursal',tone:'success'},
  DISPONIBLE_PUNTO:{label:'Disponible en destino de retiro',tone:'success'},
