@@ -58,17 +58,17 @@ Una parada en punto agrupa todos los pedidos destinados al mismo kiosco. El ride
 
 Cambiar el rider después de iniciar el viaje requiere **Transferir recorrido** o confirmar su devolución a la imprenta. Debe guardar rider anterior, rider nuevo o receptor interno, motivo, usuario autorizante, fecha y hora. Nunca se sobrescribe el responsable original.
 
-## Contrato técnico pendiente
+## Contrato técnico implementado
 
-La implementación deberá agregar, mediante una nueva migración, entidades equivalentes a:
+La migración V52 agrega:
 
 - cuenta/perfil de rider individual;
 - recorrido con estado, sucursal de origen y rider actual;
-- parada con orden, tipo y destino;
-- relación inmutable entre recorrido y pedido;
+- orden de pedidos para construir las paradas por destino;
+- relación única entre recorrido y pedido;
 - eventos de custodia, reasignación, incidencia y finalización.
 
-El lote existente de `POST /api/operacion/entregas/lotes` podrá evolucionar para exigir `rider` cuando la acción sea `SALIR_REPARTO`. Las consultas Android deberán devolver sólo recorridos asignados a la identidad autenticada. La autorización se comprueba en backend; conocer un UUID no concede acceso.
+`POST /api/operacion/entregas/lotes` exige `repartidor` cuando la acción es `SALIR_REPARTO`; `GET /api/rider/recorridos/activo` devuelve sólo el manifiesto del rider autenticado. El escenario 4 de pruebas aporta dos cuentas, recorridos finalizados y viajes activos con custodia auditable.
 
 ## Criterios de aceptación
 

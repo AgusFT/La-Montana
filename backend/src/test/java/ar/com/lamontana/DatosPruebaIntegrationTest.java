@@ -189,7 +189,7 @@ class DatosPruebaIntegrationTest {
             ConfigurableApplicationContext app=iniciar(pg,files,"pruebas");
             try {
                 var jdbc=app.getBean(JdbcTemplate.class);
-                assertThat(count(jdbc,"usuario")).isEqualTo(9);
+                assertThat(count(jdbc,"usuario")).isEqualTo(11);
                 assertThat(count(jdbc,"sucursal")).isEqualTo(3);
                 assertThat(count(jdbc,"punto_entrega")).isEqualTo(2);
                 assertThat(count(jdbc,"configuracion_version")).isEqualTo(4);
@@ -212,7 +212,25 @@ class DatosPruebaIntegrationTest {
         } finally {limpiar(files);}
     }
 
-    @Test void actualizarEscenarioDosConservaElHistorialYAgregaPuntosUnaSolaVez() throws Exception {
+    @Test void ridersRecorridosYKioscosConservanLaCadenaCompletaDeCustodia() throws Exception {
+        Path files=Files.createTempDirectory("lamontana-riders-recorridos-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.cuenta_repartidor WHERE activa",Long.class)).isEqualTo(2L);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.recorrido_reparto WHERE estado='EN_REPARTO'",Integer.class)).isGreaterThanOrEqualTo(2);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.recorrido_reparto WHERE estado='FINALIZADO'",Integer.class)).isPositive();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.historial_estado_pedido h WHERE h.accion='SALIR_REPARTO' AND NOT EXISTS(SELECT 1 FROM lamontana.recorrido_reparto_pedido rp WHERE rp.id_pedido=h.id_pedido)",Integer.class)).isZero();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_recorrido_reparto WHERE accion='ASIGNAR_E_INICIAR'",Long.class)).isEqualTo(count(jdbc,"recorrido_reparto"));
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.historial_estado_pedido h JOIN lamontana.cuenta_punto cp ON cp.id_usuario=h.id_actor WHERE h.accion IN ('LLEGAR_PUNTO','ENTREGAR')",Integer.class)).isPositive();
+            String rider=jdbc.queryForObject("SELECT u.correo FROM lamontana.recorrido_reparto rr JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor WHERE rr.estado='EN_REPARTO' ORDER BY rr.fecha_asignacion DESC LIMIT 1",String.class);
+            var session=login(rider);var profile=get(session,"/api/auth/me",200);assertThat(profile.get("repartidor").asBoolean()).isTrue();assertThat(profile.get("puntoRetiro").asBoolean()).isFalse();
+            var route=get(session,"/api/rider/recorridos/activo",200);assertThat(route.get("pedidos").size()).isPositive();assertThat(route.get("asignadoPor").asString()).isNotBlank();
+            for(var order:route.get("pedidos"))assertThat(jdbc.queryForObject("SELECT u.correo FROM lamontana.recorrido_reparto_pedido rp JOIN lamontana.recorrido_reparto rr USING(id_recorrido) JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor JOIN lamontana.pedido p USING(id_pedido) WHERE p.codigo_publico=?",String.class,UUID.fromString(order.get("codigoPublico").asString()))).isEqualTo(rider);
+            get(login("punto.caballito.retiro"),"/api/rider/recorridos/activo",403);
+        }finally{limpiar(files);}
+    }
+
+    @Test void actualizarEscenarioDosConservaElHistorialYAgregaPuntosYRidersUnaSolaVez() throws Exception {
         Path files=Files.createTempDirectory("lamontana-actualizar-puntos-");
         try(var pg=postgres()) {
             ConfigurableApplicationContext app=iniciar(pg,files,"pruebas");
@@ -227,11 +245,12 @@ class DatosPruebaIntegrationTest {
                 assertThat(count(jdbc,"pago")).isEqualTo(payments);
                 assertThat(jdbc.queryForObject("SELECT jsonb_agg(to_jsonb(h) ORDER BY h.id_evento)::text FROM lamontana.historial_estado_pedido h WHERE h.id_pedido<=?",String.class,last)).isEqualTo(history);
                 assertThat(count(jdbc,"cuenta_punto")).isEqualTo(2);
-                assertThat(count(jdbc,"usuario")).isEqualTo(9);
+                assertThat(count(jdbc,"usuario")).isEqualTo(11);
                 app.close();app=iniciar(pg,files,"pruebas");jdbc=app.getBean(JdbcTemplate.class);
                 assertThat(count(jdbc,"pedido")).isEqualTo(orders+6);
                 assertThat(count(jdbc,"pago")).isEqualTo(payments);
-                assertThat(jdbc.queryForObject("SELECT version_escenario FROM lamontana.entorno_prueba",Integer.class)).isEqualTo(3);
+                assertThat(jdbc.queryForObject("SELECT version_escenario FROM lamontana.entorno_prueba",Integer.class)).isEqualTo(4);
+                assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.cuenta_repartidor WHERE activa",Long.class)).isEqualTo(2L);assertThat(count(jdbc,"recorrido_reparto")).isPositive();
             }finally{app.close();}
         }finally{limpiar(files);}
     }
