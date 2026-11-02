@@ -108,8 +108,14 @@ public class EntregaService {
   Codigo codigo,Verificacion validacion,Constancia entrega,Cierre cierre,String aplicado,String saldo,List<String> bloqueosEntrega,List<String> bloqueosCierre,List<Evento> historial,CobroEfectivo cobroEfectivo,ReciboEfectivo reciboEfectivo){}
  public record Generacion(Vista vista,String codigo,String aviso){@Override public String toString(){return "Generacion[código privado]";}}
  public record Validacion(Vista vista,boolean aceptado,String mensaje){}
- public record ResultadoLote(UUID operacion,Accion accion,int cantidad,Instant fecha){}
+ public record Repartidor(UUID codigoPublico,String nombre,String correo){}
+ public record ResultadoLote(UUID operacion,Accion accion,int cantidad,Instant fecha,UUID recorrido,Repartidor repartidor){}
  private record Actor(long id,String nombre,String rol){}
+ public List<Repartidor> repartidores(String correo){
+  organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");
+  return jdbc.query("""SELECT u.codigo_publico,concat_ws(' ',u.nombre,u.apellido),u.correo FROM lamontana.cuenta_repartidor cr JOIN lamontana.usuario u USING(id_usuario) JOIN lamontana.rol r USING(id_rol) WHERE cr.activa AND u.estado='ACTIVO' AND r.codigo='EMPLEADO' ORDER BY u.apellido,u.nombre""",
+   (r,n)->new Repartidor(r.getObject(1,UUID.class),r.getString(2),r.getString(3)));
+ }
  private record Secreto(long id,UUID codigo,String hash,long reserva,Instant emision,Instant vence,Instant revocado,Instant utilizado,int intentos){}
  @Transactional public Vista consultar(UUID pedido,String correo,boolean interno){bloquear();var p=pedidos.detalle(pedido,correo,interno);codigos.asegurar(p.numero());return vista(p,correo,interno);}
  private Vista vista(PedidoService.Detalle p,String correo,boolean interno){
@@ -119,7 +125,7 @@ public class EntregaService {
   var entrega=jdbc.query("SELECT e.codigo_publico,e.receptor_nombre,h.actor_nombre,e.fecha_entrega,e.nota FROM lamontana.entrega e JOIN lamontana.historial_estado_pedido h ON h.id_evento=e.id_evento_pedido WHERE e.id_pedido=?",(r,n)->new Constancia(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),interno?r.getString(5):null),p.numero());
   var cierre=jdbc.query("SELECT c.fecha_cierre,h.actor_nombre,h.motivo,c.total,c.aplicado FROM lamontana.cierre_pedido c JOIN lamontana.historial_estado_pedido h ON h.id_evento=c.id_evento_pedido WHERE c.id_pedido=?",(r,n)->new Cierre(r.getTimestamp(1).toInstant(),r.getString(2),interno?r.getString(3):null,r.getBigDecimal(4).toPlainString(),r.getBigDecimal(5).toPlainString()),p.numero());
   var history=jdbc.query("SELECT h.accion,m.estado_origen,m.estado_destino,h.actor_nombre,h.motivo,h.mensaje_cliente,h.fecha FROM lamontana.movimiento_entrega m JOIN lamontana.historial_estado_pedido h ON h.id_evento=m.id_evento_pedido WHERE m.id_pedido=? ORDER BY m.id_movimiento_entrega",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),interno?r.getString(4):"La imprenta",interno?r.getString(5):r.getString(6),r.getTimestamp(7).toInstant()),p.numero());
-  var options=Arrays.stream(Accion.values()).map(op->{String msg=bloqueoMovimiento(p,estado,op,gestiona);return new Opcion(op,msg==null,msg);}).toList();
+  var options=Arrays.stream(Accion.values()).map(op->{String msg=op==Accion.SALIR_REPARTO?"Asigná un rider desde Entregas pendientes, incluso si sale un solo pedido.":bloqueoMovimiento(p,estado,op,gestiona);return new Opcion(op,msg==null,msg);}).toList();
   var cliente=jdbc.queryForObject("SELECT u.nombre||' '||u.apellido,u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},p.numero());
   var b=new ArrayList<>(bloqueosEntrega(p));if(interno&&!gestiona)b.add("Se requiere permiso de gestión de entregas.");
   var bc=new ArrayList<>(bloqueosCierre(p));if(interno&&!cierra)bc.add("Se requiere permiso para cerrar pedidos.");
@@ -144,21 +150,30 @@ public class EntregaService {
   bloquear();organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);
   if(in.accion()!=Accion.PREPARAR_ENVIO&&in.accion()!=Accion.SALIR_REPARTO)throw error(HttpStatus.BAD_REQUEST,"El grupo sólo permite preparar pedidos o confirmar su salida.");
   if(in.pedidos()==null||in.pedidos().isEmpty()||in.pedidos().size()>25||in.pedidos().stream().map(PedidoLote::pedido).distinct().count()!=in.pedidos().size())throw error(HttpStatus.BAD_REQUEST,"Seleccioná entre 1 y 25 pedidos sin repetir.");
-  var ordered=in.pedidos().stream().sorted(Comparator.comparing(PedidoLote::pedido)).toList();String hash=huella(List.of(in.accion(),ordered));
-  var saved=jdbc.query("SELECT id_actor,huella,fecha FROM lamontana.lote_movimiento_entrega WHERE id_operacion=?",(r,n)->{
-   if(r.getLong(1)!=a.id()||!hash.equals(r.getString(2)))throw conflicto("El grupo ya fue utilizado con otros datos.");return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),r.getTimestamp(3).toInstant());
+  if(in.accion()==Accion.SALIR_REPARTO&&in.repartidor()==null)throw error(HttpStatus.BAD_REQUEST,"Elegí el rider que recibe físicamente estos pedidos.");
+  if(in.accion()==Accion.PREPARAR_ENVIO&&in.repartidor()!=null)throw error(HttpStatus.BAD_REQUEST,"La preparación todavía no asigna un rider.");
+  var ordered=in.pedidos().stream().sorted(Comparator.comparing(PedidoLote::pedido)).toList();String hash=huella(Arrays.asList(in.accion(),ordered,in.repartidor()));
+  var saved=jdbc.query("SELECT l.id_actor,l.huella,l.fecha,r.codigo_publico,u.codigo_publico,concat_ws(' ',u.nombre,u.apellido),u.correo FROM lamontana.lote_movimiento_entrega l LEFT JOIN lamontana.recorrido_reparto r ON r.id_recorrido=l.id_recorrido LEFT JOIN lamontana.usuario u ON u.id_usuario=r.id_repartidor WHERE l.id_operacion=?",(r,n)->{
+   if(r.getLong(1)!=a.id()||!hash.equals(r.getString(2)))throw conflicto("El grupo ya fue utilizado con otros datos.");UUID riderCode=r.getObject(5,UUID.class);return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),r.getTimestamp(3).toInstant(),r.getObject(4,UUID.class),riderCode==null?null:new Repartidor(riderCode,r.getString(6),r.getString(7)));
   },in.operacion());if(!saved.isEmpty())return saved.get(0);
+  Repartidor rider=in.repartidor()==null?null:repartidorActivo(in.repartidor());
   for(var item:ordered){
    var p=pedidos.detalle(item.pedido(),correo,true);version(p,item.version());
    if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.calidad_pedido_aprobada(?)",Boolean.class,p.numero())))throw conflicto("PED-"+p.numero()+": falta aprobar la calidad de todos sus trabajos. Actualizá la lista.");
    String blocked=bloqueoMovimiento(p,logistica(p),in.accion(),true);if(blocked!=null)throw conflicto("PED-"+p.numero()+": "+blocked+" No se modificó ningún pedido del grupo.");
   }
+  Instant now=clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);Long routeId=null;UUID routeCode=null;
+  if(rider!=null){routeCode=UUID.randomUUID();routeId=jdbc.queryForObject("INSERT INTO lamontana.recorrido_reparto(codigo_publico,id_operacion,id_repartidor,id_actor_asignador,actor_asignador_nombre,estado,fecha_asignacion) VALUES (?, ?, (SELECT id_usuario FROM lamontana.usuario WHERE codigo_publico=?), ?, ?, 'EN_REPARTO', ?) RETURNING id_recorrido",Long.class,routeCode,in.operacion(),rider.codigoPublico(),a.id(),a.nombre(),Timestamp.from(now));}
+  int order=0;
   for(var item:ordered){UUID operation=UUID.nameUUIDFromBytes((in.operacion()+":"+item.pedido()).getBytes(StandardCharsets.UTF_8));
    mover(item.pedido(),new Movimiento(operation,item.version(),in.accion(),(in.accion()==Accion.SALIR_REPARTO?"Salida conjunta confirmada":"Preparación conjunta confirmada")+" · grupo "+in.operacion(),true),correo);
+   if(routeId!=null)jdbc.update("INSERT INTO lamontana.recorrido_reparto_pedido(id_recorrido,id_pedido,orden) VALUES (?,(SELECT id_pedido FROM lamontana.pedido WHERE codigo_publico=?),?)",routeId,item.pedido(),++order);
   }
-  Instant now=clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);jdbc.update("INSERT INTO lamontana.lote_movimiento_entrega(id_operacion,id_actor,actor_nombre,huella,accion,pedidos,fecha) VALUES (?,?,?,?,?,?::jsonb,?)",in.operacion(),a.id(),a.nombre(),hash,in.accion().name(),json.writeValueAsString(ordered),Timestamp.from(now));
-  return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),now);
+  if(routeId!=null)jdbc.update("INSERT INTO lamontana.evento_recorrido_reparto(id_recorrido,id_actor,actor_nombre,accion,id_repartidor,fecha) VALUES (?,?,?,'ASIGNAR_E_INICIAR',(SELECT id_usuario FROM lamontana.usuario WHERE codigo_publico=?),?)",routeId,a.id(),a.nombre(),rider.codigoPublico(),Timestamp.from(now));
+  jdbc.update("INSERT INTO lamontana.lote_movimiento_entrega(id_operacion,id_actor,actor_nombre,huella,accion,pedidos,fecha,id_recorrido) VALUES (?,?,?,?,?,?::jsonb,?,?)",in.operacion(),a.id(),a.nombre(),hash,in.accion().name(),json.writeValueAsString(ordered),Timestamp.from(now),routeId);
+  return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),now,routeCode,rider);
  }
+ private Repartidor repartidorActivo(UUID codigo){return jdbc.query("SELECT u.codigo_publico,concat_ws(' ',u.nombre,u.apellido),u.correo FROM lamontana.cuenta_repartidor cr JOIN lamontana.usuario u USING(id_usuario) JOIN lamontana.rol r USING(id_rol) WHERE u.codigo_publico=? AND cr.activa AND u.estado='ACTIVO' AND r.codigo='EMPLEADO'",(r,n)->new Repartidor(r.getObject(1,UUID.class),r.getString(2),r.getString(3)),codigo).stream().findFirst().orElseThrow(()->conflicto("El rider elegido ya no está activo. Actualizá la lista."));}
  @Transactional public Validacion validar(UUID pedido,Validar in,String correo){return validar(pedido,in,correo,huella(List.of(pedido,"VALIDAR",in)));}
  private Validacion validar(UUID pedido,Validar in,String correo,String hash){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);

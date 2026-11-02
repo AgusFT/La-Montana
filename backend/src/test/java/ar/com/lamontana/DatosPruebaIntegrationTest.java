@@ -116,11 +116,12 @@ class DatosPruebaIntegrationTest {
             var prepared=orders.listarGlobal(0,"LISTO_PARA_ENTREGA",ADMIN).elementos().stream().filter(p->"SALIR_REPARTO".equals(p.accionEntrega())).limit(2).toList();assertThat(prepared).hasSize(2);
             var entries=prepared.stream().map(p->new ar.com.lamontana.entregas.EntregaController.PedidoLote(p.codigoPublico(),p.version())).toList();
             long before=count(jdbc,"movimiento_entrega");
+            UUID rider=jdbc.queryForObject("SELECT u.codigo_publico FROM lamontana.usuario u JOIN lamontana.cuenta_repartidor cr USING(id_usuario) WHERE u.estado='ACTIVO' AND cr.activa LIMIT 1",UUID.class);
             var invalid=new ArrayList<>(entries);var last=entries.get(1);invalid.set(1,new ar.com.lamontana.entregas.EntregaController.PedidoLote(last.pedido(),last.version()-1));
-            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid),ADMIN)).hasMessageContaining("cambió");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
+            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid,rider),ADMIN)).hasMessageContaining("cambió");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
             var notReady=production.elementos().get(0);invalid.set(1,new ar.com.lamontana.entregas.EntregaController.PedidoLote(notReady.codigoPublico(),notReady.version()));
-            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid),ADMIN)).hasMessageContaining("calidad");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
-            var command=new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,entries);
+            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid,rider),ADMIN)).hasMessageContaining("calidad");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
+            var command=new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,entries,rider);
             // A failure in the final group audit must roll back every order and automatic code.
             jdbc.execute("CREATE FUNCTION lamontana.fallar_lote_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de auditoría de lote'; END $$");
             jdbc.execute("CREATE TRIGGER fallar_lote_test BEFORE INSERT ON lamontana.lote_movimiento_entrega FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_lote_test()");

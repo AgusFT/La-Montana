@@ -9,13 +9,17 @@ import {OrderListFilters} from './order-list-filters';
 import {OrderOperationalBadge} from './order-operational-badge';
 import '@/app/client.css';
 import '@/app/order-operations-list.css';
+import '@/app/rider-assignment.css';
 
 type GroupAction='PREPARAR_ENVIO'|'SALIR_REPARTO';
+type Rider={codigoPublico:string;nombre:string;correo:string};
+function isRiders(value:unknown):value is Rider[]{return Array.isArray(value)&&value.every(r=>!!r&&typeof r==='object'&&typeof r.codigoPublico==='string'&&typeof r.nombre==='string'&&typeof r.correo==='string');}
 export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch?:string;globalAdmin?:boolean;initialState?:string}){
  const internal=!!branch||globalAdmin,requestId=useRef(0),running=useRef(false),dialog=useRef<HTMLDialogElement>(null);
  const[state,setState]=useState(initialState),[sort,setSort]=useState(internal?'MOVIMIENTO_DESC':'CONFIRMADO_DESC');
  const[data,setData]=useState<OrderList|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const[groupAction,setGroupAction]=useState<GroupAction>('PREPARAR_ENVIO'),[selected,setSelected]=useState<string[]>([]),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[uncertain,setUncertain]=useState(false),[groupError,setGroupError]=useState('');
+ const[riders,setRiders]=useState<Rider[]>([]),[ridersBusy,setRidersBusy]=useState(false),[selectedRider,setSelectedRider]=useState('');
  const command=useRef<string|null>(null),locked=busy||saving||uncertain;
  useNavigationGuard({blocked:saving||uncertain});
  useEffect(()=>setState(initialState),[initialState]);
@@ -30,16 +34,21 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
  const batching=internal&&state==='LISTO_PARA_ENTREGA'&&data?.puedeGestionarEntregas;
  const eligible=data?.elementos.filter(p=>p.accionEntrega===groupAction&&Number.isSafeInteger(p.version))??[];
  const picked=data?.elementos.filter(p=>selected.includes(p.codigoPublico))??[];
- function chooseAction(action:GroupAction){setGroupAction(action);setSelected([]);setMessage('');}
- function openGroup(){command.current=null;setGroupError('');setOpen(true);}
+ function chooseAction(action:GroupAction){setGroupAction(action);setSelected([]);setSelectedRider('');setMessage('');}
+ async function openGroup(){command.current=null;setGroupError('');
+  if(groupAction==='SALIR_REPARTO'){setRidersBusy(true);try{const available=await quoteRead('/api/operacion/repartidores',isRiders);setRiders(available);if(available.length===1)setSelectedRider(available[0].codigoPublico);}catch(e){setRiders([]);setGroupError(e instanceof Error?e.message:'No pudimos consultar los riders activos.');}finally{setRidersBusy(false);}}
+  setOpen(true);
+ }
  async function saveGroup(){
   if(running.current)return;
-  if(!command.current)command.current=JSON.stringify({operacion:crypto.randomUUID(),accion:groupAction,pedidos:picked.map(p=>({pedido:p.codigoPublico,version:p.version}))});
+  if(groupAction==='SALIR_REPARTO'&&!selectedRider){setGroupError('Elegí quién recibe estos pedidos e inicia el recorrido.');return;}
+  if(!command.current)command.current=JSON.stringify({operacion:crypto.randomUUID(),accion:groupAction,pedidos:picked.map(p=>({pedido:p.codigoPublico,version:p.version})),repartidor:groupAction==='SALIR_REPARTO'?selectedRider:null});
   running.current=true;setSaving(true);setGroupError('');
   try{
    const response=await secureMutation('/api/operacion/entregas/lotes',command.current,'application/json');const result:unknown=await response.json();
    if(!result||typeof result!=='object'||!('cantidad' in result)||typeof result.cantidad!=='number')throw new Error('No pudimos comprobar el resultado.');
-   setMessage(`${result.cantidad} pedidos ${groupAction==='SALIR_REPARTO'?'despachados y en viaje':'preparados para despachar'}. Se registraron tu usuario, fecha y hora en cada pedido.`);
+   const assigned=result&&typeof result==='object'&&'repartidor' in result&&result.repartidor&&typeof result.repartidor==='object'&&'nombre' in result.repartidor?String(result.repartidor.nombre):'';
+   setMessage(`${result.cantidad} pedidos ${groupAction==='SALIR_REPARTO'?`asignados a ${assigned||'el rider'} y puestos en viaje`:'preparados para despachar'}. Se registraron tu usuario, fecha y hora en cada pedido.`);
    command.current=null;setUncertain(false);setOpen(false);await load(data?.pagina??0);
   }catch(e){const unknown=!(e instanceof MutationError)||e.uncertain;setUncertain(unknown);setGroupError(unknown?'No pudimos confirmar la respuesta. Recuperá el mismo intento para comprobar el grupo sin duplicarlo.':e.message);if(!unknown)command.current=null;}
   finally{running.current=false;setSaving(false);}
@@ -62,7 +71,7 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
    <td>{money(p.total)}</td><td><a className="client-button secondary" href={`/${internal?'operacion':'cliente'}/pedidos/${p.codigoPublico}`}>Ver PED-{p.numero}</a></td>
   </tr>)}</tbody></table></div><div className="client-actions"><button className="client-button secondary" disabled={locked||data.pagina===0} onClick={()=>void load(data.pagina-1)}>Anteriores</button><span>Página {data.pagina+1} · {data.total} pedidos</span><button className="client-button secondary" disabled={locked||(data.pagina+1)*25>=data.total} onClick={()=>void load(data.pagina+1)}>Siguientes</button></div></>}
   <dialog ref={dialog} className="order-batch-dialog" aria-labelledby="order-batch-title" onCancel={e=>{e.preventDefault();if(!saving&&!uncertain)setOpen(false);}}>
-   {open&&<form onSubmit={e=>{e.preventDefault();void saveGroup();}}><h2 id="order-batch-title">{groupAction==='SALIR_REPARTO'?'Despachar el grupo · poner en viaje':'Preparar el grupo para despacho'}</h2><p>{groupAction==='SALIR_REPARTO'?'Confirmá cuando estos pedidos hayan salido juntos de la imprenta. Se genera el código de cada pedido y queda disponible para su cliente.':'Confirmá cuando estos pedidos estén completos y preparados para salir.'}</p><ul className="order-batch-manifest">{picked.map(p=><li key={p.codigoPublico}><strong>PED-{p.numero}</strong><span>{p.destino}</span></li>)}</ul><p className="client-muted">Se registra tu usuario, fecha y hora en cada pedido. Si alguno cambió o perdió las condiciones necesarias, el grupo completo queda sin modificar.</p>{groupError&&<p role="alert" className="client-warning">{groupError}</p>}<div className="client-actions"><button type="button" className="client-button secondary" disabled={saving||uncertain} onClick={()=>setOpen(false)}>Volver</button><button type="submit" className="client-button order-batch-confirm" disabled={saving}>{saving?'Registrando…':uncertain?'Recuperar el mismo intento':groupAction==='SALIR_REPARTO'?`Confirmar salida de ${picked.length} pedidos`:`Confirmar preparación de ${picked.length} pedidos`}</button></div></form>}
+   {open&&<form onSubmit={e=>{e.preventDefault();void saveGroup();}}><h2 id="order-batch-title">{groupAction==='SALIR_REPARTO'?'Asignar rider e iniciar reparto':'Preparar el grupo para despacho'}</h2><p>{groupAction==='SALIR_REPARTO'?'Elegí al rider que está recibiendo físicamente estos pedidos. Al confirmar, el recorrido aparecerá en su cuenta y todos los pedidos pasarán a En viaje.':'Confirmá cuando estos pedidos estén completos y preparados para salir.'}</p>{groupAction==='SALIR_REPARTO'&&<label className="order-batch-rider">Rider responsable<select required aria-label="Rider responsable" value={selectedRider} disabled={saving||uncertain||ridersBusy} onChange={e=>{setSelectedRider(e.target.value);command.current=null;}}><option value="">{ridersBusy?'Consultando riders…':'Seleccioná un rider activo'}</option>{riders.map(r=><option key={r.codigoPublico} value={r.codigoPublico}>{r.nombre} · {r.correo}</option>)}</select>{!ridersBusy&&!riders.length&&<small>No hay riders activos. Habilitá un empleado como rider desde Administración → Empleados.</small>}</label>}<ul className="order-batch-manifest">{picked.map(p=><li key={p.codigoPublico}><strong>PED-{p.numero}</strong><span>{p.destino}</span></li>)}</ul><p className="client-muted">Se registra tu usuario, el rider, la fecha y la hora. Si algún pedido cambió o perdió las condiciones necesarias, el grupo completo queda sin modificar.</p>{groupError&&<p role="alert" className="client-warning">{groupError}</p>}<div className="client-actions"><button type="button" className="client-button secondary" disabled={saving||uncertain} onClick={()=>setOpen(false)}>Volver</button><button type="submit" className="client-button order-batch-confirm" disabled={saving||ridersBusy||(groupAction==='SALIR_REPARTO'&&(!selectedRider||!riders.length))}>{saving?'Registrando…':uncertain?'Recuperar el mismo intento':groupAction==='SALIR_REPARTO'?`Asignar e iniciar reparto · ${picked.length} pedidos`:`Confirmar preparación de ${picked.length} pedidos`}</button></div></form>}
   </dialog>
  </section>;
 }

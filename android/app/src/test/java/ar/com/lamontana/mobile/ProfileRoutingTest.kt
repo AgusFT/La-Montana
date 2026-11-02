@@ -13,7 +13,12 @@ class ProfileRoutingTest {
 
     @Test
     fun regularEmployeeDoesNotBecomeRiderAutomatically() {
-        assertEquals(MobileDestination.RIDER_PENDING, destinationFor(profile()))
+        assertEquals(MobileDestination.UNSUPPORTED, destinationFor(profile()))
+    }
+
+    @Test
+    fun enabledRiderOpensAssignedRouteExperience() {
+        assertEquals(MobileDestination.RIDER_PENDING, destinationFor(profile(rider = true)))
     }
 
     @Test
@@ -21,12 +26,13 @@ class ProfileRoutingTest {
         assertEquals(MobileDestination.UNSUPPORTED, destinationFor(profile(changePassword = true, point = true)))
     }
 
-    private fun profile(changePassword: Boolean = false, point: Boolean = false) = Profile(
+    private fun profile(changePassword: Boolean = false, point: Boolean = false, rider: Boolean = false) = Profile(
         nombre = "Persona",
         apellido = "Prueba",
         correo = "persona@prueba.local",
         rol = "EMPLEADO",
         debeCambiarContrasena = changePassword,
         puntoRetiro = point,
+        repartidor = rider,
     )
 }

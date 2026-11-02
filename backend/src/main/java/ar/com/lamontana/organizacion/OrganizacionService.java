@@ -194,6 +194,7 @@ public class OrganizacionService {
                 """, (rs,row)->rs.getLong(1), codigo, correo(in.correo()), encoder.encode(in.contrasena()), in.nombre().strip(), in.apellido().strip());
         if (ids.isEmpty()) throw error(HttpStatus.CONFLICT, "Ya existe una cuenta con ese correo.");
         asignar(ids.get(0), in.sucursales(), in.permisos(), actor);
+        actualizarRepartidor(ids.get(0), in.repartidor(), true);
         auditar(actor, "ALTA_EMPLEADO", codigo, 0);
         return codigo;
     }
@@ -212,6 +213,7 @@ public class OrganizacionService {
                 WHERE id_usuario=?
                 """, in.nombre().strip(), in.apellido().strip(), correo(in.correo()), in.estado(), correo(in.correo()), in.estado(), id);
         asignar(id, in.sucursales(), in.permisos(), actor);
+        actualizarRepartidor(id, in.repartidor(), "ACTIVO".equals(in.estado()));
         if ("DESACTIVADO".equals(in.estado()) || !actual.correo().equals(correo(in.correo()))) {
             credenciales.revocar(id);
             jdbc.update("DELETE FROM lamontana.sesion_http WHERE principal_name=?", actual.correo());
@@ -287,6 +289,13 @@ public class OrganizacionService {
     private List<String> permisos(Long id) {
         return jdbc.query("SELECT p.codigo FROM lamontana.usuario_permiso up JOIN lamontana.permiso p USING(id_permiso) WHERE up.id_usuario=? AND up.fecha_revocacion IS NULL AND p.activo ORDER BY p.codigo", (rs,row)->rs.getString(1), id);
     }
+    private void actualizarRepartidor(long usuario, boolean habilitado, boolean empleadoActivo) {
+        if (habilitado) jdbc.update("""
+                INSERT INTO lamontana.cuenta_repartidor(id_usuario,activa) VALUES (?,?)
+                ON CONFLICT(id_usuario) DO UPDATE SET activa=excluded.activa,actualizado_en=now()
+                """, usuario, empleadoActivo);
+        else jdbc.update("UPDATE lamontana.cuenta_repartidor SET activa=false,actualizado_en=now() WHERE id_usuario=?", usuario);
+    }
     private List<String> permisosDisponibles() { return jdbc.queryForList("SELECT codigo FROM lamontana.permiso WHERE activo ORDER BY codigo", String.class); }
     private Long idUsuario(String correo) { return jdbc.queryForObject("SELECT id_usuario FROM lamontana.usuario WHERE correo=?", Long.class, correo); }
     private Empleado buscarEmpleado(UUID codigo) {
@@ -299,7 +308,8 @@ public class OrganizacionService {
     }
     private Empleado empleado(ResultSet rs, int row) throws SQLException {
         long id = rs.getLong("id_usuario");
-        return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id));
+        boolean repartidor=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cuenta_repartidor WHERE id_usuario=? AND activa)",Boolean.class,id));
+        return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id), repartidor);
     }
     private Sucursal sucursal(ResultSet rs, int row) throws SQLException {
         return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))));

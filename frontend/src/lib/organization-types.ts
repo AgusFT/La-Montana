@@ -70,6 +70,7 @@ export type Permission = keyof typeof permissionLabels;
 export type Employee = {
   codigoPublico: string; nombre: string; apellido: string; correo: string;
   estado: "ACTIVO" | "DESACTIVADO"; version: number; sucursales: string[]; permisos: Permission[];
+  repartidor: boolean;
 };
 export type OperationContext = { sucursales: Branch[]; permisos: Permission[] };
 export function isBranch(value: unknown): value is Branch {
@@ -88,5 +89,5 @@ export function isEmployee(value: unknown): value is Employee {
   const e = value as Record<string, unknown>;
   return ["codigoPublico", "nombre", "apellido", "correo"].every(k => typeof e[k] === "string") &&
     (e.estado === "ACTIVO" || e.estado === "DESACTIVADO") && Number.isInteger(e.version) && Number(e.version) >= 0 &&
-    Array.isArray(e.sucursales) && e.sucursales.every(id => typeof id === "string" && uuidPattern.test(id)) && isPermissions(e.permisos);
+    typeof e.repartidor === "boolean" && Array.isArray(e.sucursales) && e.sucursales.every(id => typeof id === "string" && uuidPattern.test(id)) && isPermissions(e.permisos);
 }

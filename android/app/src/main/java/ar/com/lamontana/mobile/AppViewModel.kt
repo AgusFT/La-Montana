@@ -90,6 +90,6 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
 internal fun destinationFor(profile: Profile): MobileDestination = when {
     profile.debeCambiarContrasena -> MobileDestination.UNSUPPORTED
     profile.puntoRetiro -> MobileDestination.POINT
-    profile.rol == "EMPLEADO" -> MobileDestination.RIDER_PENDING
+    profile.repartidor -> MobileDestination.RIDER_PENDING
     else -> MobileDestination.UNSUPPORTED
 }

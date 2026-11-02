@@ -38,6 +38,7 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
             rol = json.getString("rol"),
             debeCambiarContrasena = json.getBoolean("debeCambiarContrasena"),
             puntoRetiro = json.optBoolean("puntoRetiro", false),
+            repartidor = json.optBoolean("repartidor", false),
         )
     }
 

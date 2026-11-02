@@ -7,6 +7,7 @@ data class Profile(
     val rol: String,
     val debeCambiarContrasena: Boolean,
     val puntoRetiro: Boolean,
+    val repartidor: Boolean,
 )
 
 data class PointContext(

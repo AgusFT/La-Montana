@@ -81,7 +81,8 @@ public class EmpleadoController {
             @NotBlank @Email @Size(max = 254) String correo,
             @NotBlank @Size(min = 12, max = 128) String contrasena,
             @NotNull @Size(min = 1, max = 100) List<@NotNull UUID> sucursales,
-            @NotNull @Size(max = 8) List<@NotBlank String> permisos) {
+            @NotNull @Size(max = 8) List<@NotBlank String> permisos,
+            boolean repartidor) {
         @Override public String toString() { return "NuevoEmpleado[datos privados]"; }
     }
     public record EdicionEmpleado(
@@ -91,7 +92,8 @@ public class EmpleadoController {
             @NotBlank @Pattern(regexp = "ACTIVO|DESACTIVADO") String estado,
             @NotNull @PositiveOrZero Long version,
             @NotNull @Size(max = 100) List<@NotNull UUID> sucursales,
-            @NotNull @Size(max = 8) List<@NotBlank String> permisos) {}
+            @NotNull @Size(max = 8) List<@NotBlank String> permisos,
+            boolean repartidor) {}
     public record Empleado(UUID codigoPublico, String nombre, String apellido, String correo, String estado,
-                           long version, List<UUID> sucursales, List<String> permisos) {}
+                           long version, List<UUID> sucursales, List<String> permisos, boolean repartidor) {}
 }

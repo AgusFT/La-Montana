@@ -12,7 +12,7 @@
 3. **El entorno `pruebas` conserva aproximadamente seis meses de actividad simulada.** Incluye puntos Caballito y Palermo y movimientos históricos; la incorporación de cuentas no reescribe los actores de movimientos anteriores.
 4. **El código de entrega se genera automáticamente** cuando el pedido sale al destino o, para retiro local sin viaje, al quedar listo. El cliente puede consultarlo; el punto o repartidor lo **ingresa para validarlo**, pero no puede obtener el secreto del servidor.
 5. **Entrega a domicilio y ausencia ya tienen reglas de backend/web.** Si el cliente no está, se registra el intento sin entrega; un nuevo intento requiere una acción explícita. El código se conserva. No se registra entrega ni cobro por el solo hecho de marcar llegada.
-6. **Trabajo en reparto pendiente de construir para Android.** El usuario aprobó incorporar un actor repartidor que retira pedidos en la imprenta, lleva varios a puntos de retiro y otros a domicilios, y actualiza su progreso con pocos pasos.
+6. **Asignación real de reparto.** Administración habilita empleados como riders y, al poner un grupo en viaje, elige al responsable que recibe la custodia. El backend crea un recorrido auditable y Android puede consultar únicamente el manifiesto activo de esa cuenta.
 7. La oferta comercial, las impresoras y los servicios son globales a la imprenta. La **casa matriz** y los destinos se rigen por la configuración versionada del pedido. Un punto de retiro no necesita PC ni recursos productivos.
 
 **Evidencia técnica vigente:** `docs/cuentas-puntos-retiro.md`, `docs/entorno-pruebas-funcionales.md`, `docs/calidad-y-entrega-simples.md`, `docs/entrega-domicilio-ausencia.md`, `docs/cobro-efectivo-al-entregar.md`; `frontend/src/components/point-desk.tsx`, `frontend/src/components/order-delivery.tsx`; `backend/src/main/java/ar/com/lamontana/puntos/`.
@@ -217,7 +217,7 @@ Usar el entorno aislado `pruebas`, con datos históricos de seis meses, puntos C
 11. Cambio de responsable/suspensión de cuenta durante sesión: invalidación de acceso.
 12. Registro de llegada del repartidor distinto de la recepción física del punto; no adelantar disponibilidad sin confirmación.
 
-Los puntos 1–6 parten de funcionalidades web/backend existentes; los recorridos dedicados del repartidor y la app nativa aún requieren implementación.
+Los puntos 1–6 parten de funcionalidades web/backend existentes. La identidad de rider, la asignación conjunta, la custodia y la consulta de su manifiesto activo ya tienen contrato; todavía faltan las mutaciones mobile de llegada, ausencia y entrega sobre ese recorrido.
 
 ## 10. Contratos y decisiones pendientes antes de codificar reparto
 
@@ -247,7 +247,7 @@ No convertir estos temas pendientes en comportamiento «implementado» ni invent
 
 ## 12. Primer incremento en la rama `android`
 
-La rama `android` inicia la aplicación nativa con Jetpack Compose, sin registro ni administración de identidades. Incluye login contra el backend, lectura del perfil, enrutamiento seguro y la base responsive del mostrador del punto. Una cuenta marcada como punto abre **Por llegar / Para retirar / Entregados / Finanzas**; un empleado común no se convierte automáticamente en repartidor mientras no exista el contrato de asignación de recorridos.
+La rama `android` inicia la aplicación nativa con Jetpack Compose, sin registro ni administración de identidades. Incluye login contra el backend, lectura explícita de los perfiles de punto y rider, enrutamiento seguro y la base responsive del mostrador del punto. Una cuenta marcada como punto abre **Por llegar / Para retirar / Entregados / Finanzas**; sólo un empleado habilitado como rider puede abrir el recorrido que Administración le asignó.
 
 La primera referencia visual está en [`mockups/android-v0-login-punto.svg`](mockups/android-v0-login-punto.svg). Las tarjetas de pedidos que aparecen en el `@Preview` son únicamente demostrativas; no se presentan como datos recibidos del backend. El contexto y los contadores del punto sí utilizan el contrato real. Las listas, recepción, búsqueda, entrega/cobro y finanzas se conectarán de forma incremental sin crear reglas paralelas.
 
