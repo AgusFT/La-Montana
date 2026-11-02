@@ -8,7 +8,7 @@ import {ClientJourney} from "./client-journey";
 import {ClientContextTour} from "./client-context-tour";
 import {ClientOrderSummary} from "./client-order-summary";
 import {OrderProgress} from "./order-progress";
-import {orderTrackingLabel} from "@/lib/order-tracking";
+import {ClientOrderBadge} from "./client-order-badge";
 import {OrderManagement} from "./order-management";
 import {OperationOrderWorkspace} from "./operation-order-workspace";
 import "@/app/client.css";
@@ -23,6 +23,6 @@ export function OrderDetail({id,internal=false,financial=true,globalAdmin=false,
  const saved=()=>{setRefresh(v=>v+1);void load();};
  if(internal&&order)return <OperationOrderWorkspace order={order} permissions={permissions} financial={financial} globalAdmin={globalAdmin} busy={busy} error={error} refresh={refresh} onRefresh={saved} onSaved={saved}/>;
  const controls=<div className={internal?"client-actions":"client-order-heading-actions"}><BackToOrders href={globalAdmin?"/administracion/pedidos":internal?"/operacion":"/cliente/pedidos"}/><button className="client-button secondary" disabled={busy} onClick={()=>void load()}>Actualizar pedido</button></div>;
- const content=<>{!internal&&<ClientJourney part={3} compact/>}{busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}{!order&&controls}{order&&<><header className="order-overview order-detail-heading"><div className="client-order-heading-state"><div><h2>Tu pedido PED-{order.numero}</h2><p>Confirmado el {date(order.confirmadaEn)}</p></div><span className="client-state">{orderTrackingLabel(order)}</span></div>{controls}</header><div id="client-order-progress" className="client-order-tracking"><OrderProgress order={order} featured/></div><ClientOrderSummary order={order} onSaved={saved} actions={paymentAction=><OrderManagement order={order} internal={false} onSaved={saved} compact leadingAction={paymentAction}/>}/><ClientContextTour stage={3} ready={!busy}/></>}</>;
+ const content=<>{!internal&&<ClientJourney part={3} compact/>}{busy&&<p role="status">Consultando pedido…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}{!order&&controls}{order&&<><header className="order-overview order-detail-heading"><div className="client-order-heading-state"><div><h2>Tu pedido PED-{order.numero}</h2><p>Confirmado el {date(order.confirmadaEn)}</p></div><ClientOrderBadge order={order}/></div>{controls}</header><div id="client-order-progress" className="client-order-tracking"><OrderProgress order={order} featured/></div><ClientOrderSummary order={order} onSaved={saved} actions={paymentAction=><OrderManagement order={order} internal={false} onSaved={saved} compact leadingAction={paymentAction}/>}/><ClientContextTour stage={3} ready={!busy}/></>}</>;
  return internal?content:<div className="client-experience client-compact-experience client-order-experience">{content}</div>;
 }
