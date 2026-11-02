@@ -68,6 +68,12 @@ public class SesionVigenteFilter extends OncePerRequestFilter {
                 return;
             }
         }
+        if(authentication!=null&&authentication.isAuthenticated()&&!(authentication instanceof AnonymousAuthenticationToken)&&ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,authentication.getName())!=null){
+            String path=request.getServletPath();
+            if(!path.startsWith("/api/punto/")&&!java.util.Set.of("/api/auth/me","/api/auth/csrf","/api/auth/logout","/api/auth/contrasena","/api/auth/correo/solicitar","/api/auth/correo/confirmar").contains(path)){
+                response.setStatus(403);response.setContentType("application/json;charset=UTF-8");response.getWriter().write("{\"mensaje\":\"Esta cuenta sólo puede operar su punto de retiro.\"}");return;
+            }
+        }
         chain.doFilter(request, response);
     }
 }

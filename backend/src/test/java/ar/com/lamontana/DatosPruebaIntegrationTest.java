@@ -11,6 +11,7 @@ import ar.com.lamontana.pedidos.*;
 import ar.com.lamontana.produccion.ProduccionService;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.net.*;
 import java.net.http.*;
 import java.nio.file.*;
@@ -27,6 +28,34 @@ class DatosPruebaIntegrationTest {
     private static final String ADMIN="admin@prueba.local",CLAVE="MontanaPrueba2026!";
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
+
+    @Test void cuentasDePuntosAislanPedidosRecibenLotesYCobranConHistorialDeSeisMeses()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-cuentas-puntos-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);var service=app.getBean(ar.com.lamontana.puntos.PuntoRetiroService.class);var delivery=app.getBean(EntregaService.class);
+            var cab=login("punto.caballito.retiro");var pal=login("punto.palermo.retiro");var admin=login(ADMIN);String alias="punto.caballito.retiro@prueba.local";
+            assertThat(get(cab,"/api/auth/me",200).get("puntoRetiro").asBoolean()).isTrue();assertThat(get(cab,"/api/punto/contexto",200).get("nombre").asString()).isEqualTo("Punto Caballito");
+            for(String forbidden:List.of("/api/admin/pedidos","/api/operacion/contexto","/api/operacion/puntos-entrega/disponibilidad","/api/cliente/pedidos"))get(cab,forbidden,403);
+            var cash=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),alias).pedidos().stream().filter(p->p.medio().equals("EFECTIVO")&&new BigDecimal(p.saldo()).signum()>0).findFirst().orElseThrow();
+            get(pal,"/api/punto/pedidos/"+cash.pedido(),404);get(cab,"/api/operacion/pedidos/"+cash.pedido(),403);
+            var p=app.getBean(PedidoService.class).detalle(cash.pedido(),ADMIN,true);get(cab,"/api/operacion/cotizaciones/"+p.cotizacion()+"/archivos",403);
+            assertThatThrownBy(()->app.getBean(PedidoService.class).detalle(cash.pedido(),"punto.palermo.retiro@prueba.local",true)).hasMessageContaining("no está disponible");assertThatThrownBy(()->app.getBean(PagoService.class).vista(p.cotizacion(),"punto.palermo.retiro@prueba.local",true)).hasMessageContaining("acceso");
+            var transit=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("POR_LLEGAR","",0),alias).pedidos();assertThat(transit).isNotEmpty();long before=count(jdbc,"movimiento_entrega");var receive=new ar.com.lamontana.puntos.PuntoRetiroController.Recepcion(UUID.randomUUID(),transit.stream().map(i->new ar.com.lamontana.entregas.EntregaController.PedidoLote(i.pedido(),i.version())).toList());
+            sendPoint(cab,"POST","/api/punto/recibir",receive,200);sendPoint(cab,"POST","/api/punto/recibir",receive,200);assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before+transit.size());
+            var foreign=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),"punto.palermo.retiro@prueba.local").pedidos().get(0);sendPoint(cab,"POST","/api/punto/recibir",new ar.com.lamontana.puntos.PuntoRetiroController.Recepcion(UUID.randomUUID(),List.of(new ar.com.lamontana.entregas.EntregaController.PedidoLote(foreign.pedido(),foreign.version()))),404);
+            String customer=jdbc.queryForObject("SELECT u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.codigo_publico=?",String.class,cash.pedido());String code=delivery.consultar(cash.pedido(),customer,false).codigo().texto();
+            var byCode=sendPoint(cab,"POST","/api/punto/pedidos/buscar",new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES",code,0),200);assertThat(byCode.get("total").asInt()).isEqualTo(1);assertThat(byCode.toString()).doesNotContain(code);
+            var invalid=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code.equals("ZZZZZZZZ")?"YYYYYYYY":"ZZZZZZZZ",cash.saldo(),null,null,true,true);assertThat(sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",invalid,200).get("aceptado").asBoolean()).isFalse();
+            var command=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code,cash.saldo(),null,null,true,true);long payments=count(jdbc,"pago");var done=sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",command,200);assertThat(done.get("vista").get("estadoPedido").asString()).isEqualTo("CERRADO");sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",command,200);assertThat(count(jdbc,"pago")).isEqualTo(payments+1);
+            var transfer=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),alias).pedidos().stream().filter(o->o.medio().equals("TRANSFERENCIA")&&new BigDecimal(o.saldo()).signum()>0).findFirst().orElseThrow();
+            var pay=new ar.com.lamontana.puntos.PuntoRetiroController.Cobro(UUID.randomUUID(),transfer.version(),ar.com.lamontana.configuracion.ConfiguracionController.MedioPago.TRANSFERENCIA,transfer.saldo(),null,true);var received=sendPoint(cab,"POST","/api/punto/pedidos/"+transfer.pedido()+"/cobrar",pay,200);assertThat(received.get("entrega").get("saldo").asString()).isEqualTo("0.00");sendPoint(cab,"POST","/api/punto/pedidos/"+transfer.pedido()+"/cobrar",pay,200);
+            var finances=get(cab,"/api/punto/finanzas",200);assertThat(new BigDecimal(finances.get("efectivo").asString())).isPositive();assertThat(new BigDecimal(finances.get("transferencia").asString())).isPositive();assertThat(finances.get("total").asInt()).isGreaterThan(2);
+            assertThat(jdbc.queryForObject("SELECT min(e.fecha) FROM lamontana.evento_financiero e JOIN lamontana.cuenta_punto cp ON cp.id_usuario=e.id_actor",Timestamp.class).toInstant()).isBefore(Instant.now().minus(Duration.ofDays(140)));
+            UUID point=UUID.fromString(get(cab,"/api/punto/contexto",200).get("punto").asString());var account=service.cuentas(ADMIN).stream().filter(o->o.punto().equals(point)).findFirst().orElseThrow();sendPoint(admin,"PUT","/api/admin/puntos-entrega/cuentas/"+point,new ar.com.lamontana.puntos.PuntoRetiroController.Cambio(UUID.randomUUID(),account.cuenta().version(),account.cuenta().responsable(),false,false),200);get(cab,"/api/punto/contexto",401);
+            UUID fresh=UUID.randomUUID();jdbc.update("INSERT INTO lamontana.punto_entrega(codigo_publico,codigo,id_usuario_creador) SELECT ?,'PUNTO-ENSAYO',id_usuario FROM lamontana.usuario WHERE correo=?",fresh,ADMIN);var alta=new ar.com.lamontana.puntos.PuntoRetiroController.Alta(UUID.randomUUID(),"punto.ensayo.retiro","punto.ensayo@prueba.local","Responsable de ensayo",CLAVE,false);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,alta,200);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,alta,200);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,new ar.com.lamontana.puntos.PuntoRetiroController.Alta(UUID.randomUUID(),"punto.otra.retiro","punto.otra@prueba.local","Otro responsable",CLAVE,false),409);
+            var freshLogin=login("punto.ensayo.retiro");assertThat(get(freshLogin,"/api/auth/me",200).get("debeCambiarContrasena").asBoolean()).isTrue();get(freshLogin,"/api/punto/contexto",403);
+        }finally{limpiar(files);}
+    }
 
     @Test void efectivoAlEntregarRegistra155CierraYNoDuplicaNiCobraConCodigoErroneo()throws Exception{
         Path files=Files.createTempDirectory("lamontana-cobro-entrega-");
@@ -159,7 +188,7 @@ class DatosPruebaIntegrationTest {
             ConfigurableApplicationContext app=iniciar(pg,files,"pruebas");
             try {
                 var jdbc=app.getBean(JdbcTemplate.class);
-                assertThat(count(jdbc,"usuario")).isEqualTo(7);
+                assertThat(count(jdbc,"usuario")).isEqualTo(9);
                 assertThat(count(jdbc,"sucursal")).isEqualTo(3);
                 assertThat(count(jdbc,"punto_entrega")).isEqualTo(2);
                 assertThat(count(jdbc,"configuracion_version")).isEqualTo(4);
@@ -180,6 +209,30 @@ class DatosPruebaIntegrationTest {
                 System.out.println("ESCENARIO_VERIFICADO pedidos="+pedidos+", pagos="+pagos+", papeles=27 variantes, tarifas=54 por revisión, versiones=4");
             } finally {app.close();}
         } finally {limpiar(files);}
+    }
+
+    @Test void actualizarEscenarioDosConservaElHistorialYAgregaPuntosUnaSolaVez() throws Exception {
+        Path files=Files.createTempDirectory("lamontana-actualizar-puntos-");
+        try(var pg=postgres()) {
+            ConfigurableApplicationContext app=iniciar(pg,files,"pruebas");
+            try {
+                var jdbc=app.getBean(JdbcTemplate.class);
+                long last=jdbc.queryForObject("SELECT max(id_pedido) FROM lamontana.pedido",Long.class);
+                String history=jdbc.queryForObject("SELECT jsonb_agg(to_jsonb(h) ORDER BY h.id_evento)::text FROM lamontana.historial_estado_pedido h",String.class);
+                long orders=count(jdbc,"pedido"),payments=count(jdbc,"pago");
+                jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=2");
+                app.close();app=iniciar(pg,files,"pruebas");jdbc=app.getBean(JdbcTemplate.class);
+                assertThat(count(jdbc,"pedido")).isEqualTo(orders+6);
+                assertThat(count(jdbc,"pago")).isEqualTo(payments);
+                assertThat(jdbc.queryForObject("SELECT jsonb_agg(to_jsonb(h) ORDER BY h.id_evento)::text FROM lamontana.historial_estado_pedido h WHERE h.id_pedido<=?",String.class,last)).isEqualTo(history);
+                assertThat(count(jdbc,"cuenta_punto")).isEqualTo(2);
+                assertThat(count(jdbc,"usuario")).isEqualTo(9);
+                app.close();app=iniciar(pg,files,"pruebas");jdbc=app.getBean(JdbcTemplate.class);
+                assertThat(count(jdbc,"pedido")).isEqualTo(orders+6);
+                assertThat(count(jdbc,"pago")).isEqualTo(payments);
+                assertThat(jdbc.queryForObject("SELECT version_escenario FROM lamontana.entorno_prueba",Integer.class)).isEqualTo(3);
+            }finally{app.close();}
+        }finally{limpiar(files);}
     }
 
     @Test void elPerfilNormalNoPrecargaDatos() throws Exception {
@@ -319,6 +372,9 @@ class DatosPruebaIntegrationTest {
         var r=c.send(HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(20)).GET().build(),HttpResponse.BodyHandlers.ofString());
         assertThat(r.statusCode()).withFailMessage("%s: esperado %s, recibido %s: %s",path,status,r.statusCode(),r.body()).isEqualTo(status);
         return r.body().isBlank()?JSON.nullNode():JSON.readTree(r.body());
+    }
+    private JsonNode sendPoint(HttpClient c,String method,String path,Object body,int expected)throws Exception{
+        var token=get(c,"/api/auth/csrf",200).get("token").asString();var response=c.send(HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(20)).header("Content-Type","application/json").header("X-CSRF-TOKEN",token).method(method,HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))).build(),HttpResponse.BodyHandlers.ofString());assertThat(response.statusCode()).withFailMessage("%s: esperado %s, recibido %s: %s",path,expected,response.statusCode(),response.body()).isEqualTo(expected);return JSON.readTree(response.body());
     }
     private HttpClient login(String correo) throws Exception {
         var c=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();var token=get(c,"/api/auth/csrf",200).get("token").asString();

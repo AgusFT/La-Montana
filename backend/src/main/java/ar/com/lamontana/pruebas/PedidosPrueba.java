@@ -39,7 +39,7 @@ final class PedidosPrueba {
     private static final String[] DOCUMENTOS={"Apunte de programación","Trabajo práctico de redes","Material de capacitación","Carpeta de presentaciones","Guía de ejercicios","Catálogo comercial","Proyecto de diseño","Manual de usuario"};
     private record Actor(long id,String nombre,String rol){}
     private record Item(long id,long archivo,long aceptacion,UUID publico,UUID pdf){}
-    private static final class Pedido {
+    private static final class Pedido { UUID punto;
         long id,cotizacion,config,version=1,reserva;
         UUID publico;
         Actor cliente;
@@ -74,6 +74,13 @@ final class PedidosPrueba {
         cotizacionSinPedido(hoy,"VIGENTE");
     }
 
+    private UUID puntoForzado;private MedioPago medioForzado;
+    void jornadaPuntos(){
+        var points=jdbc.query("SELECT pt.codigo_publico FROM lamontana.punto_entrega pt JOIN lamontana.cuenta_punto cp USING(id_punto_entrega) ORDER BY pt.codigo",(rs,n)->rs.getObject(1,UUID.class));
+        int offset=0;for(UUID point:points)for(int scenario=0;scenario<3;scenario++){puntoForzado=point;medioForzado=scenario==1?MedioPago.TRANSFERENCIA:MedioPago.EFECTIVO;try{crear(Instant.now().minusSeconds(3600-offset++*60L),"LISTO_PARA_ENTREGA",scenario==2?11:10,true);}finally{puntoForzado=null;medioForzado=null;}}
+    }
+    private Actor responsablePunto(Pedido p){if(p.punto==null)return actor(ADMIN);var users=jdbc.query("SELECT u.correo FROM lamontana.cuenta_punto cp JOIN lamontana.punto_entrega pt USING(id_punto_entrega) JOIN lamontana.usuario u USING(id_usuario) WHERE pt.codigo_publico=?",(rs,n)->rs.getString(1),p.punto);return users.isEmpty()?actor(ADMIN):actor(users.get(0));}
+
     private void crear(Instant fecha,String destino,int caso,boolean actual) {
         int indice=secuencia++;
         var ctx=operativa.leer();var b=ctx.configuracion();
@@ -82,11 +89,14 @@ final class PedidosPrueba {
         p.medio=indice%2==0?MedioPago.EFECTIVO:MedioPago.TRANSFERENCIA;
         p.modalidad=Modalidad.values()[indice%3];
         if(actual&&caso>=8&&caso<=11)p.modalidad=caso==8?Modalidad.RETIRO_SUCURSAL:caso==11?Modalidad.ENVIO_DOMICILIO:Modalidad.RETIRO_PUNTO_ENTREGA;
+        if(puntoForzado!=null){p.modalidad=Modalidad.RETIRO_PUNTO_ENTREGA;p.medio=medioForzado;}
         var matriz=ctx.sucursales().stream().filter(s->s.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElseThrow();
         // Retiros locales de las tres sucursales; los puntos/domicilios salen de la matriz.
         var branch=p.modalidad==Modalidad.RETIRO_SUCURSAL?ctx.sucursales().get((indice/3)%ctx.sucursales().size()):matriz;
         p.retiroConTraslado=p.modalidad==Modalidad.RETIRO_SUCURSAL&&!branch.codigoPublico().equals(matriz.codigoPublico());
+        if(puntoForzado!=null){p.modalidad=Modalidad.RETIRO_PUNTO_ENTREGA;p.medio=medioForzado;}
         UUID punto=p.modalidad==Modalidad.RETIRO_PUNTO_ENTREGA?b.entrega().puntos().get(indice%2).codigoPublico():null;
+        if(puntoForzado!=null)punto=puntoForzado;p.punto=punto;
         var territorio=new TerritorioEntrega("1407","FLORESTA","CABA");
         var direccion=p.modalidad==Modalidad.ENVIO_DOMICILIO?new CotizacionController.Direccion("Av. Rivadavia","8350","Timbre de pruebas",territorio):null;
         var tiempo=operativa.calcularEntrega(ctx,new SimularEntrega(b.version(),branch.codigoPublico(),p.modalidad,fecha,punto,p.modalidad==Modalidad.ENVIO_DOMICILIO?territorio:null),15);
@@ -97,7 +107,7 @@ final class PedidosPrueba {
         for(int numero=0;numero<(indice%5==0?2:1);numero++) {
             var opcion=ctx.opciones().stream().filter(o->o.sucursal().equals(branch.codigoPublico())).toList().get((indice*7+numero)%ctx.opciones().stream().filter(o->o.sucursal().equals(branch.codigoPublico())).toList().size());
             int paginas=4+(indice+numero)%9,copias=indice%7==0?30:1+indice%4;
-            if(actual&&(caso==0||caso==1||caso==3))copias=60;
+            if(actual&&(caso==0||caso==1||caso==3))copias=60;if(puntoForzado!=null){paginas=4;copias=1;}
             var terminaciones=indice%3==0&&!opcion.terminaciones().isEmpty()?List.of(opcion.terminaciones().get(indice%opcion.terminaciones().size())):List.<UUID>of();
             var trabajo=new EvaluadorPrecioItem.Item(opcion.servicio(),opcion.formato(),opcion.papel(),opcion.color(),paginas,copias,indice%2==0,terminaciones);
             UUID pdf=UUID.randomUUID();var recibido=pdf(pdf,paginas,"Pedido de prueba "+(indice+1)+" - documento "+(numero+1));
@@ -140,9 +150,11 @@ final class PedidosPrueba {
             jdbc.update("UPDATE lamontana.reserva_entrega SET estado='LIBERADA' WHERE id_pedido=?",p.id);
             comprobarRestricciones(jdbc);
         } else {
+            boolean historicoPunto=!actual&&p.modalidad==Modalidad.RETIRO_PUNTO_ENTREGA;
             boolean pagoHistoricoEnDosPartes=!actual&&p.anticipo.signum()>0&&p.anticipo.compareTo(p.total)<0;
             BigDecimal monto=pagoHistoricoEnDosPartes?p.anticipo:actual&&caso==3?p.anticipo.max(p.total.multiply(new BigDecimal("0.30")).setScale(2,java.math.RoundingMode.HALF_UP)):p.total;
-            recibir(p,monto,fecha.plusSeconds(120),true);
+            if(historicoPunto||puntoForzado!=null)monto=p.anticipo;
+            if(monto.signum()>0)recibir(p,monto,fecha.plusSeconds(120),true);
             if(!auto) {
                 transicion(p,p.estado,"REVISAR",fecha.plusSeconds(240),"PDF y datos revisados.","revisada_en=?,id_revisor=?",ts(fecha.plusSeconds(240)),actor(ADMIN).id());
                 comprobarRestricciones(jdbc);
@@ -161,12 +173,13 @@ final class PedidosPrueba {
                 if(destino.equals("ENTREGADO")||destino.equals("CERRADO")) {
                     Instant ventana=tiempo.destinoPunto()!=null?tiempo.destinoPunto().franjaDesde():tiempo.destinoZona()!=null?tiempo.destinoZona().franjaDesde():tiempo.destinoSucursal().franjaDesde();
                     long offset=actual?2400:Math.max(2400,Duration.between(fecha,ventana).getSeconds()+600);
-                    if(pagoHistoricoEnDosPartes)recibir(p,p.total.subtract(monto),fecha.plusSeconds(offset-150),true);
+                    if(pagoHistoricoEnDosPartes&&!historicoPunto)recibir(p,p.total.subtract(monto),fecha.plusSeconds(offset-150),true);
                     if(p.modalidad!=Modalidad.RETIRO_SUCURSAL||p.retiroConTraslado) {
                         mover(p,"PREPARAR_ENVIO","PREPARADO",fecha.plusSeconds(offset-1000));
                         mover(p,"SALIR_REPARTO","EN_VIAJE",fecha.plusSeconds(offset-600));
                         if(p.modalidad==Modalidad.RETIRO_PUNTO_ENTREGA||p.retiroConTraslado)mover(p,"LLEGAR_PUNTO","DISPONIBLE_PUNTO",fecha.plusSeconds(offset-200));
                     }
+                    if(historicoPunto&&p.total.compareTo(monto)>0)recibir(p,p.total.subtract(monto),fecha.plusSeconds(offset-100),true);
                     entregar(p,fecha.plusSeconds(offset));
                     if(destino.equals("CERRADO"))cerrar(p,fecha.plusSeconds(offset+300));
                 } else if(destino.equals("LISTO_PARA_ENTREGA")&&caso>=9) {
@@ -202,7 +215,7 @@ final class PedidosPrueba {
     private long transicion(Pedido p,String destino,String accion,Instant fecha,String mensaje,String adicionales,Object... valores) {
         var args=new ArrayList<Object>();args.add(destino);args.addAll(Arrays.asList(valores));args.add(p.id);
         jdbc.update("UPDATE lamontana.pedido SET estado=?,version=version+1"+(adicionales.isEmpty()?"":","+adicionales)+" WHERE id_pedido=?",args.toArray());
-        var a=actor(ADMIN);long evento=jdbc.queryForObject("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha,estado_origen,version_pedido,accion,mensaje_cliente,actor_nombre,actor_tipo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id_evento",Long.class,p.id,a.id(),UUID.randomUUID(),HUELLA,destino,mensaje,ts(fecha),p.estado,++p.version,accion,mensaje,a.nombre(),a.rol());
+        var a=(accion.equals("ENTREGAR")||accion.equals("CERRAR")||accion.equals("LLEGAR_PUNTO"))?responsablePunto(p):actor(ADMIN);long evento=jdbc.queryForObject("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha,estado_origen,version_pedido,accion,mensaje_cliente,actor_nombre,actor_tipo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id_evento",Long.class,p.id,a.id(),UUID.randomUUID(),HUELLA,destino,mensaje,ts(fecha),p.estado,++p.version,accion,mensaje,a.nombre(),a.rol());
         p.estado=destino;return evento;
     }
 
@@ -232,7 +245,7 @@ final class PedidosPrueba {
     }
 
     private void entregar(Pedido p,Instant fecha) {
-        var a=actor(ADMIN);
+        var a=responsablePunto(p);
         long codigo=jdbc.queryForObject("INSERT INTO lamontana.codigo_entrega(codigo_publico,id_pedido,id_reserva_entrega,id_emisor,id_operacion,huella,codigo_hash,emitido_en,vence_en) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id_codigo_entrega",Long.class,UUID.randomUUID(),p.id,p.reserva,p.cliente.id(),UUID.randomUUID(),HUELLA,hashCodigo,ts(fecha.minusSeconds(120)),ts(fecha.plusSeconds(1800)));
         long validacion=jdbc.queryForObject("INSERT INTO lamontana.validacion_codigo_entrega(codigo_publico,id_codigo_entrega,id_actor,actor_nombre,id_operacion,huella,version_pedido,resultado,fecha,valido_hasta) VALUES (?,?,?,?,?,?,?,'VALIDO',?,?) RETURNING id_validacion_codigo",Long.class,UUID.randomUUID(),codigo,a.id(),a.nombre(),UUID.randomUUID(),HUELLA,p.version,ts(fecha.minusSeconds(60)),ts(fecha.plusSeconds(600)));
         long evento=transicion(p,"ENTREGADO","ENTREGAR",fecha,"Pedido entregado a "+p.cliente.nombre(),"");
@@ -261,7 +274,7 @@ final class PedidosPrueba {
         return jdbc.queryForObject("INSERT INTO lamontana.intento_pago(codigo_publico,id_cotizacion,id_evento,importe_informado,referencia_informada) VALUES (?,?,?,?,?) RETURNING id_intento_pago",Long.class,UUID.randomUUID(),p.cotizacion,e,monto,"PRUEBA-TRANSFERENCIA-"+p.cotizacion);
     }
     private long recibir(Pedido p,BigDecimal monto,Instant fecha,boolean aplicar) {
-        var a=actor("caja@prueba.local");Long intento=p.medio==MedioPago.TRANSFERENCIA?informar(p,monto,fecha.minusSeconds(30)):null;
+        var a=p.punto!=null&&p.estado.equals("LISTO_PARA_ENTREGA")?responsablePunto(p):actor("caja@prueba.local");Long intento=p.medio==MedioPago.TRANSFERENCIA?informar(p,monto,fecha.minusSeconds(30)):null;
         long e=financiero(p,"RECIBIR",fecha,"Recepción verificada de dinero ficticio.",a);
         if(intento!=null)jdbc.update("INSERT INTO lamontana.resolucion_intento_pago VALUES (?,?,'ACREDITADO')",intento,e);
         long id=jdbc.queryForObject("INSERT INTO lamontana.pago(codigo_publico,id_cotizacion,id_intento_pago,id_evento,medio,importe,referencia,clave_referencia,recibido_en) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id_pago",Long.class,UUID.randomUUID(),p.cotizacion,intento,e,p.medio.name(),monto,"PRUEBA-"+p.cotizacion,"pago-prueba-"+UUID.randomUUID(),ts(fecha));

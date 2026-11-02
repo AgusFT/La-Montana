@@ -61,7 +61,7 @@ export function LoginForm() {
     finally { setBusy(false); }
   }
   return <form className="identity-form" onSubmit={submit}>
-    <label>Correo electrónico<input name="correo" type="email" autoComplete="username" required maxLength={254} /></label>
+    <label>Usuario o correo<input name="correo" type="text" autoComplete="username" required maxLength={254} /></label>
     <label>Contraseña<input name="contrasena" type="password" autoComplete="current-password" required maxLength={128} /></label>
     {message && <p className="form-message error-message" role="alert">{message}</p>}
     <button className="refresh" disabled={busy}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>

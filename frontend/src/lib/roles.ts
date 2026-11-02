@@ -14,7 +14,7 @@
  * - [export] isRole(value: unknown): value is Role
  *   Validador de datos recibidos en tiempo de ejecución.
  * - [export] roleHome(role: Role): string
- * - [export] sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean }): string
+ * - [export] sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean; puntoRetiro?:boolean }): string
  *
  * ------------------------------------------------------------------------
  * TIPOS DECLARADOS
@@ -34,6 +34,6 @@ export function roleHome(role: Role): string {
   return { ADMIN_ADMIN: "/administracion", CLIENTE: "/cliente", EMPLEADO: "/operacion" }[role];
 }
 
-export function sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean }): string {
-  return profile.debeCambiarContrasena ? "/cuenta/seguridad" : roleHome(profile.rol);
+export function sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean; puntoRetiro?:boolean }): string {
+  return profile.debeCambiarContrasena ? "/cuenta/seguridad" : profile.puntoRetiro?"/punto-retiro":roleHome(profile.rol);
 }

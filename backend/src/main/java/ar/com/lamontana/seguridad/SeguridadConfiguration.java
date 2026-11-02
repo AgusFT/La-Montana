@@ -55,6 +55,8 @@ public class SeguridadConfiguration {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/publico/pagina-web", "/api/publico/pagina-web/imagenes/*", "/api/publico/pagina-web/imagenes/*/miniatura", "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
+                        .requestMatchers("/api/punto/**").hasRole("EMPLEADO")
+                        .requestMatchers("/api/admin/puntos-entrega/cuentas", "/api/admin/puntos-entrega/cuentas/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/contrasena", "/api/auth/correo/solicitar", "/api/auth/correo/confirmar").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/admin/pagina-web", "/api/admin/pagina-web/revision", "/api/admin/pagina-web/origen", "/api/admin/pagina-web/origen/miniatura", "/api/admin/pagina-web/imagenes", "/api/admin/pagina-web/imagenes/*", "/api/admin/pagina-web/imagenes/*/miniatura").hasRole("ADMIN_ADMIN")

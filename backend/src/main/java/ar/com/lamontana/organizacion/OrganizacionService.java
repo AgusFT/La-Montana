@@ -159,7 +159,7 @@ public class OrganizacionService {
         if(matriz)throw error(HttpStatus.CONFLICT,"Esta sucursal es la casa matriz vigente o programada. Activá una configuración con otra matriz, o cancelá la programada, antes de desactivarla.");
         Integer sinAlternativa = jdbc.queryForObject("""
                 SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
-                WHERE u.estado='ACTIVO' AND r.codigo='EMPLEADO'
+                WHERE u.estado='ACTIVO' AND r.codigo='EMPLEADO' AND NOT EXISTS(SELECT 1 FROM lamontana.cuenta_punto cp WHERE cp.id_usuario=u.id_usuario)
                 AND EXISTS (SELECT 1 FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
                             WHERE us.id_usuario=u.id_usuario AND us.activa AND s.codigo_publico=?)
                 AND NOT EXISTS (SELECT 1 FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
@@ -179,7 +179,7 @@ public class OrganizacionService {
     public List<Empleado> empleados() {
         return jdbc.query("""
                 SELECT u.* FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
-                WHERE r.codigo='EMPLEADO' ORDER BY u.apellido,u.nombre,u.codigo_publico
+                WHERE r.codigo='EMPLEADO' AND NOT EXISTS(SELECT 1 FROM lamontana.cuenta_punto cp WHERE cp.id_usuario=u.id_usuario) ORDER BY u.apellido,u.nombre,u.codigo_publico
                 """, this::empleado);
     }
 
@@ -229,6 +229,11 @@ public class OrganizacionService {
                 jdbc.query("SELECT * FROM lamontana.sucursal WHERE estado='ACTIVA' ORDER BY nombre,codigo", this::sucursal), permisosDisponibles());
         if (!"EMPLEADO".equals(rol)) throw error(HttpStatus.FORBIDDEN, "No tenés acceso a la operación interna.");
         Long id = idUsuario(actor);
+        Long punto=ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,actor);
+        if(punto!=null){
+            boolean cobros=Boolean.TRUE.equals(jdbc.queryForObject("SELECT cobros AND activa FROM lamontana.cuenta_punto WHERE id_punto_entrega=?",Boolean.class,punto));
+            return new Contexto(jdbc.query("SELECT DISTINCT s.* FROM lamontana.sucursal s JOIN lamontana.pedido_actual p USING(id_sucursal) JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.punto_entrega pt ON pt.codigo_publico=r.destino_publico WHERE pt.id_punto_entrega=? AND s.estado='ACTIVA' AND r.modalidad='RETIRO_PUNTO_ENTREGA' AND r.estado IN ('ACTIVA','CUMPLIDA')",this::sucursal,punto),cobros?List.of("GESTIONAR_ENTREGAS","CERRAR_PEDIDOS","REGISTRAR_COBRO","ACREDITAR_PAGO"):List.of("GESTIONAR_ENTREGAS","CERRAR_PEDIDOS"));
+        }
         return new Contexto(jdbc.query("""
                 SELECT s.* FROM lamontana.sucursal s JOIN lamontana.usuario_sucursal us USING(id_sucursal)
                 WHERE us.id_usuario=? AND us.activa AND s.estado='ACTIVA' ORDER BY s.nombre,s.codigo
@@ -285,7 +290,7 @@ public class OrganizacionService {
     private List<String> permisosDisponibles() { return jdbc.queryForList("SELECT codigo FROM lamontana.permiso WHERE activo ORDER BY codigo", String.class); }
     private Long idUsuario(String correo) { return jdbc.queryForObject("SELECT id_usuario FROM lamontana.usuario WHERE correo=?", Long.class, correo); }
     private Empleado buscarEmpleado(UUID codigo) {
-        return jdbc.query("SELECT u.* FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.codigo_publico=? AND r.codigo='EMPLEADO'", this::empleado, codigo)
+        return jdbc.query("SELECT u.* FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.codigo_publico=? AND r.codigo='EMPLEADO' AND NOT EXISTS(SELECT 1 FROM lamontana.cuenta_punto cp WHERE cp.id_usuario=u.id_usuario)", this::empleado, codigo)
                 .stream().findFirst().orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Empleado inexistente."));
     }
     private Sucursal buscarSucursal(UUID codigo) {

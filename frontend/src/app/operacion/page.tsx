@@ -38,6 +38,7 @@ export default async function OperationPage() {
   if (session.state === "anonymous") redirect("/acceso");
   if (session.state === "unavailable") return <IdentityShell title="Operación" description="Verificación de tu sesión."><p className="form-message error-message" role="alert">No pudimos verificar la sesión. <a href="/operacion">Volver a comprobar</a></p></IdentityShell>;
   if (session.state !== "authenticated") return null;
+  if(session.profile.puntoRetiro)redirect("/punto-retiro");
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol === "CLIENTE") redirect("/cliente");
   if (session.profile.rol === "ADMIN_ADMIN") redirect("/administracion/pedidos");

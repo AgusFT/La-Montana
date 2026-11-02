@@ -35,6 +35,7 @@ public class DatosPruebaConfiguration {
             var versiones=jdbc.queryForList("SELECT version_escenario FROM lamontana.entorno_prueba WHERE unica",Integer.class);
             if(!versiones.isEmpty()) {
                 if(versiones.get(0)<2)throw new IllegalStateException("El escenario de pruebas anterior está conservado. Para cargar seis meses de actividad, ejecutá ./infra/pruebas/reiniciar-datos.sh (borra sólo los datos ficticios del proyecto lamontana-pruebas).");
+                if(versiones.get(0)<3){cuentasPuntos(jdbc,encoder.encode(clave),LocalDate.now(ZONA).minusMonths(6).atStartOfDay(ZONA).toInstant());new PedidosPrueba(jdbc,operativa,precios,finanzas,archivos,encoder).jornadaPuntos();jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=3 WHERE unica");comprobarRestricciones(jdbc);}
                 return;
             }
             if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.usuario)",Boolean.class)))
@@ -56,13 +57,19 @@ public class DatosPruebaConfiguration {
                 var desde=switch(etapa){case 1->hoy.minusMonths(6);case 2->hoy.minusMonths(4);case 3->hoy.minusMonths(2);default->hoy.minusDays(14);};
                 var hasta=switch(etapa){case 1->hoy.minusMonths(4);case 2->hoy.minusMonths(2);case 3->hoy.minusDays(14);default->hoy.minusDays(1);};
                 anterior=configuraciones.crear(etapa,desde.atTime(8,0).atZone(ZONA).toInstant(),anterior);
+                if(etapa==1)cuentasPuntos(jdbc,encoder.encode(clave),inicio);
                 for(var dia=desde.plusDays(1);dia.isBefore(hasta);dia=dia.plusDays(1))
                     if(dia.getDayOfWeek().getValue()<=5&&dia.getDayOfMonth()%2==0)pedidos.historico(dia);
             }
-            pedidos.jornada(hoy);
-            jdbc.update("INSERT INTO lamontana.entorno_prueba(unica,version_escenario) VALUES (true,2)");
+            pedidos.jornada(hoy);pedidos.jornadaPuntos();
+            jdbc.update("INSERT INTO lamontana.entorno_prueba(unica,version_escenario) VALUES (true,3)");
             comprobarRestricciones(jdbc);
         });
+    }
+
+    private void cuentasPuntos(JdbcTemplate jdbc,String hash,Instant inicio){
+        var points=jdbc.queryForList("SELECT pt.id_punto_entrega,pt.codigo,coalesce((SELECT nombre FROM lamontana.configuracion_definicion_punto d WHERE d.id_punto_entrega=pt.id_punto_entrega ORDER BY id_configuracion_version DESC LIMIT 1),pt.codigo) AS nombre FROM lamontana.punto_entrega pt WHERE NOT EXISTS(SELECT 1 FROM lamontana.cuenta_punto cp WHERE cp.id_punto_entrega=pt.id_punto_entrega)");
+        for(var p:points){String alias="punto."+p.get("codigo").toString().replaceFirst("^PUNTO-", "").toLowerCase(java.util.Locale.ROOT).replace('_','.')+".retiro",responsable="Responsable de prueba "+p.get("codigo");long user=jdbc.queryForObject("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,alias_acceso,hash_contrasena,nombre,apellido,estado,correo_verificado_en,debe_cambiar_contrasena,fecha_alta) SELECT ?,id_rol,?,?,?,?,?,'ACTIVO',?,false,? FROM lamontana.rol WHERE codigo='EMPLEADO' RETURNING id_usuario",Long.class,UUID.randomUUID(),alias+"@prueba.local",alias,hash,p.get("nombre"),responsable,Timestamp.from(inicio),Timestamp.from(inicio));jdbc.update("INSERT INTO lamontana.cuenta_punto(id_punto_entrega,id_usuario,responsable,creada_en) VALUES (?,?,?,?)",p.get("id_punto_entrega"),user,responsable,Timestamp.from(inicio));jdbc.update("INSERT INTO lamontana.evento_cuenta_punto(id_operacion,id_punto_entrega,id_actor,accion,huella,fecha) SELECT ?,?,id_usuario,'CREAR',?,? FROM lamontana.usuario WHERE correo=?",UUID.randomUUID(),p.get("id_punto_entrega"),"0".repeat(64),Timestamp.from(inicio),ADMIN);}
     }
 
     static void comprobarRestricciones(JdbcTemplate jdbc) {

@@ -16,7 +16,7 @@ Este README es el único manual de producto. Describe el comportamiento vigente;
 
 Requisitos: Docker Engine y Docker Compose accesibles desde la terminal, Internet para descargar las imágenes/dependencias/firmas iniciales y los puertos locales disponibles. ClamAV tiene un límite de memoria de 4 GiB en Compose; los otros servicios requieren memoria adicional.
 
-Para probar la aplicación con cuentas, sucursales, puntos de entrega, catálogo y configuración ficticios sin tocar la instalación normal, usar la rama `pruebas` y seguir [Entorno de pruebas funcionales](docs/entorno-pruebas-funcionales.md).
+Para probar la aplicación con cuentas, sucursales, puntos de entrega, catálogo y configuración ficticios sin tocar la instalación normal, usar la rama `pruebas` y seguir [Entorno de pruebas funcionales](docs/entorno-pruebas-funcionales.md). Las cuentas exclusivas de Caballito y Palermo, su recepción, entrega y finanzas se describen en [Cuentas de puntos de retiro](docs/cuentas-puntos-retiro.md).
 
 ```bash
 cd /home/agus/proyectos/LaMontaña/desarrollo

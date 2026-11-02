@@ -45,6 +45,6 @@ export default async function AccountSecurityPage() {
     {profile.debeCambiarContrasena && <PasswordChangeForm />}
     <EmailVerificationForm correo={profile.correo} verified={profile.correoVerificado} />
     {!profile.debeCambiarContrasena && <PasswordChangeForm />}
-    <div className="page-actions">{!profile.debeCambiarContrasena && <a className="secondary-link" href={roleHome(profile.rol)}>Volver a mi espacio</a>}<LogoutButton /></div>
+    <div className="page-actions">{!profile.debeCambiarContrasena && <a className="secondary-link" href={profile.puntoRetiro?"/punto-retiro":roleHome(profile.rol)}>Volver a mi espacio</a>}<LogoutButton /></div>
   </IdentityShell>;
 }

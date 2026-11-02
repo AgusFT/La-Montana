@@ -1,0 +1,9 @@
+import type {Delivery} from '@/components/order-delivery';
+export type PointAccount={usuario:string;correo:string;responsable:string;activa:boolean;cobros:boolean;version:number;creadaEn:string};
+export type AccountPoint={punto:string;codigo:string;nombre:string;cuenta:PointAccount|null};
+export type DeskContext={punto:string;nombre:string;responsable:string;cobros:boolean;porLlegar:number;disponibles:number;entregados:number};
+export type DeskRow={pedido:string;numero:number;version:number;cliente:string;correo:string;estado:string;recorrido:string;saldo:string;medio:string;movimiento:string;franja:string};
+export type DeskList={pedidos:DeskRow[];total:number;pagina:number};
+export type DeskOrder={pedido:DeskRow;trabajos:{nombre:string;paginas:number;copias:number}[];entrega:Delivery;medios:string[]};
+export type DeskFinance={pendiente:string;efectivo:string;transferencia:string;total:number;pagina:number;desde:string;hasta:string;movimientos:{pedido:number;tipo:string;importe:string;medio:string;referencia:string;responsable:string;fecha:string;enPunto:boolean}[]};
+export const deskStates={POR_LLEGAR:'Por llegar',DISPONIBLES:'Para retirar',ENTREGADOS:'Entregados'};

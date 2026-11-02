@@ -1,5 +1,7 @@
 # Entorno de pruebas funcionales
 
+**Actualización V51:** cada punto tiene una cuenta y un responsable, con bandeja propia, recepción por lote, entrega con código y finanzas. Ver [usuarios y recorrido de prueba](cuentas-puntos-retiro.md). Las bases del escenario de seis meses se actualizan con `iniciar.sh`, sin reiniciar datos.
+
 La actualización de calidad y entrega agrega V46/V47: guía con adicionales reales, confirmaciones breves y código automático al despachar (o al quedar listo para retiro en casa matriz). No requiere reiniciar los datos. Los pedidos que ya estaban en viaje/disponibles recuperan el código al consultar la entrega. Los avisos se capturan en Mailpit, `http://localhost:8125`. Detalle y validaciones pendientes: [Calidad y entrega simples](calidad-y-entrega-simples.md).
 
 La rama `pruebas` agrega una instalación local aislada. No comparte contenedores, volúmenes, base de datos, archivos ni puertos con la ejecución normal de `desarrollo`.
@@ -23,13 +25,13 @@ El script elimina únicamente los volúmenes del proyecto Docker `lamontana-prue
 
 ## Datos incluidos
 
-- Administrador propietario, dos empleados con permisos diferentes y cuatro clientes.
+- Administrador propietario, dos empleados con permisos diferentes, cuatro clientes y una cuenta responsable para cada uno de los dos puntos.
 - Casa Matriz Floresta, sucursales Medicina y La Plata.
 - Puntos de entrega Caballito y Palermo como entidades distintas de las sucursales.
 - Siete formatos (A3/A4/A5/A6/Carta/Folio/Legal), papel común de 75/80/90 g/m² y papel ilustración de 130/170/250 g/m² en A3/A4: 27 combinaciones habilitadas.
 - Cuatro revisiones comerciales: cada una tiene 54 tarifas con nombre, precio simple y regla de doble faz, BN/color, y cuatro servicios (impresión, anillado, abrochado y plastificado).
 - Tres versiones históricas del motor y una activa. Todos los módulos aplicables están completos: modelo, parámetros de seña, transferencia/efectivo, vigencia, política de archivos, asignación, dos impresoras, formatos, servicios, horarios de siete días, casa matriz, franjas, puntos, zona, coberturas y costos.
-- Más de 120 pedidos en seis meses relativos a la fecha del primer arranque. Los cuatro clientes tienen compras anteriores y actividad actual. Hay 16 pedidos recientes distribuidos en los nueve estados del sistema, con incidencias de impresión/calidad y distintos recorridos logísticos.
+- Más de 120 pedidos en seis meses relativos a la fecha del primer arranque. Los cuatro clientes tienen compras anteriores y actividad actual. Además de los seis ejemplos para puntos de retiro, hay 16 pedidos recientes distribuidos en los nueve estados del sistema, con incidencias de impresión/calidad y distintos recorridos logísticos.
 - PDF reales generados localmente, privados y con huella verificable; sus validaciones históricas se identifican expresamente como simuladas. Las cargas nuevas usan la validación normal de PDF y antivirus.
 - Libro de pagos con efectivo, transferencias informadas/acreditadas, aplicaciones, anticipos, saldos, reintegros y auditoría con fechas históricas. El historial de caja se consulta desde los pedidos/cotizaciones y las páginas de la bandeja de pagos existente; no se simulan funciones de cierre de caja inexistentes.
 
