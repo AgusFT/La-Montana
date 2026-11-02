@@ -12,6 +12,8 @@ El panel `/` explica el orden de instalación y permanece accesible con sesión.
 
 Este README es el único manual de producto. Describe el comportamiento vigente; los checkpoints históricos de cada entrega están en Git y en el plan de coordinación, fuera del producto.
 
+La rama `android` incorpora el primer cliente nativo en [`android/`](android/): login con cuentas creadas desde la Web, detección del perfil y mostrador mobile del punto sobre los mismos contratos del backend. No incluye registro de usuarios ni concede automáticamente el rol de repartidor. Alcance, decisiones y referencia visual en [Android Mobile: puntos y reparto](docs/mobile-android-alcance-y-flujos.md).
+
 ## Arranque local
 
 Requisitos: Docker Engine y Docker Compose accesibles desde la terminal, Internet para descargar las imágenes/dependencias/firmas iniciales y los puertos locales disponibles. ClamAV tiene un límite de memoria de 4 GiB en Compose; los otros servicios requieren memoria adicional.

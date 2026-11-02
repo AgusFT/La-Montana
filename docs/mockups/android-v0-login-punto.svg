@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="820" viewBox="0 0 1180 820">
+  <defs>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#082a45" flood-opacity=".18"/>
+    </filter>
+    <filter id="card" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#132d48" flood-opacity=".10"/>
+    </filter>
+    <clipPath id="leftScreen"><rect x="103" y="61" width="400" height="698" rx="39"/></clipPath>
+    <clipPath id="rightScreen"><rect x="677" y="61" width="400" height="698" rx="39"/></clipPath>
+    <style>
+      text{font-family:Inter,Segoe UI,Arial,sans-serif;fill:#0b2342}
+      .muted{fill:#60758c}.white{fill:#fff}.orange{fill:#ff7a18}.blue{fill:#0d5fea}.green{fill:#128341}
+      .small{font-size:12px}.tiny{font-size:10px}.medium{font-size:15px}.bold{font-weight:700}.heavy{font-weight:800}
+    </style>
+  </defs>
+  <rect width="1180" height="820" fill="#eef4fb"/>
+  <circle cx="100" cy="90" r="180" fill="#dbeaff" opacity=".6"/>
+  <circle cx="1090" cy="720" r="240" fill="#dbeaff" opacity=".6"/>
+  <!-- Teléfono login -->
+  <rect x="82" y="38" width="442" height="744" rx="58" fill="#082f4d" filter="url(#shadow)"/>
+  <rect x="103" y="61" width="400" height="698" rx="39" fill="#f3f7fc"/>
+  <g clip-path="url(#leftScreen)">
+    <rect x="103" y="61" width="400" height="698" fill="#f3f7fc"/>
+    <rect x="263" y="69" width="80" height="8" rx="4" fill="#b8c7d6"/>
+    <g transform="translate(186 140)">
+      <circle cx="28" cy="28" r="28" fill="#ff8a1e"/>
+      <path d="M4 45 L24 16 L34 31 L44 15 L54 45 Z" fill="#07304e"/>
+      <path d="M17 26 L24 16 L31 27 L35 24 L44 15 L48 26 L43 24 L35 35 L27 26 L20 34 Z" fill="#fff"/>
+      <text x="70" y="26" font-size="24" class="heavy">La Montaña</text>
+      <text x="70" y="44" font-size="10" class="orange bold" letter-spacing="2">IMPRESIONES</text>
+    </g>
+    <rect x="132" y="230" width="342" height="391" rx="22" fill="#fff" filter="url(#card)"/>
+    <text x="157" y="273" font-size="24" class="heavy">Ingresá a tu espacio</text>
+    <text x="157" y="298" class="small muted">Usá la cuenta que te entregó la imprenta.</text>
+    <text x="157" y="338" class="small bold">Usuario o correo</text>
+    <rect x="157" y="350" width="292" height="53" rx="11" fill="#fff" stroke="#b8c8d8"/>
+    <text x="174" y="382" class="medium muted">punto.caballito.retiro</text>
+    <text x="157" y="438" class="small bold">Contraseña</text>
+    <rect x="157" y="450" width="292" height="53" rx="11" fill="#fff" stroke="#b8c8d8"/>
+    <text x="174" y="482" font-size="18" letter-spacing="4" class="muted">••••••••••••</text>
+    <circle cx="425" cy="476" r="12" fill="#edf3f8"/>
+    <path d="M417 476 Q425 467 433 476 Q425 485 417 476Z" fill="none" stroke="#587087" stroke-width="2"/>
+    <rect x="157" y="535" width="292" height="54" rx="12" fill="#ff7a18"/>
+    <text x="303" y="568" text-anchor="middle" font-size="16" class="white bold">Ingresar</text>
+    <text x="303" y="654" text-anchor="middle" class="tiny muted">Las cuentas se crean y administran desde la Web.</text>
+  </g>
+  <text x="303" y="807" text-anchor="middle" font-size="14" class="bold">1 · ACCESO ENTREGADO POR LA IMPRENTA</text>
+
+  <!-- Teléfono punto -->
+  <rect x="656" y="38" width="442" height="744" rx="58" fill="#082f4d" filter="url(#shadow)"/>
+  <rect x="677" y="61" width="400" height="698" rx="39" fill="#f3f7fc"/>
+  <g clip-path="url(#rightScreen)">
+    <rect x="677" y="61" width="400" height="698" fill="#f3f7fc"/>
+    <rect x="677" y="61" width="400" height="79" fill="#062d4b"/>
+    <circle cx="714" cy="101" r="23" fill="#ff8a1e"/>
+    <path d="M694 116 L711 91 L719 104 L728 90 L735 116 Z" fill="#07304e"/>
+    <path d="M705 99 L711 91 L717 101 L721 99 L728 90 L731 100 L727 98 L720 108 L714 101 L708 108 Z" fill="#fff"/>
+    <text x="749" y="99" font-size="17" class="white heavy">La Montaña</text>
+    <text x="749" y="115" font-size="8" class="orange bold" letter-spacing="1.5">RETIRO DE PEDIDOS</text>
+    <circle cx="1018" cy="101" r="17" fill="#174361"/>
+    <path d="M1011 101 a7 7 0 1 0 2-5" fill="none" stroke="#fff" stroke-width="2"/><path d="M1012 91v7h7" fill="none" stroke="#fff" stroke-width="2"/>
+
+    <text x="701" y="172" class="small blue bold">TU PUNTO DE ENTREGA</text>
+    <text x="701" y="202" font-size="25" class="heavy">Punto Caballito</text>
+    <text x="701" y="224" class="small muted">Responsable: Responsable Caballito</text>
+
+    <g filter="url(#card)">
+      <rect x="701" y="247" width="109" height="86" rx="13" fill="#fff"/>
+      <rect x="819" y="247" width="109" height="86" rx="13" fill="#fff"/>
+      <rect x="937" y="247" width="109" height="86" rx="13" fill="#fff"/>
+    </g>
+    <circle cx="719" cy="265" r="5" fill="#ff7a18"/><circle cx="837" cy="265" r="5" fill="#149447"/><circle cx="955" cy="265" r="5" fill="#0d5fea"/>
+    <text x="719" y="294" font-size="22" class="heavy">3</text><text x="837" y="294" font-size="22" class="heavy">5</text><text x="955" y="294" font-size="22" class="heavy">18</text>
+    <text x="719" y="315" class="tiny muted">Por llegar</text><text x="837" y="315" class="tiny muted">Para retirar</text><text x="955" y="315" class="tiny muted">Entregados</text>
+
+    <rect x="701" y="355" width="345" height="50" rx="11" fill="#fff" stroke="#b9c9da"/>
+    <circle cx="723" cy="379" r="8" fill="none" stroke="#5d7288" stroke-width="2"/><path d="M729 385l7 7" stroke="#5d7288" stroke-width="2"/>
+    <text x="744" y="385" class="small muted">Buscar pedido o cliente</text>
+    <text x="701" y="439" font-size="18" class="bold">Pedidos disponibles</text>
+
+    <g filter="url(#card)"><rect x="701" y="456" width="345" height="135" rx="15" fill="#fff"/></g>
+    <text x="719" y="484" font-size="17" class="bold">PED-176</text>
+    <text x="719" y="504" class="small muted">Martín Gómez</text>
+    <rect x="888" y="469" width="139" height="25" rx="12" fill="#e5f5ea"/>
+    <text x="958" y="486" text-anchor="middle" class="tiny green bold">Disponible para retirar</text>
+    <text x="719" y="535" class="tiny muted">SALDO PENDIENTE</text>
+    <text x="719" y="557" font-size="16" class="bold">$ 1.137,00</text>
+    <rect x="875" y="521" width="152" height="45" rx="10" fill="#ff7a18"/>
+    <text x="951" y="548" text-anchor="middle" class="small white bold">Cobrar y entregar</text>
+
+    <g filter="url(#card)"><rect x="701" y="605" width="345" height="82" rx="15" fill="#fff"/></g>
+    <text x="719" y="633" font-size="17" class="bold">PED-143</text><text x="719" y="654" class="small muted">Sofía Rossi · saldo cubierto</text>
+    <rect x="874" y="624" width="153" height="43" rx="10" fill="#149447"/>
+    <text x="951" y="650" text-anchor="middle" class="tiny white bold">Entregar con código</text>
+
+    <rect x="677" y="703" width="400" height="56" fill="#fff"/>
+    <line x1="677" y1="703" x2="1077" y2="703" stroke="#d8e2ee"/>
+    <g text-anchor="middle" class="tiny muted">
+      <text x="727" y="739">Por llegar</text><text x="827" y="739" class="blue bold">Para retirar</text><text x="927" y="739">Entregados</text><text x="1027" y="739">Finanzas</text>
+    </g>
+    <circle cx="727" cy="718" r="4" fill="#ff7a18"/><rect x="822" y="713" width="10" height="10" rx="2" fill="#0d5fea"/><circle cx="927" cy="718" r="5" fill="#149447"/><text x="1027" y="723" text-anchor="middle" class="bold muted">$</text>
+  </g>
+  <text x="877" y="807" text-anchor="middle" font-size="14" class="bold">2 · MOSTRADOR DEL PUNTO EN ANDROID</text>
+</svg>

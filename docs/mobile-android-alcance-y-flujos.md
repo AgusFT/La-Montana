@@ -227,3 +227,10 @@ No convertir estos temas pendientes en comportamiento «implementado» ni invent
 6. Probar en `pruebas` escenarios de seis meses y teléfonos Android; mantener separados los resultados simulados y las integraciones reales.
 
 **Criterio rector:** móvil simplifica la interacción humana; no duplica la lógica de pedidos, cobros, seguridad, estados ni auditoría del backend.
+
+## 12. Primer incremento en la rama `android`
+
+La rama `android` inicia la aplicación nativa con Jetpack Compose, sin registro ni administración de identidades. Incluye login contra el backend, lectura del perfil, enrutamiento seguro y la base responsive del mostrador del punto. Una cuenta marcada como punto abre **Por llegar / Para retirar / Entregados / Finanzas**; un empleado común no se convierte automáticamente en repartidor mientras no exista el contrato de asignación de recorridos.
+
+La primera referencia visual está en [`mockups/android-v0-login-punto.svg`](mockups/android-v0-login-punto.svg). Las tarjetas de pedidos que aparecen en el `@Preview` son únicamente demostrativas; no se presentan como datos recibidos del backend. El contexto y los contadores del punto sí utilizan el contrato real. Las listas, recepción, búsqueda, entrega/cobro y finanzas se conectarán de forma incremental sin crear reglas paralelas.
+
