@@ -75,6 +75,8 @@ import static ar.com.lamontana.entregas.EntregaController.*;
 import ar.com.lamontana.configuracion.ConfiguracionController.MedioPago;
 import ar.com.lamontana.organizacion.OrganizacionService;
 import ar.com.lamontana.pagos.CoberturaPagos;
+import ar.com.lamontana.pagos.PagoService;
+import ar.com.lamontana.pagos.PagoController;
 import ar.com.lamontana.pedidos.PedidoService;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -92,16 +94,18 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class EntregaService {
  private final JdbcTemplate jdbc;private final PedidoService pedidos;private final OrganizacionService organizacion;private final CoberturaPagos cobertura;private final PasswordEncoder encoder;
- private final SecureRandom random=new SecureRandom();private final Clock clock=Clock.systemUTC();private final JsonMapper json=JsonMapper.builder().build();private final CodigoRetiroService codigos;
- public EntregaService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,CoberturaPagos cobertura,PasswordEncoder encoder,CodigoRetiroService codigos){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.cobertura=cobertura;this.encoder=encoder;this.codigos=codigos;}
+ private final SecureRandom random=new SecureRandom();private final Clock clock=Clock.systemUTC();private final JsonMapper json=JsonMapper.builder().build();private final CodigoRetiroService codigos;private final PagoService pagos;
+ public EntregaService(JdbcTemplate jdbc,PedidoService pedidos,OrganizacionService organizacion,CoberturaPagos cobertura,PasswordEncoder encoder,CodigoRetiroService codigos,PagoService pagos){this.jdbc=jdbc;this.pedidos=pedidos;this.organizacion=organizacion;this.cobertura=cobertura;this.encoder=encoder;this.codigos=codigos;this.pagos=pagos;}
  public record Opcion(Accion accion,boolean habilitada,String motivo){}
  public record Codigo(UUID codigoPublico,String estado,Instant emitidoEn,Instant venceEn,int intentosRestantes,Instant puedeRenovarEn,String texto){@Override public String toString(){return "Codigo[código privado]";}}
  public record Verificacion(UUID codigoPublico,Instant fecha,Instant validoHasta){}
  public record Constancia(UUID codigoPublico,String receptor,String responsable,Instant fecha,String motivo){}
  public record Evento(String accion,String estadoOrigen,String estadoDestino,String actor,String motivo,Instant fecha){}
  public record Cierre(Instant fecha,String responsable,String motivo,String total,String aplicado){}
+ public record CobroEfectivo(String importe,boolean habilitado,boolean puedeCerrar,String bloqueo){}
+ public record ReciboEfectivo(UUID pago,String importe,String referencia,String responsable,Instant fecha){}
  public record Vista(long version,String estadoPedido,String estadoLogistico,String cliente,String correo,boolean puedeGestionar,boolean puedeCerrar,boolean puedeEmitirCodigo,List<Opcion> acciones,
-  Codigo codigo,Verificacion validacion,Constancia entrega,Cierre cierre,String aplicado,String saldo,List<String> bloqueosEntrega,List<String> bloqueosCierre,List<Evento> historial){}
+  Codigo codigo,Verificacion validacion,Constancia entrega,Cierre cierre,String aplicado,String saldo,List<String> bloqueosEntrega,List<String> bloqueosCierre,List<Evento> historial,CobroEfectivo cobroEfectivo,ReciboEfectivo reciboEfectivo){}
  public record Generacion(Vista vista,String codigo,String aviso){@Override public String toString(){return "Generacion[código privado]";}}
  public record Validacion(Vista vista,boolean aceptado,String mensaje){}
  public record ResultadoLote(UUID operacion,Accion accion,int cantidad,Instant fecha){}
@@ -119,7 +123,7 @@ public class EntregaService {
   var cliente=jdbc.queryForObject("SELECT u.nombre||' '||u.apellido,u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},p.numero());
   var b=new ArrayList<>(bloqueosEntrega(p));if(interno&&!gestiona)b.add("Se requiere permiso de gestión de entregas.");
   var bc=new ArrayList<>(bloqueosCierre(p));if(interno&&!cierra)bc.add("Se requiere permiso para cerrar pedidos.");
-  BigDecimal aplicado=aplicado(p);return new Vista(p.version(),p.estado(),estado,cliente[0],interno?cliente[1]:null,gestiona,cierra,false,options,codigo,validation,entrega.isEmpty()?null:entrega.get(0),cierre.isEmpty()?null:cierre.get(0),dinero(aplicado),dinero(new BigDecimal(p.oferta().total()).subtract(aplicado).max(BigDecimal.ZERO)),List.copyOf(b),List.copyOf(bc),history);
+  BigDecimal aplicado=aplicado(p);return new Vista(p.version(),p.estado(),estado,cliente[0],interno?cliente[1]:null,gestiona,cierra,false,options,codigo,validation,entrega.isEmpty()?null:entrega.get(0),cierre.isEmpty()?null:cierre.get(0),dinero(aplicado),dinero(new BigDecimal(p.oferta().total()).subtract(aplicado).max(BigDecimal.ZERO)),List.copyOf(b),List.copyOf(bc),history,interno?cobroEfectivo(p,correo,permisos):null,interno?reciboEfectivo(p):null);
  }
  @Transactional public Generacion emitir(UUID pedido,Emitir in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,false);codigos.asegurar(p.numero());var view=vista(p,correo,false);
@@ -155,8 +159,9 @@ public class EntregaService {
   Instant now=clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);jdbc.update("INSERT INTO lamontana.lote_movimiento_entrega(id_operacion,id_actor,actor_nombre,huella,accion,pedidos,fecha) VALUES (?,?,?,?,?,?::jsonb,?)",in.operacion(),a.id(),a.nombre(),hash,in.accion().name(),json.writeValueAsString(ordered),Timestamp.from(now));
   return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),now);
  }
- @Transactional public Validacion validar(UUID pedido,Validar in,String correo){
-  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);String hash=huella(List.of(pedido,"VALIDAR",in));
+ @Transactional public Validacion validar(UUID pedido,Validar in,String correo){return validar(pedido,in,correo,huella(List.of(pedido,"VALIDAR",in)));}
+ private Validacion validar(UUID pedido,Validar in,String correo,String hash){
+  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);
   if(recuperar(in.operacion(),hash,p,a)){
    boolean valid=jdbc.queryForObject("SELECT resultado='VALIDO' FROM lamontana.validacion_codigo_entrega WHERE id_operacion=?",Boolean.class,in.operacion());var view=vista(p,correo,true);return new Validacion(view,valid&&view.validacion()!=null,valid?"La validación está registrada; consultá si continúa vigente para entregar.":"El intento anterior no validó el código. No se volvió a descontar un intento.");
   }
@@ -179,6 +184,38 @@ public class EntregaService {
   String receptor=in.receptor();if(receptor==null||receptor.isBlank())receptor="Persona que presentó el código de entrega";
   var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash);
   return new Validacion(out,true,"Pedido entregado. Se guardaron responsable, fecha y hora.");
+ }
+ /** Cash, handover and optional close are one transaction. Invalid code never records cash. */
+ @Transactional public Validacion cobrarEntregar(UUID pedido,CobrarEntregar in,String correo){
+  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");if(in.cerrar())organizacion.exigirPermiso(correo,"CERRAR_PEDIDOS");
+  var a=actor(correo);String hash=huella(List.of(pedido,"COBRAR_ENTREGAR",in));
+  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true),true,"Cobro y entrega ya registrados; no se duplicó el dinero.");
+  version(p,in.version());confirmar(in.confirmado());nota(in.motivo(),"Cobro en efectivo y entrega confirmados.");if(in.receptor()!=null&&!in.receptor().isBlank())texto(in.receptor(),140);
+  var offer=cobroEfectivo(p,correo,organizacion.contexto(correo).permisos());if(offer==null||!offer.habilitado())throw conflicto(offer==null?"El pedido no admite cobro en efectivo durante la entrega.":offer.bloqueo());
+  if(new BigDecimal(in.importe()).compareTo(new BigDecimal(offer.importe()))!=0)throw conflicto("El saldo cambió. Actualizá antes de confirmar el efectivo recibido.");
+  if(in.cerrar()&&!offer.puedeCerrar())throw conflicto("Hay movimientos financieros pendientes. Revisá cobros antes de cerrar.");
+  var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),in.codigo()),correo,hash);if(!check.aceptado())return check;
+  pagos.recibir(p.cotizacion(),new PagoController.Recibir(derivada(in.operacion(),"efectivo"),null,MedioPago.EFECTIVO,offer.importe(),"Entrega PED-"+p.numero()+" · "+in.operacion(),null,true,"Efectivo recibido al entregar el pedido PED-"+p.numero()+".",true),correo);
+  String receptor=in.receptor()==null||in.receptor().isBlank()?"Persona que presentó el código de entrega":in.receptor().strip();
+  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash);
+  if(in.cerrar())out=cerrar(pedido,new Cerrar(derivada(in.operacion(),"cerrar"),out.version(),null,true),correo);
+  return new Validacion(out,true,in.cerrar()?"Efectivo registrado, pedido entregado y cerrado. El comprobante interno quedó disponible.":"Efectivo registrado y pedido entregado. El responsable de cierre puede completar el cierre administrativo.");
+ }
+ private UUID derivada(UUID operation,String step){return UUID.nameUUIDFromBytes((operation+":"+step).getBytes(StandardCharsets.UTF_8));}
+ private CobroEfectivo cobroEfectivo(PedidoService.Detalle p,String correo,List<String> permisos){
+  BigDecimal saldo=new BigDecimal(p.oferta().total()).subtract(aplicado(p));
+  if(!disponible(p)||p.oferta().medioPago()!=MedioPago.EFECTIVO||saldo.signum()<=0)return null;
+  String bloqueo=null;
+  if(!permisos.contains("GESTIONAR_ENTREGAS")||!permisos.contains("REGISTRAR_COBRO"))bloqueo="Necesitás permiso de cobros y de entregas para confirmar ambas acciones.";
+  else try{bloqueo=pagos.bloqueoSaldoEfectivo(p.cotizacion(),correo);}catch(ResponseStatusException e){if(e.getStatusCode()!=HttpStatus.FORBIDDEN)throw e;bloqueo="Tu cuenta no tiene acceso a los cobros de esta sucursal.";}
+  if(bloqueo==null&&jdbc.queryForObject("SELECT lamontana.dinero_pendiente_cierre(?)",BigDecimal.class,p.numero()).signum()>0)bloqueo="Hay dinero recibido sin aplicar. Revisá cobros para evitar cobrarlo otra vez.";
+  boolean cerrar=permisos.contains("CERRAR_PEDIDOS")&&jdbc.queryForObject("SELECT lamontana.informes_pendientes_cierre(?)",Long.class,p.numero())==0;
+  return new CobroEfectivo(dinero(saldo),bloqueo==null,cerrar,bloqueo);
+ }
+ private ReciboEfectivo reciboEfectivo(PedidoService.Detalle p){
+  var roots=jdbc.query("SELECT id_operacion FROM lamontana.historial_estado_pedido WHERE id_pedido=? AND accion='ENTREGAR' ORDER BY id_evento DESC LIMIT 1",(r,n)->r.getObject(1,UUID.class),p.numero());if(roots.isEmpty())return null;
+  var receipts=jdbc.query("SELECT pa.codigo_publico,pa.importe,pa.referencia,e.actor_nombre,pa.recibido_en FROM lamontana.pago pa JOIN lamontana.evento_financiero e ON e.id_evento=pa.id_evento WHERE e.id_operacion=? AND pa.medio='EFECTIVO' AND pa.id_cotizacion=(SELECT id_cotizacion FROM lamontana.pedido_actual WHERE id_pedido=?)",(r,n)->new ReciboEfectivo(r.getObject(1,UUID.class),r.getBigDecimal(2).toPlainString(),r.getString(3),r.getString(4),r.getTimestamp(5).toInstant()),derivada(roots.get(0),"efectivo"),p.numero());
+  return receipts.isEmpty()?null:receipts.get(0);
  }
  private Vista registrarEntrega(UUID pedido,Entregar in,String correo,String hash){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");var a=actor(correo);

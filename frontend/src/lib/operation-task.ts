@@ -59,6 +59,7 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
  }
  if(order.estado==='LISTO_PARA_ENTREGA'){
   if(has('GESTIONAR_ENTREGAS')&&delivery?.puedeGestionar){
+   if(has('REGISTRAR_COBRO')&&delivery.cobroEfectivo?.habilitado)return task('Cobrar efectivo y entregar',delivery.cobroEfectivo.puedeCerrar?'Confirmá el efectivo recibido y el código en una sola ventana. Se registrarán el cobro, la entrega y el cierre con su comprobante interno.':'Confirmá el efectivo recibido y el código en una sola ventana. Se registrarán el cobro y la entrega; el responsable podrá completar el cierre.','pedido-entrega');
    const experience=deliveryExperience(order,delivery.estadoLogistico);
    return task(experience.title,experience.description,'pedido-entrega');
   }

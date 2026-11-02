@@ -4,6 +4,7 @@ import {date,money,modeLabels} from '@/lib/quote-types';
 import {orderState,orderEventLabel,type Order} from '@/lib/order-types';
 import type {Permission} from '@/lib/organization-types';
 import {operationTask,type OperationPanel} from '@/lib/operation-task';
+import {BackToOrders} from './back-to-orders';
 import {OperationStageProgress} from './operation-stage-progress';
 import {orderTrackingLabel} from '@/lib/order-tracking';
 import {productionSituation} from '@/lib/order-operational-status';
@@ -46,7 +47,7 @@ export function OperationOrderWorkspace({order,permissions,financial,globalAdmin
  const work=order.oferta.items.find(i=>i.codigoPublico===selected)??order.oferta.items.find(i=>i.codigoPublico===defaultWork)??order.oferta.items[0],file=work?order.archivos.find(f=>f.item===work.codigoPublico):undefined;
  const currentReview=review?.version===order.version?review:null,currentDelivery=delivery?.version===order.version?delivery:null;
  return <div className="operation-order operation-order-simple" onClickCapture={protect}>
-  <header className="operation-order-heading"><div><a href={back} className="operation-back">← Volver a pedidos</a><div className="operation-order-number"><h2>Pedido PED-{order.numero}</h2>{order.estado==='EN_PRODUCCION'&&production?.version===order.version?<OrderOperationalBadge order={{estado:order.estado,estadoLogistico:order.estadoLogistico,modalidad:order.reserva.modalidad,...productionSituation(production)}}/>:<span className="client-state">{orderTrackingLabel(order)}</span>}</div><p>{order.oferta.sucursal.nombre} · Recibido el {date(order.confirmadaEn)}</p></div><button type="button" className="client-button secondary" disabled={busy||blocked} onClick={onRefresh}>{busy?'Actualizando…':'Actualizar'}</button></header>
+  <header className="operation-order-heading"><div><BackToOrders href={back}/><div className="operation-order-number"><h2>Pedido PED-{order.numero}</h2>{order.estado==='EN_PRODUCCION'&&production?.version===order.version?<OrderOperationalBadge order={{estado:order.estado,estadoLogistico:order.estadoLogistico,modalidad:order.reserva.modalidad,...productionSituation(production)}}/>:<span className="client-state">{orderTrackingLabel(order)}</span>}</div><p>{order.oferta.sucursal.nombre} · Recibido el {date(order.confirmadaEn)}</p></div><button type="button" className="client-button secondary" disabled={busy||blocked} onClick={onRefresh}>{busy?'Actualizando…':'Actualizar'}</button></header>
   <OperationStageProgress order={order} production={production}/>
   {error&&<p role="alert" className="client-warning">{error}</p>}{notice&&<p role="alert" className="client-warning">{notice}</p>}
   <OrderWorkOverview order={order} production={production} selected={work?.codigoPublico??''} disabled={blocked} onSelect={setSelected}/>
@@ -66,7 +67,7 @@ export function OperationOrderWorkspace({order,permissions,financial,globalAdmin
     <div id="pedido-revision" hidden={current!=='pedido-revision'}><OrderManagement order={order} internal workspace refresh={refresh} onSaved={onSaved} onSnapshot={setReview} onLockChange={lockCallbacks['pedido-revision']}/></div>
     <div hidden={current!=='pedido-correcciones'}><OrderCorrections order={order} internal financial={financial} refresh={refresh} onSaved={onSaved} onLockChange={lockCallbacks['pedido-correcciones']}/></div>
     <div hidden={current!=='pedido-produccion'}><OrderProduction order={order} workspace refresh={refresh} onSaved={()=>{setSelected('');onSaved();}} onSelectItem={setSelected} onSnapshot={setProduction} onLockChange={lockCallbacks['pedido-produccion']}/></div>
-    <div hidden={current!=='pedido-entrega'}><OrderDelivery order={order} internal financial={financial} workspace refresh={refresh} onSaved={onSaved} onSnapshot={setDelivery} onLockChange={lockCallbacks['pedido-entrega']}/></div>
+    <div hidden={current!=='pedido-entrega'}><OrderDelivery order={order} internal financial={financial} workspace refresh={refresh} onSaved={view=>{if(view?.reciboEfectivo){setRequested('pedido-entrega');history.replaceState(null,'',location.pathname+location.search+'#pedido-entrega');}onSaved();}} onSnapshot={setDelivery} onLockChange={lockCallbacks['pedido-entrega']}/></div>
     <div hidden={current!=='pedido-reprogramacion'}><OrderReschedule order={order} internal workspace refresh={refresh} onSaved={onSaved} onLockChange={lockCallbacks['pedido-reprogramacion']}/></div>
     <div id="pedido-pdf" hidden={current!=='pedido-pdf'} className="workspace-review-body operation-pdf-panel"><PrivateFiles quote={order.cotizacion} version={order.version} refresh={refresh} internal compact confirmed snapshot={order.archivos.map(f=>f.archivo)} onLockChange={lockCallbacks['pedido-pdf']}/></div>
     {financial&&<div id="pedido-pagos" hidden={current!=='pedido-pagos'}><PaymentPanel quote={order.cotizacion} internal refresh={refresh} onSaved={onSaved} onLockChange={lockCallbacks['pedido-pagos']}/></div>}

@@ -28,6 +28,33 @@ class DatosPruebaIntegrationTest {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
 
+    @Test void efectivoAlEntregarRegistra155CierraYNoDuplicaNiCobraConCodigoErroneo()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-cobro-entrega-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);var orders=app.getBean(PedidoService.class);var delivery=app.getBean(EntregaService.class);var payments=app.getBean(PagoService.class);
+            UUID id=jdbc.queryForObject("SELECT p.codigo_publico FROM lamontana.pedido p JOIN lamontana.pedido_actual pa USING(id_pedido) JOIN lamontana.cotizacion c ON c.id_cotizacion=pa.id_cotizacion WHERE p.estado='LISTO_PARA_ENTREGA' AND c.oferta->>'medioPago'='EFECTIVO' AND c.oferta->>'modalidad'='RETIRO_SUCURSAL' ORDER BY p.id_pedido DESC LIMIT 1",UUID.class);
+            var view=delivery.consultar(id,ADMIN,true);
+            for(int step=0;step<3;step++){var next=view.acciones().stream().filter(a->a.habilitada()).findFirst();if(next.isEmpty())break;view=delivery.mover(id,new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),view.version(),next.get().accion(),null,true),ADMIN);}
+            var p=orders.detalle(id,ADMIN,true);String client=jdbc.queryForObject("SELECT u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.codigo_publico=?",String.class,id);
+            String code=delivery.consultar(id,client,false).codigo().texto();var funds=payments.vista(p.cotizacion(),ADMIN,true).pagos().get(0);
+            payments.devolver(p.cotizacion(),new ar.com.lamontana.pagos.PagoController.Devolver(UUID.randomUUID(),funds.codigoPublico(),funds.version(),ar.com.lamontana.configuracion.ConfiguracionController.MedioPago.EFECTIVO,"155.00","Devolución de ensayo "+UUID.randomUUID(),Instant.now(),true,"Preparar saldo real pendiente para verificar cobro al entregar."),ADMIN);
+            view=delivery.consultar(id,ADMIN,true);assertThat(view.saldo()).isEqualTo("155.00");assertThat(view.cobroEfectivo().habilitado()).isTrue();assertThat(view.cobroEfectivo().puedeCerrar()).isTrue();
+            long before=count(jdbc,"pago"),events=count(jdbc,"evento_financiero");final long version=view.version();
+            var invalid=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),version,code.equals("ZZZZZZZZ")?"YYYYYYYY":"ZZZZZZZZ","155.00",null,null,true,true);
+            assertThat(delivery.cobrarEntregar(id,invalid,ADMIN).aceptado()).isFalse();assertThat(delivery.cobrarEntregar(id,invalid,ADMIN).aceptado()).isFalse();assertThat(count(jdbc,"pago")).isEqualTo(before);assertThat(count(jdbc,"evento_financiero")).isEqualTo(events);
+            var command=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),version,code,"155.00",null,null,true,true);assertThat(app.getBean(jakarta.validation.Validator.class).validate(command)).isEmpty();
+            assertThatThrownBy(()->delivery.cobrarEntregar(id,new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),version,code,"154.00",null,null,true,true),ADMIN)).hasMessageContaining("saldo cambió");
+            assertThatThrownBy(()->delivery.cobrarEntregar(id,command,"produccion@prueba.local")).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);assertThat(count(jdbc,"pago")).isEqualTo(before);
+            jdbc.execute("CREATE FUNCTION lamontana.fallar_entrega_efectivo_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de entrega tras cobro'; END $$");jdbc.execute("CREATE TRIGGER fallar_entrega_efectivo_test BEFORE INSERT ON lamontana.entrega FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_entrega_efectivo_test()");
+            try{assertThatThrownBy(()->delivery.cobrarEntregar(id,command,ADMIN)).hasStackTraceContaining("fallo de entrega tras cobro");assertThat(count(jdbc,"pago")).isEqualTo(before);assertThat(count(jdbc,"evento_financiero")).isEqualTo(events);assertThat(delivery.consultar(id,ADMIN,true).saldo()).isEqualTo("155.00");}finally{jdbc.execute("DROP TRIGGER fallar_entrega_efectivo_test ON lamontana.entrega");jdbc.execute("DROP FUNCTION lamontana.fallar_entrega_efectivo_test()");}
+            var result=delivery.cobrarEntregar(id,command,ADMIN);assertThat(result.aceptado()).isTrue();assertThat(result.vista().estadoPedido()).isEqualTo("CERRADO");assertThat(result.vista().saldo()).isEqualTo("0.00");assertThat(result.vista().reciboEfectivo().importe()).isEqualTo("155.00");assertThat(result.vista().reciboEfectivo().responsable()).isNotBlank();assertThat(result.vista().reciboEfectivo().fecha()).isNotNull();
+            assertThat(delivery.cobrarEntregar(id,command,ADMIN).aceptado()).isTrue();assertThat(count(jdbc,"pago")).isEqualTo(before+1);assertThat(count(jdbc,"evento_financiero")).isEqualTo(events+2);
+            assertThat(delivery.consultar(id,ADMIN,true).reciboEfectivo()).isEqualTo(result.vista().reciboEfectivo());
+            var financial=payments.vista(p.cotizacion(),ADMIN,true);assertThat(financial.historial().stream().filter(e->e.referencia()!=null&&e.referencia().equals(result.vista().reciboEfectivo().referencia()))).hasSize(2);assertThat(financial.pedidoCerrado()).isTrue();
+            assertThatThrownBy(()->delivery.cobrarEntregar(id,new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(command.operacion(),version,code,"155.00","Otro receptor",null,true,true),ADMIN)).hasMessageContaining("otros datos");
+        }finally{limpiar(files);}
+    }
+
     @Test void ausenciaDomiciliariaConservaReservaCodigoYPermiteReintentoAuditable()throws Exception{
         Path files=Files.createTempDirectory("lamontana-ausencia-domicilio-");
         try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){

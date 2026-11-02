@@ -63,6 +63,7 @@ public class EntregaController {
  public record Validar(@NotNull UUID operacion,@Min(1) long version,@NotBlank @Pattern(regexp="[A-HJ-NP-Z2-9]{8}") String codigo){@Override public String toString(){return "Validar[código privado]";}}
  public record Entregar(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID validacion,@NotBlank @Size(max=140) String receptor,@Size(max=500) String motivo,boolean confirmado){}
  public record Recibir(@NotNull UUID operacion,@Min(1) long version,@NotBlank @Pattern(regexp="[A-HJ-NP-Z2-9]{8}") String codigo,@Size(max=140) String receptor,@Size(max=500) String motivo,boolean confirmado){@Override public String toString(){return "Recibir[código privado]";}}
+ public record CobrarEntregar(@NotNull UUID operacion,@Min(1) long version,@NotBlank @Pattern(regexp="[A-HJ-NP-Z2-9]{8}") String codigo,@NotBlank @Pattern(regexp="[0-9]{1,17}(\\.[0-9]{1,2})?") String importe,@Size(max=140) String receptor,@Size(max=300) String motivo,boolean confirmado,boolean cerrar){@Override public String toString(){return "CobrarEntregar[código privado]";}}
  public record Cerrar(@NotNull UUID operacion,@Min(1) long version,@Size(max=500) String motivo,boolean confirmado){}
  @GetMapping("/api/cliente/pedidos/{pedido}/entrega") public EntregaService.Vista cliente(@PathVariable UUID pedido,Principal p){return service.consultar(pedido,p.getName(),false);}
  @GetMapping("/api/operacion/pedidos/{pedido}/entrega") public EntregaService.Vista interno(@PathVariable UUID pedido,Principal p){return service.consultar(pedido,p.getName(),true);}
@@ -72,5 +73,6 @@ public class EntregaController {
  @PostMapping("/api/operacion/pedidos/{pedido}/entrega/validar") public EntregaService.Validacion validar(@PathVariable UUID pedido,@Valid @RequestBody Validar in,Principal p){return service.validar(pedido,in,p.getName());}
  @PostMapping("/api/operacion/pedidos/{pedido}/entrega/confirmar") public EntregaService.Vista entregar(@PathVariable UUID pedido,@Valid @RequestBody Entregar in,Principal p){return service.entregar(pedido,in,p.getName());}
  @PostMapping("/api/operacion/pedidos/{pedido}/entrega/recibir") public EntregaService.Validacion recibir(@PathVariable UUID pedido,@Valid @RequestBody Recibir in,Principal p){return service.recibir(pedido,in,p.getName());}
+ @PostMapping("/api/operacion/pedidos/{pedido}/entrega/cobrar-efectivo") public EntregaService.Validacion cobrarEntregar(@PathVariable UUID pedido,@Valid @RequestBody CobrarEntregar in,Principal p){return service.cobrarEntregar(pedido,in,p.getName());}
  @PostMapping("/api/operacion/pedidos/{pedido}/entrega/cerrar") public EntregaService.Vista cerrar(@PathVariable UUID pedido,@Valid @RequestBody Cerrar in,Principal p){return service.cerrar(pedido,in,p.getName());}
 }

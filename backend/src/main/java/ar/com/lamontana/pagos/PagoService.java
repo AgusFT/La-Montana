@@ -181,6 +181,16 @@ public class PagoService {
         cobro.movimiento(q.id(),in.operacion(),a.id(),"DESCARTAR",in.motivo());
         return leer(q,a,correo,interno);
     }
+    /** Exact outstanding cash at handover; uses the accepted and historical payment rules. */
+    @Transactional(readOnly=true) public String bloqueoSaldoEfectivo(UUID quote,String correo){
+        var a=actor(correo,true);var q=autorizar(quote,a,correo);organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");
+        if(!admite(q,MedioPago.EFECTIVO))return "Esta oferta no admite efectivo. Continuá desde cobros.";
+        BigDecimal pendiente=new BigDecimal(q.datos().total()).subtract(cobertura.acreditado(q.id(),List.of(MedioPago.values())));
+        if(pendiente.signum()<=0)return "El pedido ya no tiene saldo pendiente.";
+        var c=q.datos().condiciones();BigDecimal maximo=topeMedios(q,MedioPago.EFECTIVO,c.pagoPrevioRequerido(),c.senaRequerida(),c.mediosAcreditacion());
+        var actual=condicionesFinales(q);if(actual!=null)maximo=maximo.min(topeMedios(q,MedioPago.EFECTIVO,actual.pagoPrevioRequerido(),actual.senaRequerida(),actual.mediosAcreditacion()));
+        return maximo.compareTo(pendiente)<0?"El anticipo pendiente requiere otro medio. Resolvelo desde cobros antes de entregar.":null;
+    }
     @Transactional public Vista recibir(UUID quote,Recibir in,String correo){
         bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo);organizacion.exigirPermiso(correo,permiso(in.medio()));String hash=huella(quote,Boolean.TRUE.equals(in.aplicarAlPedido())?in:new RecepcionAnterior(in.operacion(),in.intento(),in.medio(),in.importe(),in.referencia(),in.recibidoEn(),in.verificado(),in.motivo()));
         if(replay(in.operacion(),"RECIBIR",hash,a))return leer(q,a,correo,true);

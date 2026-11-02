@@ -104,3 +104,11 @@ test('domicilio en viaje y cliente ausente muestran tareas propias de la entrega
  assert.equal(operationTask(home,['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'EN_VIAJE'})})).title,'Entrega a domicilio en curso');
  assert.equal(operationTask(home,['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'CLIENTE_AUSENTE'})})).title,'Entrega pendiente · cliente ausente');
 });
+
+test('el saldo en efectivo propone cobro y entrega juntos sin conceder permisos de caja',()=>{
+ const p=order('LISTO_PARA_ENTREGA',{reserva:{modalidad:'RETIRO_SUCURSAL'},retiroConTraslado:false});
+ const d=facts({delivery:delivery({estadoLogistico:'LISTO_RETIRO',cobroEfectivo:{importe:'155.00',habilitado:true,puedeCerrar:true}})});
+ const t=operationTask(p,['GESTIONAR_ENTREGAS','REGISTRAR_COBRO'],d);assert.equal(t.title,'Cobrar efectivo y entregar');assert.match(t.description,/cierre/);
+ assert.notEqual(operationTask(p,['GESTIONAR_ENTREGAS'],d).title,t.title);
+ d.delivery.cobroEfectivo.habilitado=false;assert.notEqual(operationTask(p,['GESTIONAR_ENTREGAS','REGISTRAR_COBRO'],d).title,t.title);
+});
