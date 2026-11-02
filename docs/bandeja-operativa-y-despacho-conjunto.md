@@ -35,6 +35,8 @@ Cada pedido conserva su evento con usuario, fecha, hora e identificador del grup
 
 El despacho conjunto actual registra el hecho físico sin vehículos ni choferes. La evolución mobile asignará esos lotes a una cuenta individual de repartidor y permitirá retirarlos, transportarlos y presentarlos en cada punto con pocos pasos, sin habilitar pedidos bloqueados por calidad. Véase [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
 
+**Decisión para la evolución rider:** al ejecutar **Poner en viaje**, Administración deberá elegir una cuenta de rider activa. Los pedidos seleccionados, el rider y `SALIR_REPARTO` formarán una única operación: crea el recorrido, registra la custodia y hace visibles sus paradas en Android. Preparar el grupo no exige rider. La salida no podrá confirmarse sin asignación, y una reasignación posterior deberá registrarse como traspaso explícito, no como edición del historial.
+
 ## Verificación
 
 - Frontend: TypeScript, build y 22 pruebas de estados operativos, tareas y proxy.

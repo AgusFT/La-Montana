@@ -285,7 +285,7 @@ private fun MobileHeader(section: String, onRefresh: () -> Unit, onLogout: () ->
 }
 
 @Composable
-private fun Brand(dark: Boolean, compact: Boolean = false) {
+internal fun Brand(dark: Boolean, compact: Boolean = false) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         MountainLogo(Modifier.size(if (compact) 38.dp else 58.dp))
         Spacer(Modifier.width(10.dp))

@@ -12,6 +12,7 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 - Las tarjetas del `@Preview` usan ejemplos exclusivamente visuales; al ejecutar la app, las bandejas y la búsqueda muestran la respuesta real del backend.
 - Recepción, detalle, entrega/cobro y finanzas se conectarán en el siguiente incremento.
 - Rider no se simula: la pantalla informa que falta la asignación individual de recorridos en el backend.
+- La composición `RiderRouteScreen` y su `@Preview` muestran el recorrido asignado, pedidos agrupados por parada y direcciones. La referencia exportada está en `docs/mockups/android-v0-rider-recorrido.svg`; todavía no consume recorridos reales.
 
 ## Abrir en Android Studio
 

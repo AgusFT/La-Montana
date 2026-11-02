@@ -75,20 +75,38 @@ El futuro módulo de rendiciones deberá definir por separado movimientos recibi
 
 El repartidor debe operar con **muy pocos toques**. Mostrar siempre: tarea principal, dirección o punto de destino, cantidad de bultos/pedidos, contacto necesario, estado físico y siguiente acción. Evitar formularios largos y observaciones obligatorias en operaciones normales.
 
-### Acceso y autorización — por desarrollar
+### Acceso y autorización — decisión confirmada
 
-Proponer una **identidad de repartidor propia**, gestionada por Administración, distinta de la cuenta única del punto. El acceso debe limitarse a entregas/repartos que tenga asignados y a la información mínima necesaria. La asignación y aceptación de rutas/lotes es un contrato por diseñar; no asumir que la bandeja global de pedidos equivale a un reparto asignado.
+Cada rider utiliza una **identidad individual de repartidor**, gestionada por Administración y distinta de la cuenta única del punto. El acceso se limita a recorridos activos o históricos que le fueron asignados y a la información mínima necesaria. Nunca ve la bandeja global ni elige pedidos por su cuenta.
+
+La asignación nace en la Web cuando el rider llega a la imprenta. Administración selecciona los pedidos preparados que le entrega físicamente, elige una cuenta de rider activa y confirma **Asignar e iniciar reparto**. Esa única operación debe crear el recorrido, asociar sus pedidos, registrar el traspaso de custodia y aplicar `SALIR_REPARTO` de forma atómica. Si un pedido cambió, perdió calidad, no está preparado o ya pertenece a otro recorrido, no se registra una salida parcial silenciosa.
 
 ### Flujo A: retiro del repartidor en casa matriz
 
 1. Administración prepara uno o varios pedidos, con calidad terminada y destino fijado.
-2. Administración los agrupa/asigna a un reparto o recorrido.
-3. El repartidor abre **Mis entregas / Por retirar**.
-4. Visualiza bultos, destinos, cantidades y pedidos identificados.
-5. Confirma **Retiré los pedidos** o **Iniciar reparto** cuando efectivamente los recibe.
-6. El servidor registra traspaso de custodia, responsable y fecha/hora; sólo los pedidos preparados/autorizados pueden salir.
+2. Cuando el rider está físicamente en la sucursal, Administración abre **Poner en viaje**.
+3. Selecciona únicamente los pedidos que le entrega y elige al rider.
+4. Revisa el manifiesto agrupado por punto, sucursal o domicilio.
+5. Confirma **Asignar e iniciar reparto**.
+6. El servidor crea un recorrido, registra lote, rider, pedidos, destinos, custodio, usuario administrativo y fecha/hora; sólo entonces aplica `SALIR_REPARTO`.
+7. El recorrido aparece inmediatamente en **Mi recorrido** del rider. No necesita otra aceptación para repetir el mismo hecho físico.
 
-**Pendiente:** definir el modelo de asignación de recorrido, bultos y custodia. Reutilizar en lo posible el despacho por lote que ya existe; no crear estados duplicados o hacer que el repartidor despache trabajos todavía no preparados.
+Preparar pedidos continúa siendo una acción independiente. La selección del rider es obligatoria únicamente al iniciar el viaje. Un recorrido puede combinar varios puntos y domicilios, pero todos sus pedidos quedan bajo la custodia de un único rider. Una reasignación posterior no edita silenciosamente el nombre: requiere un traspaso explícito y auditable.
+
+### Vista «Mi recorrido»
+
+La portada del rider muestra el recorrido activo, cantidad de pedidos, paradas totales/completadas y la próxima parada. Los destinos se agrupan para evitar repetir viajes: tres pedidos para Punto Caballito aparecen como una parada con tres bultos/pedidos, mientras que cada domicilio conserva su destinatario y dirección.
+
+Cada parada muestra:
+
+- tipo: punto de retiro, sucursal o domicilio;
+- nombre del destino y dirección completa;
+- cantidad y números de pedidos;
+- contacto mínimo cuando corresponde;
+- estado: pendiente, en destino, entregado al punto, cliente ausente o incidencia;
+- acción principal según el tipo de parada.
+
+El rider puede ordenar visualmente su recorrido, pero no incorporar pedidos ajenos. La optimización automática de ruta y los mapas permanecen fuera del MVP.
 
 ### Flujo B: traslado hacia un punto de retiro
 
@@ -152,8 +170,8 @@ La representación visual dependerá del destino (casa matriz, sucursal secundar
 | P0 | Mostrador: Para retirar | Punto | Buscar y entregar con código |
 | P0 | Detalle de pedido del punto | Punto | Ver trabajos, saldo y código ingresado |
 | P0 | Finanzas del punto | Punto | Consultar movimientos / registrar cobro permitido |
-| P0 | Mis repartos | Repartidor | Ver encargos asignados |
-| P0 | Retirar y salir | Repartidor | Confirmar toma de bultos y salida |
+| P0 | Mi recorrido | Repartidor | Ver paradas, pedidos y direcciones asignadas |
+| P0 | Asignar e iniciar reparto | Administrador Web | Elegir pedidos preparados y un rider presente |
 | P0 | Entrega en punto | Repartidor | Reportar entrega de bultos al punto |
 | P0 | Entrega a domicilio | Repartidor | Validar código y entregar / cliente ausente |
 | P1 | Histórico e incidencias | Punto / repartidor | Consultar hechos y comunicar excepción |
@@ -205,10 +223,9 @@ Los puntos 1–6 parten de funcionalidades web/backend existentes; los recorrido
 
 **A desarrollar y validar:**
 
-- Identidad, permisos, alta/baja y asignación de repartidores.
-- Qué objeto representa recorrido, paradas, bultos y traspaso de custodia.
-- Quién puede asignar/reasignar un reparto y si puede incluir varios puntos y domicilios.
-- Acción exacta de salida desde casa matriz y relación con el despacho por lote existente.
+- Alta/baja, permisos y suspensión de cuentas individuales de repartidores.
+- Persistencia de recorrido, paradas, pedidos, bultos y traspasos de custodia.
+- Reasignación excepcional de un recorrido ya iniciado y devolución física a la imprenta.
 - Protocolo de confirmación de llegada por repartidor y recepción por punto, sin doble transición.
 - Cobro a domicilio por repartidor y su posible liquidación: **no habilitado por omisión**.
 - Rendiciones del punto y definición de «monto que debe a la imprenta»: separar efectivo recibido, pagos digitales, transferencias rendidas, ajustes y conciliación, sin asumir comisiones.
@@ -233,4 +250,8 @@ No convertir estos temas pendientes en comportamiento «implementado» ni invent
 La rama `android` inicia la aplicación nativa con Jetpack Compose, sin registro ni administración de identidades. Incluye login contra el backend, lectura del perfil, enrutamiento seguro y la base responsive del mostrador del punto. Una cuenta marcada como punto abre **Por llegar / Para retirar / Entregados / Finanzas**; un empleado común no se convierte automáticamente en repartidor mientras no exista el contrato de asignación de recorridos.
 
 La primera referencia visual está en [`mockups/android-v0-login-punto.svg`](mockups/android-v0-login-punto.svg). Las tarjetas de pedidos que aparecen en el `@Preview` son únicamente demostrativas; no se presentan como datos recibidos del backend. El contexto y los contadores del punto sí utilizan el contrato real. Las listas, recepción, búsqueda, entrega/cobro y finanzas se conectarán de forma incremental sin crear reglas paralelas.
+
+La referencia del rider está en [`mockups/android-v0-rider-recorrido.svg`](mockups/android-v0-rider-recorrido.svg). Representa el resultado de la asignación administrativa aquí definida; los recorridos reales requieren todavía persistencia, API y permisos de rider en el backend.
+
+El contrato consolidado de la selección Web, la operación atómica de salida y la custodia se encuentra en [Asignación de riders y recorridos](asignacion-rider-y-recorridos.md).
 
