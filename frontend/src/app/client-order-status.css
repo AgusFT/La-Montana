@@ -1,0 +1,18 @@
+/* Customer order badges share semantic colours in light and dark appearance. */
+.client-state.client-order-state,
+.client-current-order header>.client-order-state{
+  display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;
+  max-width:100%;padding:6px 9px;border:1px solid var(--order-state-border);
+  border-radius:6px;background:var(--order-state-bg);color:var(--order-state-text);
+  font-size:11px;font-weight:600;line-height:1.5;white-space:normal;text-align:left;
+  --order-state-bg:var(--ui-soft,#edf0f4);--order-state-text:var(--ui-muted,#4d5a6a);--order-state-border:var(--ui-border,#d5dce4);
+}
+.client-order-state::before{content:"";width:6px;height:6px;border-radius:50%;flex:0 0 6px;background:currentColor}
+.client-state.client-order-state[data-tone=success]{--order-state-bg:var(--ui-success-bg,#e6f6ec);--order-state-text:var(--ui-success-text,#17643a);--order-state-border:var(--ui-success-border,#a9d8bb)}
+.client-state.client-order-state[data-tone=warning]{--order-state-bg:var(--ui-warning-bg,#fff4ce);--order-state-text:var(--ui-warning-text,#745200);--order-state-border:var(--ui-warning-border,#e9cd70)}
+.client-state.client-order-state[data-tone=info]{--order-state-bg:var(--ui-info-bg,#eaf1ff);--order-state-text:var(--ui-info-text,#154b9b);--order-state-border:var(--ui-info-border,#c4d6f5)}
+.client-state.client-order-state[data-tone=danger]{--order-state-bg:var(--ui-danger-bg,#ffeded);--order-state-text:var(--ui-danger-text,#962b32);--order-state-border:var(--ui-danger-border,#edb5b8)}
+.order-progress .order-progress-heading p:has(.client-order-state){padding:0;background:transparent}
+.order-progress[data-finished=true] .order-progress-steps>li[data-state=current]{border-color:var(--ui-success-border,#a9d8bb);background:var(--ui-success-bg,#e6f6ec)}
+.order-progress[data-finished=true] .order-progress-steps>li[data-state=current] .order-progress-marker{background:var(--ui-success-solid,#208041);color:#fff}
+.client-order-tracking .order-progress[data-finished=true] .order-progress-steps>li[aria-current=step]>div{background:var(--ui-success-bg,#e6f6ec)}

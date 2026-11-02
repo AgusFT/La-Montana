@@ -27,6 +27,12 @@ Cambian la composición y la presentación del cliente. Se reutilizan los compon
 - Comprobadas en ese banco la aparición de correcciones y propuestas de fecha, la presentación del código ficticio de retiro, la ausencia de cancelación cuando está listo para entregar, la conservación de borradores al plegar pagos y la recuperación de una cancelación con respuesta incierta.
 - El banco de interfaz no certifica una integración contra Docker/PostgreSQL/ClamAV. Los originales, movimientos financieros, códigos y decisiones de una instalación siguen bajo los controles reales del servidor.
 
+## Estados visibles para el cliente · 02/11/2026
+
+El inicio, la lista de pedidos, el encabezado del detalle y el seguimiento comparten la misma etiqueta y paleta. Los pendientes de revisión, pago, corrección y preparación se distinguen en amarillo; producción y traslado en azul; aprobado, disponible para retirar, entregado y finalizado en verde. Rechazado se muestra en rojo y cancelado en gris. Se conserva el texto, además del color, para identificar cada situación.
+
+El estado interno `CERRADO` se presenta al cliente como **Finalizado**, incluido el filtro y el historial. **Entregado** sigue identificando la entrega física; **Finalizado** indica que el proceso también completó su cierre administrativo. El seguimiento final utiliza verde. La disponibilidad para retirar depende de la llegada registrada, y no se deduce de la fecha prevista. Los colores respetan el modo claro y oscuro.
+
 ## Actualizar la instalación
 
 ```bash

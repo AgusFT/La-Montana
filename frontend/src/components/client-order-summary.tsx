@@ -3,7 +3,8 @@ import {useCallback,useEffect,useId,useState,type ReactNode} from "react";
 import {isPaymentView,type PaymentView} from "@/lib/payment-types";
 import {isFileView,type FileView} from "@/lib/file-types";
 import {date,money,modeLabels,quoteRead} from "@/lib/quote-types";
-import {orderState,type Order} from "@/lib/order-types";
+import type {Order} from "@/lib/order-types";
+import {clientOrderState} from "@/lib/order-tracking";
 import {ClientTransferDialog} from "./client-transfer-dialog";
 import {PaymentPanel} from "./payment-panel";
 import {OrderDelivery} from "./order-delivery";
@@ -86,6 +87,6 @@ export function ClientOrderSummary({order,actions,onSaved}:{order:Order;actions?
   {actions?actions(disabled=>payment?.puedeInformar?<button type="button" disabled={disabled} className="client-button payment-confirm" onClick={()=>{setPaymentMessage("");setTransferData(payment);}}>Informar transferencia</button>:null):payment?.puedeInformar&&<div className="client-order-action-buttons"><button type="button" className="client-button payment-confirm" onClick={()=>setTransferData(payment)}>Informar transferencia</button></div>}
   {paymentMessage&&<p role="status" className="client-success">{paymentMessage}</p>}
   {transferData&&<ClientTransferDialog data={transferData} onClose={()=>setTransferData(null)} onSaved={(view,message)=>{setPayment(view);setTransferData(null);setPaymentMessage(message);setReportRevision(v=>v+1);onSaved();}}/>}
-  <details className="workspace-panel client-order-history"><summary>Historial y condiciones del pedido</summary><a href={`/cliente/cotizaciones/${order.cotizacion}`}>Ver cotización y condiciones</a><ol className="order-timeline">{order.historial.map((event,index)=><li key={index}><strong>{orderState(event.estado,slot.modalidad)}</strong><span>{date(event.fecha)}</span><p>{event.motivo}</p></li>)}</ol></details>
+  <details className="workspace-panel client-order-history"><summary>Historial y condiciones del pedido</summary><a href={`/cliente/cotizaciones/${order.cotizacion}`}>Ver cotización y condiciones</a><ol className="order-timeline">{order.historial.map((event,index)=><li key={index}><strong>{clientOrderState(event.estado,slot.modalidad)}</strong><span>{date(event.fecha)}</span><p>{event.motivo}</p></li>)}</ol></details>
  </div>;
 }
