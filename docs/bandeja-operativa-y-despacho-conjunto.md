@@ -33,6 +33,8 @@ La selección abarca hasta 25 pedidos de la página actual. Cambiar tarea, filtr
 
 Cada pedido conserva su evento con usuario, fecha, hora e identificador del grupo. El despacho reutiliza la generación automática de su código y aviso al cliente. La migración V48 agrega la constancia inmutable del grupo; un reintento idéntico devuelve el resultado guardado y no repite movimientos. Reutilizar su UUID con otros pedidos o acción se rechaza. La interfaz conserva el mismo intento ante una respuesta incierta.
 
+El despacho conjunto actual registra el hecho físico sin vehículos ni choferes. La evolución mobile asignará esos lotes a una cuenta individual de repartidor y permitirá retirarlos, transportarlos y presentarlos en cada punto con pocos pasos, sin habilitar pedidos bloqueados por calidad. Véase [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
+
 ## Verificación
 
 - Frontend: TypeScript, build y 22 pruebas de estados operativos, tareas y proxy.

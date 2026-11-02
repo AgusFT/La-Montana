@@ -4,6 +4,8 @@ Cada punto tiene una única cuenta, vinculada permanentemente a ese punto y con 
 
 La cuenta ingresa por **Usuario o correo** y abre `/punto-retiro`. Tiene tres bandejas: **Por llegar**, **Para retirar** y **Entregados**, más **Finanzas del punto**. Sólo aparecen pedidos cuyo destino es ese punto; no accede a producción, configuración, clientes de otros destinos ni descarga de PDF. El servidor comprueba el alcance en cada consulta y operación, además de las restricciones de pantalla.
 
+La misma cuenta se utilizará en PC, tablet o teléfono. Para kioscos sin computadora, la vista responsive es la primera solución operativa y la futura aplicación Android reutilizará exactamente el mismo alcance: no se crea otra cuenta mobile ni se replica la lógica de negocio. El flujo conjunto con el repartidor se define en [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
+
 ## Recepción y entrega
 
 - **Por llegar** permite marcar hasta 25 pedidos de la página y registrar juntos su recepción física. La operación es atómica: un pedido inválido revierte el lote completo. Sólo recibe pedidos enviados a ese punto y en viaje.

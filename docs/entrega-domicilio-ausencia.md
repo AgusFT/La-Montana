@@ -26,3 +26,7 @@ Se validaron TypeScript, build de Next.js, 54 pruebas de interfaz/lógica y 8 pr
 También pasó la prueba integral de bandeja y despacho conjunto. Se normalizó la fecha del resultado de lote a microsegundos, la precisión persistida por PostgreSQL, para que la recuperación idempotente devuelva exactamente la misma fecha.
 
 La prueba heredada `ActivacionConfiguracionIntegrationTest.entregasTresModalidadesCodigoCierreYReinicio` falla con HTTP 400 al crear su cotización, antes de ejecutar entregas. Se reprodujo exactamente el mismo fallo sobre el código anterior al cambio (HEAD 588a358), usando en ambas corridas únicamente TCP para PostgreSQL embebido por la limitación de sockets Unix del entorno. Ese caso heredado queda pendiente de actualizar; no se cambiaron las cotizaciones ni se presenta como prueba aprobada.
+
+## Proyección mobile
+
+La futura experiencia del repartidor conserva este mismo contrato: cuenta individual, recorrido asignado, entrega domiciliaria con código y acción breve **Cliente ausente**, sin observación ni fotografía obligatorias. La recepción de lotes en puntos sin PC y la custodia durante el recorrido se detallan en [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
