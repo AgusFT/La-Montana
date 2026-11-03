@@ -72,6 +72,8 @@ public class CobroPedidoService {
         boolean revision=tipo.equals("DESCARTAR")||tipo.equals("INFORMAR")&&tardio||tipo.equals("APLICAR")&&cubierto&&f.cobertura()==null&&tardio&&!f.excepcion();
         jdbc.update("UPDATE lamontana.cobro_pedido SET intervencion_pendiente=intervencion_pendiente OR ?,cobertura_confirmada_en=CASE WHEN ? THEN coalesce(cobertura_confirmada_en,clock_timestamp()) ELSE NULL END,version=version+1 WHERE id_pedido=?",revision,cubierto,p);
         evento(p,operacion,actor,tipo,motivo);
+        if(tipo.equals("APLICAR")&&consulta("resolver_revision_comprobante",p))
+            evento(p,UUID.randomUUID(),actor,"APLICAR","Revisión del comprobante cerrada tras la acreditación en término.");
         if(tipo.equals("APLICAR"))aprobarCondicional(p,actor);
     }
     /** La presentación de evidencia exige resolución; ni el PDF ni su análisis acreditan dinero. */
