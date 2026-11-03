@@ -52,6 +52,9 @@ export function ClientDashboard(){
   useEffect(()=>{void load();},[]);
   const current=data?.current;
   return <>
+    <div className="client-dashboard-shortcut">
+      <a className="client-button secondary" href="/cliente/pedidos">Ver mis pedidos <span aria-hidden="true">→</span></a>
+    </div>
     {busy&&<p className="client-note" role="status">Consultando tus pedidos…</p>}
     {error&&<section className="client-card"><h2>Pedidos no disponibles</h2><p className="client-warning" role="alert">{error}</p><button className="client-button secondary" onClick={()=>void load()}>Volver a consultar</button></section>}
     {data&&<div className="client-dashboard">
@@ -67,7 +70,7 @@ export function ClientDashboard(){
       <aside className="client-dashboard-aside" aria-label="Resumen de la cuenta">
         <section className="client-card"><h2>Resumen general</h2><dl className="client-dashboard-counts"><div><dt>Pedidos realizados</dt><dd data-testid="customer-order-count">{data.orders.total}</dd></div><div><dt>Pedidos en curso</dt><dd data-testid="customer-active-count">{data.active}</dd></div></dl></section>
         <section className="client-card"><h2>Entrega del pedido actual</h2>{current?<><h3>{modeLabels[current.reserva.modalidad]}</h3><p>{current.reserva.nombre}</p><p>{current.reserva.fecha} · {current.reserva.apertura}–{current.reserva.cierre}<br/><span className="client-muted">{current.reserva.zonaHoraria}</span></p><a href={`/cliente/pedidos/${current.codigoPublico}#pedido-entrega`}>Consultar entrega <span aria-hidden="true">›</span></a></>:<p className="client-muted">Al confirmar un pedido, verás aquí su lugar y franja de entrega.</p>}</section>
-        <section className="client-card client-new-order"><span className="client-new-icon" aria-hidden="true">＋</span><h2>Crear nuevo pedido</h2><p>Prepará tus PDF y elegí las opciones de impresión.</p><a className="client-button" href="/cliente/cotizaciones/nueva">Crear pedido</a><a href="/cliente/cotizaciones">Continuar una cotización</a></section>
+        <section className="client-card client-new-order"><span className="client-new-icon" aria-hidden="true">＋</span><h2>Crear nuevo pedido</h2><p>Prepará tus PDF y elegí las opciones de impresión.</p><a className="client-button" href="/cliente/cotizaciones/nueva">Crear pedido</a></section>
       </aside>
     </div>}
   </>;

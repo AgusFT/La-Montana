@@ -26,5 +26,14 @@
 
 import {ClientPageFrame} from "@/components/client-page-frame";
 import {OrderListView} from "@/components/order-list";
+import {QuoteListView} from "@/components/quote-list";
 export const dynamic="force-dynamic";
-export default function OrdersPage(){return <ClientPageFrame title="Mis pedidos" description="Tus trabajos confirmados, su estado y la entrega reservada." active="orders"><OrderListView/></ClientPageFrame>;}
+export default async function OrdersPage({searchParams}:{searchParams:Promise<{vista?:string}>}){
+ const quotes=(await searchParams).vista==="cotizaciones";
+ return <ClientPageFrame title="Mis pedidos" description="Consultá el estado y la entrega de tus trabajos confirmados." active="orders">
+  {quotes?<><a className="client-orders-secondary" href="/cliente/pedidos">← Volver a pedidos confirmados</a><QuoteListView/></>:<>
+   <OrderListView/>
+   <a className="client-orders-secondary" href="/cliente/pedidos?vista=cotizaciones">Consultar cotizaciones guardadas →</a>
+  </>}
+ </ClientPageFrame>;
+}
