@@ -235,6 +235,49 @@ class DatosPruebaIntegrationTest {
             var route=get(session,"/api/rider/recorridos/activo",200);assertThat(route.get("pedidos").size()).isPositive();assertThat(route.get("asignadoPor").asString()).isNotBlank();
             for(var order:route.get("pedidos"))assertThat(jdbc.queryForObject("SELECT u.correo FROM lamontana.recorrido_reparto_pedido rp JOIN lamontana.recorrido_reparto rr USING(id_recorrido) JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor JOIN lamontana.pedido p USING(id_pedido) WHERE p.codigo_publico=?",String.class,UUID.fromString(order.get("codigoPublico").asString()))).isEqualTo(rider);
             get(login("punto.caballito.retiro"),"/api/rider/recorridos/activo",403);
+            assertThat(get(session,"/api/operacion/contexto",200).get("sucursales").size()).isZero();
+            var propio=login(ADMIN);
+            assertThat(sendPoint(propio,"POST","/api/admin/reparto/propio",Map.of(),200).get("aceptado").asBoolean()).isTrue();
+            assertThat(get(propio,"/api/auth/me",200).get("repartidor").asBoolean()).isTrue();
+            assertThat(get(propio,"/api/rider/recorridos",200).size()).isZero();
+            var pedido=route.get("pedidos").get(0);
+            sendPoint(propio,"POST","/api/rider/pedidos/"+pedido.get("codigoPublico").asString()+"/parada",
+                Map.of("operacion",UUID.randomUUID(),"version",pedido.get("version").asLong(),
+                    "accion","LLEGAR_PUNTO","confirmado",true),403);
+            var punto=jdbc.queryForMap("""
+                SELECT p.codigo_publico,p.version,u.correo FROM lamontana.pedido p
+                JOIN lamontana.reserva_entrega re USING(id_pedido)
+                JOIN lamontana.recorrido_reparto_pedido rp USING(id_pedido)
+                JOIN lamontana.recorrido_reparto rr USING(id_recorrido)
+                JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor
+                WHERE rr.estado='EN_REPARTO' AND re.estado='ACTIVA' AND re.modalidad='RETIRO_PUNTO_ENTREGA'
+                  AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE' LIMIT 1
+                """);
+            var pointId=punto.get("codigo_publico");
+            sendPoint(login((String)punto.get("correo")),"POST","/api/rider/pedidos/"+pointId+"/parada",
+                Map.of("operacion",UUID.randomUUID(),"version",punto.get("version"),"accion","LLEGAR_PUNTO","confirmado",true),200);
+            assertThat(jdbc.queryForObject("""
+                SELECT rp.presentado_en IS NOT NULL AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE'
+                FROM lamontana.recorrido_reparto_pedido rp JOIN lamontana.pedido p USING(id_pedido)
+                WHERE p.codigo_publico=?
+                """,Boolean.class,pointId)).isTrue();
+            var domicilio=jdbc.queryForMap("""
+                SELECT p.codigo_publico,p.version,u.correo rider,c.correo cliente FROM lamontana.pedido p
+                JOIN lamontana.reserva_entrega re USING(id_pedido)
+                JOIN lamontana.recorrido_reparto_pedido rp USING(id_pedido)
+                JOIN lamontana.recorrido_reparto rr USING(id_recorrido)
+                JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor
+                JOIN lamontana.usuario c ON c.id_usuario=p.id_usuario_creador
+                WHERE rr.estado='EN_REPARTO' AND re.estado='ACTIVA' AND re.modalidad='ENVIO_DOMICILIO'
+                  AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE'
+                  AND lamontana.saldo_entrega_cubierto(p.id_pedido) LIMIT 1
+                """);
+            UUID homeId=(UUID)domicilio.get("codigo_publico");
+            String codigo=app.getBean(EntregaService.class).consultar(homeId,(String)domicilio.get("cliente"),false).codigo().texto();
+            var entregado=sendPoint(login((String)domicilio.get("rider")),"POST","/api/rider/pedidos/"+homeId+"/entregar",
+                Map.of("operacion",UUID.randomUUID(),"version",domicilio.get("version"),"codigo",codigo,"confirmado",true),200);
+            assertThat(entregado.get("aceptado").asBoolean()).isTrue();
+            assertThat(jdbc.queryForObject("SELECT estado FROM lamontana.pedido WHERE codigo_publico=?",String.class,homeId)).isEqualTo("ENTREGADO");
             UUID branch=jdbc.queryForObject("SELECT codigo_publico FROM lamontana.sucursal WHERE estado='ACTIVA' ORDER BY id_sucursal LIMIT 1",UUID.class);
             var created=sendPoint(admin,"POST","/api/admin/empleados",new ar.com.lamontana.organizacion.EmpleadoController.NuevoEmpleado("Rider","Ensayo","rider.ensayo@prueba.local",CLAVE,List.of(branch),List.of(),true),201);
             assertThat(get(admin,"/api/operacion/repartidores",200).size()).isEqualTo(3);

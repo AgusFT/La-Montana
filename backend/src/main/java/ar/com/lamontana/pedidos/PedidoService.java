@@ -185,9 +185,25 @@ public class PedidoService {
   AND (SELECT count(*) FROM lamontana.validacion_archivo va WHERE va.id_archivo_almacenado=a.id_archivo_almacenado AND va.resultado='ACEPTADO')=2 ORDER BY ci.orden
   """,(r,n)->new Pdf(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getString(3),r.getString(4),r.getLong(5),r.getInt(6),r.getTimestamp(7)==null?null:r.getTimestamp(7).toInstant()),quote);}
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Detalle detalle(UUID codigo,String correo,boolean interno){
+  return detalle(codigo,correo,interno,false);
+ }
+ public Detalle detalleReparto(UUID codigo,String correo){
+  boolean asignado=Boolean.TRUE.equals(jdbc.queryForObject("""
+   SELECT EXISTS(SELECT 1 FROM lamontana.recorrido_reparto rr
+    JOIN lamontana.recorrido_reparto_pedido rp USING(id_recorrido)
+    JOIN lamontana.pedido p USING(id_pedido)
+    JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor
+    JOIN lamontana.cuenta_repartidor cr USING(id_usuario)
+    WHERE u.correo=? AND u.estado='ACTIVO' AND cr.activa
+      AND rr.estado='EN_REPARTO' AND p.codigo_publico=?)
+   """,Boolean.class,correo,codigo));
+  if(!asignado)throw error(HttpStatus.FORBIDDEN,"Este pedido no pertenece a tus recorridos activos.");
+  return detalle(codigo,correo,true,true);
+ }
+ private Detalle detalle(UUID codigo,String correo,boolean interno,boolean reparto){
   if(interno)ar.com.lamontana.puntos.CuentaPuntoAcceso.pedido(jdbc,correo,codigo);
   var a=actor(correo,interno);var rows=jdbc.query("SELECT p.*,c.codigo_publico AS cotizacion,c.oferta,s.codigo_publico AS sucursal,v.codigo_publico AS config,v.numero_version FROM lamontana.pedido_actual p JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.sucursal s ON s.id_sucursal=p.id_sucursal JOIN lamontana.configuracion_version v ON v.id_configuracion_version=p.id_configuracion_version WHERE p.codigo_publico=? AND (? OR p.id_usuario_creador=?)",(r,n)->{
-   if(interno&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,r.getObject("sucursal",UUID.class));long id=r.getLong("id_pedido");
+   if(interno&&!reparto&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,r.getObject("sucursal",UUID.class));long id=r.getLong("id_pedido");
    var reserva=jdbc.queryForObject("SELECT * FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",(rs,nr)->new Franja(Modalidad.valueOf(rs.getString("modalidad")),rs.getObject("destino_publico",UUID.class),rs.getObject("origen_publico",UUID.class),rs.getString("nombre_destino"),rs.getString("zona_horaria"),rs.getDate("fecha_local").toLocalDate(),rs.getTime("apertura").toLocalTime().toString(),rs.getTime("cierre").toLocalTime().toString(),rs.getTimestamp("franja_desde").toInstant(),rs.getTimestamp("franja_hasta").toInstant(),rs.getInt("cupo_confirmado"),0,rs.getBigDecimal("costo").toPlainString()),id);
    var files=jdbc.query("SELECT ci.codigo_publico,a.codigo_publico,a.nombre_original,a.sha256,a.cantidad_bytes,a.cantidad_paginas,CASE WHEN v.tipo_registro='VISTA_PREVIA' THEN v.fecha END FROM lamontana.pedido_archivo_actual i JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) JOIN lamontana.aceptacion_vista_previa v USING(id_aceptacion_vista_previa) WHERE i.id_pedido=? ORDER BY ci.orden",(rs,nr)->new Pdf(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),rs.getString(3),rs.getString(4),rs.getLong(5),rs.getInt(6),rs.getTimestamp(7)==null?null:rs.getTimestamp(7).toInstant()),id);
    var history=jdbc.query("SELECT estado_destino,CASE WHEN version_pedido IS NULL THEN motivo ELSE mensaje_cliente END,fecha,accion FROM lamontana.historial_estado_pedido WHERE id_pedido=? ORDER BY id_evento",(rs,nr)->new Evento(rs.getString(1),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getString(4)),id);
