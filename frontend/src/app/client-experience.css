@@ -72,3 +72,7 @@
 .client-app .guided-tour-actions button{padding:10px 14px;border:1px solid #1c60a0;border-radius:7px;background:#1c60a0;color:white;font:inherit;font-size:14px;cursor:pointer}.client-app .guided-tour-actions button.secondary{background:white;color:#1c60a0}.client-app .guided-tour-actions button:focus-visible,.client-app .guided-tour-help:focus-visible{outline:3px solid #f98024;outline-offset:3px}
 
 .client-prepared-preview{margin-top:20px}.client-prepared-preview>summary{padding:16px;background:white;border:1px solid #cedce9;border-radius:8px;color:#204e7a;cursor:pointer;font-weight:600}@media(max-width:900px){.client-app .client-sidebar::after{display:none}}
+
+.client-dashboard-tracking { margin:0 24px 12px;color:#fff; }
+.client-dashboard-tracking>summary { cursor:pointer;padding:8px 0;font-weight:600; }
+.client-app .client-current-criterion a { color:#fff; }

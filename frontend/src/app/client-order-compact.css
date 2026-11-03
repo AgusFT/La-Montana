@@ -81,3 +81,7 @@
 .client-order-action-buttons{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:14px;margin:10px 0}
 .client-order-action-buttons>.client-button{min-width:240px;padding:13px 24px}
 @media(max-width:600px){.client-order-action-buttons>.client-button{width:100%;min-width:0}}
+
+.client-tracking-disclosure>summary,.client-correction-disclosure>summary { cursor:pointer;padding:12px 16px;font-weight:600; }
+.client-correction-disclosure { margin-bottom:14px; }
+.client-correction-disclosure:not([open]) { border-left:3px solid var(--ui-warning-solid,#f98024); }
