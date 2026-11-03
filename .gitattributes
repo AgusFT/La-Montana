@@ -1,0 +1,3 @@
+# ClamAV parses these files inside a Linux container, including Windows checkouts.
+/infra/antivirus/clamd.conf text eol=lf
+/infra/antivirus/Dockerfile text eol=lf
