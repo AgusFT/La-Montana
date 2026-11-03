@@ -50,6 +50,7 @@ export default async function EmployeesPage() {
         : employees.length === 0 ? <p className="empty-note">Todavía no hay empleados registrados.</p>
           : employees.map(employee => <article className="branch-card" key={employee.codigoPublico}>
             <h3>{employee.nombre} {employee.apellido}</h3><p>{employee.correo} · {employee.estado === "ACTIVO" ? "Activo" : "Desactivado"}</p>
+            {employee.repartidor&&<p><span className="environment">Rider de reparto</span></p>}
             <p>Sucursales: {employee.sucursales.map(id => branches.find(branch => branch.codigoPublico === id)?.nombre ?? "Sucursal no disponible").join(", ") || "Sin asignaciones"}</p>
             <p>Permisos: {employee.permisos.map(permission => permissionLabels[permission]).join(", ") || "Sin permisos adicionales"}</p>
             <details className="edit-details"><summary>Editar datos, asignaciones y estado</summary><EmployeeForm key={`${employee.codigoPublico}-${employee.version}`} employee={employee} branches={branches} /></details>

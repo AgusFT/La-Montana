@@ -1,0 +1,3 @@
+.order-batch-rider{display:grid;gap:.45rem;font-weight:700}
+.order-batch-rider select{min-height:2.75rem;padding:.65rem;border:1px solid #9bb8db;border-radius:.5rem;background:#fff;color:#082a4c}
+.order-batch-rider small{font-weight:400;color:#5d6f84}

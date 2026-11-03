@@ -29,9 +29,16 @@ Cada movimiento conserva pedido, medio, importe, referencia, usuario responsable
 
 Clave ficticia por defecto: `MontanaPrueba2026!`. Si se configuró `TEST_USER_PASSWORD`, las cuentas nuevas usan ese valor. Las cuentas de muestra entran directamente a la bandeja; la obligación de cambiar contraseña se mantiene para las creadas manualmente desde administración.
 
-Una instalación nueva crea nueve cuentas: las siete anteriores y estos dos puntos. Conserva la simulación de seis meses: recepciones, cobros y entregas históricas de puntos quedan atribuidos a sus respectivas cuentas. Agrega tres ejemplos actuales por punto: efectivo pendiente disponible, transferencia pendiente disponible y un pedido en viaje para recibir. Son datos ficticios.
+| Rider | Correo | Escenario |
+|---|---|---|
+| Rider Oeste · Martina Ruta | `rider.oeste@prueba.local` | Recorrido activo e historial de custodia |
+| Rider Centro · Nicolás Reparto | `rider.centro@prueba.local` | Segundo recorrido aislado y destinos propios |
 
-Actualizar una base que ya contiene el escenario de seis meses (versión 2) incorpora las cuentas y esos seis ejemplos una sola vez, sin borrar ni reatribuir movimientos históricos existentes. En esa actualización, los movimientos antiguos continúan atribuidos a quienes los registraron originalmente. El escenario pasa a versión 3; los siguientes reinicios no lo duplican. La base del escenario básico previo a los seis meses sigue requiriendo el reinicio explícito ya documentado.
+Los riders usan la misma clave ficticia. No acceden a la bandeja global: cada cuenta sólo consulta el recorrido asignado. La llegada al kiosco no reemplaza la confirmación de recepción realizada por la cuenta del punto.
+
+Una instalación nueva crea once cuentas: administrador, producción, caja, cuatro clientes, dos puntos y dos riders. Conserva seis meses de recepciones, cobros, entregas y recorridos; agrega tres ejemplos actuales por punto y viajes activos visibles para los riders. Son datos ficticios.
+
+Actualizar una base de escenario 2 o 3 incorpora puntos, riders y recorridos una sola vez, sin borrar pedidos ni reatribuir sus movimientos originales. El escenario pasa a versión 4; los siguientes reinicios no duplican identidades, recorridos ni lotes.
 
 ```bash
 git switch pruebas

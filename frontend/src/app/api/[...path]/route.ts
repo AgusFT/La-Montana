@@ -45,6 +45,7 @@ const allowed: Record<string, readonly string[]> = {
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "operacion/impresoras": ["GET"], "operacion/puntos-entrega/disponibilidad": ["GET"],
   "operacion/entregas/lotes": ["POST"],
+  "operacion/repartidores": ["GET"],
   "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
   "auth/recuperacion/solicitar": ["POST"], "auth/recuperacion/confirmar": ["POST"],
 };

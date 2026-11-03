@@ -116,11 +116,11 @@ public class IdentidadService implements UserDetailsService {
 
     public Perfil perfil(String correo) {
         return jdbc.queryForObject("""
-                SELECT u.codigo_publico,u.nombre,u.apellido,u.correo,r.codigo,u.correo_verificado_en IS NOT NULL AS verificado,u.debe_cambiar_contrasena,EXISTS(SELECT 1 FROM lamontana.cuenta_punto cp WHERE cp.id_usuario=u.id_usuario) AS punto_retiro
+                SELECT u.codigo_publico,u.nombre,u.apellido,u.correo,r.codigo,u.correo_verificado_en IS NOT NULL AS verificado,u.debe_cambiar_contrasena,EXISTS(SELECT 1 FROM lamontana.cuenta_punto cp WHERE cp.id_usuario=u.id_usuario) AS punto_retiro,EXISTS(SELECT 1 FROM lamontana.cuenta_repartidor cr WHERE cr.id_usuario=u.id_usuario AND cr.activa) AS repartidor
                 FROM lamontana.usuario u JOIN lamontana.rol r USING (id_rol)
                 WHERE lower(u.correo)=? AND u.estado='ACTIVO' AND r.activo
                 """, (rs, row) -> new Perfil(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"),
-                rs.getString("apellido"), rs.getString("correo"), rs.getString("codigo"),rs.getBoolean("verificado"),rs.getBoolean("debe_cambiar_contrasena"),rs.getBoolean("punto_retiro")), normalizar(correo));
+                rs.getString("apellido"), rs.getString("correo"), rs.getString("codigo"),rs.getBoolean("verificado"),rs.getBoolean("debe_cambiar_contrasena"),rs.getBoolean("punto_retiro"),rs.getBoolean("repartidor")), normalizar(correo));
     }
 
     public void registrarAcceso(String tipo, String correo) {
@@ -129,5 +129,5 @@ public class IdentidadService implements UserDetailsService {
 
     private String normalizar(String correo) { return correo == null ? "" : correo.strip().toLowerCase(Locale.ROOT); }
     public record EstadoInstalacion(boolean requierePropietario, boolean altaHabilitada) {}
-    public record Perfil(UUID codigoPublico, String nombre, String apellido, String correo, String rol, boolean correoVerificado, boolean debeCambiarContrasena,boolean puntoRetiro) {}
+    public record Perfil(UUID codigoPublico, String nombre, String apellido, String correo, String rol, boolean correoVerificado, boolean debeCambiarContrasena,boolean puntoRetiro,boolean repartidor) {}
 }

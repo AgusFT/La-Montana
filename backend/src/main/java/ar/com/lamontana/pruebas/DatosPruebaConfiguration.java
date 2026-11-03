@@ -30,12 +30,14 @@ public class DatosPruebaConfiguration {
             @Value("${lamontana.pruebas.clave:MontanaPrueba2026!}") String clave) {
         return args -> tx.executeWithoutResult(status -> {
             for(long lock:new long[]{764003,764001,764002,764004,764099})jdbc.execute("SELECT pg_advisory_xact_lock("+lock+")");
-            jdbc.execute("CREATE TABLE IF NOT EXISTS lamontana.entorno_prueba (unica boolean PRIMARY KEY CHECK(unica), cargado_en timestamptz NOT NULL DEFAULT clock_timestamp(), version_escenario integer NOT NULL DEFAULT 2)");
+            jdbc.execute("CREATE TABLE IF NOT EXISTS lamontana.entorno_prueba (unica boolean PRIMARY KEY CHECK(unica), cargado_en timestamptz NOT NULL DEFAULT clock_timestamp(), version_escenario integer NOT NULL DEFAULT 4)");
             jdbc.execute("ALTER TABLE lamontana.entorno_prueba ADD COLUMN IF NOT EXISTS version_escenario integer NOT NULL DEFAULT 1");
             var versiones=jdbc.queryForList("SELECT version_escenario FROM lamontana.entorno_prueba WHERE unica",Integer.class);
             if(!versiones.isEmpty()) {
-                if(versiones.get(0)<2)throw new IllegalStateException("El escenario de pruebas anterior está conservado. Para cargar seis meses de actividad, ejecutá ./infra/pruebas/reiniciar-datos.sh (borra sólo los datos ficticios del proyecto lamontana-pruebas).");
-                if(versiones.get(0)<3){cuentasPuntos(jdbc,encoder.encode(clave),LocalDate.now(ZONA).minusMonths(6).atStartOfDay(ZONA).toInstant());new PedidosPrueba(jdbc,operativa,precios,finanzas,archivos,encoder).jornadaPuntos();jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=3 WHERE unica");comprobarRestricciones(jdbc);}
+                int version=versiones.get(0);String hash=encoder.encode(clave);Instant comienzo=LocalDate.now(ZONA).minusMonths(6).atStartOfDay(ZONA).toInstant();
+                if(version<2)throw new IllegalStateException("El escenario de pruebas anterior está conservado. Para cargar seis meses de actividad, ejecutá ./infra/pruebas/reiniciar-datos.sh (borra sólo los datos ficticios del proyecto lamontana-pruebas).");
+                if(version<3){cuentasPuntos(jdbc,hash,comienzo);new PedidosPrueba(jdbc,operativa,precios,finanzas,archivos,encoder).jornadaPuntos();jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=3 WHERE unica");comprobarRestricciones(jdbc);}
+                if(version<4){new RecorridosPrueba(jdbc).cargar(hash,comienzo);jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=4 WHERE unica");comprobarRestricciones(jdbc);}
                 return;
             }
             if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.usuario)",Boolean.class)))
@@ -62,7 +64,8 @@ public class DatosPruebaConfiguration {
                     if(dia.getDayOfWeek().getValue()<=5&&dia.getDayOfMonth()%2==0)pedidos.historico(dia);
             }
             pedidos.jornada(hoy);pedidos.jornadaPuntos();
-            jdbc.update("INSERT INTO lamontana.entorno_prueba(unica,version_escenario) VALUES (true,3)");
+            new RecorridosPrueba(jdbc).cargar(encoder.encode(clave),inicio);
+            jdbc.update("INSERT INTO lamontana.entorno_prueba(unica,version_escenario) VALUES (true,4)");
             comprobarRestricciones(jdbc);
         });
     }
