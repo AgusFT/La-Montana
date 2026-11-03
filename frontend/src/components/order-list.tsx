@@ -1,17 +1,23 @@
 "use client";
 import {useEffect,useRef,useState} from 'react';
 import {quoteRead,money,date,modeLabels} from '@/lib/quote-types';
-import {isOrderList,orderStates,type OrderList} from '@/lib/order-types';
+import {isOrderList,type OrderList} from '@/lib/order-types';
 import {recentMovementLabel} from '@/lib/order-operational-status';
 import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {useNavigationGuard} from './navigation-boundary';
 import {OrderListFilters} from './order-list-filters';
 import {OrderOperationalBadge} from './order-operational-badge';
 import {ClientOrderBadge} from './client-order-badge';
-import {clientOrderState} from '@/lib/order-tracking';
 import '@/app/client.css';
 import '@/app/order-operations-list.css';
 import '@/app/rider-assignment.css';
+
+const customerViews=[
+ {value:'CURSO',label:'En curso',empty:'No tenés pedidos en preparación.'},
+ {value:'VIAJE',label:'En viaje',empty:'No tenés pedidos en viaje.'},
+ {value:'RETIRO',label:'Listos para retirar',empty:'No tenés pedidos listos para retirar.'},
+ {value:'HISTORIAL',label:'Historial',empty:'Todavía no hay pedidos en tu historial.'},
+];
 
 type GroupAction='PREPARAR_ENVIO'|'SALIR_REPARTO';
 type DispatchFilter=GroupAction|'SEGUIMIENTO'|'TODOS';
@@ -25,6 +31,7 @@ type Rider={codigoPublico:string;nombre:string;correo:string};
 function isRiders(value:unknown):value is Rider[]{return Array.isArray(value)&&value.every(r=>!!r&&typeof r==='object'&&typeof r.codigoPublico==='string'&&typeof r.nombre==='string'&&typeof r.correo==='string');}
 export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch?:string;globalAdmin?:boolean;initialState?:string}){
  const internal=!!branch||globalAdmin,requestId=useRef(0),running=useRef(false),dialog=useRef<HTMLDialogElement>(null);
+ const[customerView,setCustomerView]=useState('CURSO');
  const[state,setState]=useState(initialState),[sort,setSort]=useState(internal?'MOVIMIENTO_DESC':'CONFIRMADO_DESC');
  const[data,setData]=useState<OrderList|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const[dispatchFilter,setDispatchFilter]=useState<DispatchFilter>(globalAdmin?'PREPARAR_ENVIO':'TODOS');
@@ -38,11 +45,11 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
  useEffect(()=>setState(initialState),[initialState]);
  async function load(page=0){
   const current=++requestId.current;setBusy(true);setError('');setData(null);setSelected([]);
-  try{const value=await quoteRead(`${globalAdmin?'/api/admin/pedidos':branch?`/api/operacion/sucursales/${branch}/pedidos`:'/api/cliente/pedidos'}?pagina=${page}${state?`&estado=${state}`:''}${internal?`&orden=${sort}`:''}${dispatch?`&despacho=${dispatch}`:''}`,isOrderList);if(current===requestId.current)setData(value);}
+  try{const value=await quoteRead(`${globalAdmin?'/api/admin/pedidos':branch?`/api/operacion/sucursales/${branch}/pedidos`:'/api/cliente/pedidos'}?pagina=${page}${state?`&estado=${state}`:''}${internal?`&orden=${sort}`:''}${dispatch?`&despacho=${dispatch}`:''}${!internal?`&vista=${customerView}`:''}`,isOrderList);if(current===requestId.current)setData(value);}
   catch(e){if(current===requestId.current)setError(e instanceof Error?e.message:'No pudimos consultar los pedidos.');}
   finally{if(current===requestId.current)setBusy(false);}
  }
- useEffect(()=>{void load();return()=>{requestId.current++;};},[branch,globalAdmin,state,sort,dispatch]);
+ useEffect(()=>{void load();return()=>{requestId.current++;};},[branch,globalAdmin,state,sort,dispatch,customerView]);
  useEffect(()=>{if(open)dialog.current?.showModal();else dialog.current?.close();},[open]);
  const batching=deliveryQueue&&dispatch===groupAction&&data?.puedeGestionarEntregas;
  const eligible=data?.elementos.filter(p=>p.accionEntrega===groupAction&&Number.isSafeInteger(p.version))??[];
@@ -73,7 +80,14 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
   <h2>{globalAdmin?'Todos los pedidos de la imprenta':branch?'Pedidos de esta sucursal':'Mis pedidos'}</h2>
   <p>{internal?'Consultá qué necesita cada pedido y su último movimiento. Los despachos conjuntos están en Entregas pendientes.':'Pedidos confirmados con sus archivos y reserva.'}</p>
   {busy&&<p role="status">Consultando pedidos…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}{message&&<p role="status" className="client-success">{message}</p>}
-  {internal?<OrderListFilters state={state} busy={locked} onChange={setState} onRefresh={()=>void load(data?.pagina??0)}/>:<div className="client-actions"><label>Filtrar por estado <select aria-label="Filtrar por estado" value={state} disabled={locked} onChange={e=>setState(e.target.value)}><option value="">Todos los pedidos</option>{orderStates.map(s=><option key={s} value={s}>{clientOrderState(s)}</option>)}</select></label><button className="client-button secondary" disabled={locked} onClick={()=>void load(data?.pagina??0)}>Actualizar pedidos</button></div>}
+  {internal?<OrderListFilters state={state} busy={locked} onChange={setState} onRefresh={()=>void load(data?.pagina??0)}/>:<div className="client-order-views">
+   <div className="client-actions" role="group" aria-label="Vistas de mis pedidos">
+    {customerViews.map(({value,label})=><button key={value} type="button"
+     className={`client-button ${customerView===value?'':'secondary'}`} aria-pressed={customerView===value}
+     onClick={()=>{if(customerView!==value){setData(null);setCustomerView(value);}}}>{label}</button>)}
+   </div>
+   <button type="button" className="client-text-action" disabled={busy} onClick={()=>void load(data?.pagina??0)}>Actualizar pedidos</button>
+  </div>}
   {internal&&<label className="order-list-sort">Ordenar pedidos<select value={sort} disabled={locked} onChange={e=>setSort(e.target.value)}><option value="MOVIMIENTO_DESC">Último movimiento · más recientes primero</option><option value="MOVIMIENTO_ASC">Último movimiento · más antiguos primero</option><option value="CONFIRMADO_ASC">Confirmación · más antiguos primero</option><option value="CONFIRMADO_DESC">Confirmación · más recientes primero</option></select></label>}
   {deliveryQueue&&<section className="order-batch-bar" aria-label="Bandejas de despacho">
    <div><h3>Despacho y seguimiento</h3><p>Elegí el paso del reparto que querés consultar.</p></div>
@@ -84,7 +98,7 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
    </div>
    {batching&&<div className="order-batch-selection"><span>{selected.length} seleccionados · {data.total} disponibles en total</span><button type="button" className="client-button order-batch-confirm" disabled={locked||!selected.length} onClick={openGroup}>{groupAction==='SALIR_REPARTO'?'Despachar':'Preparar'} seleccionados ({selected.length})</button></div>}
   </section>}
-  {data?.total===0&&<p className="client-empty">No hay pedidos con este filtro.</p>}
+  {data?.total===0&&<p className="client-empty">{internal?"No hay pedidos con este filtro.":customerViews.find(view=>view.value===customerView)?.empty}</p>}
   {!!data?.total&&<><div className="client-table-wrap"><table className="client-table"><thead><tr>
    {batching&&<th><input type="checkbox" aria-label="Seleccionar todos los pedidos disponibles de esta página" checked={eligible.length>0&&selected.length===eligible.length} disabled={locked||!eligible.length} onChange={e=>setSelected(e.target.checked?eligible.map(p=>p.codigoPublico):[])}/></th>}
    <th>Pedido</th><th>{internal?'Situación actual':'Estado'}</th><th>{internal?'Destino de entrega':'Sucursal'}</th><th>Entrega</th><th>Confirmado</th>{internal&&<th>Último movimiento</th>}<th>Total</th><th>Acción</th>

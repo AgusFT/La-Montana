@@ -245,8 +245,19 @@ public class PedidoService {
     END
    END
    """:"NULL::text";
-  if(despacho!=null){
-   if(!interno||!"LISTO_PARA_ENTREGA".equals(estado))throw error(HttpStatus.BAD_REQUEST,"El filtro de despacho requiere Entregas pendientes.");
+  if(despacho!=null&&!interno){
+   String logistica="lamontana.estado_logistico(p.id_pedido)";
+   String finales="('ENTREGADO','CERRADO','CANCELADO','RECHAZADO')";
+   from+=switch(despacho){
+    case "RETIRO" -> " AND p.estado='LISTO_PARA_ENTREGA' AND "+logistica+" IN ('LISTO_RETIRO','DISPONIBLE_PUNTO')";
+    case "VIAJE" -> " AND p.estado='LISTO_PARA_ENTREGA' AND "+logistica+" IN ('EN_VIAJE','CLIENTE_AUSENTE')";
+    case "CURSO" -> " AND p.estado NOT IN "+finales+" AND (p.estado<>'LISTO_PARA_ENTREGA' OR "+logistica+" NOT IN ('LISTO_RETIRO','DISPONIBLE_PUNTO','EN_VIAJE','CLIENTE_AUSENTE'))";
+    case "HISTORIAL" -> " AND p.estado IN "+finales;
+    default -> throw error(HttpStatus.BAD_REQUEST,"Vista de pedidos inválida.");
+   };
+  }
+  if(despacho!=null&&interno){
+   if(!"LISTO_PARA_ENTREGA".equals(estado))throw error(HttpStatus.BAD_REQUEST,"El filtro de despacho requiere Entregas pendientes.");
    switch(despacho){
     case "PREPARAR_ENVIO","SALIR_REPARTO" -> {from+=" AND ("+accionEntrega+")=?";args.add(despacho);}
     case "SEGUIMIENTO" -> from+=" AND lamontana.estado_logistico(p.id_pedido) IN ('EN_VIAJE','DISPONIBLE_PUNTO','CLIENTE_AUSENTE','LISTO_RETIRO')";
