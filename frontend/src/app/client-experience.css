@@ -16,6 +16,8 @@
 }
 .client-app .client-sidebar nav>a.client-nav-create { margin-top:6px;border-color:#ffb77780;color:#ffcfaa; }
 .client-app .client-sidebar nav>a.client-nav-security { margin-top:12px;font-size:.83rem; }
+.client-order-views { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:18px 0; }
+.client-order-views .client-actions { margin:0; }
 .client-dashboard-shortcut { display:flex;justify-content:flex-end;margin:-10px 0 18px; }
 .client-orders-secondary { display:inline-block;margin:4px 0 12px;color:var(--ui-link,#245784);font-size:.9rem;text-underline-offset:3px; }
 @media(max-width:760px){
