@@ -1,6 +1,30 @@
 /* Identidad Cliente: MC-CLI-002 a 006. Alcance acotado: no modifica administración. */
 .client-app { --client-ink:#163653; --client-blue:#244f7d; --client-orange:#f98024; }
 .client-app .client-sidebar { background:linear-gradient(170deg,#214f79 0%,#173754 75%,#102b46 100%); }
+.client-app .client-sidebar nav { gap:6px;margin-top:32px; }
+.client-app .client-sidebar .client-nav-heading {
+ padding:6px 12px;color:#c5d9ee;font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+}
+.client-app .client-sidebar nav>a {
+ display:flex;align-items:center;gap:10px;min-height:44px;box-sizing:border-box;
+ padding:10px 12px;border:1px solid transparent;color:#eaf3fc;font-weight:600;
+}
+.client-app .client-sidebar nav>a svg { width:19px;height:19px;flex-shrink:0; }
+.client-app .client-sidebar nav>a:hover { background:#ffffff18; }
+.client-app .client-sidebar nav>a[aria-current=page] {
+ border-color:#ffffff30;background:#ffffff20;color:#fff;box-shadow:inset 3px 0 #ff982f;
+}
+.client-app .client-sidebar nav>a.client-nav-create { margin-top:6px;border-color:#ffb77780;color:#ffcfaa; }
+.client-app .client-sidebar nav>a.client-nav-security { margin-top:12px;font-size:.83rem; }
+.client-dashboard-shortcut { display:flex;justify-content:flex-end;margin:-10px 0 18px; }
+.client-orders-secondary { display:inline-block;margin:4px 0 12px;color:var(--ui-link,#245784);font-size:.9rem;text-underline-offset:3px; }
+@media(max-width:760px){
+ .client-app .client-sidebar nav { margin:0; }
+ .client-app .client-sidebar .client-nav-heading { display:none; }
+ .client-app .client-sidebar nav>a { white-space:nowrap;max-width:none; }
+ .client-app .client-sidebar nav>a.client-nav-create,.client-app .client-sidebar nav>a.client-nav-security { margin-top:0; }
+ .client-dashboard-shortcut { justify-content:flex-start; }
+}
 .client-app .client-sidebar::after { content:"";display:block;height:150px;margin-top:auto;background:linear-gradient(135deg,transparent 50%,#456683 50%) 0 0/65% 100%,linear-gradient(225deg,transparent 50%,#304f6a 50%) 100% 0/70% 100%;background-repeat:no-repeat;opacity:.75;pointer-events:none; }
 .client-app .client-title { position:relative;padding-bottom:20px;border-bottom:1px solid #d7e3ee; }
 .client-app .client-button:not(.secondary) { background:#f98024;border-color:#f98024;color:#fff; }
