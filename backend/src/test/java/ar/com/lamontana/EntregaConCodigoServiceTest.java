@@ -37,7 +37,13 @@ class EntregaConCodigoServiceTest {
  @Test void codigoIncorrectoNoEntregaYPreservaUnSoloIntento(){correct=false;var in=command();assertFalse(service.recibir(id,in,"operadora").aceptado());assertEquals(1,attempts);assertFalse(service.recibir(id,in,"operadora").aceptado());assertEquals(1,attempts);assertTrue(events.isEmpty());assertFalse(used);}
  @Test void saldoOLlegadaPendientesNoSeOmitenPorPresentarCodigo(){paid=false;assertThrows(ResponseStatusException.class,()->service.recibir(id,command(),"operadora"));paid=true;logistics="EN_VIAJE";assertThrows(ResponseStatusException.class,()->service.recibir(id,command(),"operadora"));assertTrue(events.isEmpty());assertFalse(validated);}
  @Test void permisoYConfirmacionSiguenSiendoNecesarios(){doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN)).when(org).exigirPermiso("operadora","GESTIONAR_ENTREGAS");assertThrows(ResponseStatusException.class,()->service.recibir(id,command(),"operadora"));doNothing().when(org).exigirPermiso("operadora","GESTIONAR_ENTREGAS");var in=command();assertThrows(ResponseStatusException.class,()->service.recibir(id,new EntregaController.Recibir(in.operacion(),4,in.codigo(),null,null,false),"operadora"));assertTrue(events.isEmpty());}
- @Test void despachoSinNotaEmiteAutomaticamenteConAuditoriaDelResponsable(){logistics="PREPARADO";service.mover(id,new EntregaController.Movimiento(UUID.randomUUID(),4,EntregaController.Accion.SALIR_REPARTO,null,true),"operadora");verify(codes).asegurar(7);assertEquals("SALIR_REPARTO",events.get(0)[9]);assertEquals("Operadora",events.get(0)[11]);assertFalse(((String)events.get(0)[5]).isBlank());}
+ @Test void salidaIndividualRequiereAsignarRiderDesdeDespacho(){
+  logistics="PREPARADO";
+  var command=new EntregaController.Movimiento(UUID.randomUUID(),4,EntregaController.Accion.SALIR_REPARTO,null,true);
+  assertEquals(409,assertThrows(ResponseStatusException.class,()->service.mover(id,command,"operadora")).getStatusCode().value());
+  assertTrue(events.isEmpty());
+  verifyNoInteractions(codes);
+ }
  @Test void consultaInternaNoDevuelveElTextoDelCodigo(){assertNull(service.consultar(id,"operadora",true).codigo().texto());}
  @Test void ausenciaYReintentoConservanCodigoReservaYAuditoriaSinEntregar(){
   mode=ar.com.lamontana.configuracion.EntregaConfiguracionController.Modalidad.ENVIO_DOMICILIO;logistics="EN_VIAJE";

@@ -43,6 +43,7 @@ export default async function OperationPage() {
   if (session.profile.rol === "CLIENTE") redirect("/cliente");
   if (session.profile.rol === "ADMIN_ADMIN") redirect("/administracion/pedidos");
   const context = await getOperationContext();
+  if(session.profile.repartidor&&context?.permisos.length===0)redirect("/reparto");
   return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={false} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={`Hola, ${session.profile.nombre}`} description="Consultá los pedidos, archivos y pagos de tus sucursales habilitadas.">
     <div className="owner-profile"><h2>{session.profile.nombre} {session.profile.apellido}</h2><p>{session.profile.correo}</p><span className="environment">{session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"}</span></div>
     {context === null ? <p className="form-message error-message" role="alert">No pudimos consultar tu acceso operativo. <a href="/operacion">Volver a intentar</a></p> : <>

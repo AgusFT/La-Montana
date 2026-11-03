@@ -31,7 +31,7 @@ El diálogo de salida conjunta incluye:
 
 Si una validación falla, no se crea el recorrido ni se pone en viaje ningún pedido. Un reintento con el mismo UUID recupera el resultado original y no duplica recorrido, códigos ni movimientos.
 
-## Experiencia Android del rider
+## Experiencia del rider${added}### Android
 
 Al iniciar sesión, el rider ve exclusivamente:
 

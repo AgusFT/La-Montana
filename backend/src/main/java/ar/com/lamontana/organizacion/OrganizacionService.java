@@ -236,10 +236,14 @@ public class OrganizacionService {
             boolean cobros=Boolean.TRUE.equals(jdbc.queryForObject("SELECT cobros AND activa FROM lamontana.cuenta_punto WHERE id_punto_entrega=?",Boolean.class,punto));
             return new Contexto(jdbc.query("SELECT DISTINCT s.* FROM lamontana.sucursal s JOIN lamontana.pedido_actual p USING(id_sucursal) JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.punto_entrega pt ON pt.codigo_publico=r.destino_publico WHERE pt.id_punto_entrega=? AND s.estado='ACTIVA' AND r.modalidad='RETIRO_PUNTO_ENTREGA' AND r.estado IN ('ACTIVA','CUMPLIDA')",this::sucursal,punto),cobros?List.of("GESTIONAR_ENTREGAS","CERRAR_PEDIDOS","REGISTRAR_COBRO","ACREDITAR_PAGO"):List.of("GESTIONAR_ENTREGAS","CERRAR_PEDIDOS"));
         }
+        var asignados=permisos(id);
+        if(asignados.isEmpty()&&Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS(SELECT 1 FROM lamontana.cuenta_repartidor WHERE id_usuario=? AND activa)",Boolean.class,id)))
+            return new Contexto(List.of(),asignados);
         return new Contexto(jdbc.query("""
                 SELECT s.* FROM lamontana.sucursal s JOIN lamontana.usuario_sucursal us USING(id_sucursal)
                 WHERE us.id_usuario=? AND us.activa AND s.estado='ACTIVA' ORDER BY s.nombre,s.codigo
-                """, this::sucursal, id), permisos(id));
+                """, this::sucursal, id), asignados);
     }
 
     public Sucursal sucursalAutorizada(String actor, UUID codigo) {

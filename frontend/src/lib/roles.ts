@@ -34,6 +34,9 @@ export function roleHome(role: Role): string {
   return { ADMIN_ADMIN: "/administracion", CLIENTE: "/cliente", EMPLEADO: "/operacion" }[role];
 }
 
-export function sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean; puntoRetiro?:boolean }): string {
-  return profile.debeCambiarContrasena ? "/cuenta/seguridad" : profile.puntoRetiro?"/punto-retiro":roleHome(profile.rol);
+export function sessionHome(profile: { rol: Role; debeCambiarContrasena: boolean; puntoRetiro?:boolean; repartidor?:boolean }): string {
+  if(profile.debeCambiarContrasena)return "/cuenta/seguridad";
+  if(profile.puntoRetiro)return "/punto-retiro";
+  if(profile.rol==="EMPLEADO"&&profile.repartidor)return "/reparto";
+  return roleHome(profile.rol);
 }
