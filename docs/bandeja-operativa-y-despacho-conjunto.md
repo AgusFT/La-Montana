@@ -25,7 +25,7 @@ La gestión conjunta está en **Entregas pendientes**, sólo para personal con `
 
 1. Elegir **Preparar para despacho** y seleccionar pedidos completos con calidad aprobada.
 2. Confirmar el grupo de pedidos y sus destinos.
-3. Cuando salgan físicamente juntos, elegir **Poner en viaje**, seleccionar los pedidos preparados y confirmar su salida.
+3. Cuando salgan físicamente juntos, elegir **Poner en viaje**, seleccionar los pedidos preparados, elegir el rider activo que los retira y confirmar **Asignar e iniciar reparto**.
 
 La selección abarca hasta 25 pedidos de la página actual. Cambiar tarea, filtro, orden o página limpia la selección. Los retiros locales y pedidos ya en viaje o disponibles no se seleccionan para una nueva salida. No se implementan vehículos, choferes ni optimización de rutas: el grupo registra un hecho operativo conjunto, que puede reunir destinos distintos.
 
@@ -35,14 +35,14 @@ Cada pedido conserva su evento con usuario, fecha, hora e identificador del grup
 
 El despacho conjunto exige elegir una cuenta individual de rider activa. Una única transacción crea el recorrido, registra la custodia, vincula sus pedidos y los pone en viaje; si uno cambió de versión o perdió calidad, no modifica ninguno. El rider puede consultar sólo su manifiesto activo desde Android. Véase [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
 
-**Decisión para la evolución rider:** al ejecutar **Poner en viaje**, Administración deberá elegir una cuenta de rider activa. Los pedidos seleccionados, el rider y `SALIR_REPARTO` formarán una única operación: crea el recorrido, registra la custodia y hace visibles sus paradas en Android. Preparar el grupo no exige rider. La salida no podrá confirmarse sin asignación, y una reasignación posterior deberá registrarse como traspaso explícito, no como edición del historial.
+La asignación se administra desde **Empleados → Habilitar como rider** y es obligatoria al salir, incluso para un solo pedido. El detalle de un pedido preparado tiene un acceso directo a esta bandeja. Preparar el grupo no exige rider. Una reasignación posterior deberá registrarse como traspaso explícito, no como edición del historial.
 
 ## Verificación
 
 - Frontend: TypeScript, build y 22 pruebas de estados operativos, tareas y proxy.
 - Backend: compilación de todas las fuentes con Java 17 y dependencias del proyecto. Comprobación ejecutada del servicio de grupos con dobles JDBC: calidad, versión, permisos, estado, duplicados, auditoría e idempotencia.
 - Navegador con componentes reales y API simulada: colores/fechas, selección restringida, preparación de dos pedidos, recuperación de respuesta incierta y salida conjunta a `EN_VIAJE`.
-- Prueba PostgreSQL agregada: `DatosPruebaIntegrationTest#bandejaOperativaYDespachoConjuntoConservanCalidadVersionYAuditoria`. Incluye orden global, versiones, rechazo de producción/calidad pendiente, rollback por fallo de auditoría y códigos. **No ejecutada en este entorno**, que carece de Maven y PostgreSQL de pruebas; la descarga de herramientas no estuvo disponible.
+- Prueba PostgreSQL ejecutada y aprobada con PostgreSQL 18.6 y V52: `DatosPruebaIntegrationTest#bandejaOperativaYDespachoConjuntoConservanCalidadVersionYAuditoria`. Incluye orden global, versiones, rechazo de producción/calidad pendiente, salida imposible sin rider, asignación de recorrido, rollback por fallo de auditoría y códigos.
 
 Para ejecutar la prueba integral en un entorno con Maven:
 

@@ -18,7 +18,9 @@ No se asigna rider durante **Preparar para despacho**. Se exige al poner en viaj
 
 ## Experiencia administrativa
 
-El diálogo actual de salida conjunta agregará:
+Disponible en la rama `pruebas`: **Administración → Empleados** permite crear o editar una cuenta y marcar **Habilitar como rider**. Las fichas identifican a los riders de reparto. En **Pedidos → Entregas pendientes**, elegí **Poner en viaje**, seleccioná los pedidos preparados y abrí **Despachar seleccionados**. El detalle de un pedido preparado también incluye **Elegir rider e iniciar reparto**, que lleva a esa bandeja.
+
+El diálogo de salida conjunta incluye:
 
 - selector obligatorio **Rider que retira**;
 - sólo cuentas activas y habilitadas para reparto;
@@ -70,6 +72,18 @@ La migración V52 agrega:
 
 `POST /api/operacion/entregas/lotes` exige `repartidor` cuando la acción es `SALIR_REPARTO`; `GET /api/rider/recorridos/activo` devuelve sólo el manifiesto del rider autenticado. El escenario 4 de pruebas aporta dos cuentas, recorridos finalizados y viajes activos con custodia auditable.
 
+La salida individual por `/movimientos` tampoco permite omitir al rider: debe utilizarse la asignación conjunta, incluso para un solo pedido. El backend y la Web se publican en `pruebas`; la aplicación Android continúa en su rama `android`.
+
+## Actualizar una instalación de pruebas
+
+```sh
+git switch pruebas
+git pull --no-rebase --no-edit origin pruebas
+./infra/pruebas/iniciar.sh
+```
+
+La migración V52 y la actualización del escenario 3 al 4 se aplican al iniciar, sin borrar pedidos ni pagos. Se incorporan `rider.oeste@prueba.local` y `rider.centro@prueba.local`, con la contraseña de pruebas configurada. Los accesos también figuran en `CuentasPruebas.md` y `/pruebas`.
+
 ## Criterios de aceptación
 
 - No se puede poner un grupo en viaje sin rider.
@@ -80,3 +94,11 @@ La migración V52 agrega:
 - El punto, no el rider, confirma la recepción que habilita el retiro.
 - Cliente ausente no registra entrega, cobro ni devolución.
 - Todo cambio conserva actor, fecha, hora, estado y custodia anterior/posterior.
+
+## Verificación de la publicación en pruebas
+
+- Backend compilado con Java 17 y las dependencias del proyecto; frontend con TypeScript y build de producción.
+- PostgreSQL 18.6, con las 52 migraciones reales: aprobadas las pruebas de cuentas/aislamiento de riders, despacho conjunto transaccional y actualización idempotente del escenario existente conservando pedidos, pagos e historial.
+- El administrador consulta los dos riders de prueba, crea uno nuevo y lo desactiva por HTTP; el selector deja de ofrecer la cuenta desactivada. Clientes, puntos y riders sin permiso de despacho no pueden consultar la lista de repartidores.
+- Se rechaza salir sin rider por la operación conjunta y por la ruta individual. Se comprueban calidad, versiones, asignación del recorrido, código automático y recuperación del mismo intento sin duplicar movimientos.
+- Aprobadas 22 pruebas de tareas operativas y situaciones del pedido en el frontend.

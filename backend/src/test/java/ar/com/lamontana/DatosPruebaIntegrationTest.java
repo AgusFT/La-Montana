@@ -117,6 +117,9 @@ class DatosPruebaIntegrationTest {
             var entries=prepared.stream().map(p->new ar.com.lamontana.entregas.EntregaController.PedidoLote(p.codigoPublico(),p.version())).toList();
             long before=count(jdbc,"movimiento_entrega");
             UUID rider=jdbc.queryForObject("SELECT u.codigo_publico FROM lamontana.usuario u JOIN lamontana.cuenta_repartidor cr USING(id_usuario) WHERE u.estado='ACTIVO' AND cr.activa LIMIT 1",UUID.class);
+            assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,entries,null),ADMIN)).hasMessageContaining("rider");
+            assertThatThrownBy(()->delivery.mover(entries.get(0).pedido(),new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),entries.get(0).version(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,null,true),ADMIN)).hasMessageContaining("rider");
+            assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
             var invalid=new ArrayList<>(entries);var last=entries.get(1);invalid.set(1,new ar.com.lamontana.entregas.EntregaController.PedidoLote(last.pedido(),last.version()-1));
             assertThatThrownBy(()->delivery.moverLote(new ar.com.lamontana.entregas.EntregaController.MovimientoLote(UUID.randomUUID(),ar.com.lamontana.entregas.EntregaController.Accion.SALIR_REPARTO,invalid,rider),ADMIN)).hasMessageContaining("cambió");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
             var notReady=production.elementos().get(0);invalid.set(1,new ar.com.lamontana.entregas.EntregaController.PedidoLote(notReady.codigoPublico(),notReady.version()));
@@ -127,6 +130,8 @@ class DatosPruebaIntegrationTest {
             jdbc.execute("CREATE TRIGGER fallar_lote_test BEFORE INSERT ON lamontana.lote_movimiento_entrega FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_lote_test()");
             try{assertThatThrownBy(()->delivery.moverLote(command,ADMIN)).hasStackTraceContaining("fallo de auditoría de lote");assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);}finally{jdbc.execute("DROP TRIGGER fallar_lote_test ON lamontana.lote_movimiento_entrega");jdbc.execute("DROP FUNCTION lamontana.fallar_lote_test()");}
             var result=delivery.moverLote(command,ADMIN);assertThat(result.cantidad()).isEqualTo(2);assertThat(delivery.moverLote(command,ADMIN)).isEqualTo(result);assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before+2);
+            assertThat(result.repartidor().codigoPublico()).isEqualTo(rider);assertThat(result.recorrido()).isNotNull();
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.recorrido_reparto_pedido rp JOIN lamontana.recorrido_reparto r USING(id_recorrido) WHERE r.codigo_publico=?",Long.class,result.recorrido())).isEqualTo(2L);
             for(var entry:entries){var view=delivery.consultar(entry.pedido(),ADMIN,true);assertThat(view.estadoLogistico()).isEqualTo("EN_VIAJE");assertThat(view.codigo()).isNotNull();assertThat(view.historial().get(view.historial().size()-1).motivo()).contains(command.operacion().toString());}
             assertThat(jdbc.queryForObject("SELECT actor_nombre FROM lamontana.lote_movimiento_entrega WHERE id_operacion=?",String.class,command.operacion())).isNotBlank();
             assertThatThrownBy(()->delivery.moverLote(command,"cliente1@prueba.local")).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
@@ -224,9 +229,19 @@ class DatosPruebaIntegrationTest {
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.historial_estado_pedido h JOIN lamontana.cuenta_punto cp ON cp.id_usuario=h.id_actor WHERE h.accion IN ('LLEGAR_PUNTO','ENTREGAR')",Integer.class)).isPositive();
             String rider=jdbc.queryForObject("SELECT u.correo FROM lamontana.recorrido_reparto rr JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor WHERE rr.estado='EN_REPARTO' ORDER BY rr.fecha_asignacion DESC LIMIT 1",String.class);
             var session=login(rider);var profile=get(session,"/api/auth/me",200);assertThat(profile.get("repartidor").asBoolean()).isTrue();assertThat(profile.get("puntoRetiro").asBoolean()).isFalse();
+            var admin=login(ADMIN);var available=get(admin,"/api/operacion/repartidores",200);assertThat(available.size()).isEqualTo(2);
+            get(login("cliente1@prueba.local"),"/api/operacion/repartidores",403);get(login("punto.caballito.retiro"),"/api/operacion/repartidores",403);get(session,"/api/operacion/repartidores",403);
+            var employees=get(admin,"/api/admin/empleados",200);int enabled=0;for(var employee:employees)if(employee.get("repartidor").asBoolean())enabled++;assertThat(enabled).isEqualTo(2);
             var route=get(session,"/api/rider/recorridos/activo",200);assertThat(route.get("pedidos").size()).isPositive();assertThat(route.get("asignadoPor").asString()).isNotBlank();
             for(var order:route.get("pedidos"))assertThat(jdbc.queryForObject("SELECT u.correo FROM lamontana.recorrido_reparto_pedido rp JOIN lamontana.recorrido_reparto rr USING(id_recorrido) JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor JOIN lamontana.pedido p USING(id_pedido) WHERE p.codigo_publico=?",String.class,UUID.fromString(order.get("codigoPublico").asString()))).isEqualTo(rider);
             get(login("punto.caballito.retiro"),"/api/rider/recorridos/activo",403);
+            UUID branch=jdbc.queryForObject("SELECT codigo_publico FROM lamontana.sucursal WHERE estado='ACTIVA' ORDER BY id_sucursal LIMIT 1",UUID.class);
+            var created=sendPoint(admin,"POST","/api/admin/empleados",new ar.com.lamontana.organizacion.EmpleadoController.NuevoEmpleado("Rider","Ensayo","rider.ensayo@prueba.local",CLAVE,List.of(branch),List.of(),true),201);
+            assertThat(get(admin,"/api/operacion/repartidores",200).size()).isEqualTo(3);
+            var organization=app.getBean(ar.com.lamontana.organizacion.OrganizacionService.class);UUID code=UUID.fromString(created.get("codigoPublico").asString());
+            var employee=organization.empleados().stream().filter(e->e.codigoPublico().equals(code)).findFirst().orElseThrow();assertThat(employee.repartidor()).isTrue();
+            sendPoint(admin,"PUT","/api/admin/empleados/"+code,new ar.com.lamontana.organizacion.EmpleadoController.EdicionEmpleado(employee.nombre(),employee.apellido(),employee.correo(),"DESACTIVADO",employee.version(),employee.sucursales(),employee.permisos(),true),200);
+            assertThat(get(admin,"/api/operacion/repartidores",200).size()).isEqualTo(2);
         }finally{limpiar(files);}
     }
 
