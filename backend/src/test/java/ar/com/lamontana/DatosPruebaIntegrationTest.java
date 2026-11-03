@@ -361,6 +361,7 @@ class DatosPruebaIntegrationTest {
         var jdbc=app.getBean(JdbcTemplate.class);
         var caja=login("caja@prueba.local");var produccion=login("produccion@prueba.local");
         for(UUID sucursal:jdbc.queryForList("SELECT codigo_publico FROM lamontana.sucursal",UUID.class)) {
+            assertThat(get(admin,"/api/operacion/sucursales/"+sucursal+"/pagos",200).get("total").asInt()).isPositive();
             assertThat(get(caja,"/api/operacion/sucursales/"+sucursal+"/pagos",200).get("total").asInt()).isPositive();
             get(produccion,"/api/operacion/sucursales/"+sucursal+"/pedidos",200);
         }
