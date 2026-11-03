@@ -112,8 +112,14 @@ class DatosPruebaIntegrationTest {
             assertThat(ascending).isSortedAccordingTo(Comparator.comparing(p->p.ultimoMovimiento().fecha()));
             var ready=orders.listarGlobal(0,"LISTO_PARA_ENTREGA",ADMIN).elementos();
             var candidates=ready.stream().filter(p->p.accionEntrega()!=null).toList();assertThat(candidates).hasSizeGreaterThanOrEqualTo(2);
+            var porPreparar=orders.listarGlobal(0,"LISTO_PARA_ENTREGA","MOVIMIENTO_ASC","PREPARAR_ENVIO",ADMIN);
+            assertThat(porPreparar.elementos()).isNotEmpty().allMatch(p->"PREPARAR_ENVIO".equals(p.accionEntrega()));
+            var seguimiento=orders.listarGlobal(0,"LISTO_PARA_ENTREGA","MOVIMIENTO_ASC","SEGUIMIENTO",ADMIN);
+            assertThat(seguimiento.elementos()).isNotEmpty().allMatch(p->p.accionEntrega()==null);
             for(var p:candidates)if(p.accionEntrega().equals("PREPARAR_ENVIO"))delivery.mover(p.codigoPublico(),new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),p.version(),ar.com.lamontana.entregas.EntregaController.Accion.PREPARAR_ENVIO,null,true),ADMIN);
             var prepared=orders.listarGlobal(0,"LISTO_PARA_ENTREGA",ADMIN).elementos().stream().filter(p->"SALIR_REPARTO".equals(p.accionEntrega())).limit(2).toList();assertThat(prepared).hasSize(2);
+            var porDespachar=orders.listarGlobal(0,"LISTO_PARA_ENTREGA","MOVIMIENTO_ASC","SALIR_REPARTO",ADMIN);
+            assertThat(porDespachar.elementos()).hasSizeGreaterThanOrEqualTo(2).allMatch(p->"SALIR_REPARTO".equals(p.accionEntrega()));
             var entries=prepared.stream().map(p->new ar.com.lamontana.entregas.EntregaController.PedidoLote(p.codigoPublico(),p.version())).toList();
             long before=count(jdbc,"movimiento_entrega");
             UUID rider=jdbc.queryForObject("SELECT u.codigo_publico FROM lamontana.usuario u JOIN lamontana.cuenta_repartidor cr USING(id_usuario) WHERE u.estado='ACTIVO' AND cr.activa LIMIT 1",UUID.class);

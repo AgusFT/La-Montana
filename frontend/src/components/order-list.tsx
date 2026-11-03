@@ -14,29 +14,43 @@ import '@/app/order-operations-list.css';
 import '@/app/rider-assignment.css';
 
 type GroupAction='PREPARAR_ENVIO'|'SALIR_REPARTO';
+type DispatchFilter=GroupAction|'SEGUIMIENTO'|'TODOS';
+const dispatchFilters:{value:DispatchFilter;label:string}[]=[
+ {value:'PREPARAR_ENVIO',label:'1. Preparar para despacho'},
+ {value:'SALIR_REPARTO',label:'2. Poner en viaje'},
+ {value:'SEGUIMIENTO',label:'En viaje o en destino'},
+ {value:'TODOS',label:'Todos'},
+];
 type Rider={codigoPublico:string;nombre:string;correo:string};
 function isRiders(value:unknown):value is Rider[]{return Array.isArray(value)&&value.every(r=>!!r&&typeof r==='object'&&typeof r.codigoPublico==='string'&&typeof r.nombre==='string'&&typeof r.correo==='string');}
 export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch?:string;globalAdmin?:boolean;initialState?:string}){
  const internal=!!branch||globalAdmin,requestId=useRef(0),running=useRef(false),dialog=useRef<HTMLDialogElement>(null);
  const[state,setState]=useState(initialState),[sort,setSort]=useState(internal?'MOVIMIENTO_DESC':'CONFIRMADO_DESC');
  const[data,setData]=useState<OrderList|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- const[groupAction,setGroupAction]=useState<GroupAction>('PREPARAR_ENVIO'),[selected,setSelected]=useState<string[]>([]),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[uncertain,setUncertain]=useState(false),[groupError,setGroupError]=useState('');
+ const[dispatchFilter,setDispatchFilter]=useState<DispatchFilter>(globalAdmin?'PREPARAR_ENVIO':'TODOS');
+ const[selected,setSelected]=useState<string[]>([]),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[uncertain,setUncertain]=useState(false),[groupError,setGroupError]=useState('');
  const[riders,setRiders]=useState<Rider[]>([]),[ridersBusy,setRidersBusy]=useState(false),[selectedRider,setSelectedRider]=useState('');
  const command=useRef<string|null>(null),locked=busy||saving||uncertain;
+ const deliveryQueue=internal&&state==='LISTO_PARA_ENTREGA';
+ const dispatch=deliveryQueue&&dispatchFilter!=='TODOS'?dispatchFilter:null;
+ const groupAction:GroupAction=dispatchFilter==='SALIR_REPARTO'?'SALIR_REPARTO':'PREPARAR_ENVIO';
  useNavigationGuard({blocked:saving||uncertain});
  useEffect(()=>setState(initialState),[initialState]);
  async function load(page=0){
   const current=++requestId.current;setBusy(true);setError('');setData(null);setSelected([]);
-  try{const value=await quoteRead(`${globalAdmin?'/api/admin/pedidos':branch?`/api/operacion/sucursales/${branch}/pedidos`:'/api/cliente/pedidos'}?pagina=${page}${state?`&estado=${state}`:''}${internal?`&orden=${sort}`:''}`,isOrderList);if(current===requestId.current)setData(value);}
+  try{const value=await quoteRead(`${globalAdmin?'/api/admin/pedidos':branch?`/api/operacion/sucursales/${branch}/pedidos`:'/api/cliente/pedidos'}?pagina=${page}${state?`&estado=${state}`:''}${internal?`&orden=${sort}`:''}${dispatch?`&despacho=${dispatch}`:''}`,isOrderList);if(current===requestId.current)setData(value);}
   catch(e){if(current===requestId.current)setError(e instanceof Error?e.message:'No pudimos consultar los pedidos.');}
   finally{if(current===requestId.current)setBusy(false);}
  }
- useEffect(()=>{void load();return()=>{requestId.current++;};},[branch,globalAdmin,state,sort]);
+ useEffect(()=>{void load();return()=>{requestId.current++;};},[branch,globalAdmin,state,sort,dispatch]);
  useEffect(()=>{if(open)dialog.current?.showModal();else dialog.current?.close();},[open]);
- const batching=internal&&state==='LISTO_PARA_ENTREGA'&&data?.puedeGestionarEntregas;
+ const batching=deliveryQueue&&dispatch===groupAction&&data?.puedeGestionarEntregas;
  const eligible=data?.elementos.filter(p=>p.accionEntrega===groupAction&&Number.isSafeInteger(p.version))??[];
  const picked=data?.elementos.filter(p=>selected.includes(p.codigoPublico))??[];
- function chooseAction(action:GroupAction){setGroupAction(action);setSelected([]);setSelectedRider('');setMessage('');}
+ function chooseDispatchFilter(filter:DispatchFilter){
+  if(filter===dispatchFilter)return;
+  setDispatchFilter(filter);setData(null);setSelected([]);setSelectedRider('');setMessage('');
+ }
  async function openGroup(){command.current=null;setGroupError('');
   if(groupAction==='SALIR_REPARTO'){setRidersBusy(true);try{const available=await quoteRead('/api/operacion/repartidores',isRiders);setRiders(available);if(available.length===1)setSelectedRider(available[0].codigoPublico);}catch(e){setRiders([]);setGroupError(e instanceof Error?e.message:'No pudimos consultar los riders activos.');}finally{setRidersBusy(false);}}
   setOpen(true);
@@ -51,7 +65,7 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
    if(!result||typeof result!=='object'||!('cantidad' in result)||typeof result.cantidad!=='number')throw new Error('No pudimos comprobar el resultado.');
    const assigned=result&&typeof result==='object'&&'repartidor' in result&&result.repartidor&&typeof result.repartidor==='object'&&'nombre' in result.repartidor?String(result.repartidor.nombre):'';
    setMessage(`${result.cantidad} pedidos ${groupAction==='SALIR_REPARTO'?`asignados a ${assigned||'el rider'} y puestos en viaje`:'preparados para despachar'}. Se registraron tu usuario, fecha y hora en cada pedido.`);
-   command.current=null;setUncertain(false);setOpen(false);await load(data?.pagina??0);
+   command.current=null;setUncertain(false);setOpen(false);await load();
   }catch(e){const unknown=!(e instanceof MutationError)||e.uncertain;setUncertain(unknown);setGroupError(unknown?'No pudimos confirmar la respuesta. Recuperá el mismo intento para comprobar el grupo sin duplicarlo.':e.message);if(!unknown)command.current=null;}
   finally{running.current=false;setSaving(false);}
  }
@@ -61,7 +75,15 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
   {busy&&<p role="status">Consultando pedidos…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}{message&&<p role="status" className="client-success">{message}</p>}
   {internal?<OrderListFilters state={state} busy={locked} onChange={setState} onRefresh={()=>void load(data?.pagina??0)}/>:<div className="client-actions"><label>Filtrar por estado <select aria-label="Filtrar por estado" value={state} disabled={locked} onChange={e=>setState(e.target.value)}><option value="">Todos los pedidos</option>{orderStates.map(s=><option key={s} value={s}>{clientOrderState(s)}</option>)}</select></label><button className="client-button secondary" disabled={locked} onClick={()=>void load(data?.pagina??0)}>Actualizar pedidos</button></div>}
   {internal&&<label className="order-list-sort">Ordenar pedidos<select value={sort} disabled={locked} onChange={e=>setSort(e.target.value)}><option value="MOVIMIENTO_DESC">Último movimiento · más recientes primero</option><option value="MOVIMIENTO_ASC">Último movimiento · más antiguos primero</option><option value="CONFIRMADO_ASC">Confirmación · más antiguos primero</option><option value="CONFIRMADO_DESC">Confirmación · más recientes primero</option></select></label>}
-  {batching&&<section className="order-batch-bar" aria-label="Gestión conjunta de entregas"><div><h3>Preparar y despachar varios pedidos</h3><p>Elegí la tarea y seleccioná los pedidos del mismo reparto. Sólo se habilitan los que aprobaron calidad y están en el paso correspondiente.</p></div><div className="client-actions" role="group" aria-label="Tarea del grupo"><button type="button" className={`client-button ${groupAction==='PREPARAR_ENVIO'?'':'secondary'}`} aria-pressed={groupAction==='PREPARAR_ENVIO'} disabled={locked} onClick={()=>chooseAction('PREPARAR_ENVIO')}>1. Preparar para despacho</button><button type="button" className={`client-button ${groupAction==='SALIR_REPARTO'?'':'secondary'}`} aria-pressed={groupAction==='SALIR_REPARTO'} disabled={locked} onClick={()=>chooseAction('SALIR_REPARTO')}>2. Poner en viaje</button></div><div className="order-batch-selection"><span>{selected.length} seleccionados · {eligible.length} disponibles en esta página</span><button type="button" className="client-button order-batch-confirm" disabled={locked||!selected.length} onClick={openGroup}>{groupAction==='SALIR_REPARTO'?'Despachar':'Preparar'} seleccionados ({selected.length})</button></div></section>}
+  {deliveryQueue&&<section className="order-batch-bar" aria-label="Bandejas de despacho">
+   <div><h3>Despacho y seguimiento</h3><p>Elegí el paso del reparto que querés consultar.</p></div>
+   <div className="client-actions" role="group" aria-label="Filtrar entregas pendientes">
+    {dispatchFilters.map(({value,label})=><button key={value} type="button"
+     className={`client-button ${dispatchFilter===value?'':'secondary'}`} aria-pressed={dispatchFilter===value}
+     disabled={saving||uncertain} onClick={()=>chooseDispatchFilter(value)}>{label}</button>)}
+   </div>
+   {batching&&<div className="order-batch-selection"><span>{selected.length} seleccionados · {data.total} disponibles en total</span><button type="button" className="client-button order-batch-confirm" disabled={locked||!selected.length} onClick={openGroup}>{groupAction==='SALIR_REPARTO'?'Despachar':'Preparar'} seleccionados ({selected.length})</button></div>}
+  </section>}
   {data?.total===0&&<p className="client-empty">No hay pedidos con este filtro.</p>}
   {!!data?.total&&<><div className="client-table-wrap"><table className="client-table"><thead><tr>
    {batching&&<th><input type="checkbox" aria-label="Seleccionar todos los pedidos disponibles de esta página" checked={eligible.length>0&&selected.length===eligible.length} disabled={locked||!eligible.length} onChange={e=>setSelected(e.target.checked?eligible.map(p=>p.codigoPublico):[])}/></th>}
