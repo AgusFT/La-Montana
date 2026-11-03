@@ -22,7 +22,7 @@ export function ClientOrderSummary({order,actions,onSaved}:{order:Order;actions?
  const o=order.oferta,slot=order.reserva,selector=useId();
  const [selected,setSelected]=useState(""),[revision,setRevision]=useState(0);
  const [payment,setPayment]=useState<PaymentView|null>(null),[files,setFiles]=useState<FileView|null>(null),[paymentError,setPaymentError]=useState(false),[fileError,setFileError]=useState(false);
- const [transferData,setTransferData]=useState<PaymentView|null>(null),[paymentMessage,setPaymentMessage]=useState(""),[reportRevision,setReportRevision]=useState(0);
+ const [transferData,setTransferData]=useState<PaymentView|null>(null),[reportRevision,setReportRevision]=useState(0);
  const paymentChanged=useCallback(()=>setRevision(v=>v+1),[]);
  useEffect(()=>{
   let active=true;setPayment(null);setFiles(null);setPaymentError(false);setFileError(false);
@@ -49,6 +49,8 @@ export function ClientOrderSummary({order,actions,onSaved}:{order:Order;actions?
  const available=!!metadata&&!metadata.revocado&&["VALIDO","REQUIERE_COTIZACION"].includes(metadata.estado);
  const dateLabel=new Intl.DateTimeFormat("es-AR",{dateStyle:"medium",timeZone:slot.zonaHoraria}).format(new Date(slot.desde));
  const pendingPayment=order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado);
+ const pendingTransfer=payment?.intentos.some(i=>i.estado==="PENDIENTE");
+ const canReport=payment?.puedeInformar&&!pendingTransfer;
  return <div id="client-order-details" className="client-order-content">
   <OrderCorrections order={order} internal={false} financial onSaved={onSaved} contextual/>
   <div className="client-order-summary-grid" aria-label="Detalle de tu pedido">
@@ -84,9 +86,8 @@ export function ClientOrderSummary({order,actions,onSaved}:{order:Order;actions?
     <OrderReschedule order={order} internal={false} onSaved={onSaved} contextual/>
    </section>
   </div>
-  {actions?actions(disabled=>payment?.puedeInformar?<button type="button" disabled={disabled} className="client-button payment-confirm" onClick={()=>{setPaymentMessage("");setTransferData(payment);}}>Informar transferencia</button>:null):payment?.puedeInformar&&<div className="client-order-action-buttons"><button type="button" className="client-button payment-confirm" onClick={()=>setTransferData(payment)}>Informar transferencia</button></div>}
-  {paymentMessage&&<p role="status" className="client-success">{paymentMessage}</p>}
-  {transferData&&<ClientTransferDialog data={transferData} onClose={()=>setTransferData(null)} onSaved={(view,message)=>{setPayment(view);setTransferData(null);setPaymentMessage(message);setReportRevision(v=>v+1);onSaved();}}/>}
+  {actions?actions(disabled=>canReport?<button type="button" disabled={disabled} className="client-button payment-confirm" onClick={()=>setTransferData(payment)}>Informar transferencia</button>:null):canReport&&<div className="client-order-action-buttons"><button type="button" className="client-button payment-confirm" onClick={()=>setTransferData(payment)}>Informar transferencia</button></div>}
+  {transferData&&<ClientTransferDialog data={transferData} onClose={()=>setTransferData(null)} onSaved={view=>{setPayment(view);setTransferData(null);setReportRevision(v=>v+1);onSaved();}}/>}
   <details className="workspace-panel client-order-history"><summary>Historial y condiciones del pedido</summary><a href={`/cliente/cotizaciones/${order.cotizacion}`}>Ver cotización y condiciones</a><ol className="order-timeline">{order.historial.map((event,index)=><li key={index}><strong>{clientOrderState(event.estado,slot.modalidad)}</strong><span>{date(event.fecha)}</span><p>{event.motivo}</p></li>)}</ol></details>
  </div>;
 }
