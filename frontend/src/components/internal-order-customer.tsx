@@ -4,6 +4,12 @@ import {useRouter} from 'next/navigation';
 import {secureMutation} from '@/lib/secure-mutation';
 import {isPreparation} from '@/lib/prepared-work';
 import type {Branch} from '@/lib/organization-types';
+import styles from './internal-order-customer.module.css';
+
+const customerTypes = [
+ {value:'guest', label:'Invitado de mostrador', description:'Cargá el pedido con un nombre.'},
+ {value:'registered', label:'Cliente registrado', description:'Buscá su cuenta por correo.'},
+] as const;
 
 export function InternalOrderCustomer({branches,initialBranch}:{branches:Pick<Branch,'codigoPublico'|'nombre'>[];initialBranch:string}){
  const router=useRouter();
@@ -30,27 +36,29 @@ export function InternalOrderCustomer({branches,initialBranch}:{branches:Pick<Br
    router.push(prep.pedido?`/operacion/pedidos/${prep.pedido}`:`/operacion/preparaciones/${prep.codigoPublico}/trabajo`);
   }catch(e){setError(e instanceof Error?e.message:'No pudimos preparar el pedido.');setBusy(false);}
  }
- return <section className="client-card">
-  <h2>¿Para quién es el pedido?</h2>
-  <form className="client-form" onSubmit={submit}>
-   <fieldset disabled={busy}>
-    <legend>Tipo de cliente</legend>
-    <label className="client-check"><input type="radio" name="tipo" checked={kind==='guest'} onChange={()=>{setKind('guest');setError('');}}/> Invitado de mostrador</label>
-    <label className="client-check"><input type="radio" name="tipo" checked={kind==='registered'} onChange={()=>{setKind('registered');setError('');}}/> Cliente registrado</label>
+ return <section className={`admin-card ${styles.card}`}>
+  <h2 id="internal-order-customer-heading">¿Para quién es el pedido?</h2>
+  <form onSubmit={submit}>
+   <fieldset className={styles.choices} aria-labelledby="internal-order-customer-heading" disabled={busy}>
+    {customerTypes.map(({value,label,description})=><label key={value} className={styles.choice}>
+     <input type="radio" name="tipo" value={value} checked={kind===value} onChange={()=>{setKind(value);setError('');}}/>
+     <span><strong>{label}</strong><small>{description}</small></span>
+    </label>)}
    </fieldset>
-   {kind==='guest'?<>
-    <label>Nombre del invitado<input required maxLength={100} autoComplete="off" disabled={busy} value={name} onChange={e=>setName(e.target.value)}/></label>
-    <label>Sucursal que atiende<select required value={branch} disabled={busy} onChange={e=>setBranch(e.target.value)}>
-     <option value="">Elegí una sucursal</option>
-     {branches.map(b=><option key={b.codigoPublico} value={b.codigoPublico}>{b.nombre}</option>)}
-    </select></label>
-    <p>Alcanza con el nombre. El trabajo se entrega en esta sucursal.</p>
-   </>:<>
-    <label>Correo del cliente<input type="email" required maxLength={254} autoComplete="off" disabled={busy} value={email} onChange={e=>setEmail(e.target.value)}/></label>
-    <p>Al confirmar, el pedido aparecerá en la cuenta del cliente.</p>
-   </>}
+   <div className={`admin-form ${styles.fields}`}>
+    {kind==='guest'?<>
+     <label>Nombre del invitado<input required maxLength={100} autoComplete="off" disabled={busy} value={name} onChange={e=>setName(e.target.value)}/></label>
+     <label>Sucursal que atiende<select required value={branch} disabled={busy} onChange={e=>setBranch(e.target.value)}>
+      <option value="">Elegí una sucursal</option>
+      {branches.map(b=><option key={b.codigoPublico} value={b.codigoPublico}>{b.nombre}</option>)}
+     </select></label>
+    </>:<label>Correo del cliente<input type="email" required maxLength={254} autoComplete="off" disabled={busy} value={email} onChange={e=>setEmail(e.target.value)}/></label>}
+   </div>
+   <p className={styles.hint}>{kind==='guest'?'El trabajo se entrega en esta sucursal.':'Al confirmar, el pedido aparecerá en la cuenta del cliente.'}</p>
    {error&&<p className="client-warning" role="alert">{error}</p>}
-   <div className="client-actions"><button className="client-button" disabled={busy||kind==='guest'&&!branches.length}>{busy?'Preparando pedido…':'Continuar'}</button></div>
+   <div className={styles.actions}>
+    <button type="submit" className="admin-button" disabled={busy||kind==='guest'&&!branches.length}>{busy?'Preparando pedido…':'Continuar'}</button>
+   </div>
   </form>
  </section>;
 }

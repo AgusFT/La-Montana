@@ -1,0 +1,133 @@
+.card {
+  max-inline-size: 740px;
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.card h2 {
+  margin: 0 0 18px;
+  font-size: 18px;
+}
+
+.choices,
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.choices {
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--ui-border, #cbd8e5);
+  border-radius: 8px;
+  background: var(--ui-soft, #f8fafd);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.choice:hover,
+.choice:has(input:checked) {
+  border-color: var(--ui-link, #075bff);
+}
+
+.choice:has(input:checked) {
+  background: var(--ui-info-bg, #edf4ff);
+}
+
+.choice:has(input:focus-visible) {
+  outline: 2px solid var(--ui-focus, #075bff);
+  outline-offset: 2px;
+}
+
+.choice:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+.choice input {
+  flex: 0 0 18px;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--ui-link, #075bff);
+}
+
+.choice strong {
+  font-size: 14px;
+}
+
+.choice small,
+.hint {
+  color: var(--ui-muted, #536a82);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.choice small {
+  display: block;
+  margin-block-start: 3px;
+}
+
+.fields {
+  margin-block-start: 22px;
+  gap: 16px;
+}
+
+.fields > label:only-child {
+  grid-column: 1 / -1;
+  max-inline-size: 440px;
+}
+
+.fields label {
+  min-inline-size: 0;
+  font-size: 13px;
+}
+
+.fields label > :is(input, select) {
+  min-block-size: 44px;
+  padding-inline: 12px;
+  border-radius: 8px;
+  font-weight: 400;
+}
+
+.hint {
+  margin: 10px 0 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-start: 20px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--ui-border, #dfe8f1);
+}
+
+.actions button {
+  min-inline-size: 120px;
+  min-block-size: 44px;
+  font-size: 14px;
+}
+
+.actions button:focus-visible {
+  outline: 2px solid var(--ui-focus, #075bff);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .choices,
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .actions button {
+    inline-size: 100%;
+  }
+}
