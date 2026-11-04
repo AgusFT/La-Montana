@@ -112,3 +112,11 @@ test('el saldo en efectivo propone cobro y entrega juntos sin conceder permisos 
  assert.notEqual(operationTask(p,['GESTIONAR_ENTREGAS'],d).title,t.title);
  d.delivery.cobroEfectivo.habilitado=false;assert.notEqual(operationTask(p,['GESTIONAR_ENTREGAS','REGISTRAR_COBRO'],d).title,t.title);
 });
+
+test('administración deriva al responsable del punto aunque haya saldo en efectivo',()=>{
+ const point=order('LISTO_PARA_ENTREGA');
+ const data=facts({delivery:delivery({estadoLogistico:'DISPONIBLE_PUNTO',saldo:'500.00',cobroEfectivo:{habilitado:true}})});
+ const task=operationTask(point,['GESTIONAR_ENTREGAS','REGISTRAR_COBRO'],data);
+ assert.equal(task.title,'Disponible para retirar');
+ assert.match(task.description,/debe confirmarla el responsable del punto de retiro/);
+});

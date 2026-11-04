@@ -17,7 +17,7 @@ export function PaymentReceiptDialog({data,medio,intento,locked,busy,uncertain,e
   if(fecha&&(!Number.isFinite(fecha.getTime())||fecha.getTime()>Date.now())){(e.currentTarget.elements.namedItem("fecha") as HTMLInputElement).setCustomValidity("Indicá una fecha pasada válida.");e.currentTarget.reportValidity();return;}
   onConfirm({importe,medio,intento:intento??null,referencia:String(form.get("referencia")??"").trim(),motivo:String(form.get("motivo")??"").trim(),recibidoEn:fecha?.toISOString()??null,verificado:true,aplicarAlPedido:true});
  }
- return <dialog ref={dialog} className="payment-receipt-dialog" aria-labelledby={title} onCancel={e=>{e.preventDefault();if(!locked)onClose();}}>
+ return <dialog ref={dialog} closedby="any" className="payment-receipt-dialog" aria-labelledby={title} onCancel={e=>{e.preventDefault();if(!locked)onClose();}}>
   <form className="client-form" onSubmit={submit}><h2 id={title}>{medio==="EFECTIVO"?"Confirmar efectivo recibido":"Confirmar transferencia recibida"}</h2>
    <p>COT-{data.numero} · {data.cliente}</p>
    {error&&<p role="alert" className="client-warning">{error}</p>}

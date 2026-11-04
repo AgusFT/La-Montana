@@ -121,7 +121,7 @@ export function RiderDesk({enabled,admin}:{enabled:boolean;admin:boolean}){
         </section>;
       })}
     </>}
-    <dialog ref={dialog} className="payment-receipt-dialog" aria-labelledby="rider-action-title" onCancel={e=>{e.preventDefault();if(!busy)close();}}>
+    <dialog ref={dialog} closedby="any" className="payment-receipt-dialog" aria-labelledby="rider-action-title" onCancel={e=>{e.preventDefault();if(!busy)close();}}>
       {selection&&<form className="admin-form" onSubmit={confirm}>
         <h2 id="rider-action-title">{labels[selection.accion]}</h2>
         <p>PED-{selection.pedido.numero} · {selection.pedido.destino}</p>

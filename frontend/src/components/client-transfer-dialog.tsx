@@ -41,7 +41,7 @@ export function ClientTransferDialog({data,onClose,onSaved,onLockChange}:{data:P
   command.current=new ClientTransferCommand(data.cotizacion,importe,file);void execute();
  }
  const pendingEvidence="El comprobante quedó pendiente. Podés retomarlo desde los pagos.";
- return <dialog ref={dialog} className="payment-receipt-dialog client-transfer-dialog" aria-labelledby={title} onCancel={e=>{
+ return <dialog ref={dialog} closedby="any" className="payment-receipt-dialog client-transfer-dialog" aria-labelledby={title} onCancel={e=>{
   e.preventDefault();
   if(locked)return;
   if(confirmation)onSaved(confirmation.view);

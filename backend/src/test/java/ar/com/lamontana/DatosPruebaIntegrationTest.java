@@ -45,6 +45,17 @@ class DatosPruebaIntegrationTest {
             var foreign=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),"punto.palermo.retiro@prueba.local").pedidos().get(0);sendPoint(cab,"POST","/api/punto/recibir",new ar.com.lamontana.puntos.PuntoRetiroController.Recepcion(UUID.randomUUID(),List.of(new ar.com.lamontana.entregas.EntregaController.PedidoLote(foreign.pedido(),foreign.version()))),404);
             String customer=jdbc.queryForObject("SELECT u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.codigo_publico=?",String.class,cash.pedido());String code=delivery.consultar(cash.pedido(),customer,false).codigo().texto();
             var byCode=sendPoint(cab,"POST","/api/punto/pedidos/buscar",new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES",code,0),200);assertThat(byCode.get("total").asInt()).isEqualTo(1);assertThat(byCode.toString()).doesNotContain(code);
+            String operacionEntrega="/api/operacion/pedidos/"+cash.pedido()+"/entrega";
+            var vistaAdmin=get(admin,operacionEntrega,200);
+            assertThat(vistaAdmin.get("cobroEfectivo").isNull()).isTrue();
+            assertThat(vistaAdmin.get("bloqueosEntrega").toString()).contains("Punto Caballito");
+            long pagosAntes=count(jdbc,"pago"),validacionesAntes=count(jdbc,"validacion_codigo_entrega");
+            var cobroAdmin=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code,cash.saldo(),null,null,true,true);
+            assertThat(sendPoint(admin,"POST",operacionEntrega+"/cobrar-efectivo",cobroAdmin,403).toString()).contains("Punto Caballito");
+            var entregaAdmin=new ar.com.lamontana.entregas.EntregaController.Recibir(UUID.randomUUID(),cash.version(),code,null,null,true);
+            assertThat(sendPoint(admin,"POST",operacionEntrega+"/recibir",entregaAdmin,403).toString()).contains("Punto Caballito");
+            assertThat(count(jdbc,"pago")).isEqualTo(pagosAntes);
+            assertThat(count(jdbc,"validacion_codigo_entrega")).isEqualTo(validacionesAntes);
             var invalid=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code.equals("ZZZZZZZZ")?"YYYYYYYY":"ZZZZZZZZ",cash.saldo(),null,null,true,true);assertThat(sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",invalid,200).get("aceptado").asBoolean()).isFalse();
             var command=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code,cash.saldo(),null,null,true,true);long payments=count(jdbc,"pago");var done=sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",command,200);assertThat(done.get("vista").get("estadoPedido").asString()).isEqualTo("CERRADO");sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",command,200);assertThat(count(jdbc,"pago")).isEqualTo(payments+1);
             var transfer=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),alias).pedidos().stream().filter(o->o.medio().equals("TRANSFERENCIA")&&new BigDecimal(o.saldo()).signum()>0).findFirst().orElseThrow();

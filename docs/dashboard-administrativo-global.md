@@ -15,7 +15,7 @@ Actualización 30/10/2026: **Pedidos y tareas** muestra cuatro botones rápidos,
 Validación del ajuste: TypeScript/build y las dos pruebas del proxy administrativo aprobados. Componentes React reales con API simulada: cuatro botones, avanzado/correcciones, navegación del dashboard mediante router de ensayo, página 2 de producción y regreso a página 1 al cambiar de estado. A 320 px los botones se distribuyen en dos columnas sin desbordar la página. No se modifica la consulta del servidor, su alcance ni sus permisos; no hay migraciones.
 
 - Dashboard sin selector de sucursal, con conteos globales por estado. Los errores de consulta se muestran como no disponibles, nunca como cero.
-- Las filas muestran modalidad, destino persistido y situación logística. «Retiro con traslado» distingue la sucursal secundaria; no se presenta el origen productivo como destino.
+- Las filas muestran modalidad, destino persistido y situación logística. «Retiro en otra sucursal» indica que la imprenta traslada el pedido a la sucursal donde lo retira el cliente.
 - «Ver todos» abre `/administracion/pedidos?estado=...`, conservando el filtro de estado. El enlace general permite consultar también entregados, cerrados, rechazados y cancelados.
 - La bandeja global tiene paginación de 25 y filtros por estado. No se suman bandejas de sucursales en el navegador, evitando duplicados u omisiones.
 - Los enlaces «Ver pedido» siguen al detalle operativo existente: revisión, archivos, pagos, producción, correcciones, reprogramación y entrega, según sus permisos y condiciones.
