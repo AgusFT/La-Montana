@@ -101,9 +101,9 @@ public class PedidoService {
  public record Condiciones(CotizacionService.Condiciones cotizadas,EvaluadorFinanciero.Simulacion actuales,boolean revisionHumana){}
  public record Revision(UUID pedido,long version,UUID configuracion,long numeroConfiguracion,String huella,boolean habilitada,List<String> bloqueos,Condiciones condiciones,Franja franja,List<Pdf> archivos){}
  public record Evento(String estado,String motivo,Instant fecha,String accion,String actor){}
- public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro){}
+ public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro,String nombreInvitado){}
  public record MovimientoReciente(String accion,Instant fecha,String actor){}
- public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega){}
+ public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega,String nombreInvitado){}
  public record Pagina(List<Resumen> elementos,long total,int pagina,boolean puedeGestionarEntregas){}
  private record Actor(long id,String rol){}
 
@@ -124,7 +124,11 @@ public class PedidoService {
    minPreparacion=Math.max(minPreparacion,item.precio().minimoPreparacionMinutos());
    for(var servicio:c.catalogo().actual().servicios())if(servicio.servicio().equals(t.servicio())||t.terminaciones().contains(servicio.servicio()))minPreparacion=Math.max(minPreparacion,servicio.preparacionMinutos());
   }
-  Instant ahora=clock.instant();var estimacion=operativa.calcularEntrega(c,new SimularEntrega(b.version(),o.origenGlobal()&&o.modalidad()==Modalidad.RETIRO_SUCURSAL?o.entrega().destinoSucursal().sucursal():branch,o.modalidad(),ahora,o.punto(),o.direccion()==null?null:o.direccion().territorio()),minPreparacion);
+  Instant ahora=clock.instant();boolean mostrador=!o.origenGlobal()&&Boolean.TRUE.equals(jdbc.queryForObject("""
+   SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion ct JOIN lamontana.preparacion_cliente pc ON pc.id_preparacion=ct.id_preparacion_interna
+   WHERE ct.id_cotizacion=? AND pc.nombre_invitado IS NOT NULL)
+   """,Boolean.class,q.numero()));
+  var estimacion=operativa.calcularEntrega(c,new SimularEntrega(b.version(),o.origenGlobal()&&o.modalidad()==Modalidad.RETIRO_SUCURSAL?o.entrega().destinoSucursal().sucursal():branch,o.modalidad(),ahora,o.punto(),o.direccion()==null?null:o.direccion().territorio()),minPreparacion,mostrador);
   var franja=disponible(o,b.entrega(),estimacion,ahora,c.sucursales().stream().filter(s->s.codigoPublico().equals(o.origenGlobal()&&o.modalidad()==Modalidad.RETIRO_SUCURSAL?o.entrega().destinoSucursal().sucursal():branch)).findFirst().orElseThrow(),excluirPedido);
   var fin=financiero.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),new BigDecimal(o.total()),o.items().stream().mapToInt(x->x.precio().carillas()).sum());
   var condiciones=new Condiciones(o.condiciones(),fin,o.condiciones().revisionHumana()||fin.revisionHumana());
@@ -146,21 +150,22 @@ public class PedidoService {
  }
  private int ocupadas(Modalidad modo,UUID dest,UUID branch,EvaluadorFranjas.Ventana v,Long excluirPedido){return jdbc.queryForObject("SELECT lamontana.reservas_ocupadas(?,?,?,?::date,?::time,?::time,?,?,?)",Integer.class,modo.name(),dest,branch,v.fecha().toString(),v.apertura(),v.cierre(),Timestamp.from(v.desde()),Timestamp.from(v.hasta()),excluirPedido);}
  @Transactional public Detalle confirmar(UUID quote,PedidoController.Confirmar in,String correo){
-  bloquear();var a=actor(correo,false);return confirmar(cotizaciones.detalle(quote,correo),in,correo,a,a);
+  bloquear();var a=actor(correo,false);return confirmar(cotizaciones.detalle(quote,correo),in,correo,a.id(),a,false);
  }
- @Transactional public Detalle confirmarPreparado(CotizacionService.Detalle q,PedidoController.Confirmar in,String cliente,String operador){
-  bloquear();var propietario=actor(cliente,false);var autor=propietario;
-  if(operador!=null){
-   autor=actor(operador,true);
-   organizacion.exigirPermiso(operador,"CREAR_PEDIDOS");
-   organizacion.sucursalAutorizada(operador,q.oferta().sucursal().codigoPublico());
-  }
-  return confirmar(q,in,cliente,propietario,autor);
+ @Transactional public Detalle confirmarPreparado(CotizacionService.Detalle q,PedidoController.Confirmar in,
+   ar.com.lamontana.cotizaciones.PreparacionClienteStore.Datos preparacion,String correo){
+  bloquear();
+  if(preparacion.operador()==null)return confirmar(q,in,correo,preparacion.usuario(),actor(correo,false),false);
+  var autor=actor(correo,true);
+  organizacion.exigirPermiso(correo,"CREAR_PEDIDOS");
+  organizacion.sucursalAutorizada(correo,q.oferta().sucursal().codigoPublico());
+  if(autor.id()!=preparacion.actor())throw error(HttpStatus.FORBIDDEN,"El trabajo no pertenece a tu cuenta.");
+  return confirmar(q,in,correo,preparacion.usuario(),autor,true);
  }
- private Detalle confirmar(CotizacionService.Detalle q,PedidoController.Confirmar in,String correo,Actor propietario,Actor a){
+ private Detalle confirmar(CotizacionService.Detalle q,PedidoController.Confirmar in,String correo,long propietario,Actor a,boolean interno){
   UUID quote=q.codigoPublico();if(esCorreccion(quote))throw conflicto("Esta oferta pertenece a una corrección. Respondé desde el pedido existente; no crea otro pedido.");String command=huella(List.of(quote,in));
   var old=jdbc.query("SELECT p.codigo_publico,h.id_actor,h.huella FROM lamontana.historial_estado_pedido h JOIN lamontana.pedido p USING(id_pedido) WHERE h.id_operacion=?",(r,n)->new Object[]{r.getObject(1,UUID.class),r.getLong(2),r.getString(3)},in.operacion());
-  if(!old.isEmpty()){var r=old.get(0);if(a.id()!=(long)r[1]||!command.equals(r[2]))throw conflicto("La operación ya se utilizó con otros datos.");return detalle((UUID)r[0],correo,false);}
+  if(!old.isEmpty()){var r=old.get(0);if(a.id()!=(long)r[1]||!command.equals(r[2]))throw conflicto("La operación ya se utilizó con otros datos.");return detalle((UUID)r[0],correo,interno);}
   if(!in.condicionesAceptadas())throw error(HttpStatus.BAD_REQUEST,"Revisá y aceptá las condiciones finales.");
   var revision=evaluar(q);if(revision.pedido()!=null)throw conflicto("Esta cotización ya tiene un pedido. Consultá el resultado guardado.");
   if(!revision.habilitada())throw conflicto(String.join(" ",revision.bloqueos()));
@@ -180,14 +185,14 @@ public class PedidoService {
    FROM lamontana.cotizacion c WHERE c.codigo_publico=? RETURNING id_pedido
    """,Long.class,codigo,revision.configuracion(),estado,revision.condiciones().revisionHumana()?"HUMANA":"AUTOMATICA",Timestamp.from(now),aprobado?Timestamp.from(now):null,new BigDecimal(q.oferta().total()),json.writeValueAsString(revision.condiciones()),in.contacto()==null?null:in.contacto().receptor().strip(),in.contacto()==null?null:in.contacto().telefono().strip(),quote);
   for(var f:revision.archivos()){
-   ar.com.lamontana.archivos.RegistroEnvioPdf.registrar(jdbc,f.archivo(),propietario.id(),in.operacion(),f.sha256());
+   ar.com.lamontana.archivos.RegistroEnvioPdf.registrar(jdbc,f.archivo(),propietario,in.operacion(),f.sha256());
    jdbc.update("INSERT INTO lamontana.pedido_item(id_pedido,id_cotizacion_item,id_archivo_almacenado,id_aceptacion_vista_previa) SELECT ?,ci.id_cotizacion_item,a.id_archivo_almacenado,v.id_aceptacion_vista_previa FROM lamontana.cotizacion_item ci,lamontana.archivo_almacenado a JOIN lamontana.aceptacion_vista_previa v USING(id_archivo_almacenado) WHERE ci.codigo_publico=? AND a.codigo_publico=?",id,f.item(),f.archivo());
   }
   var f=revision.franja();jdbc.update("INSERT INTO lamontana.reserva_entrega(id_pedido,modalidad,destino_publico,origen_publico,nombre_destino,zona_horaria,fecha_local,apertura,cierre,franja_desde,franja_hasta,cupo_confirmado,costo) VALUES (?,?,?,?,?,?,?::date,?::time,?::time,?,?,?,?)",id,f.modalidad().name(),f.destino(),f.origen(),f.nombre(),f.zonaHoraria(),f.fecha().toString(),f.apertura(),f.cierre(),Timestamp.from(f.desde()),Timestamp.from(f.hasta()),f.cupoConfigurado(),new BigDecimal(f.costo()));
-  jdbc.update("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha) VALUES (?,?,?,?,?,?,?)",id,a.id(),in.operacion(),command,estado,!anticipoCubierto?"Pedido creado con PDF privado validado; pendiente de acreditar y aplicar la condición económica antes de aprobar y producir.":revision.condiciones().revisionHumana()?(a.id()==propietario.id()?"Pedido confirmado por el cliente; pendiente de revisión humana.":"Pedido creado desde la imprenta para el cliente; pendiente de revisión humana."):"Pedido confirmado; aprobado condicionalmente tras controles técnicos y económicos. Producción todavía no iniciada.",Timestamp.from(now));
+  jdbc.update("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha) VALUES (?,?,?,?,?,?,?)",id,a.id(),in.operacion(),command,estado,!anticipoCubierto?"Pedido creado con PDF privado validado; pendiente de acreditar y aplicar la condición económica antes de aprobar y producir.":revision.condiciones().revisionHumana()?(a.id()==propietario?"Pedido confirmado por el cliente; pendiente de revisión humana.":"Pedido creado desde la imprenta para el cliente; pendiente de revisión humana."):"Pedido confirmado; aprobado condicionalmente tras controles técnicos y económicos. Producción todavía no iniciada.",Timestamp.from(now));
   jdbc.update("UPDATE lamontana.cotizacion SET estado='CONFIRMADA',confirmada_en=?,id_configuracion_confirmacion=(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),version=version+1 WHERE codigo_publico=?",Timestamp.from(now),revision.configuracion(),quote);
   cobro.iniciar(id,revision.condiciones().actuales().politicaArchivos(),now);
-  return detalle(codigo,correo,false);
+  return detalle(codigo,correo,interno);
  }
  private List<Pdf> archivos(long quote){return jdbc.query("""
   SELECT ci.codigo_publico AS item,a.codigo_publico AS archivo,a.nombre_original,a.sha256,a.cantidad_bytes,a.cantidad_paginas,CASE WHEN v.tipo_registro='VISTA_PREVIA' THEN v.fecha END
@@ -215,7 +220,7 @@ public class PedidoService {
  }
  private Detalle detalle(UUID codigo,String correo,boolean interno,boolean reparto){
   if(interno)ar.com.lamontana.puntos.CuentaPuntoAcceso.pedido(jdbc,correo,codigo);
-  var a=actor(correo,interno);var rows=jdbc.query("SELECT p.*,c.codigo_publico AS cotizacion,c.oferta,s.codigo_publico AS sucursal,v.codigo_publico AS config,v.numero_version FROM lamontana.pedido_actual p JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.sucursal s ON s.id_sucursal=p.id_sucursal JOIN lamontana.configuracion_version v ON v.id_configuracion_version=p.id_configuracion_version WHERE p.codigo_publico=? AND (? OR p.id_usuario_creador=?)",(r,n)->{
+  var a=actor(correo,interno);var rows=jdbc.query("SELECT p.*,c.codigo_publico AS cotizacion,c.oferta,pc.nombre_invitado,s.codigo_publico AS sucursal,v.codigo_publico AS config,v.numero_version FROM lamontana.pedido_actual p JOIN lamontana.cotizacion c USING(id_cotizacion) LEFT JOIN lamontana.preparacion_cliente pc ON pc.id_preparacion=c.id_preparacion_interna JOIN lamontana.sucursal s ON s.id_sucursal=p.id_sucursal JOIN lamontana.configuracion_version v ON v.id_configuracion_version=p.id_configuracion_version WHERE p.codigo_publico=? AND (? OR p.id_usuario_creador=?)",(r,n)->{
    if(interno&&!reparto&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,r.getObject("sucursal",UUID.class));long id=r.getLong("id_pedido");
    var reserva=jdbc.queryForObject("SELECT * FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",(rs,nr)->new Franja(Modalidad.valueOf(rs.getString("modalidad")),rs.getObject("destino_publico",UUID.class),rs.getObject("origen_publico",UUID.class),rs.getString("nombre_destino"),rs.getString("zona_horaria"),rs.getDate("fecha_local").toLocalDate(),rs.getTime("apertura").toLocalTime().toString(),rs.getTime("cierre").toLocalTime().toString(),rs.getTimestamp("franja_desde").toInstant(),rs.getTimestamp("franja_hasta").toInstant(),rs.getInt("cupo_confirmado"),0,rs.getBigDecimal("costo").toPlainString()),id);
    var files=jdbc.query("SELECT ci.codigo_publico,a.codigo_publico,a.nombre_original,a.sha256,a.cantidad_bytes,a.cantidad_paginas,CASE WHEN v.tipo_registro='VISTA_PREVIA' THEN v.fecha END FROM lamontana.pedido_archivo_actual i JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) JOIN lamontana.aceptacion_vista_previa v USING(id_aceptacion_vista_previa) WHERE i.id_pedido=? ORDER BY ci.orden",(rs,nr)->new Pdf(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),rs.getString(3),rs.getString(4),rs.getLong(5),rs.getInt(6),rs.getTimestamp(7)==null?null:rs.getTimestamp(7).toInstant()),id);
@@ -227,7 +232,7 @@ public class PedidoService {
     WHERE h.id_pedido=? ORDER BY h.id_evento
     """,(rs,nr)->new Evento(rs.getString(1),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getString(4),rs.getString(5)),
       interno,r.getLong("id_usuario_creador"),id);
-   return new Detalle(codigo,id,r.getObject("cotizacion",UUID.class),r.getString("estado"),r.getTimestamp("confirmada_en").toInstant(),r.getTimestamp("aprobada_en")==null?null:r.getTimestamp("aprobada_en").toInstant(),r.getObject("config",UUID.class),r.getLong("numero_version"),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class),json.readValue(r.getString("condiciones_finales"),Condiciones.class),reserva,r.getString("receptor")==null?null:new PedidoController.Contacto(r.getString("receptor"),r.getString("telefono")),files,history,r.getLong("version"),jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",String.class,id),r.getTimestamp("finalizada_en")==null?null:r.getTimestamp("finalizada_en").toInstant(),jdbc.queryForObject("SELECT lamontana.estado_logistico(?)",String.class,id),Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.retiro_con_traslado(?)",Boolean.class,id)),cobro.vista(id,a.rol().equals("ADMIN_ADMIN")));
+   return new Detalle(codigo,id,r.getObject("cotizacion",UUID.class),r.getString("estado"),r.getTimestamp("confirmada_en").toInstant(),r.getTimestamp("aprobada_en")==null?null:r.getTimestamp("aprobada_en").toInstant(),r.getObject("config",UUID.class),r.getLong("numero_version"),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class),json.readValue(r.getString("condiciones_finales"),Condiciones.class),reserva,r.getString("receptor")==null?null:new PedidoController.Contacto(r.getString("receptor"),r.getString("telefono")),files,history,r.getLong("version"),jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",String.class,id),r.getTimestamp("finalizada_en")==null?null:r.getTimestamp("finalizada_en").toInstant(),jdbc.queryForObject("SELECT lamontana.estado_logistico(?)",String.class,id),Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.retiro_con_traslado(?)",Boolean.class,id)),cobro.vista(id,a.rol().equals("ADMIN_ADMIN")),r.getString("nombre_invitado"));
   },codigo,interno,a.id());if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pedido no está disponible en tu cuenta.");return rows.get(0);
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String correo){
@@ -286,6 +291,7 @@ public class PedidoService {
   }
   long count=jdbc.queryForObject("SELECT count(*)"+from,Long.class,args.toArray());args.add((long)pagina*25);
   String joins="""
+   LEFT JOIN lamontana.preparacion_cliente pc ON pc.id_preparacion=c.id_preparacion_interna
    LEFT JOIN LATERAL (SELECT h.accion,h.fecha,coalesce(h.actor_nombre,u.nombre||' '||u.apellido) AS actor_nombre,cc.resultado FROM lamontana.historial_estado_pedido h
     LEFT JOIN lamontana.usuario u ON u.id_usuario=h.id_actor
     LEFT JOIN lamontana.historial_trabajo_impresion ht ON ht.id_evento_pedido=h.id_evento
@@ -305,7 +311,7 @@ public class PedidoService {
     LEFT JOIN lamontana.control_calidad cc USING(id_trabajo_impresion) WHERE i.id_pedido=p.id_pedido) produccion ON true
    """;
   String select="""
-   SELECT p.codigo_publico,p.id_pedido,p.estado,p.confirmada_en,s.nombre,p.total,c.oferta->>'modalidad' AS modalidad,
+   SELECT p.codigo_publico,p.id_pedido,p.estado,p.confirmada_en,s.nombre,p.total,pc.nombre_invitado,c.oferta->>'modalidad' AS modalidad,
     lamontana.estado_logistico(p.id_pedido) AS logistica,
     (SELECT r.nombre_destino FROM lamontana.reserva_entrega r WHERE r.id_pedido=p.id_pedido ORDER BY r.id_reserva_entrega DESC LIMIT 1) AS destino,
     lamontana.retiro_con_traslado(p.id_pedido) AS traslado,p.version,h.accion,h.fecha,h.actor_nombre,h.resultado,
@@ -323,7 +329,7 @@ public class PedidoService {
    String movement=r.getString("accion");if(r.getString("resultado")!=null)movement+="_"+r.getString("resultado");
    var recent=new MovimientoReciente(movement,r.getTimestamp("fecha")==null?r.getTimestamp("confirmada_en").toInstant():r.getTimestamp("fecha").toInstant(),interno?r.getString("actor_nombre"):null);
    String action=r.getString("accion_entrega");
-   return new Resumen(r.getObject("codigo_publico",UUID.class),r.getLong("id_pedido"),state,r.getTimestamp("confirmada_en").toInstant(),r.getString("nombre"),r.getBigDecimal("total").toPlainString(),Modalidad.valueOf(r.getString("modalidad")),logistics,r.getString("destino"),r.getBoolean("traslado"),r.getLong("version"),situation,since,recent,action);
+   return new Resumen(r.getObject("codigo_publico",UUID.class),r.getLong("id_pedido"),state,r.getTimestamp("confirmada_en").toInstant(),r.getString("nombre"),r.getBigDecimal("total").toPlainString(),Modalidad.valueOf(r.getString("modalidad")),logistics,r.getString("destino"),r.getBoolean("traslado"),r.getLong("version"),situation,since,recent,action,interno?r.getString("nombre_invitado"):null);
   },args.toArray());
   return new Pagina(ids,count,pagina,gestiona);
  }

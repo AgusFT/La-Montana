@@ -28,7 +28,7 @@ public class PreparacionClienteService {
     public record Preferencias(@NotNull Modalidad modalidad,UUID destinoRetiro,UUID punto,@Valid CotizacionController.Direccion direccion,@NotNull MedioPago medioPago){}
     public record Cotizar(@NotNull UUID operacion,@Positive long version,@NotNull @Valid Preferencias preferencias){}
     public record Confirmar(@NotNull UUID operacion,@Positive long version,@NotNull UUID cotizacion,@NotBlank @Pattern(regexp="[a-f0-9]{64}") String huella,@AssertTrue boolean condicionesAceptadas,@Valid PedidoController.Contacto contacto){}
-    public record Vista(UUID codigoPublico,long version,String estado,List<ArchivoService.Archivo> archivos,List<Entrada> items,CotizacionService.Presupuesto presupuesto,Preferencias preferencias,UUID cotizacion,UUID pedido,Cliente cliente){}
+    public record Vista(UUID codigoPublico,long version,String estado,List<ArchivoService.Archivo> archivos,List<Entrada> items,CotizacionService.Presupuesto presupuesto,Preferencias preferencias,UUID cotizacion,UUID pedido,Cliente cliente,UUID sucursalMostrador){}
     public record Checkout(Vista preparacion,CotizacionService.Detalle cotizacion,PedidoService.Revision revision,String huella){}
     @Transactional public Vista abrir(String correo){return vista(store.abrir(correo),correo);}
     @Transactional public Vista abrirInterna(String correo,String correoCliente){
@@ -36,10 +36,18 @@ public class PreparacionClienteService {
         exigirMatriz(d,correo,cotizaciones.matriz(operativa.leer()));
         return vista(d,correo);
     }
+    @Transactional public Vista abrirInvitado(String correo,UUID operacion,String nombre,UUID sucursal){
+        var d=store.abrirInvitado(correo,operacion,nombre,sucursal);
+        if(d.pedido()==null){
+            var opciones=cotizaciones.opcionesPreparada(sucursal);
+            if(!opciones.disponible())throw conflicto(opciones.mensaje());
+        }
+        return vista(d,correo);
+    }
     @Transactional public CotizacionService.Opciones opciones(UUID codigo,String correo){
         var d=store.datos(codigo,correo,true);
-        var opciones=cotizaciones.opciones(d.cliente().correo());
-        if(opciones.casaMatriz()!=null)exigirMatriz(d,correo,opciones.casaMatriz().codigoPublico());
+        var opciones=cotizaciones.opcionesPreparada(d.sucursalMostrador());
+        if(d.sucursalMostrador()==null&&opciones.casaMatriz()!=null)exigirMatriz(d,correo,opciones.casaMatriz().codigoPublico());
         return opciones;
     }
     private void exigirMatriz(PreparacionClienteStore.Datos d,String correo,UUID matriz){
@@ -47,7 +55,7 @@ public class PreparacionClienteService {
     }
     @Transactional public Vista consultar(UUID codigo,String correo){return vista(store.datos(codigo,correo,false),correo);}
     private List<Entrada> entradas(String value){return Arrays.asList(store.mapper().readValue(value,Entrada[].class));}
-    private Vista vista(PreparacionClienteStore.Datos d,String correo){return new Vista(d.codigoPublico(),d.version(),d.estado(),archivos.lista(d.codigoPublico(),correo),entradas(d.items()),d.presupuesto()==null?null:store.mapper().readValue(d.presupuesto(),CotizacionService.Presupuesto.class),d.preferencias()==null?null:store.mapper().readValue(d.preferencias(),Preferencias.class),d.cotizacion(),d.pedido(),d.operador()==null?null:d.cliente());}
+    private Vista vista(PreparacionClienteStore.Datos d,String correo){return new Vista(d.codigoPublico(),d.version(),d.estado(),archivos.lista(d.codigoPublico(),correo),entradas(d.items()),d.presupuesto()==null?null:store.mapper().readValue(d.presupuesto(),CotizacionService.Presupuesto.class),d.preferencias()==null?null:store.mapper().readValue(d.preferencias(),Preferencias.class),d.cotizacion(),d.pedido(),d.operador()==null?null:d.cliente(),d.sucursalMostrador());}
     private void editable(PreparacionClienteStore.Datos d){if(!d.estado().equals("ABIERTA"))throw conflicto("El trabajo ya tiene un pedido. Consultá su seguimiento.");}
     private List<CotizacionController.Item> documentos(PreparacionClienteStore.Datos d,List<Entrada> entradas,String correo){
         if(archivos.lista(d.codigoPublico(),correo).size()!=entradas.size())throw conflicto("Incluí todos los PDF del trabajo o quitá los que no quieras imprimir.");
@@ -56,8 +64,8 @@ public class PreparacionClienteService {
     }
     @Transactional public Vista presupuestar(UUID codigo,Presupuestar in,String correo){
         store.bloquear();var d=store.datos(codigo,correo,false);if(store.previo(d,in.operacion(),"PRESUPUESTAR",in)!=null)return vista(d,correo);editable(d);store.version(d,in.version());
-        var budget=cotizaciones.presupuestar(in.configuracion(),in.revisionComercial(),documentos(d,in.items(),correo),d.cliente().correo());
-        if(d.operador()!=null)exigirMatriz(d,correo,cotizaciones.matriz(operativa.leer()));
+        var budget=cotizaciones.presupuestarPreparada(in.configuracion(),in.revisionComercial(),documentos(d,in.items(),correo),d.sucursalMostrador());
+        if(d.operador()!=null&&d.sucursalMostrador()==null)exigirMatriz(d,correo,cotizaciones.matriz(operativa.leer()));
         jdbc.update("UPDATE lamontana.preparacion_cliente SET items=?::jsonb,presupuesto=?::jsonb,preferencias=NULL,version=version+1,actualizada_en=clock_timestamp() WHERE id_preparacion=?",store.mapper().writeValueAsString(in.items()),store.mapper().writeValueAsString(budget),d.id());store.evento(d,in.operacion(),"PRESUPUESTAR",in,budget);return consultar(codigo,correo);
     }
     @Transactional public Checkout checkout(UUID codigo,String correo){store.bloquear();var d=store.datos(codigo,correo,false);return checkout(d,correo,d.cotizacion());}
@@ -70,11 +78,15 @@ public class PreparacionClienteService {
     @Transactional public Checkout cotizar(UUID codigo,Cotizar in,String correo){
         store.bloquear();var d=store.datos(codigo,correo,false);String previo=store.previo(d,in.operacion(),"COTIZAR",in);if(previo!=null){UUID previa=UUID.fromString(store.mapper().readTree(previo).get("cotizacion").asString());if(!Objects.equals(previa,d.cotizacion())||d.presupuesto()==null||d.preferencias()==null)throw conflicto("Esa cotización fue sustituida o el trabajo cambió. Recuperá el resumen actual.");return checkout(d,correo,previa);}editable(d);store.version(d,in.version());
         if(d.presupuesto()==null)throw conflicto("Revisá primero el presupuesto del trabajo.");
-        var budget=store.mapper().readValue(d.presupuesto(),CotizacionService.Presupuesto.class);var pref=in.preferencias();var contexto=operativa.leer();UUID matriz=cotizaciones.matriz(contexto);exigirMatriz(d,correo,matriz);
+        var budget=store.mapper().readValue(d.presupuesto(),CotizacionService.Presupuesto.class);var pref=in.preferencias();var contexto=operativa.leer();boolean mostrador=d.sucursalMostrador()!=null;
+        UUID origen=mostrador?d.sucursalMostrador():cotizaciones.matriz(contexto);
+        if(!mostrador)exigirMatriz(d,correo,origen);
+        if(mostrador&&(pref.modalidad()!=Modalidad.RETIRO_SUCURSAL||!origen.equals(pref.destinoRetiro())||pref.punto()!=null||pref.direccion()!=null))
+            throw error(HttpStatus.BAD_REQUEST,"El invitado retira el pedido en la sucursal que lo atiende.");
         if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()==null||pref.modalidad()!=Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()!=null)throw error(HttpStatus.BAD_REQUEST,"Elegí un destino de retiro sólo para esa modalidad.");
         if(d.preferencias()!=null&&store.mapper().readValue(d.preferencias(),Preferencias.class).equals(pref)&&d.cotizacion()!=null){var q=cotizaciones.detallePreparada(d.cotizacion(),d);if(q.estado().equals("VIGENTE")&&q.reemplazadaPor()==null&&Instant.now().isBefore(q.vigenteHasta())){store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(d,correo,q.codigoPublico());}}
         var entrada=entradas(d.items());var items=documentos(d,entrada,correo);
-        var crear=new CotizacionController.Crear(derivada(in.operacion(),"cotizacion"),budget.configuracion(),budget.revisionComercial(),matriz,items,pref.modalidad(),pref.punto(),pref.direccion(),pref.medioPago(),d.cotizacion(),pref.destinoRetiro(),true);
+        var crear=new CotizacionController.Crear(derivada(in.operacion(),"cotizacion"),budget.configuracion(),budget.revisionComercial(),origen,items,pref.modalidad(),pref.punto(),pref.direccion(),pref.medioPago(),d.cotizacion(),mostrador?null:pref.destinoRetiro(),!mostrador);
         var q=cotizaciones.crearPreparada(crear,d);
         for(int n=0;n<entrada.size();n++){
             UUID file=entrada.get(n).archivo(),item=q.oferta().items().get(n).codigoPublico();
@@ -83,12 +95,12 @@ public class PreparacionClienteService {
         jdbc.update("UPDATE lamontana.preparacion_cliente SET preferencias=?::jsonb,id_ultima_cotizacion=(SELECT id_cotizacion FROM lamontana.cotizacion WHERE codigo_publico=?),version=version+1,actualizada_en=clock_timestamp() WHERE id_preparacion=?",store.mapper().writeValueAsString(pref),q.codigoPublico(),d.id());store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(store.datos(codigo,correo,true),correo,q.codigoPublico());
     }
     @Transactional public PedidoService.Detalle confirmar(UUID codigo,Confirmar in,String correo){
-        store.bloquear();var d=store.datos(codigo,correo,false);var anterior=store.previo(d,in.operacion(),"CONFIRMAR",in);if(anterior!=null)return pedidos.detalle(UUID.fromString(store.mapper().readTree(anterior).get("pedido").asString()),d.cliente().correo(),false);
+        store.bloquear();var d=store.datos(codigo,correo,false);var anterior=store.previo(d,in.operacion(),"CONFIRMAR",in);if(anterior!=null)return pedidos.detalle(UUID.fromString(store.mapper().readTree(anterior).get("pedido").asString()),d.operador()==null?d.cliente().correo():correo,d.operador()!=null);
         editable(d);store.version(d,in.version());if(!in.condicionesAceptadas()||!Objects.equals(d.cotizacion(),in.cotizacion())||d.preferencias()==null||d.presupuesto()==null)throw conflicto("Revisá el resumen final vigente antes de confirmar.");
         var actual=checkout(d,correo,in.cotizacion());if(!Objects.equals(in.huella(),actual.huella()))throw conflicto("Cambiaron la entrega, los documentos o las condiciones. Revisá y aceptá el resumen actualizado.");
         var q=actual.cotizacion();if(q.aceptadaEn()==null)q=cotizaciones.aceptarPreparada(q.codigoPublico(),new CotizacionController.Decision(derivada(in.operacion(),"aceptacion"),q.version(),null),d);
         var r=pedidos.revisarPreparado(q);if(!r.habilitada())throw conflicto(String.join(" ",r.bloqueos()));if(!Objects.equals(in.huella(),firma(q,r)))throw conflicto("Las condiciones cambiaron durante la confirmación. Actualizá el resumen.");
-        var pedido=pedidos.confirmarPreparado(q,new PedidoController.Confirmar(derivada(in.operacion(),"pedido"),r.version(),r.huella(),true,in.contacto()),d.cliente().correo(),d.operador()==null?null:correo);
+        var pedido=pedidos.confirmarPreparado(q,new PedidoController.Confirmar(derivada(in.operacion(),"pedido"),r.version(),r.huella(),true,in.contacto()),d,correo);
         jdbc.update("UPDATE lamontana.preparacion_cliente SET estado='CONFIRMADA',id_pedido=?,version=version+1,actualizada_en=clock_timestamp() WHERE id_preparacion=?",pedido.numero(),d.id());store.evento(d,in.operacion(),"CONFIRMAR",in,Map.of("pedido",pedido.codigoPublico()));return pedido;
     }
     private UUID derivada(UUID operacion,String paso){return UUID.nameUUIDFromBytes((operacion+":"+paso).getBytes(StandardCharsets.UTF_8));}

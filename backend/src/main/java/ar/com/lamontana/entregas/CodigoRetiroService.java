@@ -18,7 +18,7 @@ public class CodigoRetiroService {
  /** Called only after the order has been authorized/read, in the same transaction as dispatch or quality. */
  @Transactional public void asegurar(long pedido){
   jdbc.execute("SELECT pg_advisory_xact_lock(764004)");
-  var rows=jdbc.query("SELECT r.id_reserva_entrega,u.correo,(SELECT id_actor FROM lamontana.historial_estado_pedido h WHERE h.id_pedido=p.id_pedido AND h.accion IN ('SALIR_REPARTO','CONTROLAR_CALIDAD') ORDER BY id_evento DESC LIMIT 1) AS actor FROM lamontana.pedido p JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.id_pedido=? AND p.estado='LISTO_PARA_ENTREGA' AND r.estado='ACTIVA' AND lamontana.estado_logistico(p.id_pedido) IN ('LISTO_RETIRO','EN_VIAJE','DISPONIBLE_PUNTO')",(r,n)->new Object[]{r.getLong(1),r.getString(2),r.getObject(3,Long.class)},pedido);
+  var rows=jdbc.query("SELECT r.id_reserva_entrega,d.correo,(SELECT id_actor FROM lamontana.historial_estado_pedido h WHERE h.id_pedido=p.id_pedido AND h.accion IN ('SALIR_REPARTO','CONTROLAR_CALIDAD') ORDER BY id_evento DESC LIMIT 1) AS actor FROM lamontana.pedido p JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.destinatario_cotizacion d USING(id_cotizacion) WHERE p.id_pedido=? AND p.estado='LISTO_PARA_ENTREGA' AND r.estado='ACTIVA' AND lamontana.estado_logistico(p.id_pedido) IN ('LISTO_RETIRO','EN_VIAJE','DISPONIBLE_PUNTO')",(r,n)->new Object[]{r.getLong(1),r.getString(2),r.getObject(3,Long.class)},pedido);
   if(rows.isEmpty())return;var row=rows.get(0);long reservation=(long)row[0];if(row[2]==null)throw new IllegalStateException("El pedido no conserva el responsable de calidad o despacho.");
   var old=jdbc.query("SELECT id_codigo_entrega,codigo_cifrado,id_reserva_entrega FROM lamontana.codigo_entrega WHERE id_pedido=? AND revocado_en IS NULL AND utilizado_en IS NULL",(r,n)->new Object[]{r.getLong(1),r.getString(2),r.getLong(3)},pedido);
   if(!old.isEmpty()&&old.get(0)[1]!=null&&(long)old.get(0)[2]==reservation)return;
@@ -27,7 +27,7 @@ public class CodigoRetiroService {
   UUID id=UUID.randomUUID(),op=UUID.nameUUIDFromBytes((pedido+":"+reservation+":codigo-automatico").getBytes(StandardCharsets.UTF_8));String value=text.toString();
   String hash;try{hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(op.toString().getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}
   long code=jdbc.queryForObject("INSERT INTO lamontana.codigo_entrega(codigo_publico,id_pedido,id_reserva_entrega,id_emisor,id_operacion,huella,codigo_hash,emitido_en,vence_en,automatico,codigo_cifrado) VALUES (?,?,?,?,?,?,?,?,?,true,?) RETURNING id_codigo_entrega",Long.class,id,pedido,reservation,row[2],op,hash,encoder.encode(value),Timestamp.from(now),Timestamp.from(Instant.parse("9999-12-31T23:59:59Z")),cipher.cifrar(id,value));
-  jdbc.update("INSERT INTO lamontana.aviso_codigo_entrega(id_codigo_entrega,correo) VALUES (?,?)",code,row[1]);
+  if(row[1]!=null)jdbc.update("INSERT INTO lamontana.aviso_codigo_entrega(id_codigo_entrega,correo) VALUES (?,?)",code,row[1]);
  }
  public String texto(UUID codigo,String cifrado){return cipher.descifrar(codigo,cifrado);}
  @Scheduled(fixedDelayString="${lamontana.entrega.avisos-intervalo-ms:15000}",initialDelayString="${lamontana.entrega.avisos-inicio-ms:15000}")

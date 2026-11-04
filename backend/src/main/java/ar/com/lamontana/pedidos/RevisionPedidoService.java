@@ -96,7 +96,7 @@ public class RevisionPedidoService {
   var actions=Arrays.stream(Accion.values()).map(a->{String motivo=bloqueo(d,estado,a,permiso);return new Opcion(a,motivo==null,motivo);}).toList();
   var notas=jdbc.query("SELECT codigo_publico,autor_nombre,importancia,texto,fecha FROM lamontana.observacion_interna WHERE id_pedido=? ORDER BY id_observacion_interna DESC",(r,n)->new Nota(r.getObject(1,UUID.class),r.getString(2),Importancia.valueOf(r.getString(3)),r.getString(4),r.getTimestamp(5).toInstant()),d.numero());
   var historial=jdbc.query("SELECT accion,estado_origen,estado_destino,actor_nombre,motivo,mensaje_cliente,fecha FROM lamontana.historial_estado_pedido WHERE id_pedido=? AND version_pedido IS NOT NULL ORDER BY id_evento",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),r.getString(4),r.getString(5),r.getString(6),r.getTimestamp(7).toInstant()),d.numero());
-  var cliente=jdbc.queryForObject("SELECT u.nombre||' '||u.apellido,u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},d.numero());
+  var cliente=jdbc.queryForObject("SELECT d.nombre,d.correo FROM lamontana.pedido_actual p JOIN lamontana.destinatario_cotizacion d USING(id_cotizacion) WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},d.numero());
   return new Gestion(d.version(),cliente[0],cliente[1],estado.revisada(),estado.revisor(),estado.aprobador(),permiso,actions,notas,historial);
  }
  @Transactional public PedidoService.Detalle decidir(UUID id,Decision in,String correo){

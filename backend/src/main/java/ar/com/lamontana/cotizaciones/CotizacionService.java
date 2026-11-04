@@ -111,16 +111,27 @@ public class CotizacionService {
 
     @Transactional
     public Opciones opciones(String correo){
-        cliente(correo);bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();
+        cliente(correo);return opcionesPreparada(null);
+    }
+    Opciones opcionesPreparada(UUID mostrador){
+        bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();
         if(c.configuracion()==null||c.catalogo().actual()==null||c.opciones().isEmpty())return new Opciones(false,"La imprenta está en preparación o no tiene opciones disponibles para cotizar.",null,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),null,List.of());
         var b=c.configuracion();var formatos=new HashSet<UUID>();var papeles=new HashSet<UUID>();var servicios=new HashSet<UUID>();
         c.opciones().forEach(o->{formatos.add(o.formato());papeles.add(o.papel());servicios.add(o.servicio());servicios.addAll(o.terminaciones());});
         var puntos=c.puntos().stream().filter(p->c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(p.sucursal()))).map(p->{var d=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(p.punto())).findFirst().orElseThrow();return new Punto(p.punto(),p.sucursal(),p.nombre(),d.calle()+" "+d.numero()+", "+d.localidad()+", "+d.provincia(),p.costo());}).toList();
         var modalidades=b.entrega().modalidades().stream().filter(m->m!=Modalidad.RETIRO_SUCURSAL||b.entrega().horariosPorSucursal().stream().anyMatch(h->h.retiroUtilizable()&&c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(h.sucursal())))).filter(m->m!=Modalidad.RETIRO_PUNTO_ENTREGA||!puntos.isEmpty()).filter(m->m!=Modalidad.ENVIO_DOMICILIO||b.entrega().zonas().stream().anyMatch(ZonasRepositorio.Zona::utilizable)).toList();
-        return new Opciones(!modalidades.isEmpty(),"Los importes y las condiciones se calculan al cotizar. La cotización no reserva capacidad.",b.codigoPublico(),c.catalogo().actual().codigoPublico(),c.sucursales(),c.opciones(),
+        var destinos=c.sucursales().stream().filter(x->b.entrega().horariosPorSucursal().stream().anyMatch(h->h.sucursal().equals(x.codigoPublico())&&h.retiroUtilizable())).toList();
+        var combinaciones=c.opciones();
+        if(mostrador!=null){
+            destinos=destinos.stream().filter(x->x.codigoPublico().equals(mostrador)).toList();
+            combinaciones=combinaciones.stream().filter(x->x.sucursal().equals(mostrador)).toList();
+            modalidades=modalidades.contains(Modalidad.RETIRO_SUCURSAL)&&!destinos.isEmpty()&&!combinaciones.isEmpty()
+                ?List.of(Modalidad.RETIRO_SUCURSAL):List.of();
+        }
+        return new Opciones(!modalidades.isEmpty(),modalidades.isEmpty()&&mostrador!=null?"La sucursal necesita opciones de impresión y retiro habilitadas para atender por mostrador.":"Los importes y las condiciones se calculan al cotizar. La cotización no reserva capacidad.",b.codigoPublico(),c.catalogo().actual().codigoPublico(),c.sucursales(),combinaciones,
             c.catalogo().formatos().stream().filter(f->formatos.contains(f.codigoPublico())).map(f->new Nombre(f.codigoPublico(),f.nombre())).toList(),
             c.catalogo().papeles().stream().filter(p->papeles.contains(p.codigoPublico())).map(p->new Nombre(p.codigoPublico(),p.nombre(),p.gramaje(),p.terminacion())).toList(),
-            c.catalogo().actual().servicios().stream().filter(s->servicios.contains(s.servicio())).map(s->new Nombre(s.servicio(),s.nombreVisible())).toList(),modalidades,puntos,b.pagos().medios(),c.sucursales().stream().filter(x->x.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElse(null),c.sucursales().stream().filter(x->b.entrega().horariosPorSucursal().stream().anyMatch(h->h.sucursal().equals(x.codigoPublico())&&h.retiroUtilizable())).toList());
+            c.catalogo().actual().servicios().stream().filter(s->servicios.contains(s.servicio())).map(s->new Nombre(s.servicio(),s.nombreVisible())).toList(),modalidades,mostrador==null?puntos:List.of(),b.pagos().medios(),c.sucursales().stream().filter(x->x.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElse(null),destinos);
     }
 
     @Transactional
@@ -149,8 +160,8 @@ public class CotizacionService {
             if(correccion==null&&enlazada)throw conflicto("Esta oferta pertenece a una corrección. Solicitá su sucesora desde el pedido.");
             if(vieja.detalle().reemplazadaPor()!=null||vieja.detalle().estado().equals("CONFIRMADA")&&(baseCorreccion==null||vieja.id()!=baseCorreccion))throw conflicto("La cotización ya tiene un pedido o una oferta sucesora. Abrí el resultado guardado.");
             if(solicitud!=null&&vieja.id()!=baseCorreccion&&!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_cotizacion=? AND id_solicitud_correccion=?)",Boolean.class,vieja.id(),solicitud))throw conflicto("La cotización anterior no pertenece a esta corrección.");reemplazada=vieja.id();}
-        var trabajo=calcularItems(in.items(),c);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
-        Instant ahora=ahora();var temporal=operativa.calcularEntrega(c,new SimularEntrega(b.version(),in.origenGlobal()&&in.modalidad()==Modalidad.RETIRO_SUCURSAL?in.destinoRetiro():in.sucursal(),in.modalidad(),ahora,in.punto(),in.direccion()==null?null:in.direccion().territorio()),minutos);
+        var trabajo=calcularItems(in.items(),c,preparacionInterna!=null&&!in.origenGlobal()?in.sucursal():null);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
+        Instant ahora=ahora();var temporal=operativa.calcularEntrega(c,new SimularEntrega(b.version(),in.origenGlobal()&&in.modalidad()==Modalidad.RETIRO_SUCURSAL?in.destinoRetiro():in.sucursal(),in.modalidad(),ahora,in.punto(),in.direccion()==null?null:in.direccion().territorio()),minutos,preparacionInterna!=null&&!in.origenGlobal());
         String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
         BigDecimal total=subtotal.add(new BigDecimal(costo));precios.limite(total);
         var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,carillas);
@@ -184,17 +195,22 @@ public class CotizacionService {
         return id;
     }
     @Transactional public Presupuesto presupuestar(UUID config,UUID comercial,List<Item> entrada,String correo){
-        cliente(correo);bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();matriz(c);
+        cliente(correo);return presupuestarPreparada(config,comercial,entrada,null);
+    }
+    Presupuesto presupuestarPreparada(UUID config,UUID comercial,List<Item> entrada,UUID mostrador){
+        bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();
+        if(mostrador==null)matriz(c);
+        if(c.configuracion()==null)throw conflicto("La imprenta todavía no está preparada para cotizar.");
         if(c.catalogo().actual()==null||!c.configuracion().codigoPublico().equals(config)||!c.catalogo().actual().codigoPublico().equals(comercial))
             throw conflicto("Cambiaron las opciones o tarifas. Actualizá el presupuesto antes de continuar.");
-        var t=calcularItems(entrada,c);return new Presupuesto(config,comercial,t.items(),t.subtotal().toPlainString());
+        var t=calcularItems(entrada,c,mostrador);return new Presupuesto(config,comercial,t.items(),t.subtotal().toPlainString());
     }
-    private TrabajoCalculado calcularItems(List<Item> entrada,OfertaOperativaService.Contexto c){
+    private TrabajoCalculado calcularItems(List<Item> entrada,OfertaOperativaService.Contexto c,UUID sucursal){
         var items=new ArrayList<ItemCotizado>();var hashes=new HashSet<String>();BigDecimal subtotal=BigDecimal.ZERO;int carillas=0,minutos=0;
         for(var item:entrada){
             exigir(hashes.add(item.documento().sha256()),"Cada PDF debe aparecer una sola vez con una configuración homogénea. Para otra configuración usá una cotización diferente.");
             String nombre=item.documento().nombre().strip();exigir(nombre.toLowerCase(Locale.ROOT).endsWith(".pdf")&&nombre.codePoints().noneMatch(cp->Character.isISOControl(cp)||cp=='/'||cp=='\\'),"El nombre debe identificar un PDF sin rutas ni caracteres de control.");
-            var t=item.trabajo();boolean compatible=c.opciones().stream().anyMatch(o->o.servicio().equals(t.servicio())&&o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color()&&(!t.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(t.terminaciones()));
+            var t=item.trabajo();boolean compatible=c.opciones().stream().anyMatch(o->(sucursal==null||sucursal.equals(o.sucursal()))&&o.servicio().equals(t.servicio())&&o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color()&&(!t.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(t.terminaciones()));
             if(!compatible)throw conflicto("Uno de los trabajos no tiene tarifa, servicio y capacidad compatibles en la imprenta.");
             var precio=precios.calcular(c.catalogo(),t);subtotal=subtotal.add(new BigDecimal(precio.subtotal()));carillas=Math.addExact(carillas,precio.carillas());minutos=Math.max(minutos,precio.minimoPreparacionMinutos());
             String formato=c.catalogo().formatos().stream().filter(x->x.codigoPublico().equals(t.formato())).findFirst().orElseThrow().nombre();

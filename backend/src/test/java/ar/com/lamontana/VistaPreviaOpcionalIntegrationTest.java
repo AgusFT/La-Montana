@@ -10,6 +10,9 @@ import ar.com.lamontana.pedidos.*;
 import ar.com.lamontana.organizacion.EmpleadoController.EdicionEmpleado;
 import ar.com.lamontana.organizacion.OrganizacionService;
 import ar.com.lamontana.pagos.PagoService;
+import ar.com.lamontana.pagos.PagoController;
+import ar.com.lamontana.entregas.EntregaService;
+import ar.com.lamontana.entregas.EntregaController;
 import java.math.BigDecimal;
 import java.net.*;
 import java.net.http.*;
@@ -175,6 +178,84 @@ class VistaPreviaOpcionalIntegrationTest {
     }
    }
    assertThat(prep.abrir(CLIENTE).codigoPublico()).isEqualTo(personal.codigoPublico());
+  } finally {try(var paths=Files.walk(files)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
+ }
+ @Test void invitadoDeMostradorCompraYRetiraEnLaSucursalSinCuentaNiCodigo() throws Exception {
+  Path files=Files.createTempDirectory("lamontana-mostrador-");
+  try(var pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start();var av=new ClamavDePrueba();var app=new SpringApplicationBuilder(LaMontanaApplication.class).run(
+   "--server.port=0","--spring.profiles.active=pruebas","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=",
+   "--lamontana.archivos.directorio="+files,"--lamontana.pruebas.clave=MontanaPrueba2026!","--lamontana.archivos.antivirus.host=127.0.0.1","--lamontana.archivos.antivirus.port="+av.port())) {
+   var jdbc=app.getBean(JdbcTemplate.class);
+   var prep=app.getBean(PreparacionClienteService.class);
+   var upload=app.getBean(ArchivoPreparadoService.class);
+   var revision=app.getBean(RevisionPedidoService.class);
+   var production=app.getBean(ProduccionService.class);
+   var entrega=app.getBean(EntregaService.class);
+   var pagos=app.getBean(PagoService.class);
+   var opciones=app.getBean(CotizacionService.class).opciones(CLIENTE);
+   var sucursal=opciones.destinosRetiro().stream().filter(b->!b.codigoPublico().equals(opciones.casaMatriz().codigoPublico())
+    &&opciones.combinaciones().stream().anyMatch(o->o.sucursal().equals(b.codigoPublico()))).findFirst().orElseThrow();
+   long usuarios=jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE r.codigo<>'INVITADO_MOSTRADOR'",Long.class);
+   var http=URI.create("http://127.0.0.1:"+app.getEnvironment().getProperty("local.server.port"));
+   var sesion=login(http,ADMIN);
+   byte[] pdf=pdf();
+   for(var medio:List.of(MedioPago.EFECTIVO,MedioPago.TRANSFERENCIA)){
+    UUID operacion=UUID.randomUUID();
+    var alta=sesion.send(HttpRequest.newBuilder(http.resolve("/api/operacion/preparaciones"))
+     .header("X-CSRF-TOKEN",csrf(http,sesion)).header("Content-Type","application/json")
+     .POST(HttpRequest.BodyPublishers.ofString(JsonMapper.builder().build().writeValueAsString(Map.of(
+      "nombreInvitado","Mica del mostrador","sucursal",sucursal.codigoPublico(),"operacion",operacion)))).build(),HttpResponse.BodyHandlers.ofString());
+    assertThat(alta.statusCode()).describedAs(alta.body()).isEqualTo(200);
+    var p=prep.abrirInvitado(ADMIN,operacion,"Mica del mostrador",sucursal.codigoPublico());
+    assertThat(p.codigoPublico()).isEqualTo(operacion);
+    assertThat(p.cliente().invitado()).isTrue();
+    assertThat(p.cliente().correo()).isNull();
+    var opts=prep.opciones(operacion,ADMIN);
+    assertThat(opts.destinosRetiro()).extracting(b->b.codigoPublico()).containsExactly(sucursal.codigoPublico());
+    var combo=opts.combinaciones().get(0);
+    var intento=upload.crear(operacion,UUID.randomUUID(),"trabajo.pdf",ADMIN);
+    var archivo=upload.recibir(operacion,intento.codigoPublico(),ADMIN,new ByteArrayInputStream(pdf),pdf.length);
+    assertThat(archivo.estado()).describedAs(archivo.mensaje()).isEqualTo("VALIDO");
+    var item=new EvaluadorPrecioItem.Item(combo.servicio(),combo.formato(),combo.papel(),combo.color(),2,1,false,List.of());
+    var budget=prep.presupuestar(operacion,new PreparacionClienteService.Presupuestar(UUID.randomUUID(),prep.consultar(operacion,ADMIN).version(),
+      opts.configuracion(),opts.revisionComercial(),List.of(new PreparacionClienteService.Entrada(archivo.codigoPublico(),item))),ADMIN);
+    var checkout=prep.cotizar(operacion,new PreparacionClienteService.Cotizar(UUID.randomUUID(),budget.version(),
+     new PreparacionClienteService.Preferencias(Modalidad.RETIRO_SUCURSAL,sucursal.codigoPublico(),null,null,medio)),ADMIN);
+    assertThat(checkout.revision().franja().origen()).isEqualTo(sucursal.codigoPublico());
+    assertThat(checkout.cotizacion().oferta().entrega().llegadaEstimada()).isNull();
+    var pedido=prep.confirmar(operacion,new PreparacionClienteService.Confirmar(UUID.randomUUID(),checkout.preparacion().version(),
+     checkout.cotizacion().codigoPublico(),checkout.huella(),true,null),ADMIN);
+    assertThat(pedido.nombreInvitado()).isEqualTo("Mica del mostrador");
+    assertThat(pedido.retiroConTraslado()).isFalse();
+    assertThat(app.getBean(PedidoService.class).listarGlobal(0,null,"CONFIRMADO_DESC",ADMIN).elementos())
+     .filteredOn(o->o.numero()==pedido.numero()).extracting(PedidoService.Resumen::nombreInvitado).containsExactly(pedido.nombreInvitado());
+    UUID id=pedido.codigoPublico();
+    var datos=revision.consultar(id,ADMIN);
+    assertThat(datos.cliente()).isEqualTo(pedido.nombreInvitado());
+    assertThat(datos.correo()).isNull();
+    assertThatThrownBy(()->app.getBean(PedidoService.class).detalle(id,CLIENTE,false)).hasMessageContaining("no está disponible");
+    var aprobado=revision.decidir(id,new RevisionPedidoController.Decision(UUID.randomUUID(),pedido.version(),RevisionPedidoController.Accion.APROBAR,true,"",null),ADMIN);
+    var trabajo=production.consultar(id,ADMIN).items().get(0);
+    var iniciada=production.iniciar(id,new ProduccionController.Inicio(UUID.randomUUID(),aprobado.version(),trabajo.codigoPublico(),trabajo.impresoras().get(0).codigoPublico(),"",true),ADMIN);
+    production.finalizarCalidad(id,iniciada.items().get(0).trabajos().get(0).codigoPublico(),new ProduccionController.Inspeccion(
+     UUID.randomUUID(),iniciada.version(),ProduccionController.Resultado.APROBADO,new ProduccionController.Checklist(true,true,true,true,true),"",true),ADMIN);
+    var listo=entrega.consultar(id,ADMIN,true);
+    assertThat(listo.estadoLogistico()).isEqualTo("LISTO_RETIRO");
+    assertThat(listo.codigo().texto()).isNull();
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.aviso_codigo_entrega a JOIN lamontana.codigo_entrega c USING(id_codigo_entrega) WHERE c.id_pedido=?",
+     Integer.class,pedido.numero())).isZero();
+    if(medio==MedioPago.EFECTIVO){
+     var cobro=new EntregaController.CobrarEntregar(UUID.randomUUID(),listo.version(),null,listo.saldo(),null,null,true,true);
+     assertThat(entrega.cobrarEntregar(id,cobro,ADMIN).vista().estadoPedido()).isEqualTo("CERRADO");
+     assertThat(entrega.cobrarEntregar(id,cobro,ADMIN).vista().saldo()).isEqualTo("0.00");
+    }else{
+     pagos.recibir(pedido.cotizacion(),new PagoController.Recibir(UUID.randomUUID(),null,medio,listo.saldo(),"Mostrador "+id,null,true,"Transferencia acreditada en mostrador",true),ADMIN);
+     var entregaInvitado=entrega.recibir(id,new EntregaController.Recibir(UUID.randomUUID(),listo.version(),null,null,null,true),ADMIN);
+     assertThat(entregaInvitado.vista().entrega().receptor()).isEqualTo(pedido.nombreInvitado());
+     assertThat(entregaInvitado.vista().saldo()).isEqualTo("0.00");
+    }
+   }
+   assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE r.codigo<>'INVITADO_MOSTRADOR'",Long.class)).isEqualTo(usuarios);
   } finally {try(var paths=Files.walk(files)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
  }
  private HttpClient login(URI base,String correo) throws Exception {

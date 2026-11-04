@@ -45,7 +45,7 @@ class OperacionSimpleServiceTest {
   });
   service=new RevisionPedidoService(jdbc,pedidos,organization,files,money);
  }
- private PedidoService.Detalle snapshot(){return new PedidoService.Detalle(id,7,quote,approved?"APROBADO":"PENDIENTE_REVISION",Instant.now(),null,UUID.randomUUID(),4,offer,null,null,null,List.of(pdf),List.of(),version,"ACTIVA",null,"NO_DISPONIBLE",false,null);}
+ private PedidoService.Detalle snapshot(){return new PedidoService.Detalle(id,7,quote,approved?"APROBADO":"PENDIENTE_REVISION",Instant.now(),null,UUID.randomUUID(),4,offer,null,null,null,List.of(pdf),List.of(),version,"ACTIVA",null,"NO_DISPONIBLE",false,null,null);}
  private RevisionPedidoController.Decision command(boolean confirmed,String note){return new RevisionPedidoController.Decision(UUID.randomUUID(),version,RevisionPedidoController.Accion.APROBAR,confirmed,note,null);}
  @Test void unaConfirmacionGuardaRevisionYAprobacionConAuditoriaSeparada() {
   var result=service.decidir(id,command(true,""),"admin@prueba.local");

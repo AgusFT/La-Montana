@@ -60,7 +60,8 @@ export function operationTask(order:Order,permissions:Permission[],facts:Operati
  if(order.estado==='LISTO_PARA_ENTREGA'){
   if(has('GESTIONAR_ENTREGAS')&&delivery?.puedeGestionar){
    const experience=deliveryExperience(order,delivery.estadoLogistico);
-   if(experience.canReceive&&has('REGISTRAR_COBRO')&&delivery.cobroEfectivo?.habilitado)return task('Cobrar efectivo y entregar',delivery.cobroEfectivo.puedeCerrar?'Confirmá el efectivo recibido y el código en una sola ventana. Se registrarán el cobro, la entrega y el cierre con su comprobante interno.':'Confirmá el efectivo recibido y el código en una sola ventana. Se registrarán el cobro y la entrega; el responsable podrá completar el cierre.','pedido-entrega');
+   if(experience.canReceive&&has('REGISTRAR_COBRO')&&delivery.cobroEfectivo?.habilitado)return task('Cobrar efectivo y entregar',order.nombreInvitado?'Confirmá el efectivo recibido y la entrega al invitado en mostrador.':delivery.cobroEfectivo.puedeCerrar?'Confirmá el efectivo recibido y el código en una sola ventana. Se registrarán el cobro, la entrega y el cierre con su comprobante interno.':'Confirmá el efectivo recibido y el código en una sola ventana. Se registrarán el cobro y la entrega; el responsable podrá completar el cierre.','pedido-entrega');
+   if(order.nombreInvitado&&experience.canReceive)return task('Entregar en mostrador','Verificá el nombre del invitado y el número de pedido antes de registrar la entrega.','pedido-entrega');
    return task(experience.title,experience.description,'pedido-entrega');
   }
   if(finance&&delivery&&Number(delivery.saldo)>0)return task('Cobrar el saldo antes de entregar','El trabajo está listo y tiene un saldo pendiente. Registrá y aplicá el dinero realmente recibido.','pedido-pagos');

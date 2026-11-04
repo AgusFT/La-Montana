@@ -32,6 +32,7 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
   if(!p.presupuesto)return;
   const o=await quoteRead(internal?`${base}/opciones`:'/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
   const data=await quoteRead(`${base}/resumen`,isCheckout);received(data);
+  if(initial&&p.sucursalMostrador){setMode('RETIRO_SUCURSAL');setDestination(p.sucursalMostrador);}
   if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad);setDestination(f.destinoRetiro??'');setPoint(f.punto??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);if(data.revision&&data.huella)setCalculated(JSON.stringify(f));}
   ready.current=true;
  }
@@ -64,7 +65,7 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
  const budget=prep?.presupuesto;
  const destinations=options?.destinosRetiro??[];
  const points=Array.from(new Map((options?.puntos??[]).filter(p=>p.sucursal===options?.casaMatriz?.codigoPublico).map(p=>[p.codigoPublico,p])).values());
- return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.correo}</p>}
+ return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.invitado?"Invitado de mostrador":prep.cliente.correo}</p>}
   {!prep&&!error&&<p role="status">Recuperando el resumen de tu trabajo…</p>}
   {busy&&<p role="status" className="client-note">Verificando y actualizando tu pedido…</p>}
   {error&&<p className="client-warning" role="alert">{error}</p>}
@@ -81,15 +82,17 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
      <form id="client-delivery" className="workspace-preferences" onSubmit={e=>{e.preventDefault();if(pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
       <fieldset disabled={locked||!options?.disponible}>
        <section className="workspace-panel"><h2>Entrega</h2>
+        {prep?.sucursalMostrador?<p><strong>Retiro en mostrador</strong>{destinations[0]&&<> · {destinations[0].nombre}</>}</p>:<>
         <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setMode(e.target.value as Mode);setDestination('');setPoint('');}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA'||points.length>0).map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
         {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre}{s.codigoPublico===options?.casaMatriz?.codigoPublico?' · Casa matriz':''} · {s.direccion}</option>)}</select></label>}
         {mode==='RETIRO_PUNTO_ENTREGA'&&<label>Punto de entrega<select aria-label="Punto de entrega" required value={point} onChange={e=>{setPoint(e.target.value);}}><option value="">Elegí un punto</option>{points.map(p=><option key={p.codigoPublico} value={p.codigoPublico}>{p.nombre} · {p.direccion}</option>)}</select></label>}
         {mode==='ENVIO_DOMICILIO'&&<div className="workspace-address">{([['calle','Calle'],['numero','Número'],['referencias','Referencias (opcional)']] as const).map(([k,label])=><label key={k}>{label}<input required={k!=='referencias'} maxLength={k==='numero'?30:k==='calle'?140:300} value={address[k]} onChange={e=>{setAddress(a=>({...a,[k]:e.target.value}));}}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([k,label])=><label key={k}>{label}<input required maxLength={k==='codigoPostal'?24:120} value={address.territorio[k]} onChange={e=>{setAddress(a=>({...a,territorio:{...a.territorio,[k]:e.target.value}}));}}/></label>)}</div>}
         <p>{mode==='RETIRO_SUCURSAL'&&destination===options?.casaMatriz?.codigoPublico?'Retiro en casa matriz, según su franja disponible.':'Fuera de casa matriz se agrega el traslado o envío configurado.'} El destino no define dónde se imprime.</p>
+        </>}
        </section>
        <section className="workspace-panel"><h2>Pago</h2>
         <label>Medio de pago<select aria-label="Medio de pago" required value={payment} onChange={e=>{setPayment(e.target.value);}}><option value="">Elegí un medio</option>{options?.medios.map(m=><option key={m} value={m}>{m==='EFECTIVO'?'Efectivo':'Transferencia'}</option>)}</select></label>
-        <p>Podés crear el pedido antes de pagar. La aprobación y producción dependen de las condiciones indicadas en el resumen.</p><p>Una transferencia informada no es un pago acreditado. Podrás informarla desde tu pedido.</p>
+        <p>Podés crear el pedido antes de pagar. La aprobación y producción dependen de las condiciones indicadas en el resumen.</p><p>{internal?'Una vez creado el pedido, registrá en Caja el efectivo recibido o la transferencia acreditada.':'Una transferencia informada no es un pago acreditado. Podrás informarla desde tu pedido.'}</p>
        </section>
        <div className="workspace-recalculate"><p>{summary?'Entrega y total actualizados. El cupo se reserva al crear el pedido.':busy?'Actualizando entrega y total…':'Elegí entrega y pago. El total se actualizará automáticamente.'}</p><button className="client-button secondary" disabled={!valid}>Actualizar entrega y total</button></div>
       </fieldset>
@@ -108,7 +111,7 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
        <details><summary>Ver condiciones del pedido</summary><p>Se verifican las condiciones cotizadas y los requisitos operativos vigentes antes de crear el pedido.</p>{Array.from(new Set([...summary.condiciones.instrucciones,...(revision?.condiciones?.actuales.instrucciones??[])])).map((s,i)=><p key={i}>{s}</p>)}<p>Las fechas son estimadas. La disponibilidad real se informa en el seguimiento.</p></details>
       </>:<p>{busy?'Recalculando en el servidor…':'Falta elegir entrega y pago para conocer el total final.'}</p>}
      </section>
-     <form id="client-create-order" onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>{internal?'Confirmá el pedido del cliente':'Confirmá tu pedido'}</h2>{internal&&<p>Al crear el pedido, confirmás el resumen en nombre del cliente. Se registrará tu usuario.</p>}
+     <form id="client-create-order" onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>{internal?'Confirmá el pedido del cliente':'Confirmá tu pedido'}</h2>{internal&&<p>{prep?.cliente?.invitado?'Confirmá el trabajo acordado en mostrador. Se registrará tu usuario.':'Al crear el pedido, confirmás el resumen en nombre del cliente. Se registrará tu usuario.'}</p>}
       {mode==='ENVIO_DOMICILIO'&&<div className="workspace-contact"><label>Quién recibe<input required maxLength={140} disabled={locked} value={contact.receptor} onChange={e=>setContact({...contact,receptor:e.target.value})}/></label><label>Teléfono<input required maxLength={40} disabled={locked} value={contact.telefono} onChange={e=>setContact({...contact,telefono:e.target.value})}/></label></div>}
       <p className="workspace-confirm-note">Se imprimirá el contenido de los PDF que cargaste. Podés consultarlos en <a href="#client-review-files">Archivos adjuntos</a>.</p>
       {!allReady&&<p className="client-note"><a href="#client-review-files">Consultá el estado de tus PDF</a>. El análisis debe terminar antes de crear el pedido.</p>}

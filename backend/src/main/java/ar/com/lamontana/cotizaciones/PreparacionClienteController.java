@@ -19,11 +19,15 @@ public class PreparacionClienteController {
     public PreparacionClienteController(PreparacionClienteService preparaciones,ArchivoPreparadoService archivos){this.preparaciones=preparaciones;this.archivos=archivos;}
     public record ArchivoNuevo(@NotNull UUID operacion,@NotBlank @Size(max=255) String nombre){}
     public record Operacion(@NotNull UUID operacion){}
-    public record AbrirInterna(@NotBlank @Email @Size(max=254) String correoCliente){}
+    public record AbrirInterna(@Email @Size(max=254) String correoCliente,
+      @Size(max=100) String nombreInvitado,UUID sucursal,UUID operacion){}
     @PostMapping public PreparacionClienteService.Vista abrir(@Valid @RequestBody(required=false) AbrirInterna in,HttpServletRequest request,Principal p){
         if(request.getServletPath().startsWith("/api/operacion/")){
-            if(in==null)throw PreparacionClienteStore.error(HttpStatus.BAD_REQUEST,"Indicá el correo del cliente.");
-            return preparaciones.abrirInterna(p.getName(),in.correoCliente());
+            if(in!=null&&in.correoCliente()!=null&&!in.correoCliente().isBlank()&&in.nombreInvitado()==null&&in.sucursal()==null&&in.operacion()==null)
+                return preparaciones.abrirInterna(p.getName(),in.correoCliente());
+            if(in!=null&&in.correoCliente()==null&&in.nombreInvitado()!=null&&in.sucursal()!=null&&in.operacion()!=null)
+                return preparaciones.abrirInvitado(p.getName(),in.operacion(),in.nombreInvitado(),in.sucursal());
+            throw PreparacionClienteStore.error(HttpStatus.BAD_REQUEST,"Indicá el correo del cliente o el nombre y la sucursal del invitado.");
         }
         return preparaciones.abrir(p.getName());
     }

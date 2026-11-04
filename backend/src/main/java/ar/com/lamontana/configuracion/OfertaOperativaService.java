@@ -57,5 +57,8 @@ public class OfertaOperativaService {
         var utilizables=sucursales.stream().filter(s->opciones.stream().anyMatch(o->o.sucursal().equals(s.codigoPublico()))).toList();
         return new Contexto(b,comercial,utilizables,opciones,entrega.puntosCotizacion(b));
     }
-    public EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,EntregaConfiguracionController.SimularEntrega in,int minutos){return entrega.calcular(c.configuracion(),in,minutos);}
+    public EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,EntregaConfiguracionController.SimularEntrega in,int minutos){return calcularEntrega(c,in,minutos,false);}
+    public EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,EntregaConfiguracionController.SimularEntrega in,int minutos,boolean mostrador){
+        return entrega.calcular(c.configuracion(),in,minutos,mostrador);
+    }
 }

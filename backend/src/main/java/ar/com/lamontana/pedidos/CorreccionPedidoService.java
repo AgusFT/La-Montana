@@ -105,11 +105,12 @@ public class CorreccionPedidoService {
    var respuestas=jdbc.query("SELECT r.*,c.codigo_publico AS cotizacion FROM lamontana.respuesta_correccion r JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE id_solicitud_correccion=?",(rs,k)->new Respuesta(rs.getString("mensaje"),rs.getTimestamp("fecha").toInstant(),rs.getObject("cotizacion",UUID.class),rs.getBigDecimal("total").toPlainString(),archivosRespuesta(rs.getLong("id_respuesta_correccion"))),request);
    return new Solicitud(r.getObject("codigo_publico",UUID.class),Tipo.valueOf(r.getString("tipo")),r.getString("estado"),r.getString("mensaje_cliente"),interno?r.getString("motivo"):null,interno?r.getString("solicitante_nombre"):"La imprenta",r.getTimestamp("fecha_solicitud").toInstant(),r.getObject("cotizacion",UUID.class),items(request),ofertas,respuestas.isEmpty()?null:respuestas.get(0));
   },p.numero());
-  return new Vista(p.version(),interno&&p.estado().equals("PENDIENTE_REVISION")&&organizacion.contexto(correo).permisos().contains("GESTIONAR_PEDIDOS"),solicitudes);
+  return new Vista(p.version(),interno&&p.nombreInvitado()==null&&p.estado().equals("PENDIENTE_REVISION")&&organizacion.contexto(correo).permisos().contains("GESTIONAR_PEDIDOS"),solicitudes);
  }
  @Transactional public PedidoService.Detalle solicitar(UUID id,Solicitar in,String correo){
   bloquear();var p=pedidos.detalle(id,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_PEDIDOS");organizacion.sucursalAutorizada(correo,p.oferta().sucursal().codigoPublico());var actor=actor(correo);String hash=huella(List.of(id,in));
   if(replay(in.operacion(),hash,p.numero(),actor.id()))return p;
+  if(p.nombreInvitado()!=null)throw conflicto("Acordá la corrección con el invitado en el mostrador.");
   version(p,in.version());if(!p.estado().equals("PENDIENTE_REVISION"))throw conflicto("Sólo se solicita corrección durante la revisión, antes de aprobar.");
   String motivo=in.motivo();if(motivo==null||motivo.isBlank())motivo="Corrección solicitada al cliente: "+in.tipo().name()+".";texto(motivo,500);texto(in.mensajeCliente(),2000);
   if(new HashSet<>(in.items()).size()!=in.items().size()||in.items().stream().anyMatch(i->p.archivos().stream().noneMatch(f->f.item().equals(i))))throw error(HttpStatus.BAD_REQUEST,"Seleccioná ítems actuales de este pedido, sin repetirlos.");

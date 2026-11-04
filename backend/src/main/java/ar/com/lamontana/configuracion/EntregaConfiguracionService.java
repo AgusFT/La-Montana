@@ -178,6 +178,9 @@ public class EntregaConfiguracionService {
     }
     List<PuntoDisponible> puntosCotizacion(ConfiguracionService.Borrador b){return opciones(b.entrega(),operativas(id(b.codigoPublico())));}
     EvaluadorCalendario.Simulacion calcular(ConfiguracionService.Borrador b,SimularEntrega input,int minimoServiciosMinutos){
+        return calcular(b,input,minimoServiciosMinutos,false);
+    }
+    EvaluadorCalendario.Simulacion calcular(ConfiguracionService.Borrador b,SimularEntrega input,int minimoServiciosMinutos,boolean mostrador){
         var e=b.entrega();UUID codigo=b.codigoPublico();
         exigir(input.recibidoEn()!=null&&input.sucursal()!=null&&input.modalidad()!=null,"Completá sucursal, modalidad y fecha de recepción.");
         if(!e.modalidades().contains(input.modalidad()))throw conflicto("La modalidad ya no está habilitada en esta configuración.");
@@ -187,14 +190,14 @@ public class EntregaConfiguracionService {
         if(operativa.isEmpty())throw conflicto("La ubicación usada para calcular preparación y entrega debe ser una sucursal activa con calendario operativo.");
         boolean legado=e.casaMatriz()==null&&b.estado().equals("ACTIVA");
         if(!legado&&(e.casaMatriz()==null||!e.matrizConfirmada()))throw conflicto("Seleccioná y confirmá la casa matriz de este borrador antes de simular o aplicar sus plazos.");
-        UUID origen=e.casaMatriz()==null?input.sucursal():e.casaMatriz();
+        UUID origen=mostrador||e.casaMatriz()==null?input.sucursal():e.casaMatriz();
         // El contrato cliente heredado conserva el origen para puntos. El nuevo flujo global lo resolverá internamente.
         if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA&&e.casaMatriz()!=null&&!input.sucursal().equals(origen))throw conflicto("El punto debe cotizarse desde la casa matriz configurada. Actualizá la cotización antes de confirmar.");
         if(sucursales.stream().noneMatch(s->s.codigo().equals(origen)))throw conflicto("La casa matriz debe permanecer activa.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(origen)).findFirst().orElse(null);
         var horarioRetiro=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);
         var errores=problemasCalendario(horario,origen,"la casa matriz");if(!errores.isEmpty())throw conflicto(errores.get(0).mensaje());
-        boolean traslado=CasaMatriz.requiereTraslado(e.casaMatriz(),input.sucursal(),input.modalidad());
+        boolean traslado=!mostrador&&CasaMatriz.requiereTraslado(e.casaMatriz(),input.sucursal(),input.modalidad());
         if(e.preparacionHoras()==null||(traslado&&e.trasladoHoras()==null))throw conflicto("Completá y guardá los tiempos estimados de la modalidad antes de simular.");
         PuntoDisponible opcion=null;PuntosRepositorio.Punto punto=null;
         if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){

@@ -134,7 +134,7 @@ public class EntregaService {
   var cierre=jdbc.query("SELECT c.fecha_cierre,h.actor_nombre,h.motivo,c.total,c.aplicado FROM lamontana.cierre_pedido c JOIN lamontana.historial_estado_pedido h ON h.id_evento=c.id_evento_pedido WHERE c.id_pedido=?",(r,n)->new Cierre(r.getTimestamp(1).toInstant(),r.getString(2),interno?r.getString(3):null,r.getBigDecimal(4).toPlainString(),r.getBigDecimal(5).toPlainString()),p.numero());
   var history=jdbc.query("SELECT h.accion,m.estado_origen,m.estado_destino,h.actor_nombre,h.motivo,h.mensaje_cliente,h.fecha FROM lamontana.movimiento_entrega m JOIN lamontana.historial_estado_pedido h ON h.id_evento=m.id_evento_pedido WHERE m.id_pedido=? ORDER BY m.id_movimiento_entrega",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),interno?r.getString(4):"La imprenta",interno?r.getString(5):r.getString(6),r.getTimestamp(7).toInstant()),p.numero());
   var options=Arrays.stream(Accion.values()).map(op->{String msg=op==Accion.SALIR_REPARTO?"Asigná un rider desde Entregas pendientes, incluso si sale un solo pedido.":bloqueoMovimiento(p,estado,op,gestiona);return new Opcion(op,msg==null,msg);}).toList();
-  var cliente=jdbc.queryForObject("SELECT u.nombre||' '||u.apellido,u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},p.numero());
+  var cliente=jdbc.queryForObject("SELECT d.nombre,d.correo FROM lamontana.pedido_actual p JOIN lamontana.destinatario_cotizacion d USING(id_cotizacion) WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},p.numero());
   String bloqueoPunto=interno&&p.estado().equals("LISTO_PARA_ENTREGA")?bloqueoResponsablePunto(p,correo):null;
   var b=new ArrayList<>(bloqueosEntrega(p));
   if(bloqueoPunto!=null)b.add(0,bloqueoPunto);
@@ -252,9 +252,9 @@ public class EntregaService {
   exigirResponsablePunto(p,correo);
   version(p,in.version());confirmar(in.confirmado());nota(in.motivo(),"Entrega física confirmada con el código presentado.");var blocks=bloqueosEntrega(p);if(!blocks.isEmpty())throw conflicto(String.join(" ",blocks));
   UUID op=UUID.nameUUIDFromBytes((in.operacion()+":codigo").getBytes(StandardCharsets.UTF_8));
-  var validacion=new Validar(op,p.version(),in.codigo());
+  var validacion=new Validar(op,p.version(),codigoPresentado(p,in.codigo()));
   var check=validar(pedido,validacion,correo,huella(List.of(pedido,"VALIDAR",validacion)),rider);if(!check.aceptado())return check;
-  String receptor=in.receptor();if(receptor==null||receptor.isBlank())receptor="Persona que presentó el código de entrega";
+  String receptor=in.receptor();if(receptor==null||receptor.isBlank())receptor=receptorRegistrado(p);
   var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash,rider);
   return new Validacion(out,true,"Pedido entregado. Se guardaron responsable, fecha y hora.");
  }
@@ -268,12 +268,27 @@ public class EntregaService {
   var offer=cobroEfectivo(p,correo,organizacion.contexto(correo).permisos());if(offer==null||!offer.habilitado())throw conflicto(offer==null?"El pedido no admite cobro en efectivo durante la entrega.":offer.bloqueo());
   if(new BigDecimal(in.importe()).compareTo(new BigDecimal(offer.importe()))!=0)throw conflicto("El saldo cambió. Actualizá antes de confirmar el efectivo recibido.");
   if(in.cerrar()&&!offer.puedeCerrar())throw conflicto("Hay movimientos financieros pendientes. Revisá cobros antes de cerrar.");
-  var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),in.codigo()),correo,hash);if(!check.aceptado())return check;
+  var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),codigoPresentado(p,in.codigo())),correo,hash);if(!check.aceptado())return check;
   pagos.recibir(p.cotizacion(),new PagoController.Recibir(derivada(in.operacion(),"efectivo"),null,MedioPago.EFECTIVO,offer.importe(),"Entrega PED-"+p.numero()+" · "+in.operacion(),null,true,"Efectivo recibido al entregar el pedido PED-"+p.numero()+".",true),correo);
-  String receptor=in.receptor()==null||in.receptor().isBlank()?"Persona que presentó el código de entrega":in.receptor().strip();
+  String receptor=in.receptor()==null||in.receptor().isBlank()?receptorRegistrado(p):in.receptor().strip();
   var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash);
   if(in.cerrar())out=cerrar(pedido,new Cerrar(derivada(in.operacion(),"cerrar"),out.version(),null,true),correo);
   return new Validacion(out,true,in.cerrar()?"Efectivo registrado, pedido entregado y cerrado. El comprobante interno quedó disponible.":"Efectivo registrado y pedido entregado. El responsable de cierre puede completar el cierre administrativo.");
+ }
+ private String receptorRegistrado(PedidoService.Detalle p){
+  return p.nombreInvitado()==null?"Persona que presentó el código de entrega":p.nombreInvitado();
+ }
+ private String codigoPresentado(PedidoService.Detalle p,String codigo){
+  if(codigo!=null)return codigo;
+  if(p.nombreInvitado()==null||!logistica(p).equals("LISTO_RETIRO"))
+   throw error(HttpStatus.BAD_REQUEST,"Ingresá el código de entrega del pedido.");
+  codigos.asegurar(p.numero());
+  var actual=ultimoCodigo(p.numero());
+  if(actual==null||!estadoCodigo(actual,clock.instant()).equals("ACTIVO"))
+   throw conflicto("No pudimos verificar la entrega en mostrador. Actualizá el pedido.");
+  String cifrado=jdbc.queryForObject("SELECT codigo_cifrado FROM lamontana.codigo_entrega WHERE id_codigo_entrega=?",String.class,actual.id());
+  if(cifrado==null)throw conflicto("No pudimos verificar el código de mostrador.");
+  return codigos.texto(actual.codigo(),cifrado);
  }
  private UUID derivada(UUID operation,String step){return UUID.nameUUIDFromBytes((operation+":"+step).getBytes(StandardCharsets.UTF_8));}
  private CobroEfectivo cobroEfectivo(PedidoService.Detalle p,String correo,List<String> permisos){

@@ -86,7 +86,7 @@ export function PrepareWork({internalId}:{internalId?:string}={}){
  const lists=[...Array(4)].map((_,n)=>Array.from(new Set(choices.filter(o=>{const p=key(o).split(':');return parts.every((v,j)=>j>=n||!v||v===p[j]);}).map(o=>key(o).split(':')[n]))));
  function configured(id:string){const stored=rows.find(x=>x.archivo===id),r=stored?effectiveRow(stored):undefined,f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
  const configuredCount=prep?.archivos.filter(f=>configured(f.codigoPublico)).length??0;
- return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.correo}</p>}
+ return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.invitado?"Invitado de mostrador":prep.cliente.correo}</p>}
   <p className="client-compact-intro">Agregá tus PDF y configurá cada uno. En el siguiente paso elegís entrega y pago.</p>
   {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
   {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}

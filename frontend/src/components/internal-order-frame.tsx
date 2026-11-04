@@ -17,7 +17,7 @@ export async function InternalOrderFrame({title,children}:{title:string;children
  const context=admin?null:await getOperationContext();
  const allowed=admin||context?.permisos.includes('CREAR_PEDIDOS');
  return <AdminShell active="operacion" administration={admin} userRole={admin?'Propietario':'Empleado'} name={profile.nombre+' '+profile.apellido}
-  title={title} description="Prepará un trabajo y confirmalo en nombre de un cliente de la imprenta.">
+  title={title} description="Prepará un pedido de mostrador o cargalo para un cliente registrado.">
   {allowed?children:<p className="client-warning" role="alert">{context?'Necesitás el permiso Crear pedidos para clientes.':'No pudimos verificar tu acceso operativo.'}</p>}
  </AdminShell>;
 }
