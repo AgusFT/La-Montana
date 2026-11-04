@@ -7,6 +7,27 @@ m._compile(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.Comm
 const id='11111111-1111-4111-8111-111111111111',file='22222222-2222-4222-8222-222222222222';
 const path=['cliente','preparaciones',id];
 const proxy=(method,p,body,headers={})=>m.exports[method](new Request('http://app.test/api/'+p.join('/'),{method,headers,body}),{params:Promise.resolve({path:p})});
+test('abrir un pedido como cliente conserva el POST sin cuerpo ni tipo de contenido', async () => {
+ process.env.BACKEND_INTERNAL_URL = 'http://backend.test';
+ const originalFetch = global.fetch;
+ let forwarded;
+ global.fetch = async (url, init) => {
+  forwarded = new Request(url, init);
+  return Response.json({ estado: 'ABIERTA' });
+ };
+ try {
+  const response = await proxy('POST', ['cliente', 'preparaciones'], undefined, {
+   Cookie: 'SESSION=privada', 'X-CSRF-TOKEN': 'token',
+  });
+  assert.equal(response.status, 200);
+  assert.equal(forwarded.headers.get('Content-Type'), null);
+  assert.equal(forwarded.body, null);
+  assert.equal(forwarded.headers.get('Cookie'), 'SESSION=privada');
+  assert.equal(forwarded.headers.get('X-CSRF-TOKEN'), 'token');
+ } finally {
+  global.fetch = originalFetch;
+ }
+});
 test('preparación: lista explícita de rutas y métodos, sin ampliar superficies vecinas',async()=>{
  process.env.BACKEND_INTERNAL_URL='http://backend.test';const old=global.fetch,calls=[];
  global.fetch=async(url,init)=>{calls.push({url,init});return Response.json({ok:true});};

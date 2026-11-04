@@ -149,7 +149,10 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       const reader=request.body?.getReader();if(!reader)return error(400,"Falta el PDF.");const chunks:Uint8Array[]=[];let total=0;
       try{for(;;){const next=await reader.read();if(next.done)break;total+=next.value.length;if(total>10485760){await reader.cancel();return error(413,"El PDF supera el máximo de 10 MiB.");}chunks.push(next.value);}}finally{reader.releaseLock();}
       const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}body=bytes;
-    }else body=["POST", "PUT"].includes(request.method)?await request.text():undefined;
+    } else if (["POST", "PUT"].includes(request.method)) {
+      // fetch agrega Content-Type: text/plain si recibe una cadena, incluso vacía.
+      body = (await request.text()) || undefined;
+    }
     const maxBytes = route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
     if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
     const query = route==="punto/finanzas" || route==="admin/pedidos" || websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
