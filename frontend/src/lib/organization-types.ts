@@ -63,7 +63,7 @@ export const permissionLabels = {
   GESTIONAR_IMPRESORAS: "Gestionar impresoras y papel", GESTIONAR_PUNTOS_ENTREGA: "Habilitar puntos de entrega",
   GESTIONAR_PRODUCCION: "Registrar producción manual", CONTROLAR_CALIDAD: "Controlar calidad",
   GESTIONAR_ENTREGAS: "Gestionar entregas", CERRAR_PEDIDOS: "Cerrar pedidos",
-  GESTIONAR_PEDIDOS: "Revisar y decidir pedidos",
+  GESTIONAR_PEDIDOS: "Revisar y decidir pedidos", CREAR_PEDIDOS: "Crear pedidos para clientes",
   REGISTRAR_COBRO: "Registrar cobros", ACREDITAR_PAGO: "Acreditar pagos", REGISTRAR_DEVOLUCION: "Registrar devoluciones",
 } as const;
 export type Permission = keyof typeof permissionLabels;

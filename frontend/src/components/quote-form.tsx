@@ -17,7 +17,8 @@ type Row={archivo:string;choice:string;copies:string;double:boolean;ends:string[
 export function QuoteForm(props:{replaces?:string;inspectedFile?:string;correction?:{pedido:string;solicitud:string}}){
  return props.replaces?<LegacyQuoteForm {...props}/>:<PrepareWork/>;
 }
-function PrepareWork(){
+export function PrepareWork({internalId}:{internalId?:string}={}){
+ const base=internalId?'/api/operacion/preparaciones':'/api/cliente/preparaciones';
  const router=useRouter(),[options,setOptions]=useState<QuoteOptions|null>(null),[prep,setPrep]=useState<Preparation|null>(null),[rows,setRows]=useState<Row[]>([]);
  const [activeFile,setActiveFile]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
@@ -25,12 +26,15 @@ function PrepareWork(){
  const locked=busy||uncertain||fileLocked;
  useNavigationGuard({blocked:locked});
  async function load(initial=false){
-  const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
-  const response=await secureMutation('/api/cliente/preparaciones');
-  const p:unknown=await response.json();if(!isPreparation(p))throw new Error('No pudimos recuperar el trabajo preparado.');setPrep(p);
+  const p=internalId?await quoteRead(`${base}/${internalId}`,isPreparation):await (await secureMutation(base)).json();
+  if(!isPreparation(p))throw new Error('No pudimos recuperar el trabajo preparado.');
+  if(internalId&&p.pedido){router.replace(`/operacion/pedidos/${p.pedido}`);return;}
+  setPrep(p);
+  const optionsPath=internalId?`${base}/${internalId}/opciones`:'/api/cliente/cotizaciones/opciones';
+  setOptions(await quoteRead(optionsPath,isOptions));
   if(initial)setRows(p.archivos.map(f=>{const t=p.items.find(i=>i.archivo===f.codigoPublico)?.trabajo;return {archivo:f.codigoPublico,choice:t?[t.servicio,t.formato,t.papel,t.color].join(':'):'',copies:String(t?.copias??1),double:t?.dobleFaz??false,ends:t?.terminaciones??[]};}));
  }
- useEffect(()=>{void load(true).catch(e=>setError(e.message));},[]);
+ useEffect(()=>{void load(true).catch(e=>setError(e.message));},[internalId]);
  useEffect(()=>{if(!prep?.archivos.some(f=>f.estado==='VALIDANDO'))return;const t=setTimeout(()=>void load().catch(e=>setError(e.message)),2500);return()=>clearTimeout(t);},[prep]);
  async function execute(task?:()=>Promise<void>){
   if(running.current)return;if(task)pending.current=task;if(!pending.current)return;
@@ -45,8 +49,8 @@ function PrepareWork(){
   let index=0;const uploads=values.map(file=>({file,operation:crypto.randomUUID(),id:undefined as string|undefined}));
   await execute(async()=>{
    while(index<uploads.length){const u=uploads[index];
-    if(!u.id){const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos`,JSON.stringify({operacion:u.operation,nombre:u.file.name}),'application/json');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el intento de carga.');u.id=a.codigoPublico;}
-    const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${u.id}/contenido`,u.file,'application/pdf','PUT');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el análisis del PDF.');
+    if(!u.id){const r=await secureMutation(`${base}/${prep.codigoPublico}/archivos`,JSON.stringify({operacion:u.operation,nombre:u.file.name}),'application/json');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el intento de carga.');u.id=a.codigoPublico;}
+    const r=await secureMutation(`${base}/${prep.codigoPublico}/archivos/${u.id}/contenido`,u.file,'application/pdf','PUT');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el análisis del PDF.');
     setRows(old=>old.some(x=>x.archivo===u.id)?old:[...old,{archivo:u.id!,choice:'',copies:'1',double:false,ends:[]}]);setActiveFile(u.id!);index++;await load();
    }
   });
@@ -64,7 +68,7 @@ function PrepareWork(){
  }
  async function remove(file:string){
   if(!prep||locked)return;const body=JSON.stringify({operacion:crypto.randomUUID()});
-  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${file}/quitar`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p))throw new Error('No se pudo comprobar que el PDF fue quitado.');setPrep(p);setRows(old=>old.filter(x=>x.archivo!==file));});
+  await execute(async()=>{const r=await secureMutation(`${base}/${prep.codigoPublico}/archivos/${file}/quitar`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p))throw new Error('No se pudo comprobar que el PDF fue quitado.');setPrep(p);setRows(old=>old.filter(x=>x.archivo!==file));});
  }
  async function submit(e:FormEvent){
   e.preventDefault();if(locked||!prep||!options?.configuracion||!options.revisionComercial)return;
@@ -74,7 +78,7 @@ function PrepareWork(){
   }
   if(!items.length)return;
   const body=JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,configuracion:options.configuracion,revisionComercial:options.revisionComercial,items});
-  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');router.push(`/cliente/preparaciones/${p.codigoPublico}`);});
+  await execute(async()=>{const r=await secureMutation(`${base}/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');router.push(internalId?`/operacion/preparaciones/${p.codigoPublico}/resumen`:`/cliente/preparaciones/${p.codigoPublico}`);});
  }
  const selectedFile=prep?.archivos.find(f=>f.codigoPublico===activeFile)??prep?.archivos[0];
  const row=effectiveRow(rows.find(r=>r.archivo===selectedFile?.codigoPublico)??{archivo:selectedFile?.codigoPublico??'',choice:'',copies:'1',double:false,ends:[]});
@@ -82,7 +86,7 @@ function PrepareWork(){
  const lists=[...Array(4)].map((_,n)=>Array.from(new Set(choices.filter(o=>{const p=key(o).split(':');return parts.every((v,j)=>j>=n||!v||v===p[j]);}).map(o=>key(o).split(':')[n]))));
  function configured(id:string){const stored=rows.find(x=>x.archivo===id),r=stored?effectiveRow(stored):undefined,f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
  const configuredCount=prep?.archivos.filter(f=>configured(f.codigoPublico)).length??0;
- return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>
+ return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.correo}</p>}
   <p className="client-compact-intro">Agregá tus PDF y configurá cada uno. En el siguiente paso elegís entrega y pago.</p>
   {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
   {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}
@@ -117,7 +121,7 @@ function PrepareWork(){
    </fieldset>
    <div id="client-budget-action" className="workspace-next"><div><strong>{prep?.archivos.length?`${configuredCount} de ${prep.archivos.length} archivos configurados`:'Agregá tu primer archivo'}</strong><small>Las opciones se guardan al revisar el presupuesto.</small></div><button className="client-button" disabled={!prep?.archivos.length||locked}>Revisar presupuesto →</button></div>
   </form>
-  {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<section className="workspace-panel workspace-optional-preview"><PreparedFileReview optional quote={prep.codigoPublico} version={prep.version} total={prep.archivos.length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>}
-  {prep&&<ClientContextTour stage={1} ready={!!options?.disponible&&!busy}/>}
+  {prep&&prep.archivos.some(f=>f.estado==='VALIDO')&&<section className="workspace-panel workspace-optional-preview"><PreparedFileReview optional internal={!!internalId} quote={prep.codigoPublico} version={prep.version} total={prep.archivos.length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>}
+  {prep&&!internalId&&<ClientContextTour stage={1} ready={!!options?.disponible&&!busy}/>}
  </div>;
 }

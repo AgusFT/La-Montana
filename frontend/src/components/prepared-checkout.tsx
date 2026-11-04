@@ -12,7 +12,10 @@ import {isCheckout,isPreparation,type Checkout,type Preparation,type Preferences
 import {isOrder} from '@/lib/order-types';
 
 const emptyAddress:Address={calle:'',numero:'',referencias:'',territorio:{codigoPostal:'',localidad:'',provincia:''}};
-export function PreparedCheckout({id}:{id:string}){
+export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolean}){
+ const base=`/api/${internal?'operacion':'cliente'}/preparaciones/${id}`;
+ const orders=`/${internal?'operacion':'cliente'}/pedidos`;
+ const editHref=internal?`/operacion/preparaciones/${id}/trabajo`:'/cliente/cotizaciones/nueva';
  const router=useRouter(),[prep,setPrep]=useState<Preparation|null>(null),[view,setView]=useState<Checkout|null>(null),[options,setOptions]=useState<QuoteOptions|null>(null);
  const[mode,setMode]=useState<Mode|''>(''),[destination,setDestination]=useState(''),[point,setPoint]=useState(''),[payment,setPayment]=useState(''),[address,setAddress]=useState(emptyAddress);
  const[contact,setContact]=useState({receptor:'',telefono:''}),[busy,setBusy]=useState(false),[fileLocked,setFileLocked]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(''),[calculated,setCalculated]=useState(''),[failedKey,setFailedKey]=useState('');
@@ -24,11 +27,11 @@ export function PreparedCheckout({id}:{id:string}){
  useNavigationGuard({blocked:locked});
  function received(data:Checkout){setView(data);setPrep(data.preparacion);}
  async function load(initial=false){
-  const p=await quoteRead(`/api/cliente/preparaciones/${id}`,isPreparation);setPrep(p);
-  if(p.pedido){router.replace(`/cliente/pedidos/${p.pedido}`);return;}
+  const p=await quoteRead(base,isPreparation);setPrep(p);
+  if(p.pedido){router.replace(`${orders}/${p.pedido}`);return;}
   if(!p.presupuesto)return;
-  const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
-  const data=await quoteRead(`/api/cliente/preparaciones/${id}/resumen`,isCheckout);received(data);
+  const o=await quoteRead(internal?`${base}/opciones`:'/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
+  const data=await quoteRead(`${base}/resumen`,isCheckout);received(data);
   if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad);setDestination(f.destinoRetiro??'');setPoint(f.punto??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);if(data.revision&&data.huella)setCalculated(JSON.stringify(f));}
   ready.current=true;
  }
@@ -36,8 +39,8 @@ export function PreparedCheckout({id}:{id:string}){
  async function execute(command?:{kind:'quote'|'confirm';body:string}){
   if(running.current)return;if(command)pending.current=command;if(!pending.current)return;
   const c=pending.current;running.current=true;setBusy(true);setError('');
-  try{const r=await secureMutation(`/api/cliente/preparaciones/${id}/${c.kind==='quote'?'cotizar':'confirmar'}`,c.body,'application/json');const result:unknown=await r.json();
-   if(c.kind==='confirm'){if(!isOrder(result))throw new Error('No pudimos comprobar el pedido creado. Recuperá la misma operación.');pending.current=null;setUncertain(false);router.push(`/cliente/pedidos/${result.codigoPublico}`);return;}
+  try{const r=await secureMutation(`${base}/${c.kind==='quote'?'cotizar':'confirmar'}`,c.body,'application/json');const result:unknown=await r.json();
+   if(c.kind==='confirm'){if(!isOrder(result))throw new Error('No pudimos comprobar el pedido creado. Recuperá la misma operación.');pending.current=null;setUncertain(false);router.push(`${orders}/${result.codigoPublico}`);return;}
    if(!isCheckout(result))throw new Error('No pudimos comprobar el total guardado.');received(result);setCalculated(JSON.stringify(JSON.parse(c.body).preferencias));
    pending.current=null;setUncertain(false);setFailedKey('');
   }catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar el resumen.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;if(c.kind==='quote')setFailedKey(JSON.stringify(JSON.parse(c.body).preferencias));setCalculated('');}}
@@ -50,6 +53,9 @@ export function PreparedCheckout({id}:{id:string}){
  },[prefKey,valid,locked,calculated,failedKey]);
  // Explicit retries only after a rejected calculation; avoid automatic write loops.
  const quote=view?.cotizacion,revision=view?.revision,summary=quote&&calculated===prefKey?quote.oferta:null;
+ const confirmedTerms=revision?.condiciones?.actuales;
+ const totalPrevio=Math.max(Number(summary?.condiciones.pagoPrevioRequerido??0),Number(confirmedTerms?.pagoPrevioRequerido??0));
+ const sena=Math.max(Number(summary?.condiciones.senaRequerida??0),Number(confirmedTerms?.senaRequerida??0));
  const allReady=!!prep?.archivos.length&&prep.archivos.every(f=>f.activo&&!f.revocado&&f.estado==='VALIDO');
  const fresh=calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
  async function confirm(e:FormEvent){e.preventDefault();if(locked||!prep||!quote||!fresh||!allReady)return;
@@ -58,17 +64,17 @@ export function PreparedCheckout({id}:{id:string}){
  const budget=prep?.presupuesto;
  const destinations=options?.destinosRetiro??[];
  const points=Array.from(new Map((options?.puntos??[]).filter(p=>p.sucursal===options?.casaMatriz?.codigoPublico).map(p=>[p.codigoPublico,p])).values());
- return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>
+ return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.correo}</p>}
   {!prep&&!error&&<p role="status">Recuperando el resumen de tu trabajo…</p>}
   {busy&&<p role="status" className="client-note">Verificando y actualizando tu pedido…</p>}
   {error&&<p className="client-warning" role="alert">{error}</p>}
   {uncertain?<button className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button className="client-button secondary" disabled={locked} onClick={()=>void load().catch(e=>setError(e.message))}>Actualizar resumen</button>}
-  {prep&&!budget&&<section className="client-card client-empty"><h2>Primero, prepará tu trabajo</h2><p>Agregá los PDF y revisá sus opciones para calcular el presupuesto.</p><a className="client-button" href="/cliente/cotizaciones/nueva">Volver a preparar el trabajo</a></section>}
+  {prep&&!budget&&<section className="client-card client-empty"><h2>Primero, prepará tu trabajo</h2><p>Agregá los PDF y revisá sus opciones para calcular el presupuesto.</p><a className="client-button" href={editHref}>Volver a preparar el trabajo</a></section>}
   {budget&&<><p className="client-compact-intro">Revisá tu trabajo, elegí cómo recibirlo y comprobá el total antes de crear el pedido.</p>
    <div className="client-checkout-layout">
     <div className="workspace-checkout-main">
      <section id="client-budget" className="workspace-panel">
-      <header className="workspace-budget-header"><div><h2>Tu trabajo</h2><p>{budget.items.length} archivo(s) · {budget.items.reduce((sum,item)=>sum+item.trabajo.paginas,0)} páginas en los PDF</p></div><a aria-disabled={locked} href={locked?undefined:'/cliente/cotizaciones/nueva'}>Editar trabajo</a></header>
+      <header className="workspace-budget-header"><div><h2>Tu trabajo</h2><p>{budget.items.length} archivo(s) · {budget.items.reduce((sum,item)=>sum+item.trabajo.paginas,0)} páginas en los PDF</p></div><a aria-disabled={locked} href={locked?undefined:editHref}>Editar trabajo</a></header>
       <div className="workspace-budget-items" tabIndex={budget.items.length>2?0:undefined} aria-label="Detalle de los archivos presupuestados">{budget.items.map((item,n)=><article key={item.codigoPublico}><h3>PDF {n+1} · {item.documento.nombre}</h3><p>{item.trabajo.paginas} páginas · {item.trabajo.copias} copia(s) · {item.trabajo.dobleFaz?'Doble faz':'Simple faz'}</p><p>{item.formato} · {item.papel} · {item.trabajo.color==='COLOR'?'Color':'Blanco y negro'}</p><strong>{money(item.precio.subtotal)}</strong><details><summary>Servicios incluidos</summary><p>{item.precio.lineas.filter(l=>l.servicio!==item.trabajo.servicio).map(l=>l.nombre).join(' · ')||'Sin servicios adicionales'}</p></details></article>)}</div>
       {budget.items.length>2&&<p className="workspace-files-footer">Desplazate dentro del listado para consultar los {budget.items.length} archivos.</p>}
      </section>
@@ -88,7 +94,7 @@ export function PreparedCheckout({id}:{id:string}){
        <div className="workspace-recalculate"><p>{summary?'Entrega y total actualizados. El cupo se reserva al crear el pedido.':busy?'Actualizando entrega y total…':'Elegí entrega y pago. El total se actualizará automáticamente.'}</p><button className="client-button secondary" disabled={!valid}>Actualizar entrega y total</button></div>
       </fieldset>
      </form>
-     <section id="client-review-files" className="workspace-panel"><PreparedFileReview quote={id} version={prep.version} total={prep.archivos.length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>
+     <section id="client-review-files" className="workspace-panel"><PreparedFileReview internal={internal} quote={id} version={prep.version} total={prep.archivos.length} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>
     </div>
     <aside className="workspace-checkout-aside" aria-label="Total y confirmación">
      <section className="workspace-panel workspace-price" aria-live="polite"><h2>{summary?'Total de tu pedido':'Subtotal de tu trabajo'}</h2>
@@ -96,12 +102,13 @@ export function PreparedCheckout({id}:{id:string}){
       {summary?<><div className="workspace-delivery-summary"><p><strong>Destino:</strong> {summary.destino}</p><p><strong>Estimación:</strong> {revision?.franja?date(revision.franja.desde)+' – '+date(revision.franja.hasta):date(summary.entrega.disponibleDesde)}</p></div>
        <details className="workspace-delivery-notes"><summary>Cómo se estima la entrega</summary>{summary.entrega.advertencias.map((s,i)=><p key={i}>{s}</p>)}<p>Zona horaria: {summary.entrega.zonaHoraria}.</p></details>
        <p>{(revision?.condiciones?.revisionHumana??summary.condiciones.revisionHumana)?'Requiere revisión y aprobación humana.':'La aprobación se evalúa con las reglas configuradas.'}</p>
-       {summary.condiciones.pagoPrevioRequerido!=='0.00'&&<p><strong>Pago previo para habilitar aprobación/producción:</strong> {money(summary.condiciones.pagoPrevioRequerido)}</p>}
-       {summary.condiciones.senaRequerida!=='0.00'&&<p><strong>Seña requerida:</strong> {money(summary.condiciones.senaRequerida)}</p>}
+       {totalPrevio>0&&<p><strong>Pago total previo:</strong> {money(totalPrevio.toFixed(2))}</p>}
+       {sena>0&&<p><strong>Seña requerida:</strong> {money(sena.toFixed(2))}</p>}
+       {totalPrevio===0&&sena===0&&<p><strong>Anticipo:</strong> no requerido. El saldo debe estar cubierto para entregar.</p>}
        <details><summary>Ver condiciones del pedido</summary><p>Se verifican las condiciones cotizadas y los requisitos operativos vigentes antes de crear el pedido.</p>{Array.from(new Set([...summary.condiciones.instrucciones,...(revision?.condiciones?.actuales.instrucciones??[])])).map((s,i)=><p key={i}>{s}</p>)}<p>Las fechas son estimadas. La disponibilidad real se informa en el seguimiento.</p></details>
       </>:<p>{busy?'Recalculando en el servidor…':'Falta elegir entrega y pago para conocer el total final.'}</p>}
      </section>
-     <form id="client-create-order" onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>Confirmá tu pedido</h2>
+     <form id="client-create-order" onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>{internal?'Confirmá el pedido del cliente':'Confirmá tu pedido'}</h2>{internal&&<p>Al crear el pedido, confirmás el resumen en nombre del cliente. Se registrará tu usuario.</p>}
       {mode==='ENVIO_DOMICILIO'&&<div className="workspace-contact"><label>Quién recibe<input required maxLength={140} disabled={locked} value={contact.receptor} onChange={e=>setContact({...contact,receptor:e.target.value})}/></label><label>Teléfono<input required maxLength={40} disabled={locked} value={contact.telefono} onChange={e=>setContact({...contact,telefono:e.target.value})}/></label></div>}
       <p className="workspace-confirm-note">Se imprimirá el contenido de los PDF que cargaste. Podés consultarlos en <a href="#client-review-files">Archivos adjuntos</a>.</p>
       {!allReady&&<p className="client-note"><a href="#client-review-files">Consultá el estado de tus PDF</a>. El análisis debe terminar antes de crear el pedido.</p>}
@@ -110,7 +117,7 @@ export function PreparedCheckout({id}:{id:string}){
      </form>
     </aside>
    </div>
-   <ClientContextTour stage={2} ready={!busy&&!!options?.disponible}/>
+   {!internal&&<ClientContextTour stage={2} ready={!busy&&!!options?.disponible}/>}
   </>}
  </div>;
 }

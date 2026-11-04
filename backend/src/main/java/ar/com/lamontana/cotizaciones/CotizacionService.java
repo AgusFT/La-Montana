@@ -124,10 +124,12 @@ public class CotizacionService {
     }
 
     @Transactional
-    public Detalle crear(Crear in,String correo){return crear(in,correo,null);}
-    @Transactional public Detalle crearCorreccion(Crear in,String correo,UUID correccion){return crear(in,correo,correccion);}
-    private Detalle crear(Crear in,String correo,UUID correccion){
-        bloquear();long actor=cliente(correo);String hash=huella(correccion==null?in:List.of(in,correccion));var anterior=reintento(in.operacion(),"COTIZAR",hash,actor);if(anterior!=null)return anterior;
+    public Detalle crear(Crear in,String correo){long cliente=cliente(correo);return crear(in,cliente,cliente,null,null);}
+    @Transactional public Detalle crearCorreccion(Crear in,String correo,UUID correccion){long cliente=cliente(correo);return crear(in,cliente,cliente,correccion,null);}
+    Detalle crearPreparada(Crear in,PreparacionClienteStore.Datos d){return crear(in,d.usuario(),d.actor(),null,d.preparacionInterna());}
+    private Detalle crear(Crear in,long propietario,long actor,UUID correccion,Long preparacionInterna){
+        bloquear();String hash=huella(correccion==null?in:List.of(in,correccion));
+        var anterior=reintento(in.operacion(),"COTIZAR",hash,propietario,actor,preparacionInterna);if(anterior!=null)return anterior;
         catalogo.reconciliarProgramaciones();var c=operativa.leer();var b=c.configuracion();
         if(b==null||c.catalogo().actual()==null)throw conflicto("La imprenta todavía no está preparada para cotizar.");
         if(!b.codigoPublico().equals(in.configuracion())||!c.catalogo().actual().codigoPublico().equals(in.revisionComercial()))throw conflicto("Cambiaron las opciones o tarifas. Actualizalas antes de solicitar la cotización.");
@@ -137,12 +139,12 @@ public class CotizacionService {
         exigir((in.modalidad()==Modalidad.ENVIO_DOMICILIO)==(in.direccion()!=null),"Completá la dirección sólo para envío a domicilio.");
         Long solicitud=null,baseCorreccion=null;
         if(correccion!=null){
-            var solicitudes=jdbc.query("SELECT s.id_solicitud_correccion,s.id_cotizacion_base,p.id_sucursal FROM lamontana.solicitud_correccion s JOIN lamontana.pedido p USING(id_pedido) JOIN lamontana.sucursal b ON b.id_sucursal=p.id_sucursal WHERE s.codigo_publico=? AND s.estado='PENDIENTE' AND p.estado='CORRECCION_SOLICITADA' AND p.id_usuario_creador=? AND b.codigo_publico=?",(r,n)->new long[]{r.getLong(1),r.getLong(2)},correccion,actor,in.sucursal());
+            var solicitudes=jdbc.query("SELECT s.id_solicitud_correccion,s.id_cotizacion_base,p.id_sucursal FROM lamontana.solicitud_correccion s JOIN lamontana.pedido p USING(id_pedido) JOIN lamontana.sucursal b ON b.id_sucursal=p.id_sucursal WHERE s.codigo_publico=? AND s.estado='PENDIENTE' AND p.estado='CORRECCION_SOLICITADA' AND p.id_usuario_creador=? AND b.codigo_publico=?",(r,n)->new long[]{r.getLong(1),r.getLong(2)},correccion,propietario,in.sucursal());
             if(solicitudes.isEmpty())throw conflicto("La corrección ya no está pendiente o la sucursal no corresponde al pedido.");
             solicitud=solicitudes.get(0)[0];baseCorreccion=solicitudes.get(0)[1];exigir(in.reemplaza()!=null,"La nueva oferta debe continuar la cotización del pedido.");
         }
         Long reemplazada=null;
-        if(in.reemplaza()!=null){var vieja=propia(in.reemplaza(),actor);
+        if(in.reemplaza()!=null){var vieja=propia(in.reemplaza(),propietario,preparacionInterna);
             boolean enlazada=jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_cotizacion=?)",Boolean.class,vieja.id());
             if(correccion==null&&enlazada)throw conflicto("Esta oferta pertenece a una corrección. Solicitá su sucesora desde el pedido.");
             if(vieja.detalle().reemplazadaPor()!=null||vieja.detalle().estado().equals("CONFIRMADA")&&(baseCorreccion==null||vieja.id()!=baseCorreccion))throw conflicto("La cotización ya tiene un pedido o una oferta sucesora. Abrí el resultado guardado.");
@@ -158,18 +160,18 @@ public class CotizacionService {
         if(in.direccion()!=null)destino=in.direccion().calle().strip()+" "+in.direccion().numero().strip()+", "+in.direccion().territorio().localidad()+", "+in.direccion().territorio().provincia();
         var oferta=new Oferta(b.codigoPublico(),b.numero(),c.catalogo().actual().codigoPublico(),c.catalogo().actual().numero(),sucursal,List.copyOf(items),in.modalidad(),in.punto(),in.direccion(),destino,in.medioPago(),subtotal.toPlainString(),costo,total.toPlainString(),condiciones,temporal,List.copyOf(b.pagos().medios()),in.origenGlobal());
         UUID codigo=UUID.randomUUID();long id=jdbc.queryForObject("""
-            INSERT INTO lamontana.cotizacion(codigo_publico,id_usuario_creador,id_sucursal,id_configuracion_version,id_catalogo_revision,id_cotizacion_reemplazada,estado,generada_en,vigente_hasta,subtotal,costo_entrega,total,oferta)
-            VALUES (?,?,(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?),(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),(SELECT id_catalogo_revision FROM lamontana.catalogo_revision WHERE codigo_publico=?),?,'VIGENTE',?,?,?,?,?,?::jsonb) RETURNING id_cotizacion
-            """,Long.class,codigo,actor,in.sucursal(),b.codigoPublico(),c.catalogo().actual().codigoPublico(),reemplazada,Timestamp.from(ahora),Timestamp.from(ahora.plusSeconds(b.pagos().vigenciaCotizacionMinutos()*60L)),subtotal,new BigDecimal(costo),total,json.writeValueAsString(oferta));
+            INSERT INTO lamontana.cotizacion(codigo_publico,id_usuario_creador,id_sucursal,id_configuracion_version,id_catalogo_revision,id_cotizacion_reemplazada,estado,generada_en,vigente_hasta,subtotal,costo_entrega,total,oferta,id_preparacion_interna)
+            VALUES (?,?,(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?),(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),(SELECT id_catalogo_revision FROM lamontana.catalogo_revision WHERE codigo_publico=?),?,'VIGENTE',?,?,?,?,?,?::jsonb,?) RETURNING id_cotizacion
+            """,Long.class,codigo,propietario,in.sucursal(),b.codigoPublico(),c.catalogo().actual().codigoPublico(),reemplazada,Timestamp.from(ahora),Timestamp.from(ahora.plusSeconds(b.pagos().vigenciaCotizacionMinutos()*60L)),subtotal,new BigDecimal(costo),total,json.writeValueAsString(oferta),preparacionInterna);
         int orden=0;for(var item:items){var t=item.trabajo();var p=item.precio();long idItem=jdbc.queryForObject("""
             INSERT INTO lamontana.cotizacion_item(codigo_publico,id_cotizacion,orden,id_formato,id_papel,cantidad_paginas_declaradas,cantidad_copias,cantidad_carillas,cantidad_hojas,modo_color,doble_faz,nombre_archivo_declarado,bytes_declarados,sha256_declarado,subtotal)
             VALUES (?,?,?,(SELECT id_formato FROM lamontana.formato WHERE codigo_publico=?),(SELECT id_papel FROM lamontana.papel WHERE codigo_publico=?),?,?,?,?,?,?,?,?,?,?) RETURNING id_cotizacion_item
             """,Long.class,item.codigoPublico(),id,++orden,t.formato(),t.papel(),t.paginas(),t.copias(),p.carillas(),p.hojas(),t.color().name(),t.dobleFaz(),item.documento().nombre(),item.documento().bytes(),item.documento().sha256(),new BigDecimal(p.subtotal()));
             for(var linea:p.lineas())jdbc.update("INSERT INTO lamontana.cotizacion_item_servicio(id_cotizacion_item,id_servicio,tipo_servicio,nombre_visible,base_precio,cantidad,precio_unitario,subtotal) VALUES (?,(SELECT id_servicio FROM lamontana.servicio WHERE codigo_publico=?),?,?,?,?,?,?)",idItem,linea.servicio(),linea.servicio().equals(t.servicio())?"IMPRESION":"TERMINACION",linea.nombre(),linea.base(),linea.unidades(),new BigDecimal(linea.precioUnitario()),new BigDecimal(linea.importe()));
         }
-        if(reemplazada!=null)jdbc.update("UPDATE lamontana.cotizacion SET estado='CANCELADA',version=version+1,cancelada_en=?,motivo_cancelacion='Sustituida por una nueva cotización solicitada por el cliente.' WHERE id_cotizacion=? AND estado='VIGENTE' AND vigente_hasta>?",Timestamp.from(ahora),reemplazada,Timestamp.from(ahora));
+        if(reemplazada!=null)jdbc.update("UPDATE lamontana.cotizacion SET estado='CANCELADA',version=version+1,cancelada_en=?,motivo_cancelacion=? WHERE id_cotizacion=? AND estado='VIGENTE' AND vigente_hasta>?",Timestamp.from(ahora),preparacionInterna==null?"Sustituida por una nueva cotización solicitada por el cliente.":"Sustituida durante la preparación interna del pedido.",reemplazada,Timestamp.from(ahora));
         if(solicitud!=null)jdbc.update("INSERT INTO lamontana.cotizacion_correccion(id_cotizacion,id_solicitud_correccion) VALUES (?,?)",id,solicitud);
-        evento(id,actor,in.operacion(),"COTIZAR",hash,null);return propia(codigo,actor).detalle();
+        evento(id,actor,in.operacion(),"COTIZAR",hash,null);return propia(codigo,propietario,preparacionInterna).detalle();
     }
 
 
@@ -204,9 +206,15 @@ public class CotizacionService {
 
     @Transactional
     public Detalle decidir(UUID id,Decision in,boolean aceptar,String correo){
-        bloquear();long actor=cliente(correo);String tipo=aceptar?"ACEPTAR_OFERTA":"CANCELAR_OFERTA",hash=huella(new HuellaDecision(id,in,aceptar));
-        var anterior=reintento(in.operacion(),tipo,hash,actor);if(anterior!=null)return anterior;
-        var r=propia(id,actor);var d=r.detalle();if(d.version()!=in.version())throw conflicto("La cotización cambió. Consultá su estado antes de continuar.");
+        long cliente=cliente(correo);return decidir(id,in,aceptar,cliente,cliente,null);
+    }
+    Detalle aceptarPreparada(UUID id,Decision in,PreparacionClienteStore.Datos d){
+        return decidir(id,in,true,d.usuario(),d.actor(),d.preparacionInterna());
+    }
+    private Detalle decidir(UUID id,Decision in,boolean aceptar,long propietario,long actor,Long preparacionInterna){
+        bloquear();String tipo=aceptar?"ACEPTAR_OFERTA":"CANCELAR_OFERTA",hash=huella(new HuellaDecision(id,in,aceptar));
+        var anterior=reintento(in.operacion(),tipo,hash,propietario,actor,preparacionInterna);if(anterior!=null)return anterior;
+        var r=propia(id,propietario,preparacionInterna);var d=r.detalle();if(d.version()!=in.version())throw conflicto("La cotización cambió. Consultá su estado antes de continuar.");
         if(!d.estado().equals("VIGENTE"))throw conflicto("La cotización ya no está vigente. Solicitá una nueva oferta para continuar.");
         if(aceptar&&jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc JOIN lamontana.solicitud_correccion sc USING(id_solicitud_correccion) JOIN lamontana.pedido p USING(id_pedido) WHERE cc.id_cotizacion=? AND (sc.estado<>'PENDIENTE' OR p.estado<>'CORRECCION_SOLICITADA'))",Boolean.class,r.id()))throw conflicto("La corrección de esta oferta ya no admite aceptación.");
         if(aceptar&&d.aceptadaEn()!=null)throw conflicto("La oferta ya fue aceptada. Consultá su estado guardado.");
@@ -214,33 +222,34 @@ public class CotizacionService {
         Instant decisionEn=ahora();if(!decisionEn.isBefore(d.vigenteHasta()))throw conflicto("La cotización acaba de vencer. Solicitá una nueva oferta.");
         if(aceptar)jdbc.update("UPDATE lamontana.cotizacion SET aceptada_en=?,version=version+1 WHERE id_cotizacion=?",Timestamp.from(decisionEn),r.id());
         else jdbc.update("UPDATE lamontana.cotizacion SET estado='CANCELADA',cancelada_en=?,motivo_cancelacion=?,version=version+1 WHERE id_cotizacion=?",Timestamp.from(decisionEn),in.motivo().strip(),r.id());
-        evento(r.id(),actor,in.operacion(),tipo,hash,aceptar?null:in.motivo().strip());return propia(id,actor).detalle();
+        evento(r.id(),actor,in.operacion(),tipo,hash,aceptar?null:in.motivo().strip());return propia(id,propietario,preparacionInterna).detalle();
     }
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
-    public Detalle detalle(UUID id,String correo){return propia(id,cliente(correo)).detalle();}
+    public Detalle detalle(UUID id,String correo){return propia(id,cliente(correo),null).detalle();}
+    Detalle detallePreparada(UUID id,PreparacionClienteStore.Datos d){return propia(id,d.usuario(),d.preparacionInterna()).detalle();}
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public Pagina listar(int pagina,String correo){
-        exigir(pagina>=0&&pagina<=100000,"Página inválida.");long actor=cliente(correo);long total=jdbc.queryForObject("SELECT count(*) FROM lamontana.cotizacion WHERE id_usuario_creador=?",Long.class,actor);
-        var ids=jdbc.query("SELECT codigo_publico FROM lamontana.cotizacion WHERE id_usuario_creador=? ORDER BY id_cotizacion DESC LIMIT 25 OFFSET ?",(r,n)->r.getObject(1,UUID.class),actor,(long)pagina*25);
-        var resumen=ids.stream().map(id->{var d=propia(id,actor).detalle();return new Resumen(id,d.numero(),d.estado(),d.generadaEn(),d.vigenteHasta(),d.aceptadaEn(),d.oferta().total(),d.oferta().sucursal().nombre(),d.oferta().items().size());}).toList();
+        exigir(pagina>=0&&pagina<=100000,"Página inválida.");long actor=cliente(correo);long total=jdbc.queryForObject("SELECT count(*) FROM lamontana.cotizacion WHERE id_usuario_creador=? AND (id_preparacion_interna IS NULL OR estado='CONFIRMADA')",Long.class,actor);
+        var ids=jdbc.query("SELECT codigo_publico FROM lamontana.cotizacion WHERE id_usuario_creador=? AND (id_preparacion_interna IS NULL OR estado='CONFIRMADA') ORDER BY id_cotizacion DESC LIMIT 25 OFFSET ?",(r,n)->r.getObject(1,UUID.class),actor,(long)pagina*25);
+        var resumen=ids.stream().map(id->{var d=propia(id,actor,null).detalle();return new Resumen(id,d.numero(),d.estado(),d.generadaEn(),d.vigenteHasta(),d.aceptadaEn(),d.oferta().total(),d.oferta().sucursal().nombre(),d.oferta().items().size());}).toList();
         return new Pagina(resumen,total,pagina,25);
     }
-    private Registro propia(UUID id,long actor){
-        var rows=jdbc.query("SELECT c.*,p.codigo_publico AS reemplaza,n.codigo_publico AS reemplazada_por FROM lamontana.cotizacion c LEFT JOIN lamontana.cotizacion p ON p.id_cotizacion=c.id_cotizacion_reemplazada LEFT JOIN lamontana.cotizacion n ON n.id_cotizacion_reemplazada=c.id_cotizacion WHERE c.codigo_publico=? AND c.id_usuario_creador=?",(r,n)->{
+    private Registro propia(UUID id,long actor,Long preparacionInterna){
+        var rows=jdbc.query("SELECT c.*,p.codigo_publico AS reemplaza,n.codigo_publico AS reemplazada_por FROM lamontana.cotizacion c LEFT JOIN lamontana.cotizacion p ON p.id_cotizacion=c.id_cotizacion_reemplazada LEFT JOIN lamontana.cotizacion n ON n.id_cotizacion_reemplazada=c.id_cotizacion WHERE c.codigo_publico=? AND c.id_usuario_creador=? AND (c.id_preparacion_interna IS NOT DISTINCT FROM ?::bigint OR (?::bigint IS NULL AND c.estado='CONFIRMADA'))",(r,n)->{
             Instant vencimiento=r.getTimestamp("vigente_hasta").toInstant();String estado=r.getString("estado");if(estado.equals("VIGENTE")&&!ahora().isBefore(vencimiento))estado="EXPIRADA";
             var d=new Detalle(r.getObject("codigo_publico",UUID.class),r.getLong("id_cotizacion"),r.getLong("version"),estado,r.getTimestamp("generada_en").toInstant(),vencimiento,instante(r.getTimestamp("aceptada_en")),instante(r.getTimestamp("cancelada_en")),r.getString("motivo_cancelacion"),r.getObject("reemplaza",UUID.class),r.getObject("reemplazada_por",UUID.class),json.readValue(r.getString("oferta"),Oferta.class),contextoCorreccion(r.getLong("id_cotizacion")),preparacion(r.getLong("id_cotizacion"),actor));
             return new Registro(r.getLong("id_cotizacion"),r.getLong("id_usuario_creador"),d);
-        },id,actor);
+        },id,actor,preparacionInterna,preparacionInterna);
         if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"La cotización no está disponible en tu cuenta.");return rows.get(0);
     }
-    private UUID preparacion(long quote,long actor){return jdbc.query("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE id_usuario=? AND (id_ultima_cotizacion=? OR lamontana.cotizacion_descendiente(id_ultima_cotizacion,?)) ORDER BY id_preparacion DESC LIMIT 1",(r,n)->r.getObject(1,UUID.class),actor,quote,quote).stream().findFirst().orElse(null);}
+    private UUID preparacion(long quote,long actor){return jdbc.query("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE id_usuario=? AND id_operador IS NULL AND (id_ultima_cotizacion=? OR lamontana.cotizacion_descendiente(id_ultima_cotizacion,?)) ORDER BY id_preparacion DESC LIMIT 1",(r,n)->r.getObject(1,UUID.class),actor,quote,quote).stream().findFirst().orElse(null);}
     private Correccion contextoCorreccion(long quote){
         var rows=jdbc.query("SELECT p.codigo_publico,s.codigo_publico,s.estado='PENDIENTE' FROM lamontana.solicitud_correccion s JOIN lamontana.pedido p USING(id_pedido) WHERE s.id_cotizacion_base=? OR EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion cc WHERE cc.id_solicitud_correccion=s.id_solicitud_correccion AND cc.id_cotizacion=?) ORDER BY s.id_solicitud_correccion DESC LIMIT 1",(r,n)->new Correccion(r.getObject(1,UUID.class),r.getObject(2,UUID.class),r.getBoolean(3)),quote,quote);
         return rows.isEmpty()?null:rows.get(0);
     }
-    private Detalle reintento(UUID operacion,String tipo,String hash,long actor){
+    private Detalle reintento(UUID operacion,String tipo,String hash,long propietario,long actor,Long preparacionInterna){
         var rows=jdbc.query("SELECT e.tipo,e.huella,e.id_actor,c.codigo_publico FROM lamontana.evento_cotizacion e JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE e.id_operacion=?",(r,n)->new Object[]{r.getString(1),r.getString(2),r.getLong(3),r.getObject(4,UUID.class)},operacion);
-        if(rows.isEmpty())return null;var r=rows.get(0);if(!tipo.equals(r[0])||!hash.equals(r[1])||actor!=(long)r[2])throw conflicto("Esa operación ya se utilizó con otros datos.");return propia((UUID)r[3],actor).detalle();
+        if(rows.isEmpty())return null;var r=rows.get(0);if(!tipo.equals(r[0])||!hash.equals(r[1])||actor!=(long)r[2])throw conflicto("Esa operación ya se utilizó con otros datos.");return propia((UUID)r[3],propietario,preparacionInterna).detalle();
     }
     private long cliente(String correo){var ids=jdbc.query("SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND r.codigo='CLIENTE' AND r.activo",(r,n)->r.getLong(1),correo);if(ids.isEmpty())throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Se requiere una cuenta activa de cliente particular.");return ids.get(0);}
     private void bloquear(){jdbc.execute("SELECT pg_advisory_xact_lock(764003)");jdbc.execute("SELECT pg_advisory_xact_lock(764001)");jdbc.execute("SELECT pg_advisory_xact_lock(764002)");}

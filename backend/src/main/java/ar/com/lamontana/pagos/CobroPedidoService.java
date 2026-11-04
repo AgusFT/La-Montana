@@ -2,7 +2,9 @@
 package ar.com.lamontana.pagos;
 
 import ar.com.lamontana.configuracion.PoliticaPagoArchivos;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.text.NumberFormat;
 import java.time.*;
 import java.util.*;
 import org.springframework.http.HttpStatus;
@@ -93,8 +95,25 @@ public class CobroPedidoService {
     }
     public void exigirAprobable(long pedido){
         if(fila(pedido)==null)return;
-        if(!consulta("produccion_cubierta",pedido))throw conflicto("Falta acreditar y aplicar el total previo o la seña requerida. El PDF permanece almacenado, pero no autoriza aprobación ni producción.");
+        if(!consulta("produccion_cubierta",pedido))throw conflicto(motivoAnticipo(pedido));
         if(consulta("cobro_bloquea_produccion",pedido))throw conflicto("Resolvé primero el plazo vencido o la intervención financiera pendiente. No se autoriza producción por informar un pago.");
+    }
+    private String motivoAnticipo(long pedido){
+        return jdbc.queryForObject("""
+            SELECT (SELECT sum(i.cantidad_carillas) FROM lamontana.cotizacion_item i WHERE i.id_cotizacion=p.id_cotizacion),
+                   greatest((p.condiciones_finales->'cotizadas'->>'pagoPrevioRequerido')::numeric,
+                            (p.condiciones_finales->'actuales'->>'pagoPrevioRequerido')::numeric),
+                   greatest((p.condiciones_finales->'cotizadas'->>'senaRequerida')::numeric,
+                            (p.condiciones_finales->'actuales'->>'senaRequerida')::numeric)
+            FROM lamontana.pedido_actual p WHERE p.id_pedido=?
+            """,(r,n)->{
+            long carillas=r.getLong(1);
+            BigDecimal previo=r.getBigDecimal(2),sena=r.getBigDecimal(3);
+            var moneda=NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-AR"));
+            if(previo!=null&&previo.signum()>0)return "El pedido requiere acreditar y aplicar el pago total previo de "+moneda.format(previo)+" antes de aprobar.";
+            if(sena!=null&&sena.signum()>0)return "El pedido tiene "+carillas+" carillas y requiere una seña de "+moneda.format(sena)+". Acreditá y aplicá la seña antes de aprobar.";
+            return "Falta acreditar y aplicar la condición económica del pedido antes de aprobar.";
+        },pedido);
     }
     private void aprobarCondicional(long pedido,long actor){
         if(!consulta("produccion_cubierta",pedido)||consulta("cobro_bloquea_produccion",pedido))return;

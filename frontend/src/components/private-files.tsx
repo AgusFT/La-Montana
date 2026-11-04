@@ -35,7 +35,7 @@ import {isFile,isFileView,type PrivateFile,type FileView} from "@/lib/file-types
 
 export function PrivateFiles({quote,version,internal=false,prepared=false,compact=false,refresh=0,onChange,confirmed=false,snapshot,correction,onLockChange,initialPreview}:{quote:string;version:number;internal?:boolean;prepared?:boolean;compact?:boolean;refresh?:number;onChange?:()=>void;confirmed?:boolean;snapshot?:string[];correction?:{pedido:string;solicitud:string};onLockChange?:(locked:boolean)=>void;initialPreview?:string}){
  const stateNames:Record<string,string>={PENDIENTE:"Pendiente de carga",VALIDANDO:"Analizando",VALIDO:"PDF válido",REQUIERE_COTIZACION:"Necesita una nueva cotización",RECHAZADO:"Archivo rechazado",FALLIDO:"Carga interrumpida"};
- const base=prepared?`/api/cliente/preparaciones/${quote}/archivos`:`/api/${internal?"operacion":"cliente"}/cotizaciones/${quote}/archivos`;
+ const base=prepared?`/api/${internal?"operacion":"cliente"}/preparaciones/${quote}/archivos`:`/api/${internal?"operacion":"cliente"}/cotizaciones/${quote}/archivos`;
  const[view,setView]=useState<FileView|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[selected,setSelected]=useState<Record<string,File>>({}),[preview,setPreview]=useState<PrivateFile|null>(null),[page,setPage]=useState(1),[imageError,setImageError]=useState(false);
  const running=useRef(false),command=useRef<{kind:"upload";item:string;file:File;body:string;id?:string}|null>(null);
  const locked=busy||uncertain;

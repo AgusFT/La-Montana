@@ -13,6 +13,13 @@ test('preparación: lista explícita de rutas y métodos, sin ampliar superficie
  try{for(const p of [['cliente','preparaciones'],[...path,'presupuesto'],[...path,'cotizar'],[...path,'confirmar'],[...path,'archivos',file,'quitar'],[...path,'archivos',file,'aceptar']])assert.equal((await proxy('POST',p,'{}',{'Content-Type':'application/json'})).status,200);
  for(const p of [path,[...path,'resumen'],[...path,'archivos'],[...path,'archivos',file,'carga']])assert.equal((await proxy('GET',p)).status,200);
  assert.equal((await proxy('POST',[...path,'resumen'],'{}')).status,405);
+ const internal=['operacion','preparaciones',id];
+ assert.equal((await proxy('POST',internal.slice(0,2),'{"correoCliente":"cliente@example.test"}')).status,200);
+ assert.equal((await proxy('GET',[...internal,'opciones'])).status,200);
+ assert.equal((await proxy('POST',[...internal,'archivos'],'{}')).status,200);
+ assert.equal((await proxy('POST',[...internal,'confirmar'],'{}')).status,200);
+ assert.equal((await proxy('GET',[...internal,'opciones','extra'])).status,404);
+ assert.equal((await proxy('POST',['operacion','cotizaciones',id,'archivos'],'{}')).status,405);
  for(const p of [['cliente','preparaciones','no-uuid'],[...path,'activar'],[...path,'archivos',file,'reemplazar'],[...path,'archivos',file,'paginas','0'],[...path,'resumen','extra']])assert.equal((await proxy('GET',p)).status,404);
  assert(calls.every(c=>c.init.redirect==='manual'&&c.init.cache==='no-store'));
  }finally{global.fetch=old;}
@@ -21,6 +28,10 @@ test('la carga preparada conserva PDF binario, propietario/cookie y CSRF; consul
  process.env.BACKEND_INTERNAL_URL='http://backend.test';const old=global.fetch,calls=[];
  global.fetch=async(url,init)=>{calls.push({url,init});return Response.json(url.endsWith('/carga')?{habilitada:true}:{estado:'VALIDO'});};
  try{const result=await proxy('PUT',[...path,'archivos',file,'contenido'],new Uint8Array([37,80,68,70,45]),{'Content-Type':'application/pdf','Cookie':'SESSION=privada','X-CSRF-TOKEN':'token'});assert.equal(result.status,200);assert.equal(calls.length,2);assert(calls[0].url.endsWith('/carga'));assert(calls[1].init.body instanceof Uint8Array);assert.equal(calls[1].init.headers.get('Cookie'),'SESSION=privada');assert.equal(calls[1].init.headers.get('X-CSRF-TOKEN'),'token');
+ const internal=['operacion',...path.slice(1),'archivos',file,'contenido'];
+ assert.equal((await proxy('PUT',internal,new Uint8Array([37,80,68,70,45]),{'Content-Type':'application/pdf'})).status,200);
+ assert.equal(calls[2].url,'http://backend.test/api/'+internal.slice(0,-1).join('/')+'/carga');
+ assert.equal(calls[3].url,'http://backend.test/api/'+internal.join('/'));
  assert.equal((await proxy('PUT',[...path,'archivos',file,'contenido'],'texto',{'Content-Type':'text/plain'})).status,415);
  assert.equal((await proxy('PUT',[...path,'archivos',file,'contenido'],'x',{'Content-Type':'application/pdf','Content-Length':'10485761'})).status,413);
  }finally{global.fetch=old;}

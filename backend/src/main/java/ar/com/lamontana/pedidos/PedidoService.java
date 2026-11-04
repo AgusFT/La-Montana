@@ -100,14 +100,15 @@ public class PedidoService {
  public record Franja(Modalidad modalidad,UUID destino,UUID origen,String nombre,String zonaHoraria,LocalDate fecha,String apertura,String cierre,Instant desde,Instant hasta,int cupoConfigurado,int plazasLibres,String costo){}
  public record Condiciones(CotizacionService.Condiciones cotizadas,EvaluadorFinanciero.Simulacion actuales,boolean revisionHumana){}
  public record Revision(UUID pedido,long version,UUID configuracion,long numeroConfiguracion,String huella,boolean habilitada,List<String> bloqueos,Condiciones condiciones,Franja franja,List<Pdf> archivos){}
- public record Evento(String estado,String motivo,Instant fecha,String accion){}
+ public record Evento(String estado,String motivo,Instant fecha,String accion,String actor){}
  public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro){}
  public record MovimientoReciente(String accion,Instant fecha,String actor){}
  public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega){}
  public record Pagina(List<Resumen> elementos,long total,int pagina,boolean puedeGestionarEntregas){}
  private record Actor(long id,String rol){}
 
- @Transactional public Revision revisar(UUID quote,String correo){bloquear();actor(correo,false);var q=cotizaciones.detalle(quote,correo);var vinculo=vinculado(quote);return vinculo==null?evaluar(q):new Revision(vinculo,q.version(),null,0,null,false,List.of(),null,null,List.of());}
+ @Transactional public Revision revisar(UUID quote,String correo){bloquear();actor(correo,false);return revisarPreparado(cotizaciones.detalle(quote,correo));}
+ public Revision revisarPreparado(CotizacionService.Detalle q){var vinculo=vinculado(q.codigoPublico());return vinculo==null?evaluar(q):new Revision(vinculo,q.version(),null,0,null,false,List.of(),null,null,List.of());}
  @Transactional public Revision revisarCorreccion(UUID quote,long pedido,String correo){bloquear();actor(correo,false);return evaluar(cotizaciones.detalle(quote,correo),pedido);}
  private Revision evaluar(CotizacionService.Detalle q){return evaluar(q,null);}
  private Revision evaluar(CotizacionService.Detalle q,Long excluirPedido){
@@ -145,7 +146,19 @@ public class PedidoService {
  }
  private int ocupadas(Modalidad modo,UUID dest,UUID branch,EvaluadorFranjas.Ventana v,Long excluirPedido){return jdbc.queryForObject("SELECT lamontana.reservas_ocupadas(?,?,?,?::date,?::time,?::time,?,?,?)",Integer.class,modo.name(),dest,branch,v.fecha().toString(),v.apertura(),v.cierre(),Timestamp.from(v.desde()),Timestamp.from(v.hasta()),excluirPedido);}
  @Transactional public Detalle confirmar(UUID quote,PedidoController.Confirmar in,String correo){
-  bloquear();var a=actor(correo,false);var q=cotizaciones.detalle(quote,correo);if(esCorreccion(quote))throw conflicto("Esta oferta pertenece a una corrección. Respondé desde el pedido existente; no crea otro pedido.");String command=huella(List.of(quote,in));
+  bloquear();var a=actor(correo,false);return confirmar(cotizaciones.detalle(quote,correo),in,correo,a,a);
+ }
+ @Transactional public Detalle confirmarPreparado(CotizacionService.Detalle q,PedidoController.Confirmar in,String cliente,String operador){
+  bloquear();var propietario=actor(cliente,false);var autor=propietario;
+  if(operador!=null){
+   autor=actor(operador,true);
+   organizacion.exigirPermiso(operador,"CREAR_PEDIDOS");
+   organizacion.sucursalAutorizada(operador,q.oferta().sucursal().codigoPublico());
+  }
+  return confirmar(q,in,cliente,propietario,autor);
+ }
+ private Detalle confirmar(CotizacionService.Detalle q,PedidoController.Confirmar in,String correo,Actor propietario,Actor a){
+  UUID quote=q.codigoPublico();if(esCorreccion(quote))throw conflicto("Esta oferta pertenece a una corrección. Respondé desde el pedido existente; no crea otro pedido.");String command=huella(List.of(quote,in));
   var old=jdbc.query("SELECT p.codigo_publico,h.id_actor,h.huella FROM lamontana.historial_estado_pedido h JOIN lamontana.pedido p USING(id_pedido) WHERE h.id_operacion=?",(r,n)->new Object[]{r.getObject(1,UUID.class),r.getLong(2),r.getString(3)},in.operacion());
   if(!old.isEmpty()){var r=old.get(0);if(a.id()!=(long)r[1]||!command.equals(r[2]))throw conflicto("La operación ya se utilizó con otros datos.");return detalle((UUID)r[0],correo,false);}
   if(!in.condicionesAceptadas())throw error(HttpStatus.BAD_REQUEST,"Revisá y aceptá las condiciones finales.");
@@ -167,11 +180,11 @@ public class PedidoService {
    FROM lamontana.cotizacion c WHERE c.codigo_publico=? RETURNING id_pedido
    """,Long.class,codigo,revision.configuracion(),estado,revision.condiciones().revisionHumana()?"HUMANA":"AUTOMATICA",Timestamp.from(now),aprobado?Timestamp.from(now):null,new BigDecimal(q.oferta().total()),json.writeValueAsString(revision.condiciones()),in.contacto()==null?null:in.contacto().receptor().strip(),in.contacto()==null?null:in.contacto().telefono().strip(),quote);
   for(var f:revision.archivos()){
-   ar.com.lamontana.archivos.RegistroEnvioPdf.registrar(jdbc,f.archivo(),a.id(),in.operacion(),f.sha256());
+   ar.com.lamontana.archivos.RegistroEnvioPdf.registrar(jdbc,f.archivo(),propietario.id(),in.operacion(),f.sha256());
    jdbc.update("INSERT INTO lamontana.pedido_item(id_pedido,id_cotizacion_item,id_archivo_almacenado,id_aceptacion_vista_previa) SELECT ?,ci.id_cotizacion_item,a.id_archivo_almacenado,v.id_aceptacion_vista_previa FROM lamontana.cotizacion_item ci,lamontana.archivo_almacenado a JOIN lamontana.aceptacion_vista_previa v USING(id_archivo_almacenado) WHERE ci.codigo_publico=? AND a.codigo_publico=?",id,f.item(),f.archivo());
   }
   var f=revision.franja();jdbc.update("INSERT INTO lamontana.reserva_entrega(id_pedido,modalidad,destino_publico,origen_publico,nombre_destino,zona_horaria,fecha_local,apertura,cierre,franja_desde,franja_hasta,cupo_confirmado,costo) VALUES (?,?,?,?,?,?,?::date,?::time,?::time,?,?,?,?)",id,f.modalidad().name(),f.destino(),f.origen(),f.nombre(),f.zonaHoraria(),f.fecha().toString(),f.apertura(),f.cierre(),Timestamp.from(f.desde()),Timestamp.from(f.hasta()),f.cupoConfigurado(),new BigDecimal(f.costo()));
-  jdbc.update("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha) VALUES (?,?,?,?,?,?,?)",id,a.id(),in.operacion(),command,estado,!anticipoCubierto?"Pedido creado con PDF privado validado; pendiente de acreditar y aplicar la condición económica antes de aprobar y producir.":revision.condiciones().revisionHumana()?"Pedido confirmado por el cliente; pendiente de revisión humana.":"Pedido confirmado; aprobado condicionalmente tras controles técnicos y económicos. Producción todavía no iniciada.",Timestamp.from(now));
+  jdbc.update("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha) VALUES (?,?,?,?,?,?,?)",id,a.id(),in.operacion(),command,estado,!anticipoCubierto?"Pedido creado con PDF privado validado; pendiente de acreditar y aplicar la condición económica antes de aprobar y producir.":revision.condiciones().revisionHumana()?(a.id()==propietario.id()?"Pedido confirmado por el cliente; pendiente de revisión humana.":"Pedido creado desde la imprenta para el cliente; pendiente de revisión humana."):"Pedido confirmado; aprobado condicionalmente tras controles técnicos y económicos. Producción todavía no iniciada.",Timestamp.from(now));
   jdbc.update("UPDATE lamontana.cotizacion SET estado='CONFIRMADA',confirmada_en=?,id_configuracion_confirmacion=(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),version=version+1 WHERE codigo_publico=?",Timestamp.from(now),revision.configuracion(),quote);
   cobro.iniciar(id,revision.condiciones().actuales().politicaArchivos(),now);
   return detalle(codigo,correo,false);
@@ -206,7 +219,14 @@ public class PedidoService {
    if(interno&&!reparto&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,r.getObject("sucursal",UUID.class));long id=r.getLong("id_pedido");
    var reserva=jdbc.queryForObject("SELECT * FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",(rs,nr)->new Franja(Modalidad.valueOf(rs.getString("modalidad")),rs.getObject("destino_publico",UUID.class),rs.getObject("origen_publico",UUID.class),rs.getString("nombre_destino"),rs.getString("zona_horaria"),rs.getDate("fecha_local").toLocalDate(),rs.getTime("apertura").toLocalTime().toString(),rs.getTime("cierre").toLocalTime().toString(),rs.getTimestamp("franja_desde").toInstant(),rs.getTimestamp("franja_hasta").toInstant(),rs.getInt("cupo_confirmado"),0,rs.getBigDecimal("costo").toPlainString()),id);
    var files=jdbc.query("SELECT ci.codigo_publico,a.codigo_publico,a.nombre_original,a.sha256,a.cantidad_bytes,a.cantidad_paginas,CASE WHEN v.tipo_registro='VISTA_PREVIA' THEN v.fecha END FROM lamontana.pedido_archivo_actual i JOIN lamontana.cotizacion_item ci USING(id_cotizacion_item) JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) JOIN lamontana.aceptacion_vista_previa v USING(id_aceptacion_vista_previa) WHERE i.id_pedido=? ORDER BY ci.orden",(rs,nr)->new Pdf(rs.getObject(1,UUID.class),rs.getObject(2,UUID.class),rs.getString(3),rs.getString(4),rs.getLong(5),rs.getInt(6),rs.getTimestamp(7)==null?null:rs.getTimestamp(7).toInstant()),id);
-   var history=jdbc.query("SELECT estado_destino,CASE WHEN version_pedido IS NULL THEN motivo ELSE mensaje_cliente END,fecha,accion FROM lamontana.historial_estado_pedido WHERE id_pedido=? ORDER BY id_evento",(rs,nr)->new Evento(rs.getString(1),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getString(4)),id);
+   var history=jdbc.query("""
+    SELECT h.estado_destino,CASE WHEN h.version_pedido IS NULL THEN h.motivo ELSE h.mensaje_cliente END,
+           h.fecha,h.accion,CASE WHEN ? AND (h.version_pedido IS NOT NULL OR h.id_actor<>?) THEN
+             coalesce(h.actor_nombre,u.nombre||' '||u.apellido) END AS actor
+    FROM lamontana.historial_estado_pedido h LEFT JOIN lamontana.usuario u ON u.id_usuario=h.id_actor
+    WHERE h.id_pedido=? ORDER BY h.id_evento
+    """,(rs,nr)->new Evento(rs.getString(1),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getString(4),rs.getString(5)),
+      interno,r.getLong("id_usuario_creador"),id);
    return new Detalle(codigo,id,r.getObject("cotizacion",UUID.class),r.getString("estado"),r.getTimestamp("confirmada_en").toInstant(),r.getTimestamp("aprobada_en")==null?null:r.getTimestamp("aprobada_en").toInstant(),r.getObject("config",UUID.class),r.getLong("numero_version"),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class),json.readValue(r.getString("condiciones_finales"),Condiciones.class),reserva,r.getString("receptor")==null?null:new PedidoController.Contacto(r.getString("receptor"),r.getString("telefono")),files,history,r.getLong("version"),jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",String.class,id),r.getTimestamp("finalizada_en")==null?null:r.getTimestamp("finalizada_en").toInstant(),jdbc.queryForObject("SELECT lamontana.estado_logistico(?)",String.class,id),Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.retiro_con_traslado(?)",Boolean.class,id)),cobro.vista(id,a.rol().equals("ADMIN_ADMIN")));
   },codigo,interno,a.id());if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pedido no está disponible en tu cuenta.");return rows.get(0);
  }

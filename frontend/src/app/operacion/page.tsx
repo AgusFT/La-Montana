@@ -47,6 +47,7 @@ export default async function OperationPage() {
   return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={false} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={`Hola, ${session.profile.nombre}`} description="Consultá los pedidos, archivos y pagos de tus sucursales habilitadas.">
     <div className="owner-profile"><h2>{session.profile.nombre} {session.profile.apellido}</h2><p>{session.profile.correo}</p><span className="environment">{session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"}</span></div>
     {context === null ? <p className="form-message error-message" role="alert">No pudimos consultar tu acceso operativo. <a href="/operacion">Volver a intentar</a></p> : <>
+      {context.permisos.includes("CREAR_PEDIDOS")&&<div className="page-actions"><a className="admin-button" href="/operacion/pedidos/nuevo">Crear pedido</a></div>}
       <section className="branch-list" aria-labelledby="operation-branches"><h2 id="operation-branches">Tus sucursales activas</h2>
         {context.sucursales.length === 0 ? <p className="empty-note">No hay sucursales activas habilitadas para tu cuenta.</p> : context.sucursales.map(branch => <article className="branch-card" key={branch.codigoPublico}><h3>{branch.nombre}</h3><p>{branch.calle} {branch.numero}, {branch.localidad}</p><a className="secondary-link" href={`/operacion/sucursales/${branch.codigoPublico}`}>Ver sucursal</a></article>)}
       </section>

@@ -1,6 +1,7 @@
 package ar.com.lamontana.cotizaciones;
 
 import java.util.*;
+import ar.com.lamontana.organizacion.OrganizacionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -12,22 +13,65 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class PreparacionClienteStore {
     final JdbcTemplate jdbc;final JsonMapper json=JsonMapper.builder().build();
-    public PreparacionClienteStore(JdbcTemplate jdbc){this.jdbc=jdbc;}
+    private final OrganizacionService organizacion;
+    public PreparacionClienteStore(JdbcTemplate jdbc,OrganizacionService organizacion){this.jdbc=jdbc;this.organizacion=organizacion;}
     public JsonMapper mapper(){return json;}
-    public record Datos(long id,UUID codigoPublico,long usuario,long version,String estado,String items,String presupuesto,String preferencias,UUID cotizacion,UUID pedido){}
-    public void bloquear(){for(long id:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+id+")");}
-    public long cliente(String correo){return jdbc.query("SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND r.codigo='CLIENTE' AND r.activo",(r,n)->r.getLong(1),correo).stream().findFirst().orElseThrow(()->error(HttpStatus.FORBIDDEN,"Se requiere una cuenta activa de cliente."));}
-    public Datos datos(UUID codigo,String correo,boolean editable){
-        long usuario=cliente(correo);
-        var d=jdbc.query("SELECT p.*,c.codigo_publico AS cotizacion,ped.codigo_publico AS pedido FROM lamontana.preparacion_cliente p LEFT JOIN lamontana.cotizacion c ON c.id_cotizacion=p.id_ultima_cotizacion LEFT JOIN lamontana.pedido ped ON ped.id_pedido=p.id_pedido WHERE p.codigo_publico=? AND p.id_usuario=?",(r,n)->new Datos(r.getLong("id_preparacion"),codigo,usuario,r.getLong("version"),r.getString("estado"),r.getString("items"),r.getString("presupuesto"),r.getString("preferencias"),r.getObject("cotizacion",UUID.class),r.getObject("pedido",UUID.class)),codigo,usuario).stream().findFirst().orElseThrow(()->error(HttpStatus.NOT_FOUND,"El trabajo preparado no está disponible en tu cuenta."));
-        if(editable&&!d.estado().equals("ABIERTA"))throw conflicto("Este trabajo ya tiene un pedido; consultá su seguimiento.");return d;
+    public record Cliente(String nombre,String correo){}
+    public record Datos(long id,UUID codigoPublico,long usuario,Long operador,Cliente cliente,long version,String estado,String items,String presupuesto,String preferencias,UUID cotizacion,UUID pedido){
+        public long actor(){return operador==null?usuario:operador;}
+        public Long preparacionInterna(){return operador==null?null:id;}
     }
-    @Transactional public Datos abrir(String correo){bloquear();long usuario=cliente(correo);var ids=jdbc.query("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE id_usuario=? AND estado='ABIERTA'",(r,n)->r.getObject(1,UUID.class),usuario);UUID id=ids.isEmpty()?UUID.randomUUID():ids.get(0);if(ids.isEmpty())jdbc.update("INSERT INTO lamontana.preparacion_cliente(codigo_publico,id_usuario) VALUES (?,?)",id,usuario);return datos(id,correo,true);}
+    public void bloquear(){for(long id:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+id+")");}
+    private long cliente(String correo){return jdbc.query("SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND r.codigo='CLIENTE' AND r.activo",(r,n)->r.getLong(1),correo).stream().findFirst().orElseThrow(()->error(HttpStatus.FORBIDDEN,"No encontramos una cuenta de cliente activa con ese correo."));}
+    public Datos datos(UUID codigo,String correo,boolean editable){
+        var d=jdbc.query("""
+            SELECT p.*,c.codigo_publico AS cotizacion,ped.codigo_publico AS pedido,
+                   cliente.nombre||' '||cliente.apellido AS nombre_cliente,cliente.correo AS correo_cliente
+            FROM lamontana.preparacion_cliente p
+            JOIN lamontana.usuario cliente ON cliente.id_usuario=p.id_usuario
+            JOIN lamontana.rol rol_cliente ON rol_cliente.id_rol=cliente.id_rol
+            JOIN lamontana.usuario actor ON actor.id_usuario=coalesce(p.id_operador,p.id_usuario)
+            JOIN lamontana.rol rol_actor ON rol_actor.id_rol=actor.id_rol
+            LEFT JOIN lamontana.cotizacion c ON c.id_cotizacion=p.id_ultima_cotizacion
+            LEFT JOIN lamontana.pedido ped ON ped.id_pedido=p.id_pedido
+            WHERE p.codigo_publico=? AND lower(actor.correo)=lower(?)
+              AND cliente.estado='ACTIVO' AND rol_cliente.activo AND rol_cliente.codigo='CLIENTE'
+              AND actor.estado='ACTIVO' AND rol_actor.activo
+              AND (p.id_operador IS NULL OR rol_actor.codigo IN ('ADMIN_ADMIN','EMPLEADO'))
+            """,(r,n)->new Datos(r.getLong("id_preparacion"),codigo,r.getLong("id_usuario"),r.getObject("id_operador",Long.class),
+                new Cliente(r.getString("nombre_cliente"),r.getString("correo_cliente")),r.getLong("version"),r.getString("estado"),
+                r.getString("items"),r.getString("presupuesto"),r.getString("preferencias"),
+                r.getObject("cotizacion",UUID.class),r.getObject("pedido",UUID.class)),codigo,correo).stream().findFirst()
+            .orElseThrow(()->error(HttpStatus.NOT_FOUND,"El trabajo preparado no está disponible en tu cuenta."));
+        if(d.operador()!=null)organizacion.exigirPermiso(correo,"CREAR_PEDIDOS");
+        if(editable&&!d.estado().equals("ABIERTA"))throw conflicto("Este trabajo ya tiene un pedido; consultá su seguimiento.");
+        return d;
+    }
+    @Transactional public Datos abrir(String correo){return abrir(correo,correo,null);}
+    @Transactional public Datos abrirInterna(String correo,String correoCliente){
+        bloquear();
+        var operadores=jdbc.query("""
+            SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
+            WHERE u.correo=? AND u.estado='ACTIVO' AND r.activo AND r.codigo IN ('ADMIN_ADMIN','EMPLEADO')
+            """,(r,n)->r.getLong(1),correo);
+        if(operadores.isEmpty())throw error(HttpStatus.FORBIDDEN,"Se requiere una cuenta interna activa.");
+        organizacion.exigirPermiso(correo,"CREAR_PEDIDOS");
+        return abrir(correo,correoCliente.strip(),operadores.get(0));
+    }
+    private Datos abrir(String actor,String correoCliente,Long operador){
+        bloquear();
+        long usuario=cliente(correoCliente);
+        var ids=jdbc.query("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE id_usuario=? AND id_operador IS NOT DISTINCT FROM ?::bigint AND estado='ABIERTA'",
+            (r,n)->r.getObject(1,UUID.class),usuario,operador);
+        UUID id=ids.isEmpty()?UUID.randomUUID():ids.get(0);
+        if(ids.isEmpty())jdbc.update("INSERT INTO lamontana.preparacion_cliente(codigo_publico,id_usuario,id_operador) VALUES (?,?,?)",id,usuario,operador);
+        return datos(id,actor,true);
+    }
     public void version(Datos d,long version){if(d.version()!=version)throw conflicto("El trabajo cambió en otra pestaña. Actualizá antes de continuar.");}
     public void cambio(long id,boolean invalida){jdbc.update("UPDATE lamontana.preparacion_cliente SET version=version+1,actualizada_en=clock_timestamp(),presupuesto=CASE WHEN ? THEN NULL ELSE presupuesto END,preferencias=CASE WHEN ? THEN NULL ELSE preferencias END WHERE id_preparacion=?",invalida,invalida,id);}
     public String huella(Object value){try{return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(json.writeValueAsString(value).getBytes(java.nio.charset.StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
-    public String previo(Datos d,UUID operacion,String tipo,Object input){var rows=jdbc.query("SELECT id_preparacion,id_actor,tipo,huella,resultado::text FROM lamontana.evento_preparacion WHERE id_operacion=?",(r,n)->new Object[]{r.getLong(1),r.getLong(2),r.getString(3),r.getString(4),r.getString(5)},operacion);if(rows.isEmpty())return null;var p=rows.get(0);if((long)p[0]!=d.id()||(long)p[1]!=d.usuario()||!tipo.equals(p[2])||!huella(input).equals(p[3]))throw conflicto("La operación ya se utilizó con otros datos.");return (String)p[4];}
-    public void evento(Datos d,UUID operacion,String tipo,Object input,Object resultado){jdbc.update("INSERT INTO lamontana.evento_preparacion(id_preparacion,id_actor,id_operacion,tipo,huella,resultado) VALUES (?,?,?,?,?,?::jsonb)",d.id(),d.usuario(),operacion,tipo,huella(input),json.writeValueAsString(resultado));}
+    public String previo(Datos d,UUID operacion,String tipo,Object input){var rows=jdbc.query("SELECT id_preparacion,id_actor,tipo,huella,resultado::text FROM lamontana.evento_preparacion WHERE id_operacion=?",(r,n)->new Object[]{r.getLong(1),r.getLong(2),r.getString(3),r.getString(4),r.getString(5)},operacion);if(rows.isEmpty())return null;var p=rows.get(0);if((long)p[0]!=d.id()||(long)p[1]!=d.actor()||!tipo.equals(p[2])||!huella(input).equals(p[3]))throw conflicto("La operación ya se utilizó con otros datos.");return (String)p[4];}
+    public void evento(Datos d,UUID operacion,String tipo,Object input,Object resultado){jdbc.update("INSERT INTO lamontana.evento_preparacion(id_preparacion,id_actor,id_operacion,tipo,huella,resultado) VALUES (?,?,?,?,?,?::jsonb)",d.id(),d.actor(),operacion,tipo,huella(input),json.writeValueAsString(resultado));}
     public static ResponseStatusException conflicto(String mensaje){return error(HttpStatus.CONFLICT,mensaje);}
     public static ResponseStatusException error(HttpStatus status,String mensaje){return new ResponseStatusException(status,mensaje);}
 }

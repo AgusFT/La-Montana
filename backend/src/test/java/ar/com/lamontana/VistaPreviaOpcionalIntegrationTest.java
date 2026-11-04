@@ -7,6 +7,13 @@ import ar.com.lamontana.cotizaciones.*;
 import ar.com.lamontana.configuracion.ConfiguracionController.MedioPago;
 import ar.com.lamontana.configuracion.EntregaConfiguracionController.Modalidad;
 import ar.com.lamontana.pedidos.*;
+import ar.com.lamontana.organizacion.EmpleadoController.EdicionEmpleado;
+import ar.com.lamontana.organizacion.OrganizacionService;
+import ar.com.lamontana.pagos.PagoService;
+import java.math.BigDecimal;
+import java.net.*;
+import java.net.http.*;
+import tools.jackson.databind.json.JsonMapper;
 import ar.com.lamontana.produccion.*;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.io.*;
@@ -88,5 +95,109 @@ class VistaPreviaOpcionalIntegrationTest {
    av.response="stream: Test FOUND";var infected=upload.crear(fresh,UUID.randomUUID(),"infectado.pdf","cliente2@prueba.local");assertThat(upload.recibir(fresh,infected.codigoPublico(),"cliente2@prueba.local",new ByteArrayInputStream(pdf),pdf.length).estado()).isEqualTo("RECHAZADO");
   } finally {try(var paths=Files.walk(files)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
  }
- private byte[] pdf() throws IOException {try(var doc=new PDDocument();var out=new ByteArrayOutputStream()){doc.addPage(new PDPage());doc.addPage(new PDPage());doc.save(out);return out.toByteArray();}}
+ @Test void altaInternaSeparaBorradoresRegistraOperadorYAplicaElUmbralDeSena() throws Exception {
+  Path files=Files.createTempDirectory("lamontana-alta-interna-");
+  try(var pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start();var av=new ClamavDePrueba();var app=new SpringApplicationBuilder(LaMontanaApplication.class).run(
+   "--server.port=0","--spring.profiles.active=pruebas","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=",
+   "--lamontana.archivos.directorio="+files,"--lamontana.pruebas.clave=MontanaPrueba2026!","--lamontana.archivos.antivirus.host=127.0.0.1","--lamontana.archivos.antivirus.port="+av.port())) {
+   var jdbc=app.getBean(JdbcTemplate.class);
+   var prep=app.getBean(PreparacionClienteService.class);
+   var upload=app.getBean(ArchivoPreparadoService.class);
+   var cotizaciones=app.getBean(CotizacionService.class);
+   var pedidos=app.getBean(PedidoService.class);
+   var revision=app.getBean(RevisionPedidoService.class);
+   var org=app.getBean(OrganizacionService.class);
+   var personal=prep.abrir(CLIENTE);
+   String operador="produccion@prueba.local";
+   assertThatThrownBy(()->prep.abrirInterna(operador,CLIENTE)).hasMessageContaining("permiso");
+   assertThatThrownBy(()->prep.abrirInterna(CLIENTE,CLIENTE)).hasMessageContaining("cuenta interna");
+   var base=URI.create("http://127.0.0.1:"+app.getEnvironment().getProperty("local.server.port"));
+   var employeeSession=login(base,operador);
+   var clientSession=login(base,CLIENTE);
+   assertThat(abrirInternaHttp(base,employeeSession).statusCode()).isEqualTo(403);
+   assertThat(abrirInternaHttp(base,clientSession).statusCode()).isEqualTo(403);
+   var empleado=org.empleados().stream().filter(e->e.correo().equals(operador)).findFirst().orElseThrow();
+   var matriz=cotizaciones.opciones(CLIENTE).casaMatriz().codigoPublico();
+   org.actualizarEmpleado(empleado.codigoPublico(),new EdicionEmpleado(empleado.nombre(),empleado.apellido(),operador,"ACTIVO",
+    empleado.version(),List.of(matriz),List.of("CREAR_PEDIDOS"),empleado.repartidor()),ADMIN);
+   byte[] pdf=pdf(4);
+   for(int copias:List.of(50,60)){
+    String autor=copias==50?operador:ADMIN;
+    var trabajo=prep.abrirInterna(autor,CLIENTE);
+    UUID id=trabajo.codigoPublico();
+    if(autor.equals(operador)){
+     var result=abrirInternaHttp(base,employeeSession);
+     assertThat(result.statusCode()).describedAs(result.body()).isEqualTo(200);
+     assertThat(JsonMapper.builder().build().readTree(result.body()).get("codigoPublico").asString()).isEqualTo(id.toString());
+    }
+    assertThat(id).isNotEqualTo(personal.codigoPublico());
+    assertThat(prep.abrirInterna(autor,CLIENTE).codigoPublico()).isEqualTo(id);
+    assertThat(trabajo.cliente().correo()).isEqualTo(CLIENTE);
+    assertThatThrownBy(()->prep.consultar(id,CLIENTE)).hasMessageContaining("no está disponible");
+    var opciones=prep.opciones(id,autor);
+    var combo=opciones.combinaciones().stream().filter(c->c.sucursal().equals(matriz)&&c.dobleFaz()).findFirst().orElseThrow();
+    var pending=upload.crear(id,UUID.randomUUID(),"trabajo.pdf",autor);
+    var archivo=upload.recibir(id,pending.codigoPublico(),autor,new ByteArrayInputStream(pdf),pdf.length);
+    assertThat(archivo.estado()).isEqualTo("VALIDO");
+    assertThatThrownBy(()->upload.archivo(id,archivo.codigoPublico(),CLIENTE)).hasMessageContaining("no está disponible");
+    var item=new EvaluadorPrecioItem.Item(combo.servicio(),combo.formato(),combo.papel(),combo.color(),4,copias,true,List.of());
+    var budget=prep.presupuestar(id,new PreparacionClienteService.Presupuestar(UUID.randomUUID(),prep.consultar(id,autor).version(),
+     opciones.configuracion(),opciones.revisionComercial(),List.of(new PreparacionClienteService.Entrada(archivo.codigoPublico(),item))),autor);
+    var checkout=prep.cotizar(id,new PreparacionClienteService.Cotizar(UUID.randomUUID(),budget.version(),
+     new PreparacionClienteService.Preferencias(Modalidad.RETIRO_SUCURSAL,matriz,null,null,MedioPago.EFECTIVO)),autor);
+    UUID cotizacion=checkout.cotizacion().codigoPublico();
+    assertThatThrownBy(()->cotizaciones.detalle(cotizacion,CLIENTE)).hasMessageContaining("no está disponible");
+    assertThatThrownBy(()->app.getBean(ArchivoService.class).listar(cotizacion,CLIENTE,false)).hasMessageContaining("no está disponible");
+    assertThatThrownBy(()->app.getBean(PagoService.class).vista(cotizacion,CLIENTE,false)).hasMessageContaining("no está disponible");
+    var comando=new PreparacionClienteService.Confirmar(UUID.randomUUID(),checkout.preparacion().version(),cotizacion,checkout.huella(),true,null);
+    var pedido=prep.confirmar(id,comando,autor);
+    assertThat(pedido.estado()).isEqualTo("PENDIENTE_REVISION");
+    assertThat(prep.confirmar(id,comando,autor).codigoPublico()).isEqualTo(pedido.codigoPublico());
+    assertThat(pedidos.detalle(pedido.codigoPublico(),CLIENTE,false).numero()).isEqualTo(pedido.numero());
+    assertThat(pedidos.detalle(pedido.codigoPublico(),autor,true).historial().get(0).actor()).isNotBlank();
+    assertThat(cotizaciones.detalle(cotizacion,CLIENTE).preparacion()).isNull();
+    assertThat(jdbc.queryForObject("""
+     SELECT u.correo FROM lamontana.historial_estado_pedido h JOIN lamontana.usuario u ON u.id_usuario=h.id_actor
+     WHERE h.id_pedido=? ORDER BY h.id_evento LIMIT 1
+     """,String.class,pedido.numero())).isEqualTo(autor);
+    var aprobar=revision.consultar(pedido.codigoPublico(),ADMIN).acciones().stream()
+     .filter(a->a.accion()==RevisionPedidoController.Accion.APROBAR).findFirst().orElseThrow();
+    assertThat(pedido.condiciones().actuales().pagoPrevioRequerido()).isEqualTo("0.00");
+    if(copias==50){
+     assertThat(pedido.condiciones().actuales().senaRequerida()).isEqualTo("0.00");
+     assertThat(aprobar.habilitada()).isTrue();
+     assertThat(revision.decidir(pedido.codigoPublico(),new RevisionPedidoController.Decision(UUID.randomUUID(),pedido.version(),
+      RevisionPedidoController.Accion.APROBAR,true,"",null),ADMIN).estado()).isEqualTo("APROBADO");
+    }else{
+     assertThat(new BigDecimal(pedido.condiciones().actuales().senaRequerida())).isEqualByComparingTo(new BigDecimal(pedido.oferta().total()).multiply(new BigDecimal("0.30")));
+     assertThat(aprobar.habilitada()).isFalse();
+     assertThat(aprobar.motivo()).contains("240 carillas","seña");
+    }
+   }
+   assertThat(prep.abrir(CLIENTE).codigoPublico()).isEqualTo(personal.codigoPublico());
+  } finally {try(var paths=Files.walk(files)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
+ }
+ private HttpClient login(URI base,String correo) throws Exception {
+  var client=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+  var response=client.send(HttpRequest.newBuilder(base.resolve("/api/auth/login"))
+   .header("X-CSRF-TOKEN",csrf(base,client)).header("Content-Type","application/x-www-form-urlencoded")
+   .POST(HttpRequest.BodyPublishers.ofString("username="+correo+"&password=MontanaPrueba2026!")).build(),HttpResponse.BodyHandlers.ofString());
+  assertThat(response.statusCode()).isEqualTo(200);
+  return client;
+ }
+ private String csrf(URI base,HttpClient client) throws Exception {
+  var response=client.send(HttpRequest.newBuilder(base.resolve("/api/auth/csrf")).GET().build(),HttpResponse.BodyHandlers.ofString());
+  assertThat(response.statusCode()).isEqualTo(200);
+  return JsonMapper.builder().build().readTree(response.body()).get("token").asString();
+ }
+ private HttpResponse<String> abrirInternaHttp(URI base,HttpClient client) throws Exception {
+  return client.send(HttpRequest.newBuilder(base.resolve("/api/operacion/preparaciones"))
+   .header("X-CSRF-TOKEN",csrf(base,client)).header("Content-Type","application/json")
+   .POST(HttpRequest.BodyPublishers.ofString("{\"correoCliente\":\""+CLIENTE+"\"}")).build(),HttpResponse.BodyHandlers.ofString());
+ }
+ private byte[] pdf() throws IOException {return pdf(2);}
+ private byte[] pdf(int pages) throws IOException {try(var doc=new PDDocument();var out=new ByteArrayOutputStream()){
+  for(int n=0;n<pages;n++)doc.addPage(new PDPage());
+  doc.save(out);return out.toByteArray();
+ }}
 }

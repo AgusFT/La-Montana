@@ -13,13 +13,21 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/cliente/preparaciones")
+@RequestMapping({"/api/cliente/preparaciones","/api/operacion/preparaciones"})
 public class PreparacionClienteController {
     private final PreparacionClienteService preparaciones;private final ArchivoPreparadoService archivos;
     public PreparacionClienteController(PreparacionClienteService preparaciones,ArchivoPreparadoService archivos){this.preparaciones=preparaciones;this.archivos=archivos;}
     public record ArchivoNuevo(@NotNull UUID operacion,@NotBlank @Size(max=255) String nombre){}
     public record Operacion(@NotNull UUID operacion){}
-    @PostMapping public PreparacionClienteService.Vista abrir(Principal p){return preparaciones.abrir(p.getName());}
+    public record AbrirInterna(@NotBlank @Email @Size(max=254) String correoCliente){}
+    @PostMapping public PreparacionClienteService.Vista abrir(@Valid @RequestBody(required=false) AbrirInterna in,HttpServletRequest request,Principal p){
+        if(request.getServletPath().startsWith("/api/operacion/")){
+            if(in==null)throw PreparacionClienteStore.error(HttpStatus.BAD_REQUEST,"Indicá el correo del cliente.");
+            return preparaciones.abrirInterna(p.getName(),in.correoCliente());
+        }
+        return preparaciones.abrir(p.getName());
+    }
+    @GetMapping("/{id}/opciones") public CotizacionService.Opciones opciones(@PathVariable UUID id,Principal p){return preparaciones.opciones(id,p.getName());}
     @GetMapping("/{id}") public PreparacionClienteService.Vista vista(@PathVariable UUID id,Principal p){return preparaciones.consultar(id,p.getName());}
     @PostMapping("/{id}/presupuesto") public PreparacionClienteService.Vista presupuesto(@PathVariable UUID id,@Valid @RequestBody PreparacionClienteService.Presupuestar in,Principal p){return preparaciones.presupuestar(id,in,p.getName());}
     @GetMapping("/{id}/resumen") public PreparacionClienteService.Checkout resumen(@PathVariable UUID id,Principal p){return preparaciones.checkout(id,p.getName());}
