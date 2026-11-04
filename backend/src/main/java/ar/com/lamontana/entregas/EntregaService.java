@@ -126,7 +126,13 @@ public class EntregaService {
  }
  private record Secreto(long id,UUID codigo,String hash,long reserva,Instant emision,Instant vence,Instant revocado,Instant utilizado,int intentos){}
  @Transactional public Vista consultar(UUID pedido,String correo,boolean interno){bloquear();var p=pedidos.detalle(pedido,correo,interno);codigos.asegurar(p.numero());return vista(p,correo,interno);}
- private Vista vista(PedidoService.Detalle p,String correo,boolean interno){
+ @Transactional public Vista consultarRetiro(UUID sucursal,UUID pedido,String correo){
+  bloquear();var p=pedidos.detalleRetiroSucursal(pedido,sucursal,correo);
+  codigos.asegurar(p.numero());
+  return vista(p,correo,true,sucursal);
+ }
+ private Vista vista(PedidoService.Detalle p,String correo,boolean interno){return vista(p,correo,interno,null);}
+ private Vista vista(PedidoService.Detalle p,String correo,boolean interno,UUID retiro){
   var a=actor(correo);var permisos=interno?organizacion.contexto(correo).permisos():List.<String>of();boolean gestiona=permisos.contains("GESTIONAR_ENTREGAS"),cierra=permisos.contains("CERRAR_PEDIDOS");String estado=logistica(p);
   var code=ultimoCodigo(p.numero());Instant ahora=clock.instant();String plain=null;if(!interno&&p.estado().equals("LISTO_PARA_ENTREGA")&&code!=null&&estadoCodigo(code,ahora).equals("ACTIVO")){var encrypted=jdbc.query("SELECT codigo_cifrado FROM lamontana.codigo_entrega WHERE id_codigo_entrega=?",(r,n)->r.getString(1),code.id());if(!encrypted.isEmpty()&&encrypted.get(0)!=null)plain=codigos.texto(code.codigo(),encrypted.get(0));}Codigo codigo=code==null?null:new Codigo(code.codigo(),estadoCodigo(code,ahora),code.emision(),code.vence(),Math.max(0,5-code.intentos()),code.emision().plusSeconds(30),plain);
   var validation=interno?verificacion(p,code,a.id(),ahora):null;
@@ -140,7 +146,7 @@ public class EntregaService {
   if(bloqueoPunto!=null)b.add(0,bloqueoPunto);
   if(interno&&!gestiona)b.add("Se requiere permiso de gestión de entregas.");
   var bc=new ArrayList<>(bloqueosCierre(p));if(interno&&!cierra)bc.add("Se requiere permiso para cerrar pedidos.");
-  BigDecimal aplicado=aplicado(p);return new Vista(p.version(),p.estado(),estado,cliente[0],interno?cliente[1]:null,gestiona,cierra,false,options,codigo,validation,entrega.isEmpty()?null:entrega.get(0),cierre.isEmpty()?null:cierre.get(0),dinero(aplicado),dinero(new BigDecimal(p.oferta().total()).subtract(aplicado).max(BigDecimal.ZERO)),List.copyOf(b),List.copyOf(bc),history,interno&&bloqueoPunto==null?cobroEfectivo(p,correo,permisos):null,interno?reciboEfectivo(p):null);
+  BigDecimal aplicado=aplicado(p);return new Vista(p.version(),p.estado(),estado,cliente[0],interno?cliente[1]:null,gestiona,cierra,false,options,codigo,validation,entrega.isEmpty()?null:entrega.get(0),cierre.isEmpty()?null:cierre.get(0),dinero(aplicado),dinero(new BigDecimal(p.oferta().total()).subtract(aplicado).max(BigDecimal.ZERO)),List.copyOf(b),List.copyOf(bc),history,interno&&bloqueoPunto==null?cobroEfectivo(p,correo,permisos,retiro):null,interno?reciboEfectivo(p):null);
  }
  @Transactional public Generacion emitir(UUID pedido,Emitir in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,false);codigos.asegurar(p.numero());var view=vista(p,correo,false);
@@ -152,18 +158,22 @@ public class EntregaService {
    organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");
    throw conflicto("Asigná un rider desde Entregas pendientes para iniciar el reparto.");
   }
-  return registrarMovimiento(pedido,in,correo,false);
+  return registrarMovimiento(pedido,in,correo,false,null);
  }
- private Vista registrarMovimiento(UUID pedido,Movimiento in,String correo,boolean rider){
-  bloquear();var p=detalleEntrega(pedido,correo,rider);var a=actor(correo);String hash=huella(List.of(pedido,"MOVIMIENTO",in));
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());String motivo=nota(in.motivo(),switch(in.accion()){case PREPARAR_ENVIO->"Pedido preparado para despacho.";case SALIR_REPARTO->"Salida al destino acordado confirmada.";case LLEGAR_PUNTO->"Llegada al destino de retiro confirmada.";case CLIENTE_AUSENTE->"Intento de entrega a domicilio sin receptor.";case REINTENTAR_ENTREGA->"Nuevo intento de entrega a domicilio iniciado.";});confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
+ @Transactional public Vista recibirEnSucursal(UUID sucursal,UUID pedido,UUID operacion,long version,boolean confirmado,String correo){
+  return registrarMovimiento(pedido,new Movimiento(operacion,version,Accion.LLEGAR_PUNTO,null,confirmado),correo,false,sucursal);
+ }
+ private Vista registrarMovimiento(UUID pedido,Movimiento in,String correo,boolean rider,UUID retiro){
+  bloquear();var p=detalleEntrega(pedido,correo,rider,retiro);var a=actor(correo);String hash=huella(List.of(pedido,"MOVIMIENTO",in));
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true,retiro);version(p,in.version());String motivo=nota(in.motivo(),switch(in.accion()){case PREPARAR_ENVIO->"Pedido preparado para despacho.";case SALIR_REPARTO->"Salida al destino acordado confirmada.";case LLEGAR_PUNTO->"Llegada al destino de retiro confirmada.";case CLIENTE_AUSENTE->"Intento de entrega a domicilio sin receptor.";case REINTENTAR_ENTREGA->"Nuevo intento de entrega a domicilio iniciado.";});confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
   String destino=switch(in.accion()){case PREPARAR_ENVIO->"PREPARADO";case SALIR_REPARTO->"EN_VIAJE";case LLEGAR_PUNTO->"DISPONIBLE_PUNTO";case CLIENTE_AUSENTE->"CLIENTE_AUSENTE";case REINTENTAR_ENTREGA->"EN_VIAJE";};String mensaje=switch(in.accion()){case PREPARAR_ENVIO->"El pedido está preparado para salir hacia el destino acordado.";case SALIR_REPARTO->"El pedido salió de la sucursal y está en viaje hacia el destino acordado.";case LLEGAR_PUNTO->"El pedido llegó al destino de retiro acordado. Consultá su franja de atención para retirarlo. Todavía no fue entregado al cliente.";case CLIENTE_AUSENTE->"No encontramos a una persona para recibir el pedido en el domicilio. La entrega sigue pendiente; coordiná un nuevo intento con la imprenta. Tu código se conserva.";case REINTENTAR_ENTREGA->"Comenzó un nuevo intento de entrega a domicilio. Conservá tu código para recibir el pedido.";};Instant ahora=clock.instant();
   long event=evento(p,a,in.operacion(),hash,in.accion().name(),p.estado(),motivo,mensaje,ahora);
   jdbc.update("INSERT INTO lamontana.movimiento_entrega(id_pedido,id_reserva_entrega,id_evento_pedido,estado_origen,estado_destino) VALUES (?,?,?,?,?)",p.numero(),reserva(p),event,estado,destino);
   if(in.accion()==Accion.SALIR_REPARTO)codigos.asegurar(p.numero());
-  return vista(detalleEntrega(pedido,correo,rider),correo,true);
+  return vista(detalleEntrega(pedido,correo,rider,retiro),correo,true,retiro);
  }
- private PedidoService.Detalle detalleEntrega(UUID pedido,String correo,boolean rider){
+ private PedidoService.Detalle detalleEntrega(UUID pedido,String correo,boolean rider,UUID retiro){
+  if(retiro!=null)return pedidos.detalleRetiroSucursal(pedido,retiro,correo);
   if(rider)return pedidos.detalleReparto(pedido,correo);
   var detalle=pedidos.detalle(pedido,correo,true);
   organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");
@@ -187,7 +197,7 @@ public class EntregaService {
   }
   if(!List.of(Accion.LLEGAR_PUNTO,Accion.CLIENTE_AUSENTE,Accion.REINTENTAR_ENTREGA).contains(in.accion()))
    throw error(HttpStatus.FORBIDDEN,"Esta acción no está disponible durante el reparto.");
-  registrarMovimiento(pedido,in,correo,true);
+  registrarMovimiento(pedido,in,correo,true,null);
  }
  /** All selected orders are checked before the first write; retries recover the same audited group. */
  @Transactional public ResultadoLote moverLote(MovimientoLote in,String correo){
@@ -210,7 +220,7 @@ public class EntregaService {
   if(rider!=null){routeCode=UUID.randomUUID();routeId=jdbc.queryForObject("INSERT INTO lamontana.recorrido_reparto(codigo_publico,id_operacion,id_repartidor,id_actor_asignador,actor_asignador_nombre,estado,fecha_asignacion) VALUES (?, ?, (SELECT id_usuario FROM lamontana.usuario WHERE codigo_publico=?), ?, ?, 'EN_REPARTO', ?) RETURNING id_recorrido",Long.class,routeCode,in.operacion(),rider.codigoPublico(),a.id(),a.nombre(),Timestamp.from(now));}
   int order=0;
   for(var item:ordered){UUID operation=UUID.nameUUIDFromBytes((in.operacion()+":"+item.pedido()).getBytes(StandardCharsets.UTF_8));
-   registrarMovimiento(item.pedido(),new Movimiento(operation,item.version(),in.accion(),(in.accion()==Accion.SALIR_REPARTO?"Salida conjunta confirmada":"Preparación conjunta confirmada")+" · grupo "+in.operacion(),true),correo,false);
+   registrarMovimiento(item.pedido(),new Movimiento(operation,item.version(),in.accion(),(in.accion()==Accion.SALIR_REPARTO?"Salida conjunta confirmada":"Preparación conjunta confirmada")+" · grupo "+in.operacion(),true),correo,false,null);
    if(routeId!=null)jdbc.update("INSERT INTO lamontana.recorrido_reparto_pedido(id_recorrido,id_pedido,orden) VALUES (?,(SELECT id_pedido FROM lamontana.pedido WHERE codigo_publico=?),?)",routeId,item.pedido(),++order);
   }
   if(routeId!=null)jdbc.update("INSERT INTO lamontana.evento_recorrido_reparto(id_recorrido,id_actor,actor_nombre,accion,id_repartidor,fecha) VALUES (?,?,?,'ASIGNAR_E_INICIAR',(SELECT id_usuario FROM lamontana.usuario WHERE codigo_publico=?),?)",routeId,a.id(),a.nombre(),rider.codigoPublico(),Timestamp.from(now));
@@ -218,14 +228,11 @@ public class EntregaService {
   return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),now,routeCode,rider);
  }
  private Repartidor repartidorActivo(UUID codigo){return jdbc.query("SELECT u.codigo_publico,concat_ws(' ',u.nombre,u.apellido),u.correo FROM lamontana.cuenta_repartidor cr JOIN lamontana.usuario u USING(id_usuario) JOIN lamontana.rol r USING(id_rol) WHERE u.codigo_publico=? AND cr.activa AND u.estado='ACTIVO' AND r.activo AND r.codigo IN ('EMPLEADO','ADMIN_ADMIN')",(r,n)->new Repartidor(r.getObject(1,UUID.class),r.getString(2),r.getString(3)),codigo).stream().findFirst().orElseThrow(()->conflicto("El rider elegido ya no está activo. Actualizá la lista."));}
- @Transactional public Validacion validar(UUID pedido,Validar in,String correo){return validar(pedido,in,correo,huella(List.of(pedido,"VALIDAR",in)));}
- private Validacion validar(UUID pedido,Validar in,String correo,String hash){
-  return validar(pedido,in,correo,hash,false);
- }
- private Validacion validar(UUID pedido,Validar in,String correo,String hash,boolean rider){
-  bloquear();var p=detalleEntrega(pedido,correo,rider);var a=actor(correo);
+ @Transactional public Validacion validar(UUID pedido,Validar in,String correo){return validar(pedido,in,correo,huella(List.of(pedido,"VALIDAR",in)),false,null);}
+ private Validacion validar(UUID pedido,Validar in,String correo,String hash,boolean rider,UUID retiro){
+  bloquear();var p=detalleEntrega(pedido,correo,rider,retiro);var a=actor(correo);
   if(recuperar(in.operacion(),hash,p,a)){
-   boolean valid=jdbc.queryForObject("SELECT resultado='VALIDO' FROM lamontana.validacion_codigo_entrega WHERE id_operacion=?",Boolean.class,in.operacion());var view=vista(p,correo,true);return new Validacion(view,valid&&view.validacion()!=null,valid?"La validación está registrada; consultá si continúa vigente para entregar.":"El intento anterior no validó el código. No se volvió a descontar un intento.");
+   boolean valid=jdbc.queryForObject("SELECT resultado='VALIDO' FROM lamontana.validacion_codigo_entrega WHERE id_operacion=?",Boolean.class,in.operacion());var view=vista(p,correo,true,retiro);return new Validacion(view,valid&&view.validacion()!=null,valid?"La validación está registrada; consultá si continúa vigente para entregar.":"El intento anterior no validó el código. No se volvió a descontar un intento.");
   }
   exigirResponsablePunto(p,correo);
   version(p,in.version());if(!disponible(p))throw conflicto("El pedido todavía no está disponible para entrega presencial según su modalidad.");var c=ultimoCodigo(p.numero());if(c==null||c.revocado()!=null||c.utilizado()!=null||c.reserva()!=reserva(p))throw conflicto("El cliente debe generar un código vigente desde su pedido.");
@@ -233,46 +240,57 @@ public class EntregaService {
   if(resultado.equals("INVALIDO"))jdbc.update("UPDATE lamontana.codigo_entrega SET intentos=intentos+1 WHERE id_codigo_entrega=?",c.id());
   Instant hasta=now.plusSeconds(600).isBefore(c.vence())?now.plusSeconds(600):c.vence();
   jdbc.update("INSERT INTO lamontana.validacion_codigo_entrega(codigo_publico,id_codigo_entrega,id_actor,actor_nombre,id_operacion,huella,version_pedido,resultado,fecha,valido_hasta) VALUES (?,?,?,?,?,?,?,?,?,?)",UUID.randomUUID(),c.id(),a.id(),a.nombre(),in.operacion(),hash,p.version(),resultado,Timestamp.from(now),resultado.equals("VALIDO")?Timestamp.from(hasta):null);
-  return new Validacion(vista(p,correo,true),resultado.equals("VALIDO"),switch(resultado){case "VALIDO"->"Código comprobado para registrar la entrega.";case "INVALIDO"->"Código incorrecto. Comprobá el que presenta la persona.";case "BLOQUEADO"->"Se agotaron los intentos. Solicitá asistencia a la imprenta.";default->"El código ya no está vigente. Consultá a la imprenta.";});
+  return new Validacion(vista(p,correo,true,retiro),resultado.equals("VALIDO"),switch(resultado){case "VALIDO"->"Código comprobado para registrar la entrega.";case "INVALIDO"->"Código incorrecto. Comprobá el que presenta la persona.";case "BLOQUEADO"->"Se agotaron los intentos. Solicitá asistencia a la imprenta.";default->"El código ya no está vigente. Consultá a la imprenta.";});
  }
  @Transactional public Vista entregar(UUID pedido,Entregar in,String correo){
-  return registrarEntrega(pedido,in,correo,huella(List.of(pedido,"ENTREGAR",in)));
+  return registrarEntrega(pedido,in,correo,huella(List.of(pedido,"ENTREGAR",in)),false,null);
  }
  @Transactional public Validacion recibir(UUID pedido,Recibir in,String correo){
-  return recibir(pedido,in,correo,false);
+  return recibir(pedido,in,correo,false,null);
  }
  @Transactional public Validacion recibirRider(UUID pedido,Recibir in,String correo){
-  return recibir(pedido,in,correo,true);
+  return recibir(pedido,in,correo,true,null);
  }
- private Validacion recibir(UUID pedido,Recibir in,String correo,boolean rider){
-  bloquear();var p=detalleEntrega(pedido,correo,rider);var a=actor(correo);String hash=huella(List.of(pedido,"RECIBIR",in));
+ @Transactional public Validacion entregarRetiro(UUID sucursal,UUID pedido,Recibir in,String correo){
+  return recibir(pedido,in,correo,false,sucursal);
+ }
+ private Validacion recibir(UUID pedido,Recibir in,String correo,boolean rider,UUID retiro){
+  bloquear();var p=detalleEntrega(pedido,correo,rider,retiro);var a=actor(correo);String hash=huella(List.of(pedido,"RECIBIR",in));
   if(rider&&!p.reserva().modalidad().name().equals("ENVIO_DOMICILIO"))
    throw error(HttpStatus.FORBIDDEN,"La entrega con código del rider es sólo a domicilio.");
-  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true),true,"Entrega ya registrada; no se duplicó.");
+  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true,retiro),true,"Entrega ya registrada; no se duplicó.");
   exigirResponsablePunto(p,correo);
   version(p,in.version());confirmar(in.confirmado());nota(in.motivo(),"Entrega física confirmada con el código presentado.");var blocks=bloqueosEntrega(p);if(!blocks.isEmpty())throw conflicto(String.join(" ",blocks));
   UUID op=UUID.nameUUIDFromBytes((in.operacion()+":codigo").getBytes(StandardCharsets.UTF_8));
   var validacion=new Validar(op,p.version(),codigoPresentado(p,in.codigo()));
-  var check=validar(pedido,validacion,correo,huella(List.of(pedido,"VALIDAR",validacion)),rider);if(!check.aceptado())return check;
+  var check=validar(pedido,validacion,correo,huella(List.of(pedido,"VALIDAR",validacion)),rider,retiro);if(!check.aceptado())return check;
   String receptor=in.receptor();if(receptor==null||receptor.isBlank())receptor=receptorRegistrado(p);
-  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash,rider);
+  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash,rider,retiro);
   return new Validacion(out,true,"Pedido entregado. Se guardaron responsable, fecha y hora.");
  }
  /** Cash, handover and optional close are one transaction. Invalid code never records cash. */
  @Transactional public Validacion cobrarEntregar(UUID pedido,CobrarEntregar in,String correo){
-  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");if(in.cerrar())organizacion.exigirPermiso(correo,"CERRAR_PEDIDOS");
+  return cobrarEntregar(pedido,in,correo,null);
+ }
+ @Transactional public Validacion cobrarRetiro(UUID sucursal,UUID pedido,CobrarEntregar in,String correo){
+  return cobrarEntregar(pedido,in,correo,sucursal);
+ }
+ private Validacion cobrarEntregar(UUID pedido,CobrarEntregar in,String correo,UUID retiro){
+  bloquear();var p=detalleEntrega(pedido,correo,false,retiro);organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");if(in.cerrar())organizacion.exigirPermiso(correo,"CERRAR_PEDIDOS");
   var a=actor(correo);String hash=huella(List.of(pedido,"COBRAR_ENTREGAR",in));
-  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true),true,"Cobro y entrega ya registrados; no se duplicó el dinero.");
+  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true,retiro),true,"Cobro y entrega ya registrados; no se duplicó el dinero.");
   exigirResponsablePunto(p,correo);
   version(p,in.version());confirmar(in.confirmado());nota(in.motivo(),"Cobro en efectivo y entrega confirmados.");if(in.receptor()!=null&&!in.receptor().isBlank())texto(in.receptor(),140);
-  var offer=cobroEfectivo(p,correo,organizacion.contexto(correo).permisos());if(offer==null||!offer.habilitado())throw conflicto(offer==null?"El pedido no admite cobro en efectivo durante la entrega.":offer.bloqueo());
+  var offer=cobroEfectivo(p,correo,organizacion.contexto(correo).permisos(),retiro);if(offer==null||!offer.habilitado())throw conflicto(offer==null?"El pedido no admite cobro en efectivo durante la entrega.":offer.bloqueo());
   if(new BigDecimal(in.importe()).compareTo(new BigDecimal(offer.importe()))!=0)throw conflicto("El saldo cambió. Actualizá antes de confirmar el efectivo recibido.");
   if(in.cerrar()&&!offer.puedeCerrar())throw conflicto("Hay movimientos financieros pendientes. Revisá cobros antes de cerrar.");
-  var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),codigoPresentado(p,in.codigo())),correo,hash);if(!check.aceptado())return check;
-  pagos.recibir(p.cotizacion(),new PagoController.Recibir(derivada(in.operacion(),"efectivo"),null,MedioPago.EFECTIVO,offer.importe(),"Entrega PED-"+p.numero()+" · "+in.operacion(),null,true,"Efectivo recibido al entregar el pedido PED-"+p.numero()+".",true),correo);
+  var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),codigoPresentado(p,in.codigo())),correo,hash,false,retiro);if(!check.aceptado())return check;
+  var cobro=new PagoController.Recibir(derivada(in.operacion(),"efectivo"),null,MedioPago.EFECTIVO,offer.importe(),"Entrega PED-"+p.numero()+" · "+in.operacion(),null,true,"Efectivo recibido al entregar el pedido PED-"+p.numero()+".",true);
+  if(retiro==null)pagos.recibir(p.cotizacion(),cobro,correo);
+  else pagos.recibirEfectivoRetiro(p.cotizacion(),cobro,correo,retiro);
   String receptor=in.receptor()==null||in.receptor().isBlank()?receptorRegistrado(p):in.receptor().strip();
-  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash);
-  if(in.cerrar())out=cerrar(pedido,new Cerrar(derivada(in.operacion(),"cerrar"),out.version(),null,true),correo);
+  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash,false,retiro);
+  if(in.cerrar())out=cerrar(pedido,new Cerrar(derivada(in.operacion(),"cerrar"),out.version(),null,true),correo,retiro);
   return new Validacion(out,true,in.cerrar()?"Efectivo registrado, pedido entregado y cerrado. El comprobante interno quedó disponible.":"Efectivo registrado y pedido entregado. El responsable de cierre puede completar el cierre administrativo.");
  }
  private String receptorRegistrado(PedidoService.Detalle p){
@@ -291,12 +309,12 @@ public class EntregaService {
   return codigos.texto(actual.codigo(),cifrado);
  }
  private UUID derivada(UUID operation,String step){return UUID.nameUUIDFromBytes((operation+":"+step).getBytes(StandardCharsets.UTF_8));}
- private CobroEfectivo cobroEfectivo(PedidoService.Detalle p,String correo,List<String> permisos){
+ private CobroEfectivo cobroEfectivo(PedidoService.Detalle p,String correo,List<String> permisos,UUID retiro){
   BigDecimal saldo=new BigDecimal(p.oferta().total()).subtract(aplicado(p));
   if(!disponible(p)||p.oferta().medioPago()!=MedioPago.EFECTIVO||saldo.signum()<=0)return null;
   String bloqueo=null;
   if(!permisos.contains("GESTIONAR_ENTREGAS")||!permisos.contains("REGISTRAR_COBRO"))bloqueo="Necesitás permiso de cobros y de entregas para confirmar ambas acciones.";
-  else try{bloqueo=pagos.bloqueoSaldoEfectivo(p.cotizacion(),correo);}catch(ResponseStatusException e){if(e.getStatusCode()!=HttpStatus.FORBIDDEN)throw e;bloqueo="Tu cuenta no tiene acceso a los cobros de esta sucursal.";}
+  else try{bloqueo=retiro==null?pagos.bloqueoSaldoEfectivo(p.cotizacion(),correo):pagos.bloqueoSaldoEfectivo(p.cotizacion(),correo,retiro);}catch(ResponseStatusException e){if(e.getStatusCode()!=HttpStatus.FORBIDDEN)throw e;bloqueo="Tu cuenta no tiene acceso a los cobros de esta sucursal.";}
   if(bloqueo==null&&jdbc.queryForObject("SELECT lamontana.dinero_pendiente_cierre(?)",BigDecimal.class,p.numero()).signum()>0)bloqueo="Hay dinero recibido sin aplicar. Revisá cobros para evitar cobrarlo otra vez.";
   boolean cerrar=permisos.contains("CERRAR_PEDIDOS")&&jdbc.queryForObject("SELECT lamontana.informes_pendientes_cierre(?)",Long.class,p.numero())==0;
   return new CobroEfectivo(dinero(saldo),bloqueo==null,cerrar,bloqueo);
@@ -306,12 +324,9 @@ public class EntregaService {
   var receipts=jdbc.query("SELECT pa.codigo_publico,pa.importe,pa.referencia,e.actor_nombre,pa.recibido_en FROM lamontana.pago pa JOIN lamontana.evento_financiero e ON e.id_evento=pa.id_evento WHERE e.id_operacion=? AND pa.medio='EFECTIVO' AND pa.id_cotizacion=(SELECT id_cotizacion FROM lamontana.pedido_actual WHERE id_pedido=?)",(r,n)->new ReciboEfectivo(r.getObject(1,UUID.class),r.getBigDecimal(2).toPlainString(),r.getString(3),r.getString(4),r.getTimestamp(5).toInstant()),derivada(roots.get(0),"efectivo"),p.numero());
   return receipts.isEmpty()?null:receipts.get(0);
  }
- private Vista registrarEntrega(UUID pedido,Entregar in,String correo,String hash){
-  return registrarEntrega(pedido,in,correo,hash,false);
- }
- private Vista registrarEntrega(UUID pedido,Entregar in,String correo,String hash,boolean rider){
-  bloquear();var p=detalleEntrega(pedido,correo,rider);var a=actor(correo);
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);
+ private Vista registrarEntrega(UUID pedido,Entregar in,String correo,String hash,boolean rider,UUID retiro){
+  bloquear();var p=detalleEntrega(pedido,correo,rider,retiro);var a=actor(correo);
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true,retiro);
   exigirResponsablePunto(p,correo);
   version(p,in.version());texto(in.receptor(),140);String motivo=nota(in.motivo(),"Entrega física confirmada con el código presentado.");confirmar(in.confirmado());var b=bloqueosEntrega(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();var code=ultimoCodigo(p.numero());var validation=verificacion(p,code,a.id(),now);
   if(validation==null||!validation.codigoPublico().equals(in.validacion()))throw conflicto("Validá nuevamente el código presentado por el cliente con tu propia sesión.");
@@ -319,14 +334,18 @@ public class EntregaService {
   jdbc.update("UPDATE lamontana.reserva_entrega SET estado='CUMPLIDA' WHERE id_pedido=? AND estado='ACTIVA'",p.numero());
   jdbc.update("UPDATE lamontana.codigo_entrega SET utilizado_en=? WHERE id_codigo_entrega=?",Timestamp.from(now),code.id());
   jdbc.update("INSERT INTO lamontana.entrega(codigo_publico,id_pedido,id_reserva_entrega,id_evento_pedido,id_validacion_codigo,receptor_nombre,nota,fecha_entrega) SELECT ?,?,?,?,?,?,?,?",UUID.randomUUID(),p.numero(),code.reserva(),event,jdbc.queryForObject("SELECT id_validacion_codigo FROM lamontana.validacion_codigo_entrega WHERE codigo_publico=?",Long.class,validation.codigoPublico()),in.receptor().strip(),motivo,Timestamp.from(now));
-  return vista(detalleEntrega(pedido,correo,rider),correo,true);
+  return vista(detalleEntrega(pedido,correo,rider,retiro),correo,true,retiro);
  }
  @Transactional public Vista cerrar(UUID pedido,Cerrar in,String correo){
-  bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"CERRAR_PEDIDOS");var a=actor(correo);String hash=huella(List.of(pedido,"CERRAR",in));
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true);version(p,in.version());String motivo=nota(in.motivo(),"Pedido cerrado después de comprobar entrega y conciliación.");confirmar(in.confirmado());var b=bloqueosCierre(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();
+  return cerrar(pedido,in,correo,null);
+ }
+ private Vista cerrar(UUID pedido,Cerrar in,String correo,UUID retiro){
+  bloquear();var p=retiro==null?pedidos.detalle(pedido,correo,true):pedidos.detalleRetiroSucursal(pedido,retiro,correo);organizacion.exigirPermiso(correo,"CERRAR_PEDIDOS");var a=actor(correo);String hash=huella(List.of(pedido,"CERRAR",in));
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true,retiro);version(p,in.version());String motivo=nota(in.motivo(),"Pedido cerrado después de comprobar entrega y conciliación.");confirmar(in.confirmado());var b=bloqueosCierre(p);if(!b.isEmpty())throw conflicto(String.join(" ",b));Instant now=clock.instant();
   long event=evento(p,a,in.operacion(),hash,"CERRAR","CERRADO",motivo,"El pedido fue cerrado después de verificar su entrega y los movimientos financieros.",now);
   jdbc.update("INSERT INTO lamontana.cierre_pedido(id_pedido,id_evento_pedido,total,aplicado,fecha_cierre) VALUES (?,?,?,?,?)",p.numero(),event,new BigDecimal(p.oferta().total()),aplicado(p),Timestamp.from(now));
-  return vista(pedidos.detalle(pedido,correo,true),correo,true);
+  var cerrado=retiro==null?pedidos.detalle(pedido,correo,true):pedidos.detalleRetiroSucursal(pedido,retiro,correo);
+  return vista(cerrado,correo,true,retiro);
  }
  private String bloqueoResponsablePunto(PedidoService.Detalle p,String correo){
   if(p.reserva().modalidad()!=Modalidad.RETIRO_PUNTO_ENTREGA||CuentaPuntoAcceso.punto(jdbc,correo)!=null)return null;

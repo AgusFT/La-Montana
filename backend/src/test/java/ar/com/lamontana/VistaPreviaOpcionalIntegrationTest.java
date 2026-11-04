@@ -244,10 +244,24 @@ class VistaPreviaOpcionalIntegrationTest {
     assertThat(listo.codigo().texto()).isNull();
     assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.aviso_codigo_entrega a JOIN lamontana.codigo_entrega c USING(id_codigo_entrega) WHERE c.id_pedido=?",
      Integer.class,pedido.numero())).isZero();
+    String mostrador="/api/operacion/sucursales/"+sucursal.codigoPublico()+"/retiros";
+    String otraSucursal="/api/operacion/sucursales/"+opciones.casaMatriz().codigoPublico()+"/retiros";
+    var lista=sesion.send(HttpRequest.newBuilder(http.resolve(mostrador+"?texto=PED-"+pedido.numero())).GET().build(),HttpResponse.BodyHandlers.ofString());
+    assertThat(lista.statusCode()).describedAs(lista.body()).isEqualTo(200);
+    assertThat(JsonMapper.builder().build().readTree(lista.body()).get("pedidos").get(0).get("pedido").asString()).isEqualTo(id.toString());
+    assertThat(sesion.send(HttpRequest.newBuilder(http.resolve(otraSucursal+"/"+id)).GET().build(),HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(404);
     if(medio==MedioPago.EFECTIVO){
      var cobro=new EntregaController.CobrarEntregar(UUID.randomUUID(),listo.version(),null,listo.saldo(),null,null,true,true);
-     assertThat(entrega.cobrarEntregar(id,cobro,ADMIN).vista().estadoPedido()).isEqualTo("CERRADO");
-     assertThat(entrega.cobrarEntregar(id,cobro,ADMIN).vista().saldo()).isEqualTo("0.00");
+     var request=HttpRequest.newBuilder(http.resolve(mostrador+"/"+id+"/cobrar-efectivo"))
+      .header("Content-Type","application/json").header("X-CSRF-TOKEN",csrf(http,sesion))
+      .POST(HttpRequest.BodyPublishers.ofString(JsonMapper.builder().build().writeValueAsString(cobro))).build();
+     for(int repeticion=0;repeticion<2;repeticion++){
+      var respuesta=sesion.send(request,HttpResponse.BodyHandlers.ofString());
+      assertThat(respuesta.statusCode()).describedAs(respuesta.body()).isEqualTo(200);
+      var vista=JsonMapper.builder().build().readTree(respuesta.body()).get("vista");
+      assertThat(vista.get("estadoPedido").asString()).isEqualTo("CERRADO");
+      assertThat(vista.get("saldo").asString()).isEqualTo("0.00");
+     }
     }else{
      pagos.recibir(pedido.cotizacion(),new PagoController.Recibir(UUID.randomUUID(),null,medio,listo.saldo(),"Mostrador "+id,null,true,"Transferencia acreditada en mostrador",true),ADMIN);
      var entregaInvitado=entrega.recibir(id,new EntregaController.Recibir(UUID.randomUUID(),listo.version(),null,null,null,true),ADMIN);

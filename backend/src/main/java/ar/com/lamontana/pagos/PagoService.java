@@ -185,7 +185,10 @@ public class PagoService {
     }
     /** Exact outstanding cash at handover; uses the accepted and historical payment rules. */
     @Transactional(readOnly=true) public String bloqueoSaldoEfectivo(UUID quote,String correo){
-        var a=actor(correo,true);var q=autorizar(quote,a,correo);organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");
+        return bloqueoSaldoEfectivo(quote,correo,null);
+    }
+    @Transactional(readOnly=true) public String bloqueoSaldoEfectivo(UUID quote,String correo,UUID retiro){
+        var a=actor(correo,true);var q=autorizar(quote,a,correo,retiro);organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");
         if(!admite(q,MedioPago.EFECTIVO))return "Esta oferta no admite efectivo. Continuá desde cobros.";
         BigDecimal pendiente=new BigDecimal(q.datos().total()).subtract(cobertura.acreditado(q.id(),List.of(MedioPago.values())));
         if(pendiente.signum()<=0)return "El pedido ya no tiene saldo pendiente.";
@@ -194,7 +197,14 @@ public class PagoService {
         return maximo.compareTo(pendiente)<0?"El anticipo pendiente requiere otro medio. Resolvelo desde cobros antes de entregar.":null;
     }
     @Transactional public Vista recibir(UUID quote,Recibir in,String correo){
-        bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo);organizacion.exigirPermiso(correo,permiso(in.medio()));String hash=huella(quote,Boolean.TRUE.equals(in.aplicarAlPedido())?in:new RecepcionAnterior(in.operacion(),in.intento(),in.medio(),in.importe(),in.referencia(),in.recibidoEn(),in.verificado(),in.motivo()));
+        return recibir(quote,in,correo,null);
+    }
+    @Transactional public void recibirEfectivoRetiro(UUID quote,Recibir in,String correo,UUID sucursal){
+        exigir(sucursal!=null&&in.medio()==MedioPago.EFECTIVO&&in.intento()==null&&Boolean.TRUE.equals(in.aplicarAlPedido()),"El cobro de retiro debe ser en efectivo y aplicarse a este pedido.");
+        recibir(quote,in,correo,sucursal);
+    }
+    private Vista recibir(UUID quote,Recibir in,String correo,UUID retiro){
+        bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo,retiro);organizacion.exigirPermiso(correo,permiso(in.medio()));String hash=huella(quote,Boolean.TRUE.equals(in.aplicarAlPedido())?in:new RecepcionAnterior(in.operacion(),in.intento(),in.medio(),in.importe(),in.referencia(),in.recibidoEn(),in.verificado(),in.motivo()));
         if(replay(in.operacion(),"RECIBIR",hash,a))return leer(q,a,correo,true);
         exigir(in.verificado(),"Confirmá que verificaste el dinero efectivamente recibido.");BigDecimal importe=importe(in.importe());
         String referencia=in.referencia()==null||in.referencia().isBlank()?"Registro interno "+in.operacion():in.referencia().strip();
@@ -216,13 +226,16 @@ public class PagoService {
             var fondos=fondos(pago);BigDecimal aplicable=maximoAplicable(q,fondos,a,correo,true);
             if(aplicable.signum()>0){
                 UUID operacionAplicar=UUID.nameUUIDFromBytes((in.operacion()+":aplicar").getBytes(StandardCharsets.UTF_8));
-                return aplicar(quote,new Aplicar(operacionAplicar,pago,version(fondos),dinero(aplicable),"Aplicación del dinero recibido al saldo de este trabajo."),correo);
+                return aplicar(quote,new Aplicar(operacionAplicar,pago,version(fondos),dinero(aplicable),"Aplicación del dinero recibido al saldo de este trabajo."),correo,retiro);
             }
         }
         return leer(q,a,correo,true);
     }
     @Transactional public Vista aplicar(UUID quote,Aplicar in,String correo){
-        bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo);var p=fondos(in.pago());var origen=autorizar(codigo(p.origen()),a,correo);organizacion.exigirPermiso(correo,permiso(p.medio()));
+        return aplicar(quote,in,correo,null);
+    }
+    private Vista aplicar(UUID quote,Aplicar in,String correo,UUID retiro){
+        bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo,retiro);var p=fondos(in.pago());var origen=autorizar(codigo(p.origen()),a,correo,retiro);organizacion.exigirPermiso(correo,permiso(p.medio()));
         String hash=huella(quote,in);if(replay(in.operacion(),"APLICAR",hash,a))return leer(q,a,correo,true);version(p,in.version());
         exigir(q.cliente()==origen.cliente()&&descendiente(q.id(),p.origen()),"Sólo se puede aplicar a la misma cotización o a una sucesora de ese trabajo.");
         if(!admiteAplicacion(q)||q.aceptada()==null||!q.activa())throw conflicto("El destino debe ser una oferta vigente aceptada o un pedido confirmado, con sucursal activa.");
@@ -319,6 +332,21 @@ public class PagoService {
     }
     private Actor actor(String correo,boolean interno){var rows=jdbc.query("SELECT u.id_usuario,u.nombre||' '||u.apellido,r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND r.activo",(r,n)->new Actor(r.getLong(1),r.getString(2),r.getString(3)),correo);if(rows.isEmpty())throw error(HttpStatus.FORBIDDEN,"La cuenta no está activa.");var a=rows.get(0);if(interno?!List.of("ADMIN_ADMIN","EMPLEADO").contains(a.rol()):!a.rol().equals("CLIENTE"))throw error(HttpStatus.FORBIDDEN,"La cuenta no tiene acceso a esta operación.");return a;}
     private Oferta autorizar(UUID quote,Actor a,String correo){var q=oferta(quote);if(a.rol().equals("CLIENTE")){if(q.cliente()!=a.id())throw error(HttpStatus.NOT_FOUND,"La cotización no está disponible.");}else{permisoFinanciero(correo);if(!acceso(q,a,correo))throw error(HttpStatus.FORBIDDEN,"No tenés acceso a las finanzas de esta sucursal.");}return q;}
+    private Oferta autorizar(UUID quote,Actor a,String correo,UUID retiro){
+        if(retiro==null)return autorizar(quote,a,correo);
+        organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");
+        organizacion.sucursalAutorizada(correo,retiro);
+        var q=oferta(quote);
+        boolean corresponde=Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT EXISTS(SELECT 1 FROM lamontana.pedido_actual p
+            JOIN LATERAL (SELECT modalidad,destino_publico,estado FROM lamontana.reserva_entrega r
+              WHERE r.id_pedido=p.id_pedido ORDER BY id_reserva_entrega DESC LIMIT 1) r ON true
+            WHERE p.id_cotizacion=? AND r.modalidad='RETIRO_SUCURSAL' AND r.destino_publico=? AND r.estado='ACTIVA')
+            """,Boolean.class,q.id(),retiro));
+        if(!corresponde||!ar.com.lamontana.puntos.CuentaPuntoAcceso.cotizacion(jdbc,correo,quote))
+            throw error(HttpStatus.FORBIDDEN,"El cobro no corresponde a un retiro activo de esta sucursal.");
+        return q;
+    }
     private boolean acceso(Oferta q,Actor a,String correo){if(!ar.com.lamontana.puntos.CuentaPuntoAcceso.cotizacion(jdbc,correo,q.codigo()))return false;return a.rol().equals("ADMIN_ADMIN")||organizacion.contexto(correo).sucursales().stream().anyMatch(s->s.codigoPublico().equals(q.sucursal()));}
     private void permisoFinanciero(String correo){if(organizacion.contexto(correo).permisos().stream().noneMatch(p->List.of("ACREDITAR_PAGO","REGISTRAR_COBRO","REGISTRAR_DEVOLUCION").contains(p)))throw error(HttpStatus.FORBIDDEN,"Se requiere un permiso financiero explícito.");}
     private Oferta oferta(UUID quote){var rows=jdbc.query("SELECT c.*,s.codigo_publico AS sucursal,s.estado AS sucursal_estado FROM lamontana.cotizacion c JOIN lamontana.sucursal s USING(id_sucursal) WHERE c.codigo_publico=? AND (c.id_preparacion_interna IS NULL OR c.estado='CONFIRMADA')",(r,n)->new Oferta(r.getLong("id_cotizacion"),quote,r.getLong("id_usuario_creador"),r.getObject("sucursal",UUID.class),r.getString("sucursal_estado").equals("ACTIVA"),r.getString("estado"),r.getTimestamp("vigente_hasta").toInstant(),r.getTimestamp("aceptada_en")==null?null:r.getTimestamp("aceptada_en").toInstant(),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class)),quote);if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"La cotización no está disponible.");return rows.get(0);}
