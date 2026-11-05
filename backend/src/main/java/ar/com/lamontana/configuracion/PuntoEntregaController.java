@@ -62,7 +62,7 @@ public class PuntoEntregaController {
                          @NotNull @Pattern(regexp="(?:[01][0-9]|2[0-3]):[0-5][0-9]") String apertura,
                          @NotNull @Pattern(regexp="(?:[01][0-9]|2[0-3]):[0-5][0-9]") String cierre,
                          @NotNull @PositiveOrZero Integer capacidadPedidos,@NotNull Boolean habilitada) {}
-    public record SucursalPunto(@NotNull UUID sucursal,@NotNull Boolean habilitado,@NotNull @Size(max=15) String costo,
+    public record SucursalPunto(@NotNull UUID sucursal,@NotNull @Min(1) @Max(999) Integer prioridad,@NotNull Boolean habilitado,@NotNull @Size(max=15) String costo,
                                 @NotNull @Size(max=100) List<@NotNull @Valid Franja> franjas) {}
     public interface Definicion {
         String nombre();String calle();String numero();String localidad();String provincia();String codigoPostal();String referencias();String zonaHoraria();List<SucursalPunto> sucursales();

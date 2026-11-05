@@ -33,7 +33,6 @@ public class PreparacionClienteService {
     @Transactional public Vista abrir(String correo){return vista(store.abrir(correo),correo);}
     @Transactional public Vista abrirInterna(String correo,String correoCliente){
         var d=store.abrirInterna(correo,correoCliente);
-        exigirMatriz(d,correo,cotizaciones.matriz(operativa.leer()));
         return vista(d,correo);
     }
     @Transactional public Vista abrirInvitado(String correo,UUID operacion,String nombre,UUID sucursal){
@@ -46,12 +45,7 @@ public class PreparacionClienteService {
     }
     @Transactional public CotizacionService.Opciones opciones(UUID codigo,String correo){
         var d=store.datos(codigo,correo,true);
-        var opciones=cotizaciones.opcionesPreparada(d.sucursalMostrador());
-        if(d.sucursalMostrador()==null&&opciones.casaMatriz()!=null)exigirMatriz(d,correo,opciones.casaMatriz().codigoPublico());
-        return opciones;
-    }
-    private void exigirMatriz(PreparacionClienteStore.Datos d,String correo,UUID matriz){
-        if(d.operador()!=null)organizacion.sucursalAutorizada(correo,matriz);
+        return cotizaciones.opcionesPreparada(d.sucursalMostrador());
     }
     @Transactional public Vista consultar(UUID codigo,String correo){return vista(store.datos(codigo,correo,false),correo);}
     private List<Entrada> entradas(String value){return Arrays.asList(store.mapper().readValue(value,Entrada[].class));}
@@ -65,7 +59,6 @@ public class PreparacionClienteService {
     @Transactional public Vista presupuestar(UUID codigo,Presupuestar in,String correo){
         store.bloquear();var d=store.datos(codigo,correo,false);if(store.previo(d,in.operacion(),"PRESUPUESTAR",in)!=null)return vista(d,correo);editable(d);store.version(d,in.version());
         var budget=cotizaciones.presupuestarPreparada(in.configuracion(),in.revisionComercial(),documentos(d,in.items(),correo),d.sucursalMostrador());
-        if(d.operador()!=null&&d.sucursalMostrador()==null)exigirMatriz(d,correo,cotizaciones.matriz(operativa.leer()));
         jdbc.update("UPDATE lamontana.preparacion_cliente SET items=?::jsonb,presupuesto=?::jsonb,preferencias=NULL,version=version+1,actualizada_en=clock_timestamp() WHERE id_preparacion=?",store.mapper().writeValueAsString(in.items()),store.mapper().writeValueAsString(budget),d.id());store.evento(d,in.operacion(),"PRESUPUESTAR",in,budget);return consultar(codigo,correo);
     }
     @Transactional public Checkout checkout(UUID codigo,String correo){store.bloquear();var d=store.datos(codigo,correo,false);return checkout(d,correo,d.cotizacion());}
@@ -79,8 +72,8 @@ public class PreparacionClienteService {
         store.bloquear();var d=store.datos(codigo,correo,false);String previo=store.previo(d,in.operacion(),"COTIZAR",in);if(previo!=null){UUID previa=UUID.fromString(store.mapper().readTree(previo).get("cotizacion").asString());if(!Objects.equals(previa,d.cotizacion())||d.presupuesto()==null||d.preferencias()==null)throw conflicto("Esa cotización fue sustituida o el trabajo cambió. Recuperá el resumen actual.");return checkout(d,correo,previa);}editable(d);store.version(d,in.version());
         if(d.presupuesto()==null)throw conflicto("Revisá primero el presupuesto del trabajo.");
         var budget=store.mapper().readValue(d.presupuesto(),CotizacionService.Presupuesto.class);var pref=in.preferencias();var contexto=operativa.leer();boolean mostrador=d.sucursalMostrador()!=null;
-        UUID origen=mostrador?d.sucursalMostrador():cotizaciones.matriz(contexto);
-        if(!mostrador)exigirMatriz(d,correo,origen);
+        UUID origen=mostrador?d.sucursalMostrador():origenProductivo(pref,contexto,budget);
+        if(!mostrador&&d.operador()!=null)organizacion.sucursalAutorizada(correo,origen);
         if(mostrador&&(pref.modalidad()!=Modalidad.RETIRO_SUCURSAL||!origen.equals(pref.destinoRetiro())||pref.punto()!=null||pref.direccion()!=null))
             throw error(HttpStatus.BAD_REQUEST,"El invitado retira el pedido en la sucursal que lo atiende.");
         if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()==null||pref.modalidad()!=Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()!=null)throw error(HttpStatus.BAD_REQUEST,"Elegí un destino de retiro sólo para esa modalidad.");
@@ -93,6 +86,23 @@ public class PreparacionClienteService {
             jdbc.update("INSERT INTO lamontana.archivo_trabajo(id_archivo_almacenado,id_cotizacion_item,activo) SELECT a.id_archivo_almacenado,i.id_cotizacion_item,true FROM lamontana.archivo_almacenado a,lamontana.cotizacion_item i WHERE a.codigo_publico=? AND i.codigo_publico=?",file,item);
         }
         jdbc.update("UPDATE lamontana.preparacion_cliente SET preferencias=?::jsonb,id_ultima_cotizacion=(SELECT id_cotizacion FROM lamontana.cotizacion WHERE codigo_publico=?),version=version+1,actualizada_en=clock_timestamp() WHERE id_preparacion=?",store.mapper().writeValueAsString(pref),q.codigoPublico(),d.id());store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(store.datos(codigo,correo,true),correo,q.codigoPublico());
+    }
+    private UUID origenProductivo(Preferencias pref,OfertaOperativaService.Contexto contexto,CotizacionService.Presupuesto presupuesto){
+        if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL){
+            if(pref.destinoRetiro()==null)throw error(HttpStatus.BAD_REQUEST,"Elegí la sucursal de retiro.");
+            return contexto.sucursales().stream().filter(s->s.codigoPublico().equals(pref.destinoRetiro())).findFirst()
+                .orElseThrow(()->conflicto("La sucursal de retiro ya no está activa.")).codigoPublico();
+        }
+        if(pref.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){
+            if(pref.punto()==null)throw error(HttpStatus.BAD_REQUEST,"Elegí el punto de entrega.");
+            return cotizaciones.opcionesPreparada(null).puntos().stream().filter(p->p.codigoPublico().equals(pref.punto())&&puedeFabricar(contexto,p.sucursal(),presupuesto))
+                .min(Comparator.comparingInt(CotizacionService.Punto::prioridad).thenComparing(CotizacionService.Punto::sucursal))
+                .orElseThrow(()->conflicto("El punto no tiene una sucursal priorizada con impresoras compatibles para este trabajo.")).sucursal();
+        }
+        return cotizaciones.matriz(contexto);
+    }
+    private boolean puedeFabricar(OfertaOperativaService.Contexto contexto,UUID sucursal,CotizacionService.Presupuesto presupuesto){
+        return presupuesto.items().stream().allMatch(item->{var t=item.trabajo();return contexto.opciones().stream().anyMatch(o->o.sucursal().equals(sucursal)&&o.servicio().equals(t.servicio())&&o.formato().equals(t.formato())&&o.papel().equals(t.papel())&&o.color()==t.color()&&(!t.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(t.terminaciones()));});
     }
     @Transactional public PedidoService.Detalle confirmar(UUID codigo,Confirmar in,String correo){
         store.bloquear();var d=store.datos(codigo,correo,false);var anterior=store.previo(d,in.operacion(),"CONFIRMAR",in);if(anterior!=null)return pedidos.detalle(UUID.fromString(store.mapper().readTree(anterior).get("pedido").asString()),d.operador()==null?d.cliente().correo():correo,d.operador()!=null);

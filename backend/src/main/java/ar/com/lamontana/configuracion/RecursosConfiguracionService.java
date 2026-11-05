@@ -164,9 +164,9 @@ public class RecursosConfiguracionService {
     private long id(UUID codigo){return jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?",Long.class,codigo);}
     private void registrarTransicion(long config,long version,String anterior,String nuevo){jdbc.update("UPDATE lamontana.evento_configuracion SET estado_anterior=?,estado_nuevo=? WHERE id_configuracion_version=? AND version=? AND tipo IN ('IMPRESORA_CREADA','IMPRESORA_ESTADO_CAMBIADO','IMPRESORA_RETIRADA')",anterior,nuevo,config,version);}
     private Long ubicacion(UUID codigo) {
-        if(codigo==null)return null;
-        var filas=jdbc.query("SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=? FOR SHARE",(rs,row)->rs.getLong(1),codigo);
-        if(filas.isEmpty())throw invalido("La ubicación interna seleccionada no existe.");return filas.get(0);
+        if(codigo==null)throw invalido("Elegí la sucursal productiva de la impresora.");
+        var filas=jdbc.query("SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA' FOR SHARE",(rs,row)->rs.getLong(1),codigo);
+        if(filas.isEmpty())throw invalido("La sucursal productiva seleccionada no existe o está desactivada.");return filas.get(0);
     }
     private long referencia(String tabla,UUID codigo) {
         // Sólo se invoca con nombres internos constantes; los UUID se parametrizan.

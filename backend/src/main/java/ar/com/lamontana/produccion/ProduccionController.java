@@ -65,10 +65,13 @@ public class ProduccionController {
    @NotNull @Valid Checklist checklist,@Size(max=500) String observaciones,boolean confirmacionManual){}
  public record Verificacion(@NotNull UUID operacion,@Min(1) long version,@NotNull Resultado resultado,
    @Size(max=500) String observaciones,boolean confirmacionManual){}
+ public record Reasignacion(@NotNull UUID operacion,@Min(1) long version,@NotNull UUID sucursal,
+   @NotBlank @Size(max=500) String motivo){}
  @GetMapping public ProduccionService.Vista consultar(@PathVariable UUID pedido,Principal p){return service.consultar(pedido,p.getName());}
  @PostMapping("/iniciar") public ProduccionService.Vista iniciar(@PathVariable UUID pedido,@Valid @RequestBody Inicio in,Principal p){return service.iniciar(pedido,in,p.getName());}
  @PostMapping("/trabajos/{trabajo}/estado") public ProduccionService.Vista cambiar(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Cambio in,Principal p){return service.cambiar(pedido,trabajo,in,p.getName());}
  @PostMapping("/trabajos/{trabajo}/calidad") public ProduccionService.Vista calidad(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Inspeccion in,Principal p){return service.calidad(pedido,trabajo,in,p.getName());}
  @PostMapping("/trabajos/{trabajo}/finalizar-calidad") public ProduccionService.Vista finalizarCalidad(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Inspeccion in,Principal p){return service.finalizarCalidad(pedido,trabajo,in,p.getName());}
  @PostMapping("/trabajos/{trabajo}/verificar") public ProduccionService.Vista verificar(@PathVariable UUID pedido,@PathVariable UUID trabajo,@Valid @RequestBody Verificacion in,Principal p){return service.verificar(pedido,trabajo,in,p.getName());}
+ @PostMapping("/reasignar") public ProduccionService.Vista reasignar(@PathVariable UUID pedido,@Valid @RequestBody Reasignacion in,Principal p){return service.reasignar(pedido,in,p.getName());}
 }

@@ -4,9 +4,8 @@
  * ARCHIVO: OpcionesImpresion.java
  * ========================================================================
  * FUNCIÓN
- * Deriva combinaciones de impresión globales cruzando catálogo, tarifas e impresoras compatibles.
- * Mientras el contrato cliente conserve un destino previo, replica la misma oferta para cada
- * sucursal activa sin convertirla en origen productivo ni limitar capacidades.
+ * Deriva combinaciones de impresión por sucursal cruzando catálogo, tarifas y la flota situada
+ * físicamente en cada planta activa.
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
@@ -40,9 +39,8 @@ public final class OpcionesImpresion {
     public static List<RevisionConfiguracionService.Opcion> calcular(ConfiguracionService.Borrador b,CatalogoService.Estado c,Set<UUID> activas){
         if(c.actual()==null)return List.of();var tipos=new HashMap<UUID,TipoServicio>();c.servicios().forEach(s->tipos.put(s.codigoPublico(),s.tipo()));var resultado=new ArrayList<RevisionConfiguracionService.Opcion>();
         for(var servicio:c.actual().servicios())if(servicio.habilitado()&&tipos.get(servicio.servicio())==TipoServicio.IMPRESION)for(var tarifa:c.actual().tarifas())if(tarifa.habilitada()){
-            var compatibles=b.recursos().impresoras().stream().filter(p->compatible(p,tarifa.formato(),tarifa.color(),false)).toList();if(compatibles.isEmpty())continue;
             var adicionales=c.actual().servicios().stream().filter(s->s.habilitado()&&tipos.get(s.servicio())==TipoServicio.TERMINACION&&s.compatibilidades().contains(new Compatibilidad(tarifa.formato(),tarifa.papel()))).map(OfertaServicio::servicio).toList();
-            for(UUID destino:activas)resultado.add(new RevisionConfiguracionService.Opcion(destino,servicio.servicio(),tarifa.formato(),tarifa.papel(),tarifa.color(),compatibles.stream().anyMatch(RecursosRepositorio.Impresora::admiteDobleFaz),adicionales));
+            for(UUID destino:activas){var compatibles=b.recursos().impresoras().stream().filter(p->destino.equals(p.sucursal())&&compatible(p,tarifa.formato(),tarifa.color(),false)).toList();if(!compatibles.isEmpty())resultado.add(new RevisionConfiguracionService.Opcion(destino,servicio.servicio(),tarifa.formato(),tarifa.papel(),tarifa.color(),compatibles.stream().anyMatch(RecursosRepositorio.Impresora::admiteDobleFaz),adicionales));}
         }
         return List.copyOf(resultado);
     }

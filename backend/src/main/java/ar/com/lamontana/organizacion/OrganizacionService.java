@@ -185,7 +185,7 @@ public class OrganizacionService {
 
     @Transactional
     public UUID crearEmpleado(NuevoEmpleado in, String actor) {
-        bloquearOrganizacion(); validarAsignaciones(in.sucursales(), in.permisos(), "ACTIVO", List.of());
+        bloquearOrganizacion(); validarAsignaciones(in.sucursales(), in.permisos(), "ACTIVO", List.of());validarEncargado(in.encargadoSucursal(),"ACTIVO",in.sucursales());
         UUID codigo = UUID.randomUUID();
         var ids = jdbc.query("""
                 INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado,debe_cambiar_contrasena)
@@ -195,6 +195,7 @@ public class OrganizacionService {
         if (ids.isEmpty()) throw error(HttpStatus.CONFLICT, "Ya existe una cuenta con ese correo.");
         asignar(ids.get(0), in.sucursales(), in.permisos(), actor);
         actualizarRepartidor(ids.get(0), in.repartidor(), true);
+        actualizarEncargado(ids.get(0),in.encargadoSucursal(),in.sucursales(),actor);
         auditar(actor, "ALTA_EMPLEADO", codigo, 0);
         return codigo;
     }
@@ -205,6 +206,7 @@ public class OrganizacionService {
         Empleado actual = buscarEmpleado(codigo);
         if (actual.version() != in.version()) throw desactualizado();
         validarAsignaciones(in.sucursales(), in.permisos(), in.estado(), actual.sucursales());
+        validarEncargado(in.encargadoSucursal(),in.estado(),in.sucursales());
         Long id = idUsuario(actual.correo());
         jdbc.update("""
                 UPDATE lamontana.usuario SET nombre=?,apellido=?,correo=?,estado=?,version=version+1,
@@ -214,6 +216,7 @@ public class OrganizacionService {
                 """, in.nombre().strip(), in.apellido().strip(), correo(in.correo()), in.estado(), correo(in.correo()), in.estado(), id);
         asignar(id, in.sucursales(), in.permisos(), actor);
         actualizarRepartidor(id, in.repartidor(), "ACTIVO".equals(in.estado()));
+        actualizarEncargado(id,in.encargadoSucursal()&&"ACTIVO".equals(in.estado()),in.sucursales(),actor);
         if ("DESACTIVADO".equals(in.estado()) || !actual.correo().equals(correo(in.correo()))) {
             credenciales.revocar(id);
             jdbc.update("DELETE FROM lamontana.sesion_http WHERE principal_name=?", actual.correo());
@@ -270,6 +273,16 @@ public class OrganizacionService {
         if (!permisosDisponibles().containsAll(permisos)) throw error(HttpStatus.BAD_REQUEST, "Hay permisos no admitidos.");
     }
 
+    private void validarEncargado(boolean encargado,String estado,List<UUID> sucursales){
+        if(encargado&&(!"ACTIVO".equals(estado)||sucursales.size()!=1))throw error(HttpStatus.BAD_REQUEST,"Un encargado activo debe tener exactamente una sucursal asignada.");
+    }
+
+    private void actualizarEncargado(long usuario,boolean encargado,List<UUID> sucursales,String actor){
+        jdbc.update("DELETE FROM lamontana.sucursal_responsable WHERE id_usuario=?",usuario);
+        if(!encargado)return;
+        jdbc.update("INSERT INTO lamontana.sucursal_responsable(id_sucursal,id_usuario,asignado_por) SELECT s.id_sucursal,?,? FROM lamontana.sucursal s WHERE s.codigo_publico=? ON CONFLICT(id_sucursal) DO UPDATE SET id_usuario=excluded.id_usuario,asignado_por=excluded.asignado_por,asignado_en=clock_timestamp()",usuario,idUsuario(actor),sucursales.get(0));
+    }
+
     private void asignar(Long usuario, List<UUID> nuevasSucursales, List<String> nuevosPermisos, String actor) {
         List<UUID> actuales = asignaciones(usuario);
         for (UUID sucursal : actuales) if (!nuevasSucursales.contains(sucursal)) {
@@ -313,10 +326,12 @@ public class OrganizacionService {
     private Empleado empleado(ResultSet rs, int row) throws SQLException {
         long id = rs.getLong("id_usuario");
         boolean repartidor=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cuenta_repartidor WHERE id_usuario=? AND activa)",Boolean.class,id));
-        return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id), repartidor);
+        boolean encargado=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal_responsable WHERE id_usuario=?)",Boolean.class,id));
+        return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id), repartidor,encargado);
     }
     private Sucursal sucursal(ResultSet rs, int row) throws SQLException {
-        return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))));
+        var responsable=jdbc.query("SELECT u.nombre||' '||u.apellido,coalesce(u.alias_acceso,u.correo) FROM lamontana.sucursal_responsable sr JOIN lamontana.usuario u USING(id_usuario) WHERE sr.id_sucursal=? AND u.estado='ACTIVO'",(r,n)->new String[]{r.getString(1),r.getString(2)},rs.getLong("id_sucursal")).stream().findFirst().orElse(null);
+        return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))),responsable==null?null:responsable[0],responsable==null?null:responsable[1]);
     }
     private void auditar(String actor, String tipo, UUID codigo, long version) {
         jdbc.update("INSERT INTO lamontana.evento_organizacion(id_usuario_actor,tipo,codigo_publico_objeto,version) VALUES (?,?,?,?)", idUsuario(actor), tipo, codigo, version);

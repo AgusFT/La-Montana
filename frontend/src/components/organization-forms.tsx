@@ -50,8 +50,10 @@ export function EmployeeForm({ employee, branches }: { employee?: Employee; bran
     if (estado === "ACTIVO" && !branches.some(branch => branch.estado === "ACTIVA" && sucursales.includes(branch.codigoPublico))) {
       setMessage("Asigná al menos una sucursal activa al empleado activo."); return;
     }
+    const encargadoSucursal=data.get("encargadoSucursal")==="on";
+    if(encargadoSucursal&&(estado!=="ACTIVO"||sucursales.length!==1)){setMessage("Un encargado activo debe tener exactamente una sucursal asignada.");return;}
     if (!employee && data.get("contrasena") !== data.get("confirmacion")) { setMessage("Las contraseñas no coinciden."); return; }
-    const common = { nombre: String(data.get("nombre")).trim(), apellido: String(data.get("apellido")).trim(), correo: String(data.get("correo")).trim(), sucursales, permisos: data.getAll("permisos").map(String), repartidor: data.get("repartidor")==="on" };
+    const common = { nombre: String(data.get("nombre")).trim(), apellido: String(data.get("apellido")).trim(), correo: String(data.get("correo")).trim(), sucursales, permisos: data.getAll("permisos").map(String), repartidor: data.get("repartidor")==="on",encargadoSucursal };
     const payload = employee ? { ...common, estado, version: employee.version } : { ...common, contrasena: String(data.get("contrasena")) };
     setBusy(true); setMessage(""); setSaved(false);
     try {
@@ -69,6 +71,7 @@ export function EmployeeForm({ employee, branches }: { employee?: Employee; bran
       {!employee && <><label>Contraseña inicial<input name="contrasena" type="password" autoComplete="new-password" required minLength={12} maxLength={128} aria-describedby={helpId} /></label><p id={helpId} className="field-help">Entre 12 y 128 caracteres. El empleado deberá cambiarla en su primer ingreso.</p><label>Repetir contraseña<input name="confirmacion" type="password" autoComplete="new-password" required minLength={12} maxLength={128} /></label></>}
       {employee && <label>Estado<select name="estado" defaultValue={employee.estado}><option value="ACTIVO">Activo</option><option value="DESACTIVADO">Desactivado</option></select></label>}
       <fieldset className="choice-fieldset"><legend>Reparto y recorridos</legend><label className="checkbox-label"><input type="checkbox" name="repartidor" defaultChecked={employee?.repartidor??false}/><span>Habilitar como rider para recibir recorridos y pedidos asignados</span></label><p className="empty-note">Asignale pedidos desde Entregas pendientes al iniciar el reparto. Sólo aparecen riders activos.</p></fieldset>
+      <fieldset className="choice-fieldset"><legend>Responsabilidad de sucursal</legend><label className="checkbox-label"><input type="checkbox" name="encargadoSucursal" defaultChecked={employee?.encargadoSucursal??false}/><span>Designar como encargado de la única sucursal asignada</span></label><p className="empty-note">Cada sucursal admite un encargado. Si ya tenía otro, esta designación lo reemplaza.</p></fieldset>
       <fieldset className="choice-fieldset"><legend>Sucursales asignadas</legend><p className="empty-note">Un empleado activo necesita al menos una sucursal activa.</p>
         {branches.length === 0 ? <p className="empty-note">Primero creá una sucursal.</p> : branches.map(branch => <label className="checkbox-label" key={branch.codigoPublico}><input type="checkbox" name="sucursales" value={branch.codigoPublico} defaultChecked={employee?.sucursales.includes(branch.codigoPublico) ?? false} disabled={branch.estado !== "ACTIVA" && !employee?.sucursales.includes(branch.codigoPublico)} /><span>{branch.nombre} ({branch.codigo}){branch.estado !== "ACTIVA" ? " · Desactivada" : ""}</span></label>)}
       </fieldset>

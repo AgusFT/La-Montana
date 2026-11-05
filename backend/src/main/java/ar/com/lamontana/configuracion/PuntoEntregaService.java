@@ -61,7 +61,7 @@ public class PuntoEntregaService {
     private final JdbcTemplate jdbc;
     private final ConfiguracionService configuracion;
     public PuntoEntregaService(JdbcTemplate jdbc,ConfiguracionService configuracion){this.jdbc=jdbc;this.configuracion=configuracion;}
-    private record Relacion(long sucursal,boolean habilitado,BigDecimal costo,List<Franja> franjas){}
+    private record Relacion(long sucursal,int prioridad,boolean habilitado,BigDecimal costo,List<Franja> franjas){}
     private record Sucursal(long id,boolean activa){}
     private record Destino(UUID punto,Object solicitud){}
 
@@ -93,16 +93,17 @@ public class PuntoEntregaService {
         exigir(input.referencias()==null||input.referencias().length()<=2000,"Las referencias admiten hasta 2000 caracteres.");
         exigir(input.zonaHoraria()!=null&&ZoneId.getAvailableZoneIds().contains(input.zonaHoraria()),"Elegí una zona horaria IANA válida, por ejemplo America/Argentina/Buenos_Aires; no un desplazamiento horario fijo.");
         exigir(input.sucursales()!=null&&input.sucursales().size()<=100,"Ingresá una lista válida de sucursales de origen.");
-        var usadas=new HashSet<UUID>();var relaciones=new ArrayList<Relacion>();
+        var usadas=new HashSet<UUID>();var prioridades=new HashSet<Integer>();var relaciones=new ArrayList<Relacion>();
         for(var r:input.sucursales()) {
             exigir(r!=null&&r.sucursal()!=null&&usadas.add(r.sucursal()),"Cada sucursal de origen puede aparecer una sola vez en el punto.");
+            exigir(r.prioridad()!=null&&r.prioridad()>=1&&r.prioridad()<=999&&prioridades.add(r.prioridad()),"Cada origen necesita una prioridad única entre 1 y 999.");
             exigir(r.habilitado()!=null,"Indicá explícitamente si la relación está habilitada en el borrador.");
             exigir(r.costo()!=null&&r.costo().matches("[0-9]{1,12}(\\.[0-9]{1,2})?"),"Ingresá el costo ARS sin negativos ni exponentes, con hasta dos decimales; cero debe ser explícito.");
             var filas=jdbc.query("SELECT id_sucursal,estado='ACTIVA' FROM lamontana.sucursal WHERE codigo_publico=? FOR SHARE",(rs,row)->new Sucursal(rs.getLong(1),rs.getBoolean(2)),r.sucursal());
             exigir(!filas.isEmpty(),"La sucursal de origen no existe.");var sucursal=filas.get(0);
             boolean habilitadaAntes=punto!=null&&Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_punto_entrega WHERE id_configuracion_version=? AND id_punto_entrega=? AND id_sucursal=? AND habilitado)",Boolean.class,config,punto,sucursal.id()));
             if(r.habilitado()&&!sucursal.activa()&&!habilitadaAntes)throw conflicto("No se puede habilitar una nueva relación con una sucursal desactivada.");
-            FranjasEntrega.validar(r.franjas());relaciones.add(new Relacion(sucursal.id(),r.habilitado(),new BigDecimal(r.costo()),r.franjas()));
+            FranjasEntrega.validar(r.franjas());relaciones.add(new Relacion(sucursal.id(),r.prioridad(),r.habilitado(),new BigDecimal(r.costo()),r.franjas()));
         }
         return relaciones;
     }
@@ -114,7 +115,7 @@ public class PuntoEntregaService {
                 """,config,punto,in.nombre().strip(),in.calle().strip(),in.numero().strip(),in.localidad().strip(),in.provincia().strip(),in.codigoPostal().strip(),in.referencias()==null?null:in.referencias().strip(),in.zonaHoraria());
         // Sólo se reemplazan relaciones de una versión EN_PREPARACION: todavía no pueden tener reservas.
         jdbc.update("DELETE FROM lamontana.configuracion_punto_entrega WHERE id_configuracion_version=? AND id_punto_entrega=?",config,punto);
-        for(var r:relaciones){long relacion=jdbc.queryForObject("INSERT INTO lamontana.configuracion_punto_entrega(id_configuracion_version,id_punto_entrega,id_sucursal,costo,habilitado) VALUES (?,?,?,?,?) RETURNING id_configuracion_punto_entrega",Long.class,config,punto,r.sucursal(),r.costo(),r.habilitado());
+        for(var r:relaciones){long relacion=jdbc.queryForObject("INSERT INTO lamontana.configuracion_punto_entrega(id_configuracion_version,id_punto_entrega,id_sucursal,prioridad,costo,habilitado) VALUES (?,?,?,?,?,?) RETURNING id_configuracion_punto_entrega",Long.class,config,punto,r.sucursal(),r.prioridad(),r.costo(),r.habilitado());
             for(var f:r.franjas())jdbc.update("INSERT INTO lamontana.franja_entrega(id_configuracion_punto_entrega,dia_semana,hora_desde,hora_hasta,capacidad_pedidos,habilitada) VALUES (?,?,?,?,?,?)",relacion,f.dia(),Time.valueOf(hora(f.apertura())),Time.valueOf(hora(f.cierre())),f.capacidadPedidos(),f.habilitada());}
     }
     private ConfiguracionService.Borrador terminar(UUID codigo,ConfiguracionService.Borrador b,UUID operacion,String tipo,long actor,String huella,String evento,UUID punto){long id=id(codigo);jdbc.update("UPDATE lamontana.configuracion_version SET version=version+1,fecha_actualizacion=clock_timestamp() WHERE id_configuracion_version=?",id);configuracion.registrar(operacion,tipo,id,actor,huella,evento,b.version()+1,punto,null);jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_revocacion=clock_timestamp() WHERE id_configuracion_version=? AND fecha_consumo IS NULL AND fecha_revocacion IS NULL",id);return configuracion.cargar(codigo);}

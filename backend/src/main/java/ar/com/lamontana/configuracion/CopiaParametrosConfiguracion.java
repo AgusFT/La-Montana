@@ -45,7 +45,7 @@ public class CopiaParametrosConfiguracion {
   copiar("horario_sucursal","id_sucursal,dia_semana,habilitado,hora_desde,hora_hasta",origen,destino);
   jdbc.update("INSERT INTO lamontana.franja_entrega(id_configuracion_retiro,id_sucursal_retiro,dia_semana,hora_desde,hora_hasta,capacidad_pedidos,habilitada) SELECT ?,id_sucursal_retiro,dia_semana,hora_desde,hora_hasta,capacidad_pedidos,habilitada FROM lamontana.franja_entrega WHERE id_configuracion_retiro=?",destino,origen);
   copiar("configuracion_definicion_punto","id_punto_entrega,nombre,calle,numero,localidad,provincia,codigo_postal,referencias,zona_horaria",origen,destino);
-  copiar("configuracion_punto_entrega","id_punto_entrega,id_sucursal,costo,habilitado",origen,destino);
+  copiar("configuracion_punto_entrega","id_punto_entrega,id_sucursal,prioridad,costo,habilitado",origen,destino);
   jdbc.update("""
    INSERT INTO lamontana.franja_entrega(id_configuracion_punto_entrega,dia_semana,hora_desde,hora_hasta,capacidad_pedidos,habilitada)
    SELECT d.id_configuracion_punto_entrega,f.dia_semana,f.hora_desde,f.hora_hasta,f.capacidad_pedidos,f.habilitada

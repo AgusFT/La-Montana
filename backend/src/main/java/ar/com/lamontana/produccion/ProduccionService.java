@@ -99,7 +99,8 @@ public class ProduccionService {
  public record Evento(String accion,String estadoOrigen,String estadoDestino,String actor,String motivo,Instant fecha){}
  public record Trabajo(UUID codigoPublico,long numero,UUID origen,String tipo,String estado,UUID archivo,String impresora,String motivoExcepcion,String operador,Instant inicio,Instant fin,Calidad calidad,List<Evento> historial){}
  public record Item(UUID codigoPublico,UUID archivo,String nombre,List<Impresora> impresoras,boolean puedeIniciar,String bloqueo,List<Trabajo> trabajos){}
- public record Vista(long version,String estado,boolean puedeProducir,boolean puedeControlarCalidad,List<Cobertura> cobertura,List<String> bloqueos,List<Item> items){}
+ public record SucursalProductiva(UUID codigoPublico,String nombre){}
+ public record Vista(long version,String estado,boolean puedeProducir,boolean puedeControlarCalidad,boolean puedeReasignar,SucursalProductiva sucursalProductiva,List<SucursalProductiva> destinosProductivos,List<Cobertura> cobertura,List<String> bloqueos,List<Item> items){}
  private record Actor(long id,String nombre,String rol){}
  private record Registro(long id,Trabajo vista){}
 
@@ -117,7 +118,27 @@ public class ProduccionService {
    var opciones=declaradas.stream().map(i->{var state=estados.get(i.codigoPublico());var reasons=motivos(i,item,state);return new Impresora(i.codigoPublico(),i.nombre(),operacionImpresoras.formatosPorCodigo(i.formatos()),i.admiteColor(),i.admiteDobleFaz(),i.capacidadHojas(),i.estado(),state,reasons.isEmpty(),i.codigoPublico().equals(recommended),reasons);}).toList();
    items.add(new Item(item.codigoPublico(),file.archivo(),file.nombre(),opciones,bloqueo==null,bloqueo,trabajos));
   }
-  return new Vista(p.version(),p.estado(),producir,calidad,cobertura(p),bloqueos,List.copyOf(items));
+  var asignada=sucursalProductiva(p.numero());boolean admin=esAdministrador(correo);
+  boolean derivable=admin&&Set.of("APROBADO","EN_PRODUCCION").contains(p.estado())&&Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.pedido_admite_reasignacion(?)",Boolean.class,p.numero()));
+  return new Vista(p.version(),p.estado(),producir,calidad,derivable,asignada,admin?destinosProductivos(p):List.of(),cobertura(p),bloqueos,List.copyOf(items));
+ }
+ @Transactional public Vista reasignar(UUID pedido,ProduccionController.Reasignacion in,String correo){
+  bloquear();if(!esAdministrador(correo))throw error(HttpStatus.FORBIDDEN,"Sólo el administrador general puede derivar trabajos entre sucursales.");
+  var p=pedidos.detalle(pedido,correo,true);var actor=actor(correo);
+  var previa=jdbc.query("SELECT e.id_pedido,e.id_actor,s.codigo_publico,e.motivo FROM lamontana.evento_asignacion_produccion e JOIN lamontana.sucursal s ON s.id_sucursal=e.id_sucursal_nueva WHERE e.id_operacion=?",(r,n)->new Object[]{r.getLong(1),r.getLong(2),r.getObject(3,UUID.class),r.getString(4)},in.operacion());
+  if(!previa.isEmpty()){var e=previa.get(0);if((long)e[0]!=p.numero()||(long)e[1]!=actor.id()||!in.sucursal().equals(e[2])||!in.motivo().strip().equals(e[3]))throw conflicto("La operación ya se utilizó con otra derivación.");return vista(p,correo);}
+  version(p,in.version());
+  if(!Set.of("APROBADO","EN_PRODUCCION").contains(p.estado()))throw conflicto("El pedido debe estar aprobado para derivar su producción.");
+  if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.pedido_admite_reasignacion(?)",Boolean.class,p.numero())))throw conflicto("Hay una impresión en curso, terminada pendiente de calidad o ya aprobada. Registrá el error, la cancelación o la reimpresión antes de derivar.");
+  var anterior=sucursalProductiva(p.numero());var nueva=jdbc.query("SELECT codigo_publico,nombre FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA' FOR SHARE",(r,n)->new SucursalProductiva(r.getObject(1,UUID.class),r.getString(2)),in.sucursal()).stream().findFirst().orElseThrow(()->conflicto("La sucursal elegida no está activa."));
+  if(anterior.codigoPublico().equals(nueva.codigoPublico()))throw conflicto("El pedido ya está asignado a esa sucursal.");
+  var disponibles=impresoras(p,nueva.codigoPublico());
+  for(var item:p.oferta().items())if(disponibles.stream().noneMatch(i->motivos(i,item,operacionImpresoras.estado(i.codigoPublico())).isEmpty()))throw conflicto("La sucursal elegida no tiene una impresora disponible y compatible para todos los trabajos del pedido.");
+  String motivo=in.motivo().strip();
+  jdbc.update("INSERT INTO lamontana.evento_asignacion_produccion(id_operacion,id_pedido,id_sucursal_anterior,id_sucursal_nueva,id_actor,motivo) SELECT ?,?,a.id_sucursal,n.id_sucursal,?,? FROM lamontana.sucursal a,lamontana.sucursal n WHERE a.codigo_publico=? AND n.codigo_publico=?",in.operacion(),p.numero(),actor.id(),motivo,anterior.codigoPublico(),nueva.codigoPublico());
+  jdbc.update("UPDATE lamontana.pedido SET id_sucursal=(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?),version=version+1 WHERE id_pedido=?",nueva.codigoPublico(),p.numero());
+  jdbc.update("UPDATE lamontana.reserva_entrega SET origen_publico=? WHERE id_pedido=? AND estado='ACTIVA'",nueva.codigoPublico(),p.numero());
+  return vista(pedidos.detalle(pedido,correo,true),correo);
  }
  @Transactional public Vista iniciar(UUID pedido,Inicio in,String correo){
   bloquear();var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_PRODUCCION");var actor=actor(correo);var hash=huella(List.of(pedido,"INICIAR",in));
@@ -226,7 +247,11 @@ public class ProduccionService {
   case "COMPLETADO"->t.calidad()==null?"Controlá la calidad del trabajo terminado.":t.calidad().resultado()==Resultado.APROBADO?"Este ítem ya superó calidad.":null;
   default->null;
  };}
- private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras();}
+ private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){return impresoras(p,sucursalProductiva(p.numero()).codigoPublico());}
+ private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p,UUID sucursal){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras().stream().filter(i->sucursal.equals(i.sucursal())).toList();}
+ private SucursalProductiva sucursalProductiva(long pedido){return jdbc.queryForObject("SELECT s.codigo_publico,s.nombre FROM lamontana.pedido_actual p JOIN lamontana.sucursal s USING(id_sucursal) WHERE p.id_pedido=?",(r,n)->new SucursalProductiva(r.getObject(1,UUID.class),r.getString(2)),pedido);}
+ private List<SucursalProductiva> destinosProductivos(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());var ubicaciones=recursos.leer(version).impresoras().stream().filter(i->i.sucursal()!=null&&i.estado().equals("OPERATIVA")&&i.retiradaEn()==null).map(RecursosRepositorio.Impresora::sucursal).collect(java.util.stream.Collectors.toSet());return jdbc.query("SELECT codigo_publico,nombre FROM lamontana.sucursal WHERE estado='ACTIVA' ORDER BY nombre",(r,n)->new SucursalProductiva(r.getObject(1,UUID.class),r.getString(2))).stream().filter(s->ubicaciones.contains(s.codigoPublico())).toList();}
+ private boolean esAdministrador(String correo){return "ADMIN_ADMIN".equals(jdbc.queryForObject("SELECT r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.correo=?",String.class,correo));}
  private List<String> motivos(RecursosRepositorio.Impresora i,CotizacionService.ItemCotizado item,OperacionImpresoraService.Estado estado){
   var razones=new ArrayList<String>();var t=item.trabajo();
   if(i.retiradaEn()!=null)razones.add("Equipo retirado en esta configuración.");else if(!i.estado().equals("OPERATIVA"))razones.add("El motor no lo declara operativo.");

@@ -20,24 +20,25 @@ public class OperacionImpresoraService {
  public OperacionImpresoraService(JdbcTemplate jdbc,OrganizacionService org){this.jdbc=jdbc;this.org=org;}
  public record Estado(UUID impresora,boolean habilitada,Integer hojas,long version,Instant actualizadaEn,String actor){}
  public record Formato(UUID codigoPublico,String nombre){}
- public record Equipo(UUID codigoPublico,String nombre,String ubicacion,List<Formato> formatos,boolean color,boolean dobleFaz,int capacidadHojas,String estadoConfigurado,boolean retirada,Estado operacion){}
+ public record Equipo(UUID codigoPublico,UUID sucursal,String nombre,String ubicacion,List<Formato> formatos,boolean color,boolean dobleFaz,int capacidadHojas,String estadoConfigurado,boolean retirada,Estado operacion){}
  public record Panel(boolean puedeGestionar,List<Equipo> impresoras){}
  public record Evento(UUID operacion,String accion,String actor,String rol,Instant fecha,boolean habilitadaAnterior,boolean habilitadaNueva,Integer hojasAnteriores,Integer hojasNuevas,Integer cantidad,String motivo){}
  public record Historial(List<Evento> eventos,long total,int pagina){}
  private record Actor(long id,String nombre,String rol){}
- private record Recurso(long id,String estado,boolean retirada){}
+ private record Recurso(long id,UUID sucursal,String estado,boolean retirada){}
  private void leerPermitido(String correo){var permissions=org.contexto(correo).permisos();if(!permissions.contains("GESTIONAR_IMPRESORAS")&&!permissions.contains("GESTIONAR_PRODUCCION"))throw error(HttpStatus.FORBIDDEN,"Se requiere acceso a las impresoras.");}
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
  public Panel listar(String correo){
   leerPermitido(correo);
+  var contexto=org.contexto(correo);var permitidas=contexto.sucursales().stream().map(ar.com.lamontana.organizacion.SucursalController.Sucursal::codigoPublico).collect(java.util.stream.Collectors.toSet());boolean admin=esAdministrador(correo);
   var equipos=jdbc.query("""
-   SELECT DISTINCT ON (i.id_impresora) i.id_impresora,i.codigo_publico,c.id_configuracion_version,c.nombre,c.admite_color,c.admite_doble_faz,c.capacidad_maxima_hojas,c.estado,c.retirada_en,s.nombre AS ubicacion
+   SELECT DISTINCT ON (i.id_impresora) i.id_impresora,i.codigo_publico,c.id_configuracion_version,c.nombre,c.admite_color,c.admite_doble_faz,c.capacidad_maxima_hojas,c.estado,c.retirada_en,s.codigo_publico AS sucursal,s.nombre AS ubicacion
    FROM lamontana.impresora i JOIN lamontana.configuracion_impresora c USING(id_impresora)
    JOIN lamontana.configuracion_version v USING(id_configuracion_version)
    LEFT JOIN lamontana.sucursal s ON s.id_sucursal=c.id_sucursal_ubicacion
    ORDER BY i.id_impresora,(v.estado='ACTIVA') DESC,v.numero_version DESC
-   """,(r,n)->new Equipo(r.getObject("codigo_publico",UUID.class),r.getString("nombre"),r.getString("ubicacion"),formatos(r.getLong("id_configuracion_version"),r.getLong("id_impresora")),r.getBoolean("admite_color"),r.getBoolean("admite_doble_faz"),r.getInt("capacidad_maxima_hojas"),r.getString("estado"),r.getTimestamp("retirada_en")!=null,estado(r.getObject("codigo_publico",UUID.class))));
-  return new Panel(org.contexto(correo).permisos().contains("GESTIONAR_IMPRESORAS"),equipos.stream().sorted(Comparator.comparing(Equipo::nombre).thenComparing(Equipo::codigoPublico)).toList());
+   """,(r,n)->new Equipo(r.getObject("codigo_publico",UUID.class),r.getObject("sucursal",UUID.class),r.getString("nombre"),r.getString("ubicacion"),formatos(r.getLong("id_configuracion_version"),r.getLong("id_impresora")),r.getBoolean("admite_color"),r.getBoolean("admite_doble_faz"),r.getInt("capacidad_maxima_hojas"),r.getString("estado"),r.getTimestamp("retirada_en")!=null,estado(r.getObject("codigo_publico",UUID.class))));
+  return new Panel(contexto.permisos().contains("GESTIONAR_IMPRESORAS"),equipos.stream().filter(e->admin||e.sucursal()!=null&&permitidas.contains(e.sucursal())).sorted(Comparator.comparing(Equipo::ubicacion,Comparator.nullsLast(String::compareTo)).thenComparing(Equipo::nombre).thenComparing(Equipo::codigoPublico)).toList());
  }
  public List<Formato> formatos(long version,long impresora){return jdbc.query("SELECT f.codigo_publico,f.nombre FROM lamontana.configuracion_impresora_formato cf JOIN lamontana.formato f USING(id_formato) WHERE cf.id_configuracion_version=? AND cf.id_impresora=? ORDER BY f.nombre",(r,n)->new Formato(r.getObject(1,UUID.class),r.getString(2)),version,impresora);}
  public List<Formato> formatosPorCodigo(List<UUID> codigos){var result=new ArrayList<Formato>();for(UUID id:codigos)result.addAll(jdbc.query("SELECT codigo_publico,nombre FROM lamontana.formato WHERE codigo_publico=?",(r,n)->new Formato(r.getObject(1,UUID.class),r.getString(2)),id));return List.copyOf(result);}
@@ -46,7 +47,7 @@ public class OperacionImpresoraService {
   return rows.isEmpty()?new Estado(codigo,true,null,0,null,null):rows.get(0);
  }
  @Transactional public Estado cambiar(UUID codigo,OperacionImpresoraController.Cambio in,String correo){
-  bloquear();org.exigirPermiso(correo,"GESTIONAR_IMPRESORAS");var actor=actor(correo);var resource=recurso(codigo);var hash=huella(Arrays.asList(codigo,in));
+  bloquear();org.exigirPermiso(correo,"GESTIONAR_IMPRESORAS");var actor=actor(correo);var resource=recurso(codigo);autorizarSucursal(correo,resource);var hash=huella(Arrays.asList(codigo,in));
   if(recuperar(in.operacion(),resource.id(),actor,hash))return estado(codigo);
   if(resource.retirada())throw conflicto("El equipo fue retirado de la configuración consultada.");
   var old=estado(codigo);if(old.version()!=in.version())throw conflicto("El estado o el papel cambió. Actualizá la impresora antes de continuar.");
@@ -74,7 +75,7 @@ public class OperacionImpresoraService {
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
  public Historial historial(UUID codigo,int pagina,String correo){
-  leerPermitido(correo);long id=recurso(codigo).id();if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
+  leerPermitido(correo);var resource=recurso(codigo);autorizarSucursal(correo,resource);long id=resource.id();if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
   var events=jdbc.query("SELECT * FROM lamontana.evento_operacion_impresora WHERE id_impresora=? ORDER BY version_nueva DESC LIMIT 25 OFFSET ?",(r,n)->new Evento(r.getObject("id_operacion",UUID.class),r.getString("accion"),r.getString("actor_nombre"),r.getString("actor_rol"),r.getTimestamp("fecha").toInstant(),r.getBoolean("habilitada_anterior"),r.getBoolean("habilitada_nueva"),r.getObject("hojas_anteriores",Integer.class),r.getObject("hojas_nuevas",Integer.class),r.getObject("cantidad",Integer.class),r.getString("motivo")),id,(long)pagina*25);
   return new Historial(events,jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_operacion_impresora WHERE id_impresora=?",Long.class,id),pagina);
  }
@@ -83,7 +84,9 @@ public class OperacionImpresoraService {
   jdbc.update("INSERT INTO lamontana.evento_operacion_impresora(id_operacion,id_impresora,id_actor,actor_nombre,actor_rol,accion,huella,habilitada_anterior,habilitada_nueva,hojas_anteriores,hojas_nuevas,cantidad,version_anterior,version_nueva,id_trabajo_impresion,motivo) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",op,id,actor.id(),actor.nombre(),actor.rol(),action,hash,old.habilitada(),enabled,old.hojas(),hojas,cantidad,old.version(),old.version()+1,trabajo,note);
  }
  private boolean recuperar(UUID op,long id,Actor actor,String hash){var old=jdbc.query("SELECT id_impresora,id_actor,huella FROM lamontana.evento_operacion_impresora WHERE id_operacion=?",(r,n)->new Object[]{r.getLong(1),r.getLong(2),r.getString(3)},op);if(old.isEmpty())return false;var e=old.get(0);if((long)e[0]!=id||(long)e[1]!=actor.id()||!hash.equals(e[2]))throw conflicto("La operación ya se utilizó con otros datos.");return true;}
- private Recurso recurso(UUID codigo){var rows=jdbc.query("SELECT i.id_impresora,c.estado,c.retirada_en FROM lamontana.impresora i JOIN lamontana.configuracion_impresora c USING(id_impresora) JOIN lamontana.configuracion_version v USING(id_configuracion_version) WHERE i.codigo_publico=? ORDER BY (v.estado='ACTIVA') DESC,v.numero_version DESC LIMIT 1",(r,n)->new Recurso(r.getLong(1),r.getString(2),r.getTimestamp(3)!=null),codigo);if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"La impresora no existe.");return rows.get(0);}
+ private Recurso recurso(UUID codigo){var rows=jdbc.query("SELECT i.id_impresora,s.codigo_publico,c.estado,c.retirada_en FROM lamontana.impresora i JOIN lamontana.configuracion_impresora c USING(id_impresora) JOIN lamontana.configuracion_version v USING(id_configuracion_version) LEFT JOIN lamontana.sucursal s ON s.id_sucursal=c.id_sucursal_ubicacion WHERE i.codigo_publico=? ORDER BY (v.estado='ACTIVA') DESC,v.numero_version DESC LIMIT 1",(r,n)->new Recurso(r.getLong(1),r.getObject(2,UUID.class),r.getString(3),r.getTimestamp(4)!=null),codigo);if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"La impresora no existe.");return rows.get(0);}
+ private void autorizarSucursal(String correo,Recurso recurso){if(!esAdministrador(correo)){if(recurso.sucursal()==null)throw error(HttpStatus.FORBIDDEN,"La impresora no tiene una sucursal productiva asignada.");org.sucursalAutorizada(correo,recurso.sucursal());}}
+ private boolean esAdministrador(String correo){return "ADMIN_ADMIN".equals(jdbc.queryForObject("SELECT r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.correo=?",String.class,correo));}
  private Actor actor(String correo){return jdbc.queryForObject("SELECT u.id_usuario,u.nombre||' '||u.apellido,r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND r.activo",(r,n)->new Actor(r.getLong(1),r.getString(2),r.getString(3)),correo);}
  private void validarCantidad(Integer v,boolean cero){if(v==null||v<(cero?0:1)||v>1000000)throw error(HttpStatus.BAD_REQUEST,"Indicá una cantidad de hojas válida.");}
  private void bloquear(){for(long id:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+id+")");}

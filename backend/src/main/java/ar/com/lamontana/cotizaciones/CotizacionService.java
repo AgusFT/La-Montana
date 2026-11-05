@@ -91,7 +91,7 @@ public class CotizacionService {
     private final JsonMapper json=JsonMapper.builder().build();
     public CotizacionService(JdbcTemplate jdbc,OfertaOperativaService operativa,CatalogoService catalogo,EvaluadorPrecioItem precios,EvaluadorFinanciero finanzas){this.jdbc=jdbc;this.operativa=operativa;this.catalogo=catalogo;this.precios=precios;this.finanzas=finanzas;}
     public record Nombre(UUID codigoPublico,String nombre,BigDecimal gramaje,String terminacion){public Nombre(UUID codigoPublico,String nombre){this(codigoPublico,nombre,null,null);}}
-    public record Punto(UUID codigoPublico,UUID sucursal,String nombre,String direccion,String costo){}
+    public record Punto(UUID codigoPublico,UUID sucursal,int prioridad,String nombre,String direccion,String costo){}
     public record Opciones(boolean disponible,String mensaje,UUID configuracion,UUID revisionComercial,List<OfertaOperativaService.Sucursal> sucursales,
         List<RevisionConfiguracionService.Opcion> combinaciones,List<Nombre> formatos,List<Nombre> papeles,List<Nombre> servicios,
         List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios,OfertaOperativaService.Sucursal casaMatriz,List<OfertaOperativaService.Sucursal> destinosRetiro){}
@@ -118,7 +118,7 @@ public class CotizacionService {
         if(c.configuracion()==null||c.catalogo().actual()==null||c.opciones().isEmpty())return new Opciones(false,"La imprenta está en preparación o no tiene opciones disponibles para cotizar.",null,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),null,List.of());
         var b=c.configuracion();var formatos=new HashSet<UUID>();var papeles=new HashSet<UUID>();var servicios=new HashSet<UUID>();
         c.opciones().forEach(o->{formatos.add(o.formato());papeles.add(o.papel());servicios.add(o.servicio());servicios.addAll(o.terminaciones());});
-        var puntos=c.puntos().stream().filter(p->c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(p.sucursal()))).map(p->{var d=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(p.punto())).findFirst().orElseThrow();return new Punto(p.punto(),p.sucursal(),p.nombre(),d.calle()+" "+d.numero()+", "+d.localidad()+", "+d.provincia(),p.costo());}).toList();
+        var puntos=c.puntos().stream().filter(p->c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(p.sucursal()))).map(p->{var d=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(p.punto())).findFirst().orElseThrow();return new Punto(p.punto(),p.sucursal(),p.prioridad(),p.nombre(),d.calle()+" "+d.numero()+", "+d.localidad()+", "+d.provincia(),p.costo());}).toList();
         var modalidades=b.entrega().modalidades().stream().filter(m->m!=Modalidad.RETIRO_SUCURSAL||b.entrega().horariosPorSucursal().stream().anyMatch(h->h.retiroUtilizable()&&c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(h.sucursal())))).filter(m->m!=Modalidad.RETIRO_PUNTO_ENTREGA||!puntos.isEmpty()).filter(m->m!=Modalidad.ENVIO_DOMICILIO||b.entrega().zonas().stream().anyMatch(ZonasRepositorio.Zona::utilizable)).toList();
         var destinos=c.sucursales().stream().filter(x->b.entrega().horariosPorSucursal().stream().anyMatch(h->h.sucursal().equals(x.codigoPublico())&&h.retiroUtilizable())).toList();
         var combinaciones=c.opciones();
@@ -145,7 +145,7 @@ public class CotizacionService {
         if(b==null||c.catalogo().actual()==null)throw conflicto("La imprenta todavía no está preparada para cotizar.");
         if(!b.codigoPublico().equals(in.configuracion())||!c.catalogo().actual().codigoPublico().equals(in.revisionComercial()))throw conflicto("Cambiaron las opciones o tarifas. Actualizalas antes de solicitar la cotización.");
         var sucursal=c.sucursales().stream().filter(s->s.codigoPublico().equals(in.sucursal())).findFirst().orElseThrow(()->conflicto("La sucursal ya no está disponible para cotizar."));
-        if(in.origenGlobal())exigir(matriz(c).equals(in.sucursal())&&(in.modalidad()!=Modalidad.RETIRO_SUCURSAL||in.destinoRetiro()!=null),"El origen es la casa matriz configurada; seleccioná sólo un destino de retiro.");
+        if(in.origenGlobal())exigir((preparacionInterna!=null||matriz(c).equals(in.sucursal()))&&(in.modalidad()!=Modalidad.RETIRO_SUCURSAL||in.destinoRetiro()!=null),"El origen productivo no corresponde a esta solicitud; actualizá la entrega.");
         exigir(b.pagos().medios().contains(in.medioPago()),"El medio de pago no está habilitado.");
         exigir((in.modalidad()==Modalidad.ENVIO_DOMICILIO)==(in.direccion()!=null),"Completá la dirección sólo para envío a domicilio.");
         Long solicitud=null,baseCorreccion=null;
@@ -160,7 +160,7 @@ public class CotizacionService {
             if(correccion==null&&enlazada)throw conflicto("Esta oferta pertenece a una corrección. Solicitá su sucesora desde el pedido.");
             if(vieja.detalle().reemplazadaPor()!=null||vieja.detalle().estado().equals("CONFIRMADA")&&(baseCorreccion==null||vieja.id()!=baseCorreccion))throw conflicto("La cotización ya tiene un pedido o una oferta sucesora. Abrí el resultado guardado.");
             if(solicitud!=null&&vieja.id()!=baseCorreccion&&!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_cotizacion=? AND id_solicitud_correccion=?)",Boolean.class,vieja.id(),solicitud))throw conflicto("La cotización anterior no pertenece a esta corrección.");reemplazada=vieja.id();}
-        var trabajo=calcularItems(in.items(),c,preparacionInterna!=null&&!in.origenGlobal()?in.sucursal():null);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
+        var trabajo=calcularItems(in.items(),c,preparacionInterna!=null?in.sucursal():!in.origenGlobal()?in.sucursal():null);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
         Instant ahora=ahora();var temporal=operativa.calcularEntrega(c,new SimularEntrega(b.version(),in.origenGlobal()&&in.modalidad()==Modalidad.RETIRO_SUCURSAL?in.destinoRetiro():in.sucursal(),in.modalidad(),ahora,in.punto(),in.direccion()==null?null:in.direccion().territorio()),minutos,preparacionInterna!=null&&!in.origenGlobal());
         String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
         BigDecimal total=subtotal.add(new BigDecimal(costo));precios.limite(total);

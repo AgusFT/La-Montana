@@ -118,7 +118,8 @@ public class SucursalController {
     public record Sucursal(UUID codigoPublico, String codigo, String nombre, String calle, String numero,
                            String localidad, String provincia, String codigoPostal, String correo,
                            String telefono, String zonaHoraria, String estado, long version, List<HorarioAtencion.Dia> horarioAtencion,
-                           boolean propuestaMatriz, boolean casaMatrizVigente) {
-        public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,false,false);}
+                           boolean propuestaMatriz, boolean casaMatrizVigente,String encargado,String accesoEncargado) {
+        public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,false,false,null,null);}
+        public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion,boolean propuestaMatriz,boolean casaMatrizVigente){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,propuestaMatriz,casaMatrizVigente,null,null);}
     }
 }

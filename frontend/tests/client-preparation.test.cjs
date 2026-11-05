@@ -41,6 +41,8 @@ test('preparación: lista explícita de rutas y métodos, sin ampliar superficie
  assert.equal((await proxy('POST',[...internal,'confirmar'],'{}')).status,200);
  assert.equal((await proxy('GET',[...internal,'opciones','extra'])).status,404);
  assert.equal((await proxy('POST',['operacion','cotizaciones',id,'archivos'],'{}')).status,405);
+ assert.equal((await proxy('POST',['operacion','pedidos',id,'produccion','reasignar'],'{}')).status,200);
+ assert.equal((await proxy('PUT',['operacion','pedidos',id,'produccion','reasignar'],'{}')).status,405);
  for(const p of [['cliente','preparaciones','no-uuid'],[...path,'activar'],[...path,'archivos',file,'reemplazar'],[...path,'archivos',file,'paginas','0'],[...path,'resumen','extra']])assert.equal((await proxy('GET',p)).status,404);
  assert(calls.every(c=>c.init.redirect==='manual'&&c.init.cache==='no-store'));
  }finally{global.fetch=old;}

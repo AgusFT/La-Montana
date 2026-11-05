@@ -30,7 +30,7 @@ public class DatosPruebaConfiguration {
             @Value("${lamontana.pruebas.clave:MontanaPrueba2026!}") String clave) {
         return args -> tx.executeWithoutResult(status -> {
             for(long lock:new long[]{764003,764001,764002,764004,764099})jdbc.execute("SELECT pg_advisory_xact_lock("+lock+")");
-            jdbc.execute("CREATE TABLE IF NOT EXISTS lamontana.entorno_prueba (unica boolean PRIMARY KEY CHECK(unica), cargado_en timestamptz NOT NULL DEFAULT clock_timestamp(), version_escenario integer NOT NULL DEFAULT 4)");
+            jdbc.execute("CREATE TABLE IF NOT EXISTS lamontana.entorno_prueba (unica boolean PRIMARY KEY CHECK(unica), cargado_en timestamptz NOT NULL DEFAULT clock_timestamp(), version_escenario integer NOT NULL DEFAULT 5)");
             jdbc.execute("ALTER TABLE lamontana.entorno_prueba ADD COLUMN IF NOT EXISTS version_escenario integer NOT NULL DEFAULT 1");
             var versiones=jdbc.queryForList("SELECT version_escenario FROM lamontana.entorno_prueba WHERE unica",Integer.class);
             if(!versiones.isEmpty()) {
@@ -38,6 +38,7 @@ public class DatosPruebaConfiguration {
                 if(version<2)throw new IllegalStateException("El escenario de pruebas anterior está conservado. Para cargar seis meses de actividad, ejecutá ./infra/pruebas/reiniciar-datos.sh (borra sólo los datos ficticios del proyecto lamontana-pruebas).");
                 if(version<3){cuentasPuntos(jdbc,hash,comienzo);new PedidosPrueba(jdbc,operativa,precios,finanzas,archivos,encoder).jornadaPuntos();jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=3 WHERE unica");comprobarRestricciones(jdbc);}
                 if(version<4){new RecorridosPrueba(jdbc).cargar(hash,comienzo);jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=4 WHERE unica");comprobarRestricciones(jdbc);}
+                if(version<5){cuentasEncargados(jdbc,hash,comienzo);new ConfiguracionesPrueba(jdbc).ampliarActiva(Instant.now());cuentasPuntos(jdbc,hash,comienzo);jdbc.update("UPDATE lamontana.entorno_prueba SET version_escenario=5 WHERE unica");comprobarRestricciones(jdbc);}
                 return;
             }
             if(Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.usuario)",Boolean.class)))
@@ -65,7 +66,7 @@ public class DatosPruebaConfiguration {
             }
             pedidos.jornada(hoy);pedidos.jornadaPuntos();
             new RecorridosPrueba(jdbc).cargar(encoder.encode(clave),inicio);
-            jdbc.update("INSERT INTO lamontana.entorno_prueba(unica,version_escenario) VALUES (true,4)");
+            jdbc.update("INSERT INTO lamontana.entorno_prueba(unica,version_escenario) VALUES (true,5)");
             comprobarRestricciones(jdbc);
         });
     }
@@ -95,6 +96,18 @@ public class DatosPruebaConfiguration {
         jdbc.update("INSERT INTO lamontana.usuario_sucursal(id_usuario,id_sucursal,fecha_desde) SELECT u.id_usuario,s.id_sucursal,? FROM lamontana.usuario u CROSS JOIN lamontana.sucursal s WHERE u.correo IN ('produccion@prueba.local','caja@prueba.local')",Timestamp.from(inicio));
         jdbc.update("INSERT INTO lamontana.usuario_permiso(id_usuario,id_permiso,id_usuario_otorgante,fecha_otorgamiento) SELECT u.id_usuario,p.id_permiso,a.id_usuario,? FROM lamontana.usuario u CROSS JOIN lamontana.permiso p CROSS JOIN lamontana.usuario a WHERE u.correo='produccion@prueba.local' AND a.correo=? AND p.codigo IN ('GESTIONAR_PEDIDOS','GESTIONAR_PRODUCCION','CONTROLAR_CALIDAD','GESTIONAR_ENTREGAS','CERRAR_PEDIDOS','GESTIONAR_IMPRESORAS','GESTIONAR_PUNTOS_ENTREGA')",Timestamp.from(inicio),ADMIN);
         jdbc.update("INSERT INTO lamontana.usuario_permiso(id_usuario,id_permiso,id_usuario_otorgante,fecha_otorgamiento) SELECT u.id_usuario,p.id_permiso,a.id_usuario,? FROM lamontana.usuario u CROSS JOIN lamontana.permiso p CROSS JOIN lamontana.usuario a WHERE u.correo='caja@prueba.local' AND a.correo=? AND p.codigo IN ('REGISTRAR_COBRO','ACREDITAR_PAGO','REGISTRAR_DEVOLUCION')",Timestamp.from(inicio),ADMIN);
+        cuentasEncargados(jdbc,hash,inicio);
+    }
+
+    private void cuentasEncargados(JdbcTemplate jdbc,String hash,Instant inicio){
+        String[][] cuentas={{"FLORESTA","sucursal.floresta","Florencia","Floresta"},{"MEDICINA","sucursal.medicina","Marina","Medicina"},{"LAPLATA","sucursal.la.plata","Laura","La Plata"}};
+        for(var cuenta:cuentas){
+            String correo=cuenta[1]+"@prueba.local";
+            jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,alias_acceso,hash_contrasena,nombre,apellido,estado,correo_verificado_en,debe_cambiar_contrasena,fecha_alta) SELECT ?,id_rol,?,?,?,?,?,'ACTIVO',?,false,? FROM lamontana.rol WHERE codigo='EMPLEADO' ON CONFLICT(correo) DO NOTHING",UUID.randomUUID(),correo,cuenta[1],hash,cuenta[2],"Encargada de "+cuenta[3],Timestamp.from(inicio),Timestamp.from(inicio));
+            jdbc.update("INSERT INTO lamontana.usuario_sucursal(id_usuario,id_sucursal,fecha_desde) SELECT u.id_usuario,s.id_sucursal,? FROM lamontana.usuario u JOIN lamontana.sucursal s ON s.codigo=? WHERE u.correo=? AND NOT EXISTS(SELECT 1 FROM lamontana.usuario_sucursal x WHERE x.id_usuario=u.id_usuario AND x.id_sucursal=s.id_sucursal AND x.activa)",Timestamp.from(inicio),cuenta[0],correo);
+            jdbc.update("INSERT INTO lamontana.usuario_permiso(id_usuario,id_permiso,id_usuario_otorgante,fecha_otorgamiento) SELECT u.id_usuario,p.id_permiso,a.id_usuario,? FROM lamontana.usuario u CROSS JOIN lamontana.permiso p CROSS JOIN lamontana.usuario a WHERE u.correo=? AND a.correo=? AND p.codigo IN ('CREAR_PEDIDOS','GESTIONAR_PEDIDOS','GESTIONAR_PRODUCCION','CONTROLAR_CALIDAD','GESTIONAR_ENTREGAS','CERRAR_PEDIDOS','GESTIONAR_IMPRESORAS','REGISTRAR_COBRO','ACREDITAR_PAGO') AND NOT EXISTS(SELECT 1 FROM lamontana.usuario_permiso up WHERE up.id_usuario=u.id_usuario AND up.id_permiso=p.id_permiso AND up.fecha_revocacion IS NULL)",Timestamp.from(inicio),correo,ADMIN);
+            jdbc.update("INSERT INTO lamontana.sucursal_responsable(id_sucursal,id_usuario,asignado_por,asignado_en) SELECT s.id_sucursal,u.id_usuario,a.id_usuario,? FROM lamontana.sucursal s,lamontana.usuario u,lamontana.usuario a WHERE s.codigo=? AND u.correo=? AND a.correo=? ON CONFLICT(id_sucursal) DO UPDATE SET id_usuario=excluded.id_usuario,asignado_por=excluded.asignado_por,asignado_en=excluded.asignado_en",Timestamp.from(inicio),cuenta[0],correo,ADMIN);
+        }
     }
 
     private void usuario(JdbcTemplate jdbc,String rol,String correo,String hash,String nombre,String apellido,boolean propietario,Instant fecha) {

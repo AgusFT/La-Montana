@@ -80,7 +80,7 @@ public class EntregaConfiguracionService {
     private final EvaluadorFranjas franjas;
     public EntregaConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,EvaluadorCalendario evaluador,EvaluadorFranjas franjas){this.jdbc=jdbc;this.configuracion=configuracion;this.evaluador=evaluador;this.franjas=franjas;}
     public record Problema(String codigo,UUID sucursal,String mensaje){}
-    public record PuntoDisponible(UUID punto,UUID sucursal,String nombre,String zonaHoraria,String costo,long versionDisponibilidad){}
+    public record PuntoDisponible(UUID punto,UUID sucursal,int prioridad,String nombre,String zonaHoraria,String costo,long versionDisponibilidad){}
     public record Validacion(long version,boolean valida,List<Problema> problemas,List<String> avisos,List<PuntoDisponible> puntosDisponibles){}
     private record Sucursal(long id,UUID codigo,String nombre,String zona){}
     private record Calendario(long sucursal,String zona,List<Dia> dias,List<PuntoEntregaController.Franja> franjasRetiro){}
@@ -149,7 +149,7 @@ public class EntregaConfiguracionService {
             if(retiro||!opciones.isEmpty())avisos.add("No se ofrecerá envío a domicilio. "+motivo);else problemas.add(new Problema("COBERTURA_ENVIO_PENDIENTE",null,motivo));}
         if(e.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA)) {
             var origenes=new HashSet<UUID>();for(var sucursal:operativas)origenes.add(sucursal.codigo());
-            boolean preparado=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&origenes.contains(r.sucursal())&&(e.casaMatriz()==null||e.casaMatriz().equals(r.sucursal()))&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0));
+            boolean preparado=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0));
             String motivo=!preparado?(e.puntos().isEmpty()?"Agregá un punto con origen, costo y franjas de cupo positivo.":"Falta una relación habilitada desde una sucursal operativa con una franja habilitada y cupo positivo.")
                 :opciones.isEmpty()?"Habilitá temporalmente al menos un punto utilizable desde Disponibilidad de puntos.":null;
             if(motivo!=null){if(retiro||(envio&&cobertura))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" Las otras modalidades utilizables pueden seguir disponibles.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
@@ -158,7 +158,8 @@ public class EntregaConfiguracionService {
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Creá al menos una sucursal activa si querés ofrecer atención o retiro en una ubicación física."));
         for(var sucursal:operativas){
             var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(sucursal.codigo())).findFirst().orElse(null);
-            if(legado||sucursal.codigo().equals(e.casaMatriz()))problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));
+            boolean origenPunto=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&r.sucursal().equals(sucursal.codigo()));
+            if(legado||sucursal.codigo().equals(e.casaMatriz())||origenPunto)problemas.addAll(problemasCalendario(horario,sucursal.codigo(),sucursal.nombre()));
             if(retiro&&horario!=null&&(legado||sucursal.codigo().equals(e.casaMatriz())||!horario.franjasRetiro().isEmpty())){
                 if(!horario.retiroUtilizable())problemas.add(new Problema("RETIRO_SIN_FRANJAS_VALIDAS",sucursal.codigo(),"Configurá al menos una franja de retiro habilitada con cupo positivo en "+sucursal.nombre()+"."));
                 if(horario.retirosFueraHorarioOperativo())avisos.add(sucursal.nombre()+": producción cerrada · retiros habilitados fuera del horario de producción. Se entregan pedidos listos y no se cuentan horas de preparación. Confirmá que haya personal para entregar.");
@@ -190,9 +191,7 @@ public class EntregaConfiguracionService {
         if(operativa.isEmpty())throw conflicto("La ubicación usada para calcular preparación y entrega debe ser una sucursal activa con calendario operativo.");
         boolean legado=e.casaMatriz()==null&&b.estado().equals("ACTIVA");
         if(!legado&&(e.casaMatriz()==null||!e.matrizConfirmada()))throw conflicto("Seleccioná y confirmá la casa matriz de este borrador antes de simular o aplicar sus plazos.");
-        UUID origen=mostrador||e.casaMatriz()==null?input.sucursal():e.casaMatriz();
-        // El contrato cliente heredado conserva el origen para puntos. El nuevo flujo global lo resolverá internamente.
-        if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA&&e.casaMatriz()!=null&&!input.sucursal().equals(origen))throw conflicto("El punto debe cotizarse desde la casa matriz configurada. Actualizá la cotización antes de confirmar.");
+        UUID origen=input.sucursal();
         if(sucursales.stream().noneMatch(s->s.codigo().equals(origen)))throw conflicto("La casa matriz debe permanecer activa.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(origen)).findFirst().orElse(null);
         var horarioRetiro=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);
@@ -237,9 +236,9 @@ public class EntregaConfiguracionService {
         if(!entrega.modalidades().contains(Modalidad.RETIRO_PUNTO_ENTREGA))return List.of();
         var habilitados=new HashMap<UUID,Long>();jdbc.query("SELECT p.codigo_publico,d.version FROM lamontana.disponibilidad_punto_entrega d JOIN lamontana.punto_entrega p USING(id_punto_entrega) WHERE d.estado='HABILITADO'",rs->{habilitados.put(rs.getObject(1,UUID.class),rs.getLong(2));});
         var origenes=new HashSet<UUID>();for(var sucursal:sucursales)origenes.add(sucursal.codigo());var opciones=new ArrayList<PuntoDisponible>();
-        for(var p:entrega.puntos())if(habilitados.containsKey(p.codigoPublico()))for(var r:p.sucursales())if(r.habilitado()&&origenes.contains(r.sucursal())&&(entrega.casaMatriz()==null||entrega.casaMatriz().equals(r.sucursal()))&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0))
-            opciones.add(new PuntoDisponible(p.codigoPublico(),r.sucursal(),p.nombre(),p.zonaHoraria(),r.costo(),habilitados.get(p.codigoPublico())));
-        return List.copyOf(opciones);
+        for(var p:entrega.puntos())if(habilitados.containsKey(p.codigoPublico()))for(var r:p.sucursales())if(r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0))
+            opciones.add(new PuntoDisponible(p.codigoPublico(),r.sucursal(),r.prioridad(),p.nombre(),p.zonaHoraria(),r.costo(),habilitados.get(p.codigoPublico())));
+        return opciones.stream().sorted(Comparator.comparing(PuntoDisponible::punto).thenComparingInt(PuntoDisponible::prioridad).thenComparing(PuntoDisponible::sucursal)).toList();
     }
 
     private List<Problema> problemasCalendario(EntregaRepositorio.Horario horario,UUID codigo,String nombre) {

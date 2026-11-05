@@ -81,8 +81,10 @@ public class EmpleadoController {
             @NotBlank @Email @Size(max = 254) String correo,
             @NotBlank @Size(min = 12, max = 128) String contrasena,
             @NotNull @Size(min = 1, max = 100) List<@NotNull UUID> sucursales,
-            @NotNull @Size(max = 8) List<@NotBlank String> permisos,
-            boolean repartidor) {
+            @NotNull @Size(max = 20) List<@NotBlank String> permisos,
+            boolean repartidor,
+            boolean encargadoSucursal) {
+        public NuevoEmpleado(String nombre,String apellido,String correo,String contrasena,List<UUID> sucursales,List<String> permisos,boolean repartidor){this(nombre,apellido,correo,contrasena,sucursales,permisos,repartidor,false);}
         @Override public String toString() { return "NuevoEmpleado[datos privados]"; }
     }
     public record EdicionEmpleado(
@@ -92,8 +94,11 @@ public class EmpleadoController {
             @NotBlank @Pattern(regexp = "ACTIVO|DESACTIVADO") String estado,
             @NotNull @PositiveOrZero Long version,
             @NotNull @Size(max = 100) List<@NotNull UUID> sucursales,
-            @NotNull @Size(max = 8) List<@NotBlank String> permisos,
-            boolean repartidor) {}
+            @NotNull @Size(max = 20) List<@NotBlank String> permisos,
+            boolean repartidor,
+            boolean encargadoSucursal) {
+        public EdicionEmpleado(String nombre,String apellido,String correo,String estado,Long version,List<UUID> sucursales,List<String> permisos,boolean repartidor){this(nombre,apellido,correo,estado,version,sucursales,permisos,repartidor,false);}
+    }
     public record Empleado(UUID codigoPublico, String nombre, String apellido, String correo, String estado,
-                           long version, List<UUID> sucursales, List<String> permisos, boolean repartidor) {}
+                           long version, List<UUID> sucursales, List<String> permisos, boolean repartidor,boolean encargadoSucursal) {}
 }

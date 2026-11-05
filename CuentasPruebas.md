@@ -3,17 +3,23 @@
 | Administrador | `admin@prueba.local` |
 | Producción | `produccion@prueba.local` |
 | Caja | `caja@prueba.local` |
+| Encargada Casa Matriz Floresta | `sucursal.floresta` |
+| Encargada Sucursal Medicina | `sucursal.medicina` |
+| Encargada Sucursal La Plata | `sucursal.la.plata` |
 | Rider Oeste · Martina Ruta | `rider.oeste@prueba.local` |
 | Rider Centro · Nicolás Reparto | `rider.centro@prueba.local` |
 | Punto Caballito | `punto.caballito.retiro` |
 | Punto Palermo | `punto.palermo.retiro` |
+| Punto La Plata Centro | `punto.laplata-centro.retiro` |
+| Punto Tolosa | `punto.tolosa.retiro` |
+| Punto City Bell | `punto.city-bell.retiro` |
 | Cliente 1 | `cliente1@prueba.local` |
 | Cliente 2 | `cliente2@prueba.local` |
 | Cliente 3 | `cliente3@prueba.local` |
 | Cliente 4 | `cliente4@prueba.local` |
 | Contraseña común | `MontanaPrueba2026!` |
 
-Los riders sólo visualizan los recorridos y pedidos que les fueron asignados. Las cuentas de Caballito y Palermo acceden únicamente al mostrador y las finanzas de su propio punto.
+Los riders sólo visualizan los recorridos y pedidos que les fueron asignados. Las cuentas de punto acceden únicamente al mostrador y las finanzas de su propio punto. Cada cuenta `sucursal.*` ve los pedidos, retiros e impresoras de su propia sucursal. El administrador conserva la vista global y puede derivar un pedido aprobado antes de iniciarlo o después de registrar un intento fallido, cancelado u observado para reimpresión.
 
 ## Actualizar e iniciar la última versión
 

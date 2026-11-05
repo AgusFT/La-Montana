@@ -58,9 +58,17 @@ Certificación local del 23/09/2026: `infra/iniciar-local.sh` construyó e inici
 
 El registro público `/registro` crea únicamente particulares. No inicia sesión ni verifica el correo automáticamente. `/recuperar` y `/cuenta/seguridad` permiten recuperar acceso, verificar correo y cambiar contraseña. Desactivar una cuenta o cambiar su correo revoca sus sesiones; las asignaciones y permisos se revalidan en cada operación.
 
-## Casa matriz por versión · V41
+## Red productiva por sucursal · V57
 
-Cada configuración nueva debe seleccionar y confirmar una única sucursal activa como **casa matriz** en Fase 5. Los borradores heredan la selección anterior, pero requieren confirmarla nuevamente. Su calendario es la referencia de preparación de toda la imprenta; las otras sucursales pueden atender solo retiros, sin producción. Retirar en matriz no suma traslado; otra sucursal, punto o domicilio sí. Los recursos y servicios permanecen globales.
+Cada impresora pertenece obligatoriamente a una sucursal. Los encargados operan únicamente los pedidos, retiros y equipos de su planta; el administrador general ve toda la red y puede derivar un pedido aprobado a otra sucursal compatible antes de imprimir o después de registrar una falla. El cambio conserva precio, PDF, cliente y destino, y registra sucursal anterior, nueva planta, actor y motivo.
+
+Los puntos de entrega admiten varias sucursales de origen con prioridad numérica. Al confirmar el pedido, el servidor elige la primera planta priorizada que pueda fabricar todos sus ítems. La casa matriz queda como origen de respaldo para envíos a domicilio y puede cubrir cualquier destino configurado. Cada planta usa su propio calendario productivo y su propia flota.
+
+El entorno `pruebas` incluye encargadas de Floresta, Medicina y La Plata; ocho impresoras distribuidas entre esas plantas; y puntos de La Plata Centro, Tolosa y City Bell con prioridad para la sucursal La Plata y respaldo de Floresta. Detalle: [Red productiva por sucursal](docs/red-productiva-por-sucursal.md).
+
+## Casa matriz por versión · V41 (base histórica)
+
+Cada configuración nueva sigue seleccionando y confirmando una única **casa matriz** en Fase 5. Desde V57 ya no concentra toda la producción: funciona como planta principal y respaldo de los envíos a domicilio. Las demás sucursales pueden producir con su propio calendario y sus propias impresoras. Los servicios y precios comerciales permanecen globales.
 
 La ficha de sucursal permite **proponer** una matriz sin reemplazar la vigente. La revisión impide activar o programar sin una selección válida y confirmada. No se puede desactivar la matriz vigente o programada sin resolver primero su reemplazo. Las versiones legadas no reciben una elección arbitraria ni cambian los pedidos confirmados. El timeline registra salida/llegada reales para retiros externos, sin esperar al estimado ni confundir llegada con entrega física.
 

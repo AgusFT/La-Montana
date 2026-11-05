@@ -64,7 +64,7 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
  }
  const budget=prep?.presupuesto;
  const destinations=options?.destinosRetiro??[];
- const points=Array.from(new Map((options?.puntos??[]).filter(p=>p.sucursal===options?.casaMatriz?.codigoPublico).map(p=>[p.codigoPublico,p])).values());
+ const points=Array.from(new Map([...(options?.puntos??[])].sort((a,b)=>a.prioridad-b.prioridad).map(p=>[p.codigoPublico,p])).values());
  return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.invitado?"Invitado de mostrador":prep.cliente.correo}</p>}
   {!prep&&!error&&<p role="status">Recuperando el resumen de tu trabajo…</p>}
   {busy&&<p role="status" className="client-note">Verificando y actualizando tu pedido…</p>}
@@ -87,7 +87,7 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
         {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre}{s.codigoPublico===options?.casaMatriz?.codigoPublico?' · Casa matriz':''} · {s.direccion}</option>)}</select></label>}
         {mode==='RETIRO_PUNTO_ENTREGA'&&<label>Punto de entrega<select aria-label="Punto de entrega" required value={point} onChange={e=>{setPoint(e.target.value);}}><option value="">Elegí un punto</option>{points.map(p=><option key={p.codigoPublico} value={p.codigoPublico}>{p.nombre} · {p.direccion}</option>)}</select></label>}
         {mode==='ENVIO_DOMICILIO'&&<div className="workspace-address">{([['calle','Calle'],['numero','Número'],['referencias','Referencias (opcional)']] as const).map(([k,label])=><label key={k}>{label}<input required={k!=='referencias'} maxLength={k==='numero'?30:k==='calle'?140:300} value={address[k]} onChange={e=>{setAddress(a=>({...a,[k]:e.target.value}));}}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([k,label])=><label key={k}>{label}<input required maxLength={k==='codigoPostal'?24:120} value={address.territorio[k]} onChange={e=>{setAddress(a=>({...a,territorio:{...a.territorio,[k]:e.target.value}}));}}/></label>)}</div>}
-        <p>{mode==='RETIRO_SUCURSAL'&&destination===options?.casaMatriz?.codigoPublico?'Retiro en casa matriz, según su franja disponible.':'Fuera de casa matriz se agrega el traslado o envío configurado.'} El destino no define dónde se imprime.</p>
+        <p>{mode==='RETIRO_SUCURSAL'?'El pedido se asigna inicialmente a la planta de esa sucursal.':'El sistema elige la sucursal compatible con mayor prioridad para ese destino.'} El cliente elige dónde recibirlo, no una impresora.</p>
         </>}
        </section>
        <section className="workspace-panel"><h2>Pago</h2>
