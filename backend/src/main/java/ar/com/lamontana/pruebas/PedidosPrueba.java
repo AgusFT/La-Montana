@@ -47,7 +47,6 @@ final class PedidosPrueba {
         BigDecimal total,anticipo;
         MedioPago medio;
         Modalidad modalidad;
-        boolean retiroConTraslado;
         Instant fecha;
         final List<Item> items=new ArrayList<>();
     }
@@ -93,7 +92,6 @@ final class PedidosPrueba {
         var matriz=ctx.sucursales().stream().filter(s->s.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElseThrow();
         // Retiros locales de las tres sucursales; los puntos/domicilios salen de la matriz.
         var branch=p.modalidad==Modalidad.RETIRO_SUCURSAL?ctx.sucursales().get((indice/3)%ctx.sucursales().size()):matriz;
-        p.retiroConTraslado=p.modalidad==Modalidad.RETIRO_SUCURSAL&&!branch.codigoPublico().equals(matriz.codigoPublico());
         if(puntoForzado!=null){p.modalidad=Modalidad.RETIRO_PUNTO_ENTREGA;p.medio=medioForzado;}
         UUID punto=p.modalidad==Modalidad.RETIRO_PUNTO_ENTREGA?b.entrega().puntos().get(indice%2).codigoPublico():null;
         if(puntoForzado!=null)punto=puntoForzado;p.punto=punto;
@@ -174,10 +172,10 @@ final class PedidosPrueba {
                     Instant ventana=tiempo.destinoPunto()!=null?tiempo.destinoPunto().franjaDesde():tiempo.destinoZona()!=null?tiempo.destinoZona().franjaDesde():tiempo.destinoSucursal().franjaDesde();
                     long offset=actual?2400:Math.max(2400,Duration.between(fecha,ventana).getSeconds()+600);
                     if(pagoHistoricoEnDosPartes&&!historicoPunto)recibir(p,p.total.subtract(monto),fecha.plusSeconds(offset-150),true);
-                    if(p.modalidad!=Modalidad.RETIRO_SUCURSAL||p.retiroConTraslado) {
+                    if(p.modalidad!=Modalidad.RETIRO_SUCURSAL) {
                         mover(p,"PREPARAR_ENVIO","PREPARADO",fecha.plusSeconds(offset-1000));
                         mover(p,"SALIR_REPARTO","EN_VIAJE",fecha.plusSeconds(offset-600));
-                        if(p.modalidad==Modalidad.RETIRO_PUNTO_ENTREGA||p.retiroConTraslado)mover(p,"LLEGAR_PUNTO","DISPONIBLE_PUNTO",fecha.plusSeconds(offset-200));
+                        if(p.modalidad==Modalidad.RETIRO_PUNTO_ENTREGA)mover(p,"LLEGAR_PUNTO","DISPONIBLE_PUNTO",fecha.plusSeconds(offset-200));
                     }
                     if(historicoPunto&&p.total.compareTo(monto)>0)recibir(p,p.total.subtract(monto),fecha.plusSeconds(offset-100),true);
                     entregar(p,fecha.plusSeconds(offset));
@@ -220,7 +218,29 @@ final class PedidosPrueba {
     }
 
     private long iniciar(Pedido p,Item item,Instant fecha) {
-        long id=jdbc.queryForObject("INSERT INTO lamontana.trabajo_impresion(codigo_publico,id_pedido,id_cotizacion_item,id_archivo_almacenado,id_aceptacion_vista_previa,id_impresora,id_configuracion_version,impresora_nombre,id_operador,operador_nombre,tipo,estado,fecha_inicio) SELECT ?,?,?,?,?,ci.id_impresora,?,ci.nombre,?,?,'NORMAL','IMPRIMIENDO',? FROM lamontana.configuracion_impresora ci WHERE ci.id_configuracion_version=? AND ci.admite_color ORDER BY ci.id_impresora LIMIT 1 RETURNING id_trabajo_impresion",Long.class,UUID.randomUUID(),p.id,item.id(),item.archivo(),item.aceptacion(),p.config,actor(ADMIN).id(),actor(ADMIN).nombre(),ts(fecha),p.config);
+        var operador=actor(ADMIN);
+        long id=jdbc.queryForObject("""
+            INSERT INTO lamontana.trabajo_impresion(codigo_publico,id_pedido,id_cotizacion_item,
+                id_archivo_almacenado,id_aceptacion_vista_previa,id_impresora,id_configuracion_version,
+                impresora_nombre,id_operador,operador_nombre,tipo,estado,fecha_inicio)
+            SELECT ?,pedido.id_pedido,item.id_cotizacion_item,?,?,impresora.id_impresora,
+                impresora.id_configuracion_version,impresora.nombre,?,?,'NORMAL','IMPRIMIENDO',?
+            FROM lamontana.pedido pedido
+            JOIN lamontana.cotizacion_item item ON item.id_cotizacion=pedido.id_cotizacion
+            JOIN lamontana.configuracion_impresora impresora
+              ON impresora.id_configuracion_version=pedido.id_configuracion_version
+              AND impresora.id_sucursal_ubicacion=pedido.id_sucursal
+            JOIN lamontana.configuracion_impresora_formato formato
+              ON formato.id_configuracion_version=impresora.id_configuracion_version
+              AND formato.id_impresora=impresora.id_impresora AND formato.id_formato=item.id_formato
+            WHERE pedido.id_pedido=? AND item.id_cotizacion_item=?
+              AND impresora.estado='OPERATIVA' AND impresora.retirada_en IS NULL
+              AND (item.modo_color='BLANCO_NEGRO' OR impresora.admite_color)
+              AND (NOT item.doble_faz OR impresora.admite_doble_faz)
+            ORDER BY impresora.id_impresora LIMIT 1
+            RETURNING id_trabajo_impresion
+            """,Long.class,UUID.randomUUID(),item.archivo(),item.aceptacion(),operador.id(),operador.nombre(),
+            ts(fecha),p.id,item.id());
         trabajoEvento(p,id,"INICIAR_TRABAJO",null,"IMPRIMIENDO","EN_PRODUCCION",fecha,"Impresión iniciada manualmente.");return id;
     }
     private void completar(Pedido p,long trabajo,Instant fecha,boolean error) {
