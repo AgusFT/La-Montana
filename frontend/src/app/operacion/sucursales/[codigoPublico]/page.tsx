@@ -58,6 +58,7 @@ export default async function OperationBranchPage({ params, searchParams }: { pa
     {branch ? <article className="branch-card"><h2>{branch.nombre}</h2><p>Código: {branch.codigo}</p><p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p><p>Hora local: {timeZoneLabel(branch.zonaHoraria)}</p>{branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}</article> : <p className="form-message error-message" role="alert">{result.state === "forbidden" ? "No tenés acceso a esta sucursal." : "No pudimos conectar con el sistema para consultar esta sucursal. Intentá nuevamente."}</p>}
     {branch&&<><div className="page-actions">
       {context?.permisos.includes("CREAR_PEDIDOS")&&<a className="admin-button" href={`/operacion/pedidos/nuevo?sucursal=${codigoPublico}`}>Crear pedido</a>}
+      {context?.permisos.includes("GESTIONAR_ENTREGAS")&&<a className="admin-button secondary" href={`/operacion/sucursales/${codigoPublico}?estado=LISTO_PARA_ENTREGA#despachos`}>Despachos de esta sucursal</a>}
       {context?.permisos.includes("GESTIONAR_ENTREGAS")&&<a className="admin-button secondary" href={`/operacion/retiros?sucursal=${codigoPublico}`}>Retiros en esta sucursal</a>}
     </div><OrderListView branch={codigoPublico} initialState={initialState}/><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}</>}
     <a className="secondary-link" href="/operacion">Volver a tus sucursales</a>

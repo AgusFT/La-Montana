@@ -106,6 +106,25 @@ public class PedidoService {
  public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega,String nombreInvitado){}
  public record Pagina(List<Resumen> elementos,long total,int pagina,boolean puedeGestionarEntregas){}
  private record Actor(long id,String rol){}
+ private static final String RUTA_DESPACHO_HABILITADA="""
+  NOT EXISTS (
+   SELECT 1 FROM lamontana.reserva_entrega r
+   WHERE r.id_pedido=p.id_pedido AND r.estado='ACTIVA' AND r.modalidad='RETIRO_PUNTO_ENTREGA'
+   AND NOT EXISTS (
+    SELECT 1 FROM lamontana.configuracion_punto_entrega ruta
+    JOIN lamontana.punto_entrega punto USING(id_punto_entrega)
+    JOIN lamontana.sucursal origen ON origen.id_sucursal=ruta.id_sucursal
+    WHERE ruta.id_configuracion_version=p.id_configuracion_version AND ruta.habilitado
+      AND origen.id_sucursal=p.id_sucursal AND origen.codigo_publico=r.origen_publico
+      AND punto.codigo_publico=r.destino_publico
+   )
+  )
+  """;
+
+ public boolean rutaDespachoHabilitada(long pedido){
+  return Boolean.TRUE.equals(jdbc.queryForObject(
+   "SELECT "+RUTA_DESPACHO_HABILITADA+" FROM lamontana.pedido_actual p WHERE p.id_pedido=?",Boolean.class,pedido));
+ }
 
  @Transactional public Revision revisar(UUID quote,String correo){bloquear();actor(correo,false);return revisarPreparado(cotizaciones.detalle(quote,correo));}
  public Revision revisarPreparado(CotizacionService.Detalle q){var vinculo=vinculado(q.codigoPublico());return vinculo==null?evaluar(q):new Revision(vinculo,q.version(),null,0,null,false,List.of(),null,null,List.of());}
@@ -115,8 +134,10 @@ public class PedidoService {
   if(q.estado().equals("CONFIRMADA"))return new Revision(vinculado(q.codigoPublico()),q.version(),null,0,null,false,List.of(),null,null,List.of());
   if(!q.estado().equals("VIGENTE")||!clock.instant().isBefore(q.vigenteHasta()))throw conflicto("La cotización ya no está vigente. Conservá los pagos y solicitá una nueva oferta para continuar.");
   catalogo.reconciliarProgramaciones();var c=operativa.leer();var b=c.configuracion();
-  if(q.oferta().origenGlobal()&&(b==null||b.entrega().casaMatriz()==null||!b.entrega().casaMatriz().equals(q.oferta().sucursal().codigoPublico())))throw conflicto("Cambió la casa matriz. Actualizá entrega y condiciones antes de confirmar.");var o=q.oferta();var branch=o.sucursal().codigoPublico();
+  var o=q.oferta();var branch=o.sucursal().codigoPublico();
   if(b==null||c.sucursales().stream().noneMatch(s->s.codigoPublico().equals(branch)))throw conflicto("La sucursal no está disponible para confirmar este trabajo.");
+  if(o.origenGlobal()&&o.modalidad()==Modalidad.ENVIO_DOMICILIO&&!branch.equals(b.entrega().casaMatriz()))
+   throw conflicto("Cambió la casa matriz. Actualizá entrega y condiciones antes de confirmar.");
   int minPreparacion=0;
   for(var item:o.items()){
    var t=item.trabajo();
@@ -143,7 +164,13 @@ public class PedidoService {
  private Franja disponible(CotizacionService.Oferta o,EntregaRepositorio.Entrega e,EvaluadorCalendario.Simulacion estimacion,Instant ahora,OfertaOperativaService.Sucursal sucursalActual,Long excluirPedido){
   UUID branch=o.sucursal().codigoPublico(),dest;String zona,nombre;List<PuntoEntregaController.Franja> slots;
   if(o.modalidad()==Modalidad.RETIRO_SUCURSAL){UUID retiro=o.origenGlobal()?o.entrega().destinoSucursal().sucursal():branch;var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(retiro)).findFirst().orElseThrow();dest=retiro;zona=h.zonaHoraria();slots=h.franjasRetiro();nombre=sucursalActual.nombre()+" · "+sucursalActual.direccion();}
-  else if(o.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){var p=e.puntos().stream().filter(x->x.codigoPublico().equals(o.punto())).findFirst().orElseThrow();dest=p.codigoPublico();zona=p.zonaHoraria();slots=p.sucursales().stream().filter(x->x.sucursal().equals(e.casaMatriz()==null?branch:e.casaMatriz())).findFirst().orElseThrow().franjas();nombre=p.nombre()+" · "+p.calle()+" "+p.numero()+", "+p.localidad()+", "+p.provincia();}
+  else if(o.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){
+   var p=e.puntos().stream().filter(x->x.codigoPublico().equals(o.punto())).findFirst()
+    .orElseThrow(()->conflicto("El punto ya no pertenece a la configuración vigente."));
+   var ruta=p.sucursales().stream().filter(x->x.habilitado()&&x.sucursal().equals(branch)).findFirst()
+    .orElseThrow(()->conflicto("El punto ya no tiene una ruta habilitada desde la sucursal del pedido."));
+   dest=p.codigoPublico();zona=p.zonaHoraria();slots=ruta.franjas();nombre=p.nombre()+" · "+p.calle()+" "+p.numero()+", "+p.localidad()+", "+p.provincia();
+  }
   else{var d=estimacion.destinoZona();var z=e.zonas().stream().filter(x->x.codigoPublico().equals(d.zona())).findFirst().orElseThrow();dest=z.codigoPublico();zona=z.zonaHoraria();slots=z.franjas();nombre=o.destino();}
   var v=franjas.siguiente(estimacion.disponibleDesde(),zona,slots,EvaluadorCalendario.limite(ahora,zona),w->ocupadas(o.modalidad(),dest,branch,w,excluirPedido)<w.cupoConfigurado());
   return new Franja(o.modalidad(),dest,branch,nombre,zona,v.fecha(),v.apertura(),v.cierre(),v.desde(),v.hasta(),v.cupoConfigurado(),v.cupoConfigurado()-ocupadas(o.modalidad(),dest,branch,v,excluirPedido),o.costoEntrega());
@@ -251,7 +278,7 @@ public class PedidoService {
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String orden,String despacho,String correo){
   var a=actor(correo,branch!=null);if(branch!=null&&!a.rol().equals("ADMIN_ADMIN"))organizacion.sucursalAutorizada(correo,branch);
-  return pagina(branch==null?"p.id_usuario_creador=?":"s.codigo_publico=?",List.of(branch==null?a.id():branch),pagina,estado,orden,despacho,branch!=null,branch!=null&&organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS"));
+  return pagina(branch==null?"p.id_usuario_creador=?":"s.codigo_publico=?",List.of(branch==null?a.id():branch),pagina,estado,orden,despacho,branch!=null,branch!=null&&organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS"),!"ADMIN_ADMIN".equals(a.rol()));
  }
  /** Bandeja única del propietario. El destino del cliente no determina su visibilidad. */
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listarGlobal(int pagina,String estado,String correo){
@@ -262,16 +289,17 @@ public class PedidoService {
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listarGlobal(int pagina,String estado,String orden,String despacho,String correo){
   var a=actor(correo,true);if(!a.rol().equals("ADMIN_ADMIN"))throw error(HttpStatus.FORBIDDEN,"Sólo el administrador puede consultar todos los pedidos de la imprenta.");
-  return pagina("TRUE",List.of(),pagina,estado,orden,despacho,true,organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS"));
+  return pagina("TRUE",List.of(),pagina,estado,orden,despacho,true,organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS"),false);
  }
- private Pagina pagina(String alcance,List<Object> parametros,int pagina,String estado,String orden,String despacho,boolean interno,boolean gestiona){
+ private Pagina pagina(String alcance,List<Object> parametros,int pagina,String estado,String orden,String despacho,boolean interno,boolean gestiona,boolean limitarRutas){
   if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
   String ordenar=switch(orden){case "MOVIMIENTO_ASC"->"coalesce(h.fecha,p.confirmada_en) ASC,p.id_pedido ASC";case "MOVIMIENTO_DESC"->"coalesce(h.fecha,p.confirmada_en) DESC,p.id_pedido DESC";case "CONFIRMADO_ASC"->"p.confirmada_en ASC,p.id_pedido ASC";case "CONFIRMADO_DESC"->"p.confirmada_en DESC,p.id_pedido DESC";default->throw error(HttpStatus.BAD_REQUEST,"Orden de pedidos inválido.");};
   if(estado!=null&&!Set.of("PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","RECHAZADO","CANCELADO").contains(estado))throw error(HttpStatus.BAD_REQUEST,"Estado de pedido inválido.");
   String from=" FROM lamontana.pedido_actual p JOIN lamontana.sucursal s USING(id_sucursal) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE "+alcance+" AND (?::text IS NULL OR p.estado=?)";
   var args=new ArrayList<Object>(parametros);args.add(estado);args.add(estado);
-  String accionEntrega=gestiona?"""
-   CASE WHEN p.estado='LISTO_PARA_ENTREGA' AND lamontana.calidad_pedido_aprobada(p.id_pedido)
+  String alcanceDespacho=limitarRutas?" AND ("+RUTA_DESPACHO_HABILITADA+")":"";
+  String accionEntrega=gestiona?"CASE WHEN p.estado='LISTO_PARA_ENTREGA' AND lamontana.calidad_pedido_aprobada(p.id_pedido)"+alcanceDespacho+"""
+
     THEN CASE lamontana.estado_logistico(p.id_pedido)
      WHEN 'PENDIENTE_PREPARACION' THEN 'PREPARAR_ENVIO'
      WHEN 'PREPARADO' THEN 'SALIR_REPARTO'
@@ -325,7 +353,8 @@ public class PedidoService {
     lamontana.retiro_con_traslado(p.id_pedido) AS traslado,p.version,h.accion,h.fecha,h.actor_nombre,h.resultado,
     coalesce(cambio.fecha,p.confirmada_en) AS estado_desde,produccion.*,
    """+accionEntrega+" AS accion_entrega";
-  String dataFrom=from.replace(" WHERE "," "+joins+" WHERE ");
+  int where=from.indexOf(" WHERE ");
+  String dataFrom=from.substring(0,where)+" "+joins+from.substring(where);
   var ids=jdbc.query(select+dataFrom+" ORDER BY "+ordenar+" LIMIT 25 OFFSET ?",(r,n)->{
    String state=r.getString("estado"),logistics=r.getString("logistica"),situation=state;Instant since=r.getTimestamp("estado_desde").toInstant();
    if(interno&&state.equals("EN_PRODUCCION")){

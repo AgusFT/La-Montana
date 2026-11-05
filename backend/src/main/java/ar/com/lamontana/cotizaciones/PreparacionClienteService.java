@@ -45,7 +45,27 @@ public class PreparacionClienteService {
     }
     @Transactional public CotizacionService.Opciones opciones(UUID codigo,String correo){
         var d=store.datos(codigo,correo,true);
-        return cotizaciones.opcionesPreparada(d.sucursalMostrador());
+        var opciones=cotizaciones.opcionesPreparada(d.sucursalMostrador());
+        if(d.operador()==null||d.sucursalMostrador()!=null||!opciones.disponible())return opciones;
+        var autorizadas=sucursalesAutorizadas(correo);
+        var sucursales=opciones.sucursales().stream().filter(s->autorizadas.contains(s.codigoPublico())).toList();
+        var combinaciones=opciones.combinaciones().stream().filter(o->autorizadas.contains(o.sucursal())).toList();
+        var puntos=opciones.puntos().stream().filter(p->autorizadas.contains(p.sucursal())).toList();
+        var retiros=opciones.destinosRetiro().stream().filter(s->autorizadas.contains(s.codigoPublico())).toList();
+        var modalidades=opciones.modalidades().stream().filter(m->switch(m){
+            case RETIRO_SUCURSAL -> !retiros.isEmpty();
+            case RETIRO_PUNTO_ENTREGA -> !puntos.isEmpty();
+            case ENVIO_DOMICILIO -> opciones.casaMatriz()!=null&&autorizadas.contains(opciones.casaMatriz().codigoPublico());
+        }).toList();
+        boolean disponible=!modalidades.isEmpty()&&!combinaciones.isEmpty();
+        return new CotizacionService.Opciones(disponible,disponible?opciones.mensaje():"Tu cuenta no tiene una sucursal habilitada para cotizar este pedido.",
+            opciones.configuracion(),opciones.revisionComercial(),sucursales,combinaciones,opciones.formatos(),
+            opciones.papeles(),opciones.servicios(),modalidades,puntos,opciones.medios(),opciones.casaMatriz(),retiros);
+    }
+    private Set<UUID> sucursalesAutorizadas(String correo){
+        var ids=new HashSet<UUID>();
+        organizacion.contexto(correo).sucursales().forEach(s->ids.add(s.codigoPublico()));
+        return ids;
     }
     @Transactional public Vista consultar(UUID codigo,String correo){return vista(store.datos(codigo,correo,false),correo);}
     private List<Entrada> entradas(String value){return Arrays.asList(store.mapper().readValue(value,Entrada[].class));}
@@ -72,7 +92,8 @@ public class PreparacionClienteService {
         store.bloquear();var d=store.datos(codigo,correo,false);String previo=store.previo(d,in.operacion(),"COTIZAR",in);if(previo!=null){UUID previa=UUID.fromString(store.mapper().readTree(previo).get("cotizacion").asString());if(!Objects.equals(previa,d.cotizacion())||d.presupuesto()==null||d.preferencias()==null)throw conflicto("Esa cotización fue sustituida o el trabajo cambió. Recuperá el resumen actual.");return checkout(d,correo,previa);}editable(d);store.version(d,in.version());
         if(d.presupuesto()==null)throw conflicto("Revisá primero el presupuesto del trabajo.");
         var budget=store.mapper().readValue(d.presupuesto(),CotizacionService.Presupuesto.class);var pref=in.preferencias();var contexto=operativa.leer();boolean mostrador=d.sucursalMostrador()!=null;
-        UUID origen=mostrador?d.sucursalMostrador():origenProductivo(pref,contexto,budget);
+        Set<UUID> autorizadas=d.operador()==null?null:sucursalesAutorizadas(correo);
+        UUID origen=mostrador?d.sucursalMostrador():origenProductivo(pref,contexto,budget,autorizadas);
         if(!mostrador&&d.operador()!=null)organizacion.sucursalAutorizada(correo,origen);
         if(mostrador&&(pref.modalidad()!=Modalidad.RETIRO_SUCURSAL||!origen.equals(pref.destinoRetiro())||pref.punto()!=null||pref.direccion()!=null))
             throw error(HttpStatus.BAD_REQUEST,"El invitado retira el pedido en la sucursal que lo atiende.");
@@ -87,7 +108,7 @@ public class PreparacionClienteService {
         }
         jdbc.update("UPDATE lamontana.preparacion_cliente SET preferencias=?::jsonb,id_ultima_cotizacion=(SELECT id_cotizacion FROM lamontana.cotizacion WHERE codigo_publico=?),version=version+1,actualizada_en=clock_timestamp() WHERE id_preparacion=?",store.mapper().writeValueAsString(pref),q.codigoPublico(),d.id());store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(store.datos(codigo,correo,true),correo,q.codigoPublico());
     }
-    private UUID origenProductivo(Preferencias pref,OfertaOperativaService.Contexto contexto,CotizacionService.Presupuesto presupuesto){
+    private UUID origenProductivo(Preferencias pref,OfertaOperativaService.Contexto contexto,CotizacionService.Presupuesto presupuesto,Set<UUID> autorizadas){
         if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL){
             if(pref.destinoRetiro()==null)throw error(HttpStatus.BAD_REQUEST,"Elegí la sucursal de retiro.");
             return contexto.sucursales().stream().filter(s->s.codigoPublico().equals(pref.destinoRetiro())).findFirst()
@@ -95,9 +116,12 @@ public class PreparacionClienteService {
         }
         if(pref.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){
             if(pref.punto()==null)throw error(HttpStatus.BAD_REQUEST,"Elegí el punto de entrega.");
-            return cotizaciones.opcionesPreparada(null).puntos().stream().filter(p->p.codigoPublico().equals(pref.punto())&&puedeFabricar(contexto,p.sucursal(),presupuesto))
-                .min(Comparator.comparingInt(CotizacionService.Punto::prioridad).thenComparing(CotizacionService.Punto::sucursal))
-                .orElseThrow(()->conflicto("El punto no tiene una sucursal priorizada con impresoras compatibles para este trabajo.")).sucursal();
+            return contexto.puntos().stream().filter(p->p.punto().equals(pref.punto()))
+                .filter(p->autorizadas==null||autorizadas.contains(p.sucursal()))
+                .filter(p->puedeFabricar(contexto,p.sucursal(),presupuesto))
+                .min(Comparator.comparingInt(EntregaConfiguracionService.PuntoDisponible::prioridad)
+                    .thenComparing(EntregaConfiguracionService.PuntoDisponible::sucursal))
+                .orElseThrow(()->conflicto("El punto no tiene una ruta autorizada con impresoras compatibles para este trabajo.")).sucursal();
         }
         return cotizaciones.matriz(contexto);
     }

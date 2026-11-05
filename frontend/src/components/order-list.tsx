@@ -34,7 +34,7 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
  const[customerView,setCustomerView]=useState('CURSO');
  const[state,setState]=useState(initialState),[sort,setSort]=useState(internal?'MOVIMIENTO_DESC':'CONFIRMADO_DESC');
  const[data,setData]=useState<OrderList|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- const[dispatchFilter,setDispatchFilter]=useState<DispatchFilter>(globalAdmin?'PREPARAR_ENVIO':'TODOS');
+ const[dispatchFilter,setDispatchFilter]=useState<DispatchFilter>('PREPARAR_ENVIO');
  const[selected,setSelected]=useState<string[]>([]),[open,setOpen]=useState(false),[saving,setSaving]=useState(false),[uncertain,setUncertain]=useState(false),[groupError,setGroupError]=useState('');
  const[riders,setRiders]=useState<Rider[]>([]),[ridersBusy,setRidersBusy]=useState(false),[selectedRider,setSelectedRider]=useState('');
  const command=useRef<string|null>(null),locked=busy||saving||uncertain;
@@ -76,7 +76,7 @@ export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch
   }catch(e){const unknown=!(e instanceof MutationError)||e.uncertain;setUncertain(unknown);setGroupError(unknown?'No pudimos confirmar la respuesta. Recuperá el mismo intento para comprobar el grupo sin duplicarlo.':e.message);if(!unknown)command.current=null;}
   finally{running.current=false;setSaving(false);}
  }
- return <section className="client-card order-operations-list">
+ return <section id={internal?"despachos":undefined} className="client-card order-operations-list">
   <h2>{globalAdmin?'Todos los pedidos de la imprenta':branch?'Pedidos de esta sucursal':'Mis pedidos'}</h2>
   <p>{internal?'Consultá qué necesita cada pedido y su último movimiento. Los despachos conjuntos están en Entregas pendientes.':'Pedidos confirmados con sus archivos y reserva.'}</p>
   {busy&&<p role="status">Consultando pedidos…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}{message&&<p role="status" className="client-success">{message}</p>}

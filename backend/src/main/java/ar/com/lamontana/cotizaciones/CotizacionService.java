@@ -135,17 +135,17 @@ public class CotizacionService {
     }
 
     @Transactional
-    public Detalle crear(Crear in,String correo){long cliente=cliente(correo);return crear(in,cliente,cliente,null,null);}
-    @Transactional public Detalle crearCorreccion(Crear in,String correo,UUID correccion){long cliente=cliente(correo);return crear(in,cliente,cliente,correccion,null);}
-    Detalle crearPreparada(Crear in,PreparacionClienteStore.Datos d){return crear(in,d.usuario(),d.actor(),null,d.preparacionInterna());}
-    private Detalle crear(Crear in,long propietario,long actor,UUID correccion,Long preparacionInterna){
+    public Detalle crear(Crear in,String correo){long cliente=cliente(correo);return crear(in,cliente,cliente,null,null,false);}
+    @Transactional public Detalle crearCorreccion(Crear in,String correo,UUID correccion){long cliente=cliente(correo);return crear(in,cliente,cliente,correccion,null,false);}
+    Detalle crearPreparada(Crear in,PreparacionClienteStore.Datos d){return crear(in,d.usuario(),d.actor(),null,d.preparacionInterna(),true);}
+    private Detalle crear(Crear in,long propietario,long actor,UUID correccion,Long preparacionInterna,boolean preparada){
         bloquear();String hash=huella(correccion==null?in:List.of(in,correccion));
         var anterior=reintento(in.operacion(),"COTIZAR",hash,propietario,actor,preparacionInterna);if(anterior!=null)return anterior;
         catalogo.reconciliarProgramaciones();var c=operativa.leer();var b=c.configuracion();
         if(b==null||c.catalogo().actual()==null)throw conflicto("La imprenta todavía no está preparada para cotizar.");
         if(!b.codigoPublico().equals(in.configuracion())||!c.catalogo().actual().codigoPublico().equals(in.revisionComercial()))throw conflicto("Cambiaron las opciones o tarifas. Actualizalas antes de solicitar la cotización.");
         var sucursal=c.sucursales().stream().filter(s->s.codigoPublico().equals(in.sucursal())).findFirst().orElseThrow(()->conflicto("La sucursal ya no está disponible para cotizar."));
-        if(in.origenGlobal())exigir((preparacionInterna!=null||matriz(c).equals(in.sucursal()))&&(in.modalidad()!=Modalidad.RETIRO_SUCURSAL||in.destinoRetiro()!=null),"El origen productivo no corresponde a esta solicitud; actualizá la entrega.");
+        if(in.origenGlobal())exigir((preparada||matriz(c).equals(in.sucursal()))&&(in.modalidad()!=Modalidad.RETIRO_SUCURSAL||in.destinoRetiro()!=null),"El origen productivo no corresponde a esta solicitud; actualizá la entrega.");
         exigir(b.pagos().medios().contains(in.medioPago()),"El medio de pago no está habilitado.");
         exigir((in.modalidad()==Modalidad.ENVIO_DOMICILIO)==(in.direccion()!=null),"Completá la dirección sólo para envío a domicilio.");
         Long solicitud=null,baseCorreccion=null;
@@ -160,7 +160,7 @@ public class CotizacionService {
             if(correccion==null&&enlazada)throw conflicto("Esta oferta pertenece a una corrección. Solicitá su sucesora desde el pedido.");
             if(vieja.detalle().reemplazadaPor()!=null||vieja.detalle().estado().equals("CONFIRMADA")&&(baseCorreccion==null||vieja.id()!=baseCorreccion))throw conflicto("La cotización ya tiene un pedido o una oferta sucesora. Abrí el resultado guardado.");
             if(solicitud!=null&&vieja.id()!=baseCorreccion&&!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.cotizacion_correccion WHERE id_cotizacion=? AND id_solicitud_correccion=?)",Boolean.class,vieja.id(),solicitud))throw conflicto("La cotización anterior no pertenece a esta corrección.");reemplazada=vieja.id();}
-        var trabajo=calcularItems(in.items(),c,preparacionInterna!=null?in.sucursal():!in.origenGlobal()?in.sucursal():null);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
+        var trabajo=calcularItems(in.items(),c,preparada||!in.origenGlobal()?in.sucursal():null);var items=trabajo.items();BigDecimal subtotal=trabajo.subtotal();int carillas=trabajo.carillas(),minutos=trabajo.minutos();
         Instant ahora=ahora();var temporal=operativa.calcularEntrega(c,new SimularEntrega(b.version(),in.origenGlobal()&&in.modalidad()==Modalidad.RETIRO_SUCURSAL?in.destinoRetiro():in.sucursal(),in.modalidad(),ahora,in.punto(),in.direccion()==null?null:in.direccion().territorio()),minutos,preparacionInterna!=null&&!in.origenGlobal());
         String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
         BigDecimal total=subtotal.add(new BigDecimal(costo));precios.limite(total);

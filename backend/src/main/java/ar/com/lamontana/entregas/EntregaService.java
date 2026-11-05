@@ -139,7 +139,11 @@ public class EntregaService {
   var entrega=jdbc.query("SELECT e.codigo_publico,e.receptor_nombre,h.actor_nombre,e.fecha_entrega,e.nota FROM lamontana.entrega e JOIN lamontana.historial_estado_pedido h ON h.id_evento=e.id_evento_pedido WHERE e.id_pedido=?",(r,n)->new Constancia(r.getObject(1,UUID.class),r.getString(2),r.getString(3),r.getTimestamp(4).toInstant(),interno?r.getString(5):null),p.numero());
   var cierre=jdbc.query("SELECT c.fecha_cierre,h.actor_nombre,h.motivo,c.total,c.aplicado FROM lamontana.cierre_pedido c JOIN lamontana.historial_estado_pedido h ON h.id_evento=c.id_evento_pedido WHERE c.id_pedido=?",(r,n)->new Cierre(r.getTimestamp(1).toInstant(),r.getString(2),interno?r.getString(3):null,r.getBigDecimal(4).toPlainString(),r.getBigDecimal(5).toPlainString()),p.numero());
   var history=jdbc.query("SELECT h.accion,m.estado_origen,m.estado_destino,h.actor_nombre,h.motivo,h.mensaje_cliente,h.fecha FROM lamontana.movimiento_entrega m JOIN lamontana.historial_estado_pedido h ON h.id_evento=m.id_evento_pedido WHERE m.id_pedido=? ORDER BY m.id_movimiento_entrega",(r,n)->new Evento(r.getString(1),r.getString(2),r.getString(3),interno?r.getString(4):"La imprenta",interno?r.getString(5):r.getString(6),r.getTimestamp(7).toInstant()),p.numero());
-  var options=Arrays.stream(Accion.values()).map(op->{String msg=op==Accion.SALIR_REPARTO?"Asigná un rider desde Entregas pendientes, incluso si sale un solo pedido.":bloqueoMovimiento(p,estado,op,gestiona);return new Opcion(op,msg==null,msg);}).toList();
+  var options=Arrays.stream(Accion.values()).map(op->{
+   String motivo=bloqueoMovimiento(p,estado,op,gestiona);
+   if(motivo==null)motivo=bloqueoDespacho(p,op,correo,a);
+   return new Opcion(op,motivo==null,motivo);
+  }).toList();
   var cliente=jdbc.queryForObject("SELECT d.nombre,d.correo FROM lamontana.pedido_actual p JOIN lamontana.destinatario_cotizacion d USING(id_cotizacion) WHERE p.id_pedido=?",(r,n)->new String[]{r.getString(1),r.getString(2)},p.numero());
   String bloqueoPunto=interno&&p.estado().equals("LISTO_PARA_ENTREGA")?bloqueoResponsablePunto(p,correo):null;
   var b=new ArrayList<>(bloqueosEntrega(p));
@@ -165,6 +169,7 @@ public class EntregaService {
  }
  private Vista registrarMovimiento(UUID pedido,Movimiento in,String correo,boolean rider,UUID retiro){
   bloquear();var p=detalleEntrega(pedido,correo,rider,retiro);var a=actor(correo);String hash=huella(List.of(pedido,"MOVIMIENTO",in));
+  exigirDespacho(p,in.accion(),correo,a);
   if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true,retiro);version(p,in.version());String motivo=nota(in.motivo(),switch(in.accion()){case PREPARAR_ENVIO->"Pedido preparado para despacho.";case SALIR_REPARTO->"Salida al destino acordado confirmada.";case LLEGAR_PUNTO->"Llegada al destino de retiro confirmada.";case CLIENTE_AUSENTE->"Intento de entrega a domicilio sin receptor.";case REINTENTAR_ENTREGA->"Nuevo intento de entrega a domicilio iniciado.";});confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
   String destino=switch(in.accion()){case PREPARAR_ENVIO->"PREPARADO";case SALIR_REPARTO->"EN_VIAJE";case LLEGAR_PUNTO->"DISPONIBLE_PUNTO";case CLIENTE_AUSENTE->"CLIENTE_AUSENTE";case REINTENTAR_ENTREGA->"EN_VIAJE";};String mensaje=switch(in.accion()){case PREPARAR_ENVIO->"El pedido está preparado para salir hacia el destino acordado.";case SALIR_REPARTO->"El pedido salió de la sucursal y está en viaje hacia el destino acordado.";case LLEGAR_PUNTO->"El pedido llegó al destino de retiro acordado. Consultá su franja de atención para retirarlo. Todavía no fue entregado al cliente.";case CLIENTE_AUSENTE->"No encontramos a una persona para recibir el pedido en el domicilio. La entrega sigue pendiente; coordiná un nuevo intento con la imprenta. Tu código se conserva.";case REINTENTAR_ENTREGA->"Comenzó un nuevo intento de entrega a domicilio. Conservá tu código para recibir el pedido.";};Instant ahora=clock.instant();
   long event=evento(p,a,in.operacion(),hash,in.accion().name(),p.estado(),motivo,mensaje,ahora);
@@ -213,6 +218,7 @@ public class EntregaService {
   Repartidor rider=in.repartidor()==null?null:repartidorActivo(in.repartidor());
   for(var item:ordered){
    var p=pedidos.detalle(item.pedido(),correo,true);version(p,item.version());
+   exigirDespacho(p,in.accion(),correo,a);
    if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.calidad_pedido_aprobada(?)",Boolean.class,p.numero())))throw conflicto("PED-"+p.numero()+": falta aprobar la calidad de todos sus trabajos. Actualizá la lista.");
    String blocked=bloqueoMovimiento(p,logistica(p),in.accion(),true);if(blocked!=null)throw conflicto("PED-"+p.numero()+": "+blocked+" No se modificó ningún pedido del grupo.");
   }
@@ -226,6 +232,18 @@ public class EntregaService {
   if(routeId!=null)jdbc.update("INSERT INTO lamontana.evento_recorrido_reparto(id_recorrido,id_actor,actor_nombre,accion,id_repartidor,fecha) VALUES (?,?,?,'ASIGNAR_E_INICIAR',(SELECT id_usuario FROM lamontana.usuario WHERE codigo_publico=?),?)",routeId,a.id(),a.nombre(),rider.codigoPublico(),Timestamp.from(now));
   jdbc.update("INSERT INTO lamontana.lote_movimiento_entrega(id_operacion,id_actor,actor_nombre,huella,accion,pedidos,fecha,id_recorrido) VALUES (?,?,?,?,?,?::jsonb,?,?)",in.operacion(),a.id(),a.nombre(),hash,in.accion().name(),json.writeValueAsString(ordered),Timestamp.from(now),routeId);
   return new ResultadoLote(in.operacion(),in.accion(),ordered.size(),now,routeCode,rider);
+ }
+ private void exigirDespacho(PedidoService.Detalle pedido,Accion accion,String correo,Actor actor){
+  String motivo=bloqueoDespacho(pedido,accion,correo,actor);
+  if(motivo!=null)throw error(HttpStatus.FORBIDDEN,motivo);
+ }
+ private String bloqueoDespacho(PedidoService.Detalle pedido,Accion accion,String correo,Actor actor){
+  if(accion!=Accion.PREPARAR_ENVIO&&accion!=Accion.SALIR_REPARTO)return null;
+  if(actor.rol().equals("ADMIN_ADMIN"))return null;
+  if(CuentaPuntoAcceso.punto(jdbc,correo)!=null)return "El despacho se registra desde la sucursal de origen.";
+  if(pedido.reserva().modalidad().name().equals("RETIRO_PUNTO_ENTREGA")&&!pedidos.rutaDespachoHabilitada(pedido.numero()))
+   return "El punto de entrega no está asignado a la sucursal de origen de este pedido.";
+  return null;
  }
  private Repartidor repartidorActivo(UUID codigo){return jdbc.query("SELECT u.codigo_publico,concat_ws(' ',u.nombre,u.apellido),u.correo FROM lamontana.cuenta_repartidor cr JOIN lamontana.usuario u USING(id_usuario) JOIN lamontana.rol r USING(id_rol) WHERE u.codigo_publico=? AND cr.activa AND u.estado='ACTIVO' AND r.activo AND r.codigo IN ('EMPLEADO','ADMIN_ADMIN')",(r,n)->new Repartidor(r.getObject(1,UUID.class),r.getString(2),r.getString(3)),codigo).stream().findFirst().orElseThrow(()->conflicto("El rider elegido ya no está activo. Actualizá la lista."));}
  @Transactional public Validacion validar(UUID pedido,Validar in,String correo){return validar(pedido,in,correo,huella(List.of(pedido,"VALIDAR",in)),false,null);}

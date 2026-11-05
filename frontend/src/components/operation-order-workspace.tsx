@@ -41,7 +41,7 @@ export function OperationOrderWorkspace({order,permissions,financial,globalAdmin
  },[order.codigoPublico]);
  useEffect(()=>{if(!requested)return;const frame=requestAnimationFrame(()=>{heading.current?.scrollIntoView({block:'start'});heading.current?.focus({preventScroll:true});});return()=>cancelAnimationFrame(frame);},[requested]);
  function protect(event:MouseEvent){const anchor=event.target instanceof Element?event.target.closest<HTMLAnchorElement>('a[href]'):null;if(blocked&&anchor?.getAttribute('href')?.startsWith('#')){event.preventDefault();setNotice('Terminá o recuperá la operación pendiente antes de cambiar de tarea.');}}
- const back=globalAdmin?'/administracion/pedidos':`/operacion/sucursales/${order.oferta.sucursal.codigoPublico}`;
+ const back=globalAdmin?'/administracion/pedidos':`/operacion/sucursales/${order.reserva.origen}`;
  const progress=productionWorkProgress(order,production);
  const defaultWork=progress.rows.find(r=>r.status.code!=='approved')?.id;
  const work=order.oferta.items.find(i=>i.codigoPublico===selected)??order.oferta.items.find(i=>i.codigoPublico===defaultWork)??order.oferta.items[0],file=work?order.archivos.find(f=>f.item===work.codigoPublico):undefined;

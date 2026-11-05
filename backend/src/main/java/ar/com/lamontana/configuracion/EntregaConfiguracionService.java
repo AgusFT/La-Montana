@@ -201,7 +201,7 @@ public class EntregaConfiguracionService {
         PuntoDisponible opcion=null;PuntosRepositorio.Punto punto=null;
         if(input.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){
             punto=e.puntos().stream().filter(p->p.codigoPublico().equals(input.punto())).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.BAD_REQUEST,"El punto no pertenece a esta configuración."));
-            opcion=opciones(e,sucursales).stream().filter(p->p.punto().equals(input.punto())&&p.sucursal().equals(origen)).findFirst().orElseThrow(()->conflicto("El punto ya no está disponible desde la casa matriz. Revisá su disponibilidad temporal, relación habilitada y franjas con cupo positivo."));
+            opcion=opciones(e,sucursales).stream().filter(p->p.punto().equals(input.punto())&&p.sucursal().equals(origen)).findFirst().orElseThrow(()->conflicto("El punto no está disponible desde esta sucursal. Revisá la ruta habilitada y las franjas con cupo."));
         }
         var resultado=evaluador.evaluar(b.version(),horario,e.preparacionHoras(),e.trasladoHoras(),input.modalidad()==Modalidad.RETIRO_SUCURSAL&&traslado?Modalidad.RETIRO_PUNTO_ENTREGA:input.modalidad(),input.recibidoEn(),minimoServiciosMinutos);
         if(input.modalidad()==Modalidad.ENVIO_DOMICILIO){

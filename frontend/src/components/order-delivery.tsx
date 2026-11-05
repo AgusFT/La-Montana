@@ -43,11 +43,16 @@ import {secureMutation,MutationError} from "@/lib/secure-mutation";
 
 type Movement="PREPARAR_ENVIO"|"SALIR_REPARTO"|"LLEGAR_PUNTO"|"CLIENTE_AUSENTE"|"REINTENTAR_ENTREGA";
 type Action=Movement|"VALIDAR"|"ENTREGAR"|"COBRAR_ENTREGAR"|"CERRAR";
+type Rider={codigoPublico:string;nombre:string};
+function isRiders(value:unknown):value is Rider[]{
+ return Array.isArray(value)&&value.every(r=>r&&typeof r.codigoPublico==="string"&&typeof r.nombre==="string");
+}
 export type Delivery={version:number;estadoPedido:string;estadoLogistico:string;cliente:string;correo:string|null;puedeGestionar:boolean;puedeCerrar:boolean;puedeEmitirCodigo:boolean;acciones:{accion:Movement;habilitada:boolean;motivo:string|null}[];codigo:{codigoPublico:string;estado:string;emitidoEn:string;venceEn:string;intentosRestantes:number;puedeRenovarEn:string;texto?:string|null}|null;validacion:{codigoPublico:string;fecha:string;validoHasta:string}|null;entrega:{codigoPublico:string;receptor:string;responsable:string;fecha:string;motivo:string|null}|null;cierre:{fecha:string;responsable:string;motivo:string|null;total:string;aplicado:string}|null;aplicado:string;saldo:string;bloqueosEntrega:string[];bloqueosCierre:string[];cobroEfectivo?:{importe:string;habilitado:boolean;puedeCerrar:boolean;bloqueo:string|null}|null;reciboEfectivo?:{pago:string;importe:string;referencia:string;responsable:string;fecha:string}|null;historial:{accion:Movement;estadoOrigen:string;estadoDestino:string;actor:string;motivo:string;fecha:string}[]};
 const labels:Record<Action,string>={PREPARAR_ENVIO:"Preparar para despacho",SALIR_REPARTO:"Despachar · poner en viaje",LLEGAR_PUNTO:"Ya llegó al destino",VALIDAR:"Validar código de entrega",ENTREGAR:"Ingresar código y entregar",COBRAR_ENTREGAR:"Cobrar efectivo y entregar",CLIENTE_AUSENTE:"El cliente no está",REINTENTAR_ENTREGA:"Iniciar nuevo intento",CERRAR:"Cerrar pedido"};
 export function isDelivery(v:unknown):v is Delivery{if(!v||typeof v!=="object")return false;const d=v as Delivery;return Number.isSafeInteger(d.version)&&typeof d.estadoPedido==="string"&&typeof d.estadoLogistico==="string"&&typeof d.cliente==="string"&&typeof d.saldo==="string"&&typeof d.aplicado==="string"&&typeof d.puedeGestionar==="boolean"&&typeof d.puedeCerrar==="boolean"&&typeof d.puedeEmitirCodigo==="boolean"&&Array.isArray(d.acciones)&&Array.isArray(d.historial)&&Array.isArray(d.bloqueosEntrega)&&Array.isArray(d.bloqueosCierre);}
 export function OrderDelivery({order,internal,financial,onSaved,compact=false,workspace=false,dispatchHref,onSnapshot,onLockChange,refresh=0}:{order:Order;internal:boolean;financial:boolean;onSaved:(view?:Delivery)=>void;compact?:boolean;workspace?:boolean;dispatchHref?:string;refresh?:number;onSnapshot?:(value:Delivery|null)=>void;onLockChange?:(locked:boolean)=>void}){
  const[data,setData]=useState<Delivery|null>(null),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState(""),[uncertain,setUncertain]=useState(false),[action,setAction]=useState<Action|null>(null),[deliveryCode,setDeliveryCode]=useState(""),[secret,setSecret]=useState<{code:string;id:string}|null>(null),[now,setNow]=useState(Date.now());
+ const[riders,setRiders]=useState<Rider[]>([]),[loadingRiders,setLoadingRiders]=useState(false);
  const running=useRef(false),pending=useRef<{path:string;body:string;kind:Action|"CODIGO"}|null>(null),form=useRef<HTMLFormElement>(null),dialog=useRef<HTMLDialogElement>(null);
  const base=`/api/${internal?"operacion":"cliente"}/pedidos/${order.codigoPublico}/entrega`,locked=busy||loading||uncertain;
  async function load(){setLoading(true);setError("");try{setData(await quoteRead(base,isDelivery));}catch(e){setData(null);setError(e instanceof Error?e.message:"No pudimos consultar la entrega.");}finally{setLoading(false);}}
@@ -62,23 +67,44 @@ export function OrderDelivery({order,internal,financial,onSaved,compact=false,wo
  const guest=internal&&!!order.nombreInvitado;
  const canValidate=ready&&experience.canReceive;
  const canGenerate=ready&&(!data.codigo||Date.parse(data.codigo.puedeRenovarEn)<=now);
- function choose(a:Action){setError("");setMessage("");setDeliveryCode("");setAction(a);}
+ async function choose(a:Action){
+  setError("");setMessage("");setDeliveryCode("");setAction(a);
+  if(a!=="SALIR_REPARTO")return;
+  setRiders([]);setLoadingRiders(true);
+  try{setRiders(await quoteRead("/api/operacion/repartidores",isRiders));}
+  catch(e){setError(e instanceof Error?e.message:"No pudimos consultar los riders.");}
+  finally{setLoadingRiders(false);}
+ }
  async function save(kind:Action|"CODIGO",recover=false){
   if(running.current||!recover&&locked)return;
-  if(!recover){if(!data)return;const input:Record<string,unknown>={operacion:crypto.randomUUID(),version:data.version};let path="codigo";
+  if(!recover){if(!data)return;let input:Record<string,unknown>={operacion:crypto.randomUUID(),version:data.version};let path=`${base}/codigo`;
    if(kind!=="CODIGO"){
     if(!form.current?.reportValidity())return;const f=new FormData(form.current);
-    if(kind==="VALIDAR"){input.codigo=String(f.get("codigo")).trim().toUpperCase();path="validar";}
+    if(kind==="SALIR_REPARTO"){
+     const repartidor=f.get("repartidor");
+     if(typeof repartidor!=="string"||!repartidor)return;
+     path="/api/operacion/entregas/lotes";
+     input={operacion:input.operacion,accion:kind,pedidos:[{pedido:order.codigoPublico,version:data.version}],repartidor};
+    }
+    else if(kind==="VALIDAR"){input.codigo=String(f.get("codigo")).trim().toUpperCase();path=`${base}/validar`;}
     else{input.motivo=f.get("motivo");input.confirmado=true;
-     if(kind==="ENTREGAR"||kind==="COBRAR_ENTREGAR"){input.codigo=guest?null:String(f.get('codigo')).trim().toUpperCase();input.receptor=f.get("receptor");path=kind==="COBRAR_ENTREGAR"?"cobrar-efectivo":"recibir";if(kind==="COBRAR_ENTREGAR"){input.importe=data.cobroEfectivo?.importe;input.cerrar=data.cobroEfectivo?.puedeCerrar??false;}}
-     else if(kind==="CERRAR")path="cerrar";else{input.accion=kind;path="movimientos";}
+     if(kind==="ENTREGAR"||kind==="COBRAR_ENTREGAR"){input.codigo=guest?null:String(f.get('codigo')).trim().toUpperCase();input.receptor=f.get("receptor");path=`${base}/${kind==="COBRAR_ENTREGAR"?"cobrar-efectivo":"recibir"}`;if(kind==="COBRAR_ENTREGAR"){input.importe=data.cobroEfectivo?.importe;input.cerrar=data.cobroEfectivo?.puedeCerrar??false;}}
+     else if(kind==="CERRAR")path=`${base}/cerrar`;else{input.accion=kind;path=`${base}/movimientos`;}
     }
    }
-   pending.current={path:`${base}/${path}`,body:JSON.stringify(input),kind};
+   pending.current={path,body:JSON.stringify(input),kind};
   }
   const command=pending.current;if(!command)return;running.current=true;setBusy(true);setError("");
   try{
    const r=await secureMutation(command.path,command.body,"application/json"),result:unknown=await r.json();
+   if(command.kind==="SALIR_REPARTO"){
+    if(!result||typeof result!=="object"||!("recorrido" in result)||typeof result.recorrido!=="string")
+     throw new Error("No pudimos comprobar el despacho guardado.");
+    const vista=await quoteRead(base,isDelivery);
+    setData(vista);pending.current=null;setUncertain(false);setAction(null);
+    setMessage("El pedido quedó en viaje y asignado al rider.");onSaved(vista);
+    return;
+   }
    const envelope=result as {vista?:unknown;codigo?:unknown;aviso?:unknown;aceptado?:unknown;mensaje?:unknown};
    const v=command.kind==="CODIGO"||command.kind==="VALIDAR"||(command.kind==='ENTREGAR'||command.kind==='COBRAR_ENTREGAR')?envelope.vista:result;
    if(!isDelivery(v)||(command.kind==="VALIDAR"||command.kind==='ENTREGAR'||command.kind==='COBRAR_ENTREGAR')&&typeof envelope.aceptado!=="boolean")throw new Error("No pudimos comprobar el resultado guardado.");
@@ -116,7 +142,8 @@ export function OrderDelivery({order,internal,financial,onSaved,compact=false,wo
     <section className="delivery-destination"><span>{modeLabels[order.reserva.modalidad]}</span><h3>{order.reserva.nombre}</h3>{experience.home&&order.contacto&&<p>Recibe: <strong>{order.contacto.receptor}</strong> · <a href={`tel:${order.contacto.telefono}`}>{order.contacto.telefono}</a></p>}</section>
     {!data.puedeGestionar&&<p className="client-warning">Tu cuenta no tiene permiso para gestionar entregas.</p>}
     {experience.absent&&<div className="client-warning"><strong>La entrega sigue pendiente</strong><p>No se entregó el pedido ni se consumió el código. Coordiná el próximo intento con el cliente. Este registro no cambia la dirección ni la franja acordada.</p></div>}
-    {data.puedeGestionar&&!localPickup&&data.estadoLogistico==="PREPARADO"&&dispatchHref&&<section className="delivery-code"><h3>Asignar rider y despachar</h3><p>El pedido está preparado. Elegí el rider que lo retira y los pedidos que salen juntos.</p><a className="client-button order-approve" href={dispatchHref}>Elegir rider e iniciar reparto</a></section>}
+    {dispatchHref&&data.acciones.some(a=>a.accion==="SALIR_REPARTO"&&a.habilitada)&&<p><a href={dispatchHref}>Despachar junto con otros pedidos</a></p>}
+    {data.puedeGestionar&&!localPickup&&["PENDIENTE_PREPARACION","PREPARADO"].includes(data.estadoLogistico)&&data.acciones.filter(a=>a.accion===(data.estadoLogistico==="PREPARADO"?"SALIR_REPARTO":"PREPARAR_ENVIO")&&!a.habilitada&&a.motivo).map(a=><p key={a.accion} className="client-warning">{a.motivo}</p>)}
     <div className="client-actions delivery-primary-actions">{data.acciones.filter(a=>a.habilitada&&!localPickup&&a.accion!=="CLIENTE_AUSENTE"&&(a.accion!=="LLEGAR_PUNTO"||order.reserva.modalidad==="RETIRO_PUNTO_ENTREGA"||order.retiroConTraslado)).map(a=><button key={a.accion} className="client-button order-approve" disabled={locked||!a.habilitada} title={a.motivo??undefined} onClick={()=>choose(a.accion)}>{labels[a.accion]}</button>)}</div>
     {(canValidate||!experience.home)&&<section className={`delivery-code delivery-receive-card${localPickup&&canValidate?" local-pickup-ready":""}`}><div><h3>{experience.receiveTitle}</h3><p>{guest?"Verificá el nombre del invitado y el número de pedido antes de entregar.":experience.receiveDescription}</p></div>
      {!experience.point&&data.cobroEfectivo?<div className="delivery-cash-action"><p><strong>Falta cobrar {money(data.cobroEfectivo.importe)} en efectivo</strong></p><p>{guest?"Registrá en una sola confirmación el efectivo recibido y la entrega en mostrador.":"Registrá el efectivo recibido y la entrega con el código en una sola confirmación."}</p><button className="client-button order-approve delivery-enter-code" disabled={locked||!data.cobroEfectivo.habilitado} onClick={()=>choose("COBRAR_ENTREGAR")}>Cobrar {money(data.cobroEfectivo.importe)} y entregar</button>{data.cobroEfectivo.bloqueo&&<p className="client-warning">{data.cobroEfectivo.bloqueo}</p>}{data.cobroEfectivo.puedeCerrar&&<p className="client-muted">También quedará cerrado, con su comprobante interno.</p>}</div>:data.puedeGestionar&&canValidate&&<button className="client-button order-approve delivery-enter-code" disabled={locked||data.bloqueosEntrega.length>0} onClick={()=>choose("ENTREGAR")}><span aria-hidden="true">✓</span> {guest?"Confirmar entrega en mostrador":"Ingresar código y entregar"}</button>}
@@ -137,13 +164,13 @@ export function OrderDelivery({order,internal,financial,onSaved,compact=false,wo
      {(action==="ENTREGAR"||action==="COBRAR_ENTREGAR")&&<><div className="delivery-code-intro"><strong>{experience.home?'Entrega a domicilio':'Entrega del pedido completo'}</strong><p>{order.reserva.nombre}</p><p>{guest?`Confirmá la entrega a ${order.nombreInvitado} (invitado).`:"Pedile el código a la persona que recibe. Puede traerlo anotado; no necesita el celular."}</p></div>{action==='COBRAR_ENTREGAR'&&data.cobroEfectivo&&<div className="delivery-cash-amount"><span>Efectivo recibido</span><strong>{money(data.cobroEfectivo.importe)}</strong><p>Es el saldo completo. Confirmá después de recibir este importe. Se guardan el cobro y su aplicación al pedido.</p></div>}{!guest&&<><label className="delivery-code-entry">Código de entrega<input name="codigo" autoFocus autoComplete="off" autoCapitalize="characters" spellCheck={false} required maxLength={32} minLength={8} pattern="[A-HJ-NP-Za-hj-np-z2-9]{8}" placeholder="ABCD2345" value={deliveryCode} onChange={e=>setDeliveryCode(e.target.value.toUpperCase().replace(/[\s-]/g,'').slice(0,8))} aria-describedby="delivery-code-help"/></label><p id="delivery-code-help" className="client-muted">8 letras y números · {action==='COBRAR_ENTREGAR'?data.cobroEfectivo?.puedeCerrar?'Al confirmar se registran el efectivo, la entrega y el cierre.':'Al confirmar se registran el efectivo y la entrega.':'Al confirmar se comprueba el código y se registra la entrega.'}</p></>}</>}
      {action==="CERRAR"&&<p>La entrega está registrada y el total conciliado es {money(data.aplicado)}. El cierre conserva estos hechos y no registra nuevos cobros.</p>}
      {action==="LLEGAR_PUNTO"&&<p>Confirmá la llegada física al punto. El cliente todavía debe retirar su trabajo.</p>}
-     {action==="SALIR_REPARTO"&&<p>Confirmá que el pedido salió hacia el destino acordado. Su estado logístico pasará a En viaje.</p>}
+     {action==="SALIR_REPARTO"&&<><p>Elegí el rider que recibe el pedido en la sucursal. Al confirmar, pasará a En viaje.</p><label>Rider responsable<select name="repartidor" required disabled={loadingRiders||riders.length===0} defaultValue=""><option value="">{loadingRiders?"Consultando riders…":"Elegí un rider activo"}</option>{riders.map(r=><option key={r.codigoPublico} value={r.codigoPublico}>{r.nombre}</option>)}</select></label>{!loadingRiders&&riders.length===0&&!error&&<p className="client-muted">No hay riders activos disponibles.</p>}</>}
      {action==="PREPARAR_ENVIO"&&<p>Confirmá que el pedido completo está preparado para salir al destino acordado.</p>}
      {action==="CLIENTE_AUSENTE"&&<><p><strong>No había nadie para recibir el pedido en el domicilio.</strong></p><p>Se registra el intento sin marcar el pedido como entregado ni consumir su código. Después de coordinar con el cliente, podrás iniciar un nuevo intento.</p></>}
      {action==="REINTENTAR_ENTREGA"&&<p>Confirmá que comenzó el nuevo intento hacia el mismo domicilio. Se conserva el código y todavía no se registra una entrega.</p>}
-     {action!=="ENTREGAR"&&action!=="COBRAR_ENTREGAR"&&<p><strong>Destino:</strong> {order.reserva.nombre}</p>}<details><summary>Agregar datos (opcional)</summary>{(action==="ENTREGAR"||action==="COBRAR_ENTREGAR")&&<label>Nombre de quien recibe<input name="receptor" maxLength={140}/></label>}<label>Observación<textarea name="motivo" maxLength={action==='COBRAR_ENTREGAR'?300:500}/></label></details><p className="client-muted">Al confirmar se guardan tu usuario, la fecha y la hora.</p>
+     {action!=="ENTREGAR"&&action!=="COBRAR_ENTREGAR"&&<p><strong>Destino:</strong> {order.reserva.nombre}</p>}{action!=="SALIR_REPARTO"&&<details><summary>Agregar datos (opcional)</summary>{(action==="ENTREGAR"||action==="COBRAR_ENTREGAR")&&<label>Nombre de quien recibe<input name="receptor" maxLength={140}/></label>}<label>Observación<textarea name="motivo" maxLength={action==='COBRAR_ENTREGAR'?300:500}/></label></details>}<p className="client-muted">Al confirmar se guardan tu usuario, la fecha y la hora.</p>
     </>}
-    <div className="client-actions"><button type="button" className="client-button secondary" onClick={()=>setAction(null)}>Volver</button><button className={`client-button ${action==="VALIDAR"?"":"order-approve"}`}>{busy?"Guardando…":action==='SALIR_REPARTO'?'Confirmar salida':action==='PREPARAR_ENVIO'?'Confirmar preparado':action==='LLEGAR_PUNTO'?'Confirmar llegada':action==='CLIENTE_AUSENTE'?'Registrar intento sin entrega':action==='REINTENTAR_ENTREGA'?'Confirmar nuevo intento':action==='COBRAR_ENTREGAR'?data.cobroEfectivo?.puedeCerrar?'Confirmar cobro, entrega y cierre':'Confirmar cobro y entrega':action==='ENTREGAR'?'Confirmar entrega':action==='CERRAR'?'Cerrar pedido':'Validar código'}</button></div>
+    <div className="client-actions"><button type="button" className="client-button secondary" onClick={()=>setAction(null)}>Volver</button><button disabled={action==="SALIR_REPARTO"&&(loadingRiders||!riders.length)} className={`client-button ${action==="VALIDAR"?"":"order-approve"}`}>{busy?"Guardando…":action==='SALIR_REPARTO'?'Confirmar salida':action==='PREPARAR_ENVIO'?'Confirmar preparado':action==='LLEGAR_PUNTO'?'Confirmar llegada':action==='CLIENTE_AUSENTE'?'Registrar intento sin entrega':action==='REINTENTAR_ENTREGA'?'Confirmar nuevo intento':action==='COBRAR_ENTREGAR'?data.cobroEfectivo?.puedeCerrar?'Confirmar cobro, entrega y cierre':'Confirmar cobro y entrega':action==='ENTREGAR'?'Confirmar entrega':action==='CERRAR'?'Cerrar pedido':'Validar código'}</button></div>
    </fieldset></form>}
   </dialog>
  </section>;
