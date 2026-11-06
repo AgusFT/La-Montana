@@ -29,6 +29,60 @@ class DatosPruebaIntegrationTest {
     private static final JsonMapper JSON=JsonMapper.builder().build();
     private int port;
 
+    @Test void cajaComparteSaldoPorSucursalYAislaMovimientosComprobantesYArqueos() throws Exception {
+        Path files=Files.createTempDirectory("lamontana-caja-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);
+            var admin=login(ADMIN);
+            var encargado=login("sucursal.floresta");
+            var empleado=login("produccion@prueba.local");
+            var punto=login("punto.caballito.retiro");
+            UUID floresta=jdbc.queryForObject("SELECT codigo_publico FROM lamontana.sucursal WHERE codigo='FLORESTA'",UUID.class);
+            UUID medicina=jdbc.queryForObject("SELECT codigo_publico FROM lamontana.sucursal WHERE codigo='MEDICINA'",UUID.class);
+            String base="/api/operacion/sucursales/",caja=base+floresta+"/caja",otra=base+medicina+"/caja";
+            assertThat(get(encargado,"/api/operacion/contexto",200).get("cajaSucursal").asString()).isEqualTo(floresta.toString());
+            get(encargado,otra,403);get(empleado,caja,403);get(punto,caja,403);
+            var inicial=get(encargado,caja,200);
+            assertThat(get(admin,caja,200)).isEqualTo(inicial);
+            String hoy=inicial.get("hoy").asString(),ayer=LocalDate.parse(hoy).minusDays(1).toString();
+            get(encargado,caja+"?desde="+ayer+"&hasta="+ayer,403);
+            get(admin,caja+"?desde="+ayer+"&hasta="+ayer,200);
+            BigDecimal efectivo=new BigDecimal(inicial.get("resumen").get("efectivoActual").asString());
+            UUID op=UUID.randomUUID();
+            byte[] comprobante=Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jP1sAAAAASUVORK5CYII=");
+            var egreso=new ar.com.lamontana.caja.CajaController.NuevoEgreso(op,
+                ar.com.lamontana.caja.CajaService.Tipo.PAGO_PROVEEDOR,ar.com.lamontana.caja.CajaService.Medio.EFECTIVO,
+                "120.50","Proveedor","Resmas",comprobante);
+            sendPoint(encargado,"POST",otra+"/egresos",egreso,403);
+            sendPoint(encargado,"POST",caja+"/egresos",egreso,204);
+            sendPoint(encargado,"POST",caja+"/egresos",egreso,204);
+            var despues=get(admin,caja,200);
+            BigDecimal esperado=efectivo.subtract(new BigDecimal("120.50"));
+            assertThat(new BigDecimal(despues.get("resumen").get("efectivoActual").asString())).isEqualByComparingTo(esperado);
+            assertThat(get(encargado,caja,200)).isEqualTo(despues);
+            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.caja_egreso WHERE id_operacion=?",Long.class,op)).isEqualTo(1);
+            String archivo=caja+"/egresos/"+op+"/comprobante";
+            var descarga=encargado.send(HttpRequest.newBuilder(uri(archivo)).GET().build(),HttpResponse.BodyHandlers.ofByteArray());
+            assertThat(descarga.statusCode()).isEqualTo(200);
+            assertThat(descarga.headers().firstValue("Content-Disposition")).hasValueSatisfying(v->assertThat(v).startsWith("attachment"));
+            assertThat(descarga.body()).isEqualTo(comprobante);
+            get(encargado,otra+"/egresos/"+op+"/comprobante",403);
+            get(admin,otra+"/egresos/"+op+"/comprobante",404);
+            var arqueo=new ar.com.lamontana.caja.CajaController.NuevoArqueo(UUID.randomUUID(),"0",esperado.toPlainString(),"Conteo de prueba");
+            sendPoint(encargado,"POST",caja+"/arqueos",arqueo,204);
+            sendPoint(encargado,"POST",caja+"/arqueos",arqueo,204);
+            assertThat(jdbc.queryForObject("SELECT diferencia FROM lamontana.caja_arqueo WHERE id_operacion=?",BigDecimal.class,arqueo.operacion()))
+                .isEqualByComparingTo(esperado.negate());
+            assertThat(get(admin,caja,200).get("totalArqueos").asInt()).isEqualTo(1);
+            var rendicion=new ar.com.lamontana.caja.CajaController.NuevoEgreso(UUID.randomUUID(),
+                ar.com.lamontana.caja.CajaService.Tipo.RENDICION,ar.com.lamontana.caja.CajaService.Medio.EFECTIVO,
+                "50","Administración","Rendición del día",null);
+            sendPoint(admin,"POST",caja+"/egresos",rendicion,204);
+            assertThat(new BigDecimal(get(encargado,caja,200).get("resumen").get("efectivoActual").asString()))
+                .isEqualByComparingTo(esperado.subtract(new BigDecimal("50")));
+        } finally {limpiar(files);}
+    }
+
     @Test void cuentasDePuntosAislanPedidosRecibenLotesYCobranConHistorialDeSeisMeses()throws Exception{
         Path files=Files.createTempDirectory("lamontana-cuentas-puntos-");
         try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
@@ -470,7 +524,7 @@ class DatosPruebaIntegrationTest {
         return r.body().isBlank()?JSON.nullNode():JSON.readTree(r.body());
     }
     private JsonNode sendPoint(HttpClient c,String method,String path,Object body,int expected)throws Exception{
-        var token=get(c,"/api/auth/csrf",200).get("token").asString();var response=c.send(HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(20)).header("Content-Type","application/json").header("X-CSRF-TOKEN",token).method(method,HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))).build(),HttpResponse.BodyHandlers.ofString());assertThat(response.statusCode()).withFailMessage("%s: esperado %s, recibido %s: %s",path,expected,response.statusCode(),response.body()).isEqualTo(expected);return JSON.readTree(response.body());
+        var token=get(c,"/api/auth/csrf",200).get("token").asString();var response=c.send(HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(20)).header("Content-Type","application/json").header("X-CSRF-TOKEN",token).method(method,HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(body))).build(),HttpResponse.BodyHandlers.ofString());assertThat(response.statusCode()).withFailMessage("%s: esperado %s, recibido %s: %s",path,expected,response.statusCode(),response.body()).isEqualTo(expected);return response.body().isBlank()?JSON.nullNode():JSON.readTree(response.body());
     }
     private HttpClient login(String correo) throws Exception {
         var c=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();var token=get(c,"/api/auth/csrf",200).get("token").asString();

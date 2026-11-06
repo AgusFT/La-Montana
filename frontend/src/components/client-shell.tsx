@@ -35,7 +35,7 @@ function ClientNavIcon({kind}:{kind:"home"|"orders"|"new"|"security"}){
 
 export function ClientShell({name,title,description,active,children}:{name:string;title:string;description:string;active:"home"|"quotes"|"new"|"orders";children:React.ReactNode}){
  const brand=<span className="client-brand"><MountainMark/><span>La Montaña<small>impresiones</small></span></span>;
- return <NavigationBoundary><div className="client-app"><aside className="client-sidebar"><a href="/cliente" className="client-logo">{brand}</a><nav aria-label="Navegación de cliente">
+ return <NavigationBoundary><div className="client-app"><aside className="client-sidebar account-sidebar-art"><a href="/cliente" className="client-logo">{brand}</a><nav aria-label="Navegación de cliente">
    <span className="client-nav-heading">Mi cuenta</span>
    <a href="/cliente" aria-current={active==="home"?"page":undefined}><ClientNavIcon kind="home"/>Inicio</a>
    <a href="/cliente/pedidos" aria-current={active==="orders"||active==="quotes"?"page":undefined}><ClientNavIcon kind="orders"/>Mis pedidos</a>

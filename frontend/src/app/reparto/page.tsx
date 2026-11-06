@@ -21,7 +21,9 @@ export default async function RepartoPage(){
   const desk=<RiderDesk enabled={!!profile.repartidor} admin={admin}/>;
   if(admin)return <AdminShell title="Mis repartos" description="Pedidos asignados a tu cuenta y próximos destinos." name={name} active="reparto">{desk}</AdminShell>;
   const context=await getOperationContext();
-  return <div className="admin-layout"><div className="admin-main">
+  return <div className="standalone-account-layout">
+  <aside className="standalone-account-art account-sidebar-art" aria-hidden="true"/>
+  <div className="admin-layout"><div className="admin-main">
     <header className="admin-topbar"><strong>La Montaña · Reparto</strong><div className="admin-user"><strong>{name}</strong><LogoutButton/></div></header>
     <main className="admin-content">
       <h1>Mis repartos</h1>
@@ -31,5 +33,5 @@ export default async function RepartoPage(){
       </nav>
       {desk}
     </main>
-  </div></div>;
+  </div></div></div>;
 }

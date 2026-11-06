@@ -1,0 +1,19 @@
+.cash-ledger { display:grid;gap:16px;min-width:0 }
+.cash-balance,.cash-period,.cash-editor { background:var(--ui-surface,#fff);border:1px solid var(--ui-border,#dce5ef);border-radius:12px;padding:18px;min-width:0 }
+.cash-balance { display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--ui-info-bg,#edf4ff) }
+.cash-ledger h3 { margin:0 0 10px;font-size:17px }
+.cash-balance strong { font-size:30px;font-variant-numeric:tabular-nums }
+.cash-balance p,.cash-editor p { margin:8px 0;font-size:13px }
+.cash-actions { display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin:8px 0 }
+.cash-actions label,.cash-fields label+label { margin:0 }
+.cash-fields { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:14px }
+.cash-fields .client-check { grid-column:1/-1 }
+.cash-totals { display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:8px;margin:14px 0 }
+.cash-totals div { padding:10px;border-radius:8px;background:var(--ui-soft,#f1f5f9) }
+.cash-totals dt { font-size:12px }
+.cash-totals dd { margin:4px 0 0;font-weight:700;font-variant-numeric:tabular-nums }
+.cash-table { min-width:640px }
+.cash-table td { overflow-wrap:anywhere }
+.cash-table small { display:block;margin-top:3px;color:var(--ui-muted,#576b82) }
+.cash-positive { color:var(--ui-success-text,#216247) }
+.cash-negative { color:var(--ui-danger-text,#9d392d) }

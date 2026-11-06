@@ -1,0 +1,13 @@
+@media(min-width:761px) {
+  .admin-layout .admin-sidebar.account-sidebar-art,
+  .client-app .client-sidebar.account-sidebar-art,
+  .standalone-account-layout .standalone-account-art {
+    background:linear-gradient(var(--sidebar-tint,#102b4629),var(--sidebar-tint,#102b4629)),
+      url('/client-sidebar-mountain.webp') center bottom / max(100%,clamp(190px,33svh,295px)) auto no-repeat,
+      #133251;
+  }
+  :root[data-theme=dark] .account-sidebar-art { --sidebar-tint:#102d3566 }
+  .standalone-account-layout { display:grid;grid-template-columns:clamp(150px,15vw,218px) minmax(0,1fr);min-height:100vh }
+  .standalone-account-art { position:sticky;top:0;height:100dvh;align-self:start }
+}
+@media(max-width:760px) { .standalone-account-art { display:none } }

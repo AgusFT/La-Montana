@@ -7,9 +7,10 @@
 
 import {AdminShell} from "@/components/admin-shell";
 import {PaymentQueue} from "@/components/payment-queue";
+import {BranchCash} from "@/components/branch-cash";
 import {IdentityShell} from "@/components/identity-shell";
 import {getSession} from "@/lib/identity-server";
-import {getOperationContext} from "@/lib/organization-server";
+import {getBranches} from "@/lib/organization-server";
 import {roleHome} from "@/lib/roles";
 import {redirect} from "next/navigation";
 
@@ -22,13 +23,15 @@ export default async function AdminCashPage({searchParams}:{searchParams:Promise
  if(session.state!=="authenticated")return null;
  if(session.profile.debeCambiarContrasena)redirect("/cuenta/seguridad");
  if(session.profile.rol!=="ADMIN_ADMIN")redirect(roleHome(session.profile.rol));
- const context=await getOperationContext(),requested=(await searchParams).sucursal;
- const branches=context?.sucursales??[],selected=branches.find(branch=>branch.codigoPublico===requested)??branches[0];
- return <AdminShell title="Caja" description="Cobros, transferencias, aplicaciones y devoluciones de toda la imprenta." active="caja" name={`${session.profile.nombre} ${session.profile.apellido}`}>
-   <p className="admin-info">Como administrador tenés acceso financiero completo. Elegí una sucursal para consultar sus operaciones y abrí cada cotización para registrar, verificar, aplicar o devolver dinero.</p>
-   {!context?<p className="admin-warning" role="alert">No pudimos consultar las sucursales y los permisos financieros. Volvé a cargar la página.</p>:branches.length===0?<p className="admin-empty">No hay sucursales activas para consultar.</p>:<>
-    <nav className="cash-branch-tabs" aria-label="Caja por sucursal">{branches.map(branch=><a key={branch.codigoPublico} href={`/administracion/caja?sucursal=${branch.codigoPublico}`} aria-current={selected?.codigoPublico===branch.codigoPublico?"page":undefined}><strong>{branch.nombre}</strong><small>{branch.casaMatrizVigente?"Casa matriz · ":""}{branch.localidad}</small></a>)}</nav>
-    {selected&&<div className="cash-selected-branch"><header><div><span>CAJA SELECCIONADA</span><h2>{selected.nombre}</h2><p>{selected.calle} {selected.numero}, {selected.localidad}</p></div><a className="admin-button secondary" href={`/operacion/sucursales/${selected.codigoPublico}`}>Ver operación completa</a></header><PaymentQueue branch={selected.codigoPublico}/></div>}
+ const branches=await getBranches(),requested=(await searchParams).sucursal;
+ const selected=branches?.find(branch=>branch.codigoPublico===requested)??branches?.find(branch=>branch.estado==="ACTIVA")??branches?.[0];
+ return <AdminShell title="Caja" description="Movimientos, pagos, rendiciones e historial de arqueos por sucursal." active="caja" name={`${session.profile.nombre} ${session.profile.apellido}`}>
+   {!branches?<p className="admin-warning" role="alert">No pudimos consultar las sucursales. Volvé a cargar la página.</p>:branches.length===0?<p className="admin-empty">No hay sucursales para consultar.</p>:<>
+    <nav className="cash-branch-tabs" aria-label="Caja por sucursal">{branches.map(branch=><a key={branch.codigoPublico} href={`/administracion/caja?sucursal=${branch.codigoPublico}`} aria-current={selected?.codigoPublico===branch.codigoPublico?"page":undefined}><strong>{branch.nombre}</strong><small>{branch.estado==="DESACTIVADA"?"Desactivada · ":branch.casaMatrizVigente?"Casa matriz · ":""}{branch.localidad}</small></a>)}</nav>
+    {selected&&<div className="cash-selected-branch"><header><div><span>CAJA SELECCIONADA</span><h2>{selected.nombre}</h2><p>{selected.calle} {selected.numero}, {selected.localidad}</p></div>{selected.estado==="ACTIVA"&&<a className="admin-button secondary" href={`/operacion/sucursales/${selected.codigoPublico}`}>Ver operación completa</a>}</header>
+     <BranchCash key={selected.codigoPublico} branch={selected.codigoPublico} admin/>
+     {selected.estado==="ACTIVA"&&<details className="workspace-panel"><summary>Gestionar cobros, transferencias y devoluciones de pedidos</summary><PaymentQueue branch={selected.codigoPublico}/></details>}
+    </div>}
    </>}
   </AdminShell>;
 }

@@ -73,7 +73,7 @@ export type Employee = {
   estado: "ACTIVO" | "DESACTIVADO"; version: number; sucursales: string[]; permisos: Permission[];
   repartidor: boolean; encargadoSucursal: boolean;
 };
-export type OperationContext = { sucursales: Branch[]; permisos: Permission[] };
+export type OperationContext = { sucursales: Branch[]; permisos: Permission[]; cajaSucursal?: string|null };
 export function isBranch(value: unknown): value is Branch {
   if (!value || typeof value !== "object") return false;
   const b = value as Record<string, unknown>;

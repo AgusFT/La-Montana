@@ -240,13 +240,20 @@ public class OrganizacionService {
             return new Contexto(jdbc.query("SELECT DISTINCT s.* FROM lamontana.sucursal s JOIN lamontana.pedido_actual p USING(id_sucursal) JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.punto_entrega pt ON pt.codigo_publico=r.destino_publico WHERE pt.id_punto_entrega=? AND s.estado='ACTIVA' AND r.modalidad='RETIRO_PUNTO_ENTREGA' AND r.estado IN ('ACTIVA','CUMPLIDA')",this::sucursal,punto),cobros?List.of("GESTIONAR_ENTREGAS","CERRAR_PEDIDOS","REGISTRAR_COBRO","ACREDITAR_PAGO"):List.of("GESTIONAR_ENTREGAS","CERRAR_PEDIDOS"));
         }
         var asignados=permisos(id);
-        if(asignados.isEmpty()&&Boolean.TRUE.equals(jdbc.queryForObject(
+        UUID caja = jdbc.query("""
+                SELECT s.codigo_publico FROM lamontana.sucursal_responsable sr
+                JOIN lamontana.usuario_sucursal us USING(id_sucursal,id_usuario)
+                JOIN lamontana.sucursal s USING(id_sucursal)
+                WHERE sr.id_usuario=? AND us.activa AND s.estado='ACTIVA'
+                """, (rs,n) -> rs.getObject(1,UUID.class), id).stream().findFirst().orElse(null);
+        if(caja==null&&asignados.isEmpty()&&Boolean.TRUE.equals(jdbc.queryForObject(
                 "SELECT EXISTS(SELECT 1 FROM lamontana.cuenta_repartidor WHERE id_usuario=? AND activa)",Boolean.class,id)))
             return new Contexto(List.of(),asignados);
-        return new Contexto(jdbc.query("""
+        var sucursales = jdbc.query("""
                 SELECT s.* FROM lamontana.sucursal s JOIN lamontana.usuario_sucursal us USING(id_sucursal)
                 WHERE us.id_usuario=? AND us.activa AND s.estado='ACTIVA' ORDER BY s.nombre,s.codigo
-                """, this::sucursal, id), asignados);
+                """, this::sucursal, id);
+        return new Contexto(sucursales, asignados, caja);
     }
 
     public Sucursal sucursalAutorizada(String actor, UUID codigo) {
@@ -351,5 +358,7 @@ public class OrganizacionService {
     private String correo(String value) { return value.strip().toLowerCase(Locale.ROOT); }
     private ResponseStatusException desactualizado() { return error(HttpStatus.CONFLICT, "Los datos cambiaron. Actualizá el listado antes de guardar nuevamente."); }
     private ResponseStatusException error(HttpStatus status, String mensaje) { return new ResponseStatusException(status, mensaje); }
-    public record Contexto(List<Sucursal> sucursales, List<String> permisos) {}
+    public record Contexto(List<Sucursal> sucursales, List<String> permisos, UUID cajaSucursal) {
+        public Contexto(List<Sucursal> sucursales, List<String> permisos) { this(sucursales,permisos,null); }
+    }
 }

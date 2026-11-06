@@ -57,8 +57,9 @@ export async function getOperationContext(): Promise<OperationContext | null> {
   const data = await getResource("operacion/contexto");
   if (!data || typeof data !== "object") return null;
   const context = data as Record<string, unknown>;
+  const cajaSucursal = typeof context.cajaSucursal === "string" && uuidPattern.test(context.cajaSucursal) ? context.cajaSucursal : null;
   return Array.isArray(context.sucursales) && context.sucursales.every(isBranch) && isPermissions(context.permisos)
-    ? { sucursales: context.sucursales, permisos: context.permisos } : null;
+    ? { sucursales: context.sucursales, permisos: context.permisos, cajaSucursal } : null;
 }
 export type OperationBranchResult = { state: "found"; branch: Branch } | { state: "forbidden" | "not-found" | "unavailable" };
 export async function getOperationBranch(id: string): Promise<OperationBranchResult> {

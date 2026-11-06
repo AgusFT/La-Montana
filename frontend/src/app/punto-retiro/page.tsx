@@ -8,5 +8,8 @@ export const dynamic='force-dynamic';
 export default async function PointDeskPage(){
  const s=await getSession();if(s.state==='anonymous')redirect('/acceso');if(s.state!=='authenticated')return <IdentityShell title="Punto de retiro" description="Verificación de acceso"><p>No pudimos comprobar tu sesión. Volvé a intentar.</p><a href="/punto-retiro">Actualizar</a></IdentityShell>;
  if(!s.profile.puntoRetiro)redirect(sessionHome(s.profile));if(s.profile.debeCambiarContrasena)redirect('/cuenta/seguridad');
- return <NavigationBoundary><PointDesk/></NavigationBoundary>;
+ return <NavigationBoundary><div className="standalone-account-layout">
+   <aside className="standalone-account-art account-sidebar-art" aria-hidden="true"/>
+   <PointDesk/>
+ </div></NavigationBoundary>;
 }

@@ -2,17 +2,6 @@
 .client-app { --client-ink:#163653; --client-blue:#244f7d; --client-orange:#f98024; }
 .client-app .client-sidebar { background:linear-gradient(170deg,#214f79 0%,#173754 75%,#102b46 100%); }
 @media(min-width:761px){
- .client-app .client-sidebar {
-  --client-sidebar-base:#133251;
-  --client-sidebar-tint:#102b4614;
-  background:
-   linear-gradient(var(--client-sidebar-tint),var(--client-sidebar-tint)),
-   url('/client-sidebar-mountain.webp') center bottom / max(100%,clamp(190px,33svh,295px)) auto no-repeat,
-   var(--client-sidebar-base);
- }
- :root[data-theme=dark] .client-app .client-sidebar {
-  --client-sidebar-tint:#102d3566;
- }
  .client-app .client-sidebar-note { padding-top:36px;margin-bottom:0;color:#e0edf8;opacity:1; }
 }
 .client-app .client-sidebar nav { gap:6px;margin-top:32px; }

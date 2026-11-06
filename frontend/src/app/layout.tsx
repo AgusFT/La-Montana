@@ -28,6 +28,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./theme.css";
+import "./account-sidebar.css";
 import {themeBootstrap} from "@/lib/theme";
 
 export const metadata: Metadata = {

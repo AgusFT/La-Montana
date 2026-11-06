@@ -125,6 +125,8 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/cliente/cotizaciones/*/pagos").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.POST, "/api/cliente/cotizaciones/*/pagos/informar", "/api/cliente/cotizaciones/*/pagos/descartar").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/cotizaciones/*/pagos", "/api/operacion/sucursales/*/pagos").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
+                        .requestMatchers(HttpMethod.GET, "/api/operacion/sucursales/*/caja", "/api/operacion/sucursales/*/caja/egresos/*/comprobante").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
+                        .requestMatchers(HttpMethod.POST, "/api/operacion/sucursales/*/caja/egresos", "/api/operacion/sucursales/*/caja/arqueos").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/cotizaciones/*/pagos/recibir", "/api/operacion/cotizaciones/*/pagos/descartar", "/api/operacion/cotizaciones/*/pagos/aplicar", "/api/operacion/cotizaciones/*/pagos/devolver").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.GET, "/api/cliente/cotizaciones/*/comprobantes", "/api/cliente/cotizaciones/*/comprobantes/*", "/api/cliente/cotizaciones/*/comprobantes/*/carga", "/api/cliente/cotizaciones/*/comprobantes/*/original", "/api/cliente/cotizaciones/*/comprobantes/*/paginas/*").hasRole("CLIENTE")
                         .requestMatchers(HttpMethod.POST, "/api/cliente/cotizaciones/*/comprobantes").hasRole("CLIENTE")
