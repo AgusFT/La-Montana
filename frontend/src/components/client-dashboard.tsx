@@ -109,7 +109,7 @@ export function ClientDashboard(){
           </li>)}</ul>:<p className="client-muted">No tenés pedidos activos.</p>}
         </section>
         <section className="client-card client-dashboard-summary">
-          <h2>Resumen general</h2>
+          <header><h2>Resumen general</h2><a href="/cliente/pedidos?vista=historial">Ver historial <span aria-hidden="true">→</span></a></header>
           <dl className="client-dashboard-counts">
             <div><dt>Pedidos realizados</dt><dd data-testid="customer-order-count">{data.orders.total}</dd></div>
             <div><dt>Pedidos en curso</dt><dd data-testid="customer-active-count">{data.active}</dd></div>

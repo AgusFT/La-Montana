@@ -17,7 +17,8 @@ const customerViews=[
  {value:'VIAJE',label:'En viaje',empty:'No tenés pedidos en viaje.'},
  {value:'RETIRO',label:'Listos para retirar',empty:'No tenés pedidos listos para retirar.'},
  {value:'HISTORIAL',label:'Historial',empty:'Todavía no hay pedidos en tu historial.'},
-];
+] as const;
+type CustomerView=(typeof customerViews)[number]['value'];
 
 type GroupAction='PREPARAR_ENVIO'|'SALIR_REPARTO';
 type DispatchFilter=GroupAction|'SEGUIMIENTO'|'TODOS';
@@ -29,9 +30,9 @@ const dispatchFilters:{value:DispatchFilter;label:string}[]=[
 ];
 type Rider={codigoPublico:string;nombre:string;correo:string};
 function isRiders(value:unknown):value is Rider[]{return Array.isArray(value)&&value.every(r=>!!r&&typeof r==='object'&&typeof r.codigoPublico==='string'&&typeof r.nombre==='string'&&typeof r.correo==='string');}
-export function OrderListView({branch,globalAdmin=false,initialState=''}:{branch?:string;globalAdmin?:boolean;initialState?:string}){
+export function OrderListView({branch,globalAdmin=false,initialState='',initialCustomerView='CURSO'}:{branch?:string;globalAdmin?:boolean;initialState?:string;initialCustomerView?:CustomerView}){
  const internal=!!branch||globalAdmin,requestId=useRef(0),running=useRef(false),dialog=useRef<HTMLDialogElement>(null);
- const[customerView,setCustomerView]=useState('CURSO');
+ const[customerView,setCustomerView]=useState(initialCustomerView);
  const[state,setState]=useState(initialState),[sort,setSort]=useState(internal?'MOVIMIENTO_DESC':'CONFIRMADO_DESC');
  const[data,setData]=useState<OrderList|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const[dispatchFilter,setDispatchFilter]=useState<DispatchFilter>('PREPARAR_ENVIO');

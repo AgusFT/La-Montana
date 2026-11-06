@@ -12,7 +12,7 @@
 .client-order-heading-state{display:flex;align-items:center;flex-wrap:wrap;gap:12px;min-width:0}
 .client-order-heading-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .client-order-heading-actions .client-button{min-height:38px;font-size:12px;padding:9px 12px}
-.client-order-tracking{border:1px solid var(--ui-border,#dce5ef);border-top:3px solid var(--ui-accent,#224b7e);border-radius:12px;background:var(--ui-surface,#fff);margin:0 0 16px;min-width:0;overflow:hidden}
+.client-order-tracking{border:1px solid var(--ui-border,#dce5ef);border-top:3px solid var(--ui-accent,#224b7e);border-radius:12px;background:var(--ui-surface,#fff);margin:0 0 12px;min-width:0;overflow:hidden}
 .client-order-tracking .order-progress{border:0;box-shadow:none;border-radius:0;padding:20px;margin:0}
 .client-order-tracking .order-progress-heading h3{font-size:21px}
 .client-order-tracking .order-progress-heading p{padding:6px 10px;border-radius:6px;background:var(--ui-info-bg,#edf4ff)}

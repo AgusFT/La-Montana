@@ -3,16 +3,15 @@
 .client-app .client-sidebar { background:linear-gradient(170deg,#214f79 0%,#173754 75%,#102b46 100%); }
 @media(min-width:761px){
  .client-app .client-sidebar {
-  --client-sidebar-top:#203e5a;
-  --client-sidebar-base:#112c44;
+  --client-sidebar-base:#133251;
+  --client-sidebar-tint:#102b4614;
   background:
-   linear-gradient(170deg,var(--client-sidebar-top) 18%,var(--client-sidebar-base) 50%,color-mix(in srgb,var(--client-sidebar-base) 54%,transparent) 74%,var(--client-sidebar-base)),
-   url('/mountains.svg') right -40px bottom / 490px auto no-repeat,
+   linear-gradient(var(--client-sidebar-tint),var(--client-sidebar-tint)),
+   url('/client-sidebar-mountain.webp') center bottom / max(100%,clamp(190px,33svh,295px)) auto no-repeat,
    var(--client-sidebar-base);
  }
  :root[data-theme=dark] .client-app .client-sidebar {
-  --client-sidebar-top:#17444e;
-  --client-sidebar-base:#102d35;
+  --client-sidebar-tint:#102d3566;
  }
  .client-app .client-sidebar-note { padding-top:36px;margin-bottom:0;color:#e0edf8;opacity:1; }
 }
