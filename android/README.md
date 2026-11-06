@@ -18,10 +18,12 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 
 Abrir la carpeta `android/`. El proyecto usa Java 17, Android Gradle Plugin 9.5, Kotlin 2.4.10, `compileSdk 37` y Compose BOM `2026.09.00`.
 
-La URL de desarrollo predeterminada es `http://10.0.2.2:8080`, que desde el emulador representa la PC anfitriona. Puede cambiarse en `~/.gradle/gradle.properties` sin guardar secretos en Git:
+El desarrollo Android usa de forma predeterminada el entorno `pruebas`: la Web se abre en `http://localhost:3100` y su backend se publica en `http://localhost:8180`. Desde el emulador, la PC anfitriona se alcanza como `10.0.2.2`, por lo que la app utiliza `http://10.0.2.2:8180`.
+
+La URL puede reemplazarse en `~/.gradle/gradle.properties` cuando sea necesario apuntar a otro entorno:
 
 ```properties
-LAMONTANA_API_URL=http://10.0.2.2:8080
+LAMONTANA_API_URL=http://10.0.2.2:8180
 ```
 
 El tráfico HTTP sin cifrar sólo está habilitado en `debug`; `release` exige HTTPS. La primera sincronización desde Android Studio descargará Gradle y las dependencias. El repositorio incorporará el wrapper cuando se genere desde una instalación local de Android Studio/Gradle compatible.

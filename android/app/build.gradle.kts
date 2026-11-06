@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -15,7 +14,7 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "API_BASE_URL", "\"${providers.gradleProperty("LAMONTANA_API_URL").orNull ?: "http://10.0.2.2:8080"}\"")
+        buildConfigField("String", "API_BASE_URL", "\"${providers.gradleProperty("LAMONTANA_API_URL").orNull ?: "http://10.0.2.2:8180"}\"")
     }
 
     buildTypes {
@@ -39,9 +38,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 }
 
 dependencies {

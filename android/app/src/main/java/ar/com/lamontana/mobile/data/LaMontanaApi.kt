@@ -25,10 +25,10 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
 
     fun login(user: String, password: String): Profile {
         val body = "username=${encode(user.trim())}&password=${encode(password)}"
-        request("/api/auth/login", "POST", "application/x-www-form-urlencoded", body)
+        val csrf = JSONObject(request("/api/auth/csrf")).getString("token")
+        request("/api/auth/login", "POST", "application/x-www-form-urlencoded", body, csrf)
         return profile()
     }
-
     fun profile(): Profile {
         val json = JSONObject(request("/api/auth/me"))
         return Profile(
