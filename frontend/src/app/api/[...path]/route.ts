@@ -37,6 +37,7 @@ const allowed: Record<string, readonly string[]> = {
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/pagina-web": ["GET"], "admin/pagina-web/borrador": ["PUT"], "admin/pagina-web/revision": ["GET"], "admin/pagina-web/publicar": ["POST"], "publico/pagina-web": ["GET"],
   "admin/pedidos": ["GET"], "admin/preparacion": ["GET"], "sistema/estado": ["GET"],
+  "cliente/pedidos/resumen": ["GET"],
   "admin/sucursales/ubicaciones": ["GET"], "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/papeles-predefinidos": ["POST"], "admin/catalogo/papeles-predefinidos/habilitar-todos": ["POST"], "admin/catalogo/papeles-personalizados": ["POST"], "admin/catalogo/papeles-habilitados": ["PUT"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
   "admin/puntos-entrega/disponibilidad": ["GET"],

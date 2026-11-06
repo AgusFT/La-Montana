@@ -30,6 +30,7 @@
  * - [public] Detalle confirmar(UUID quote, PedidoController.Confirmar in, String correo)
  * - [private] List<Pdf> archivos(long quote)
  * - [public] Detalle detalle(UUID codigo, String correo, boolean interno)
+ * - [public] ResumenCliente resumenCliente(String correo)
  * - [public] Pagina listar(UUID branch, int pagina, String estado, String correo)
  * - [private] boolean esCorreccion(UUID quote)
  * - [private] UUID vinculado(UUID quote)
@@ -54,6 +55,7 @@
  * - PedidoService.Detalle (record).
  * - PedidoService.Resumen (record).
  * - PedidoService.Pagina (record).
+ * - PedidoService.ResumenCliente (record).
  * - PedidoService.Actor (record).
  * ========================================================================
  */
@@ -105,6 +107,7 @@ public class PedidoService {
  public record MovimientoReciente(String accion,Instant fecha,String actor){}
  public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega,String nombreInvitado){}
  public record Pagina(List<Resumen> elementos,long total,int pagina,boolean puedeGestionarEntregas){}
+ public record ResumenCliente(long total,Pagina activos,Detalle actual){}
  private record Actor(long id,String rol){}
  private static final String RUTA_DESPACHO_HABILITADA="""
   NOT EXISTS (
@@ -270,6 +273,29 @@ public class PedidoService {
    return new Detalle(codigo,id,r.getObject("cotizacion",UUID.class),r.getString("estado"),r.getTimestamp("confirmada_en").toInstant(),r.getTimestamp("aprobada_en")==null?null:r.getTimestamp("aprobada_en").toInstant(),r.getObject("config",UUID.class),r.getLong("numero_version"),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class),json.readValue(r.getString("condiciones_finales"),Condiciones.class),reserva,r.getString("receptor")==null?null:new PedidoController.Contacto(r.getString("receptor"),r.getString("telefono")),files,history,r.getLong("version"),jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",String.class,id),r.getTimestamp("finalizada_en")==null?null:r.getTimestamp("finalizada_en").toInstant(),jdbc.queryForObject("SELECT lamontana.estado_logistico(?)",String.class,id),Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.retiro_con_traslado(?)",Boolean.class,id)),cobro.vista(id,a.rol().equals("ADMIN_ADMIN")),r.getString("nombre_invitado"));
   },codigo,interno,a.id());if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pedido no está disponible en tu cuenta.");return rows.get(0);
  }
+ @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+ public ResumenCliente resumenCliente(String correo){
+  var cliente=actor(correo,false);
+  long total=jdbc.queryForObject("SELECT count(*) FROM lamontana.pedido_actual WHERE id_usuario_creador=?",Long.class,cliente.id());
+  var activos=pagina("p.id_usuario_creador=?",List.of(cliente.id()),0,null,"CONFIRMADO_DESC","ACTIVOS",false,false,false);
+  if(activos.elementos().isEmpty())return new ResumenCliente(total,activos,null);
+  var enViaje=jdbc.queryForList("""
+   SELECT p.codigo_publico
+   FROM lamontana.pedido_actual p
+   JOIN LATERAL (
+    SELECT franja_desde,franja_hasta FROM lamontana.reserva_entrega
+    WHERE id_pedido=p.id_pedido ORDER BY id_reserva_entrega DESC LIMIT 1
+   ) r ON true
+   WHERE p.id_usuario_creador=? AND p.estado='LISTO_PARA_ENTREGA'
+     AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE'
+   ORDER BY CASE WHEN r.franja_hasta>=CURRENT_TIMESTAMP THEN r.franja_desde END ASC NULLS LAST,
+            CASE WHEN r.franja_hasta<CURRENT_TIMESTAMP THEN r.franja_hasta END DESC NULLS LAST,
+            p.confirmada_en DESC,p.id_pedido DESC
+   LIMIT 1
+   """,UUID.class,cliente.id());
+  UUID elegido=enViaje.isEmpty()?activos.elementos().getFirst().codigoPublico():enViaje.getFirst();
+  return new ResumenCliente(total,activos,detalle(elegido,correo,false));
+ }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String correo){
   return listar(branch,pagina,estado,"CONFIRMADO_DESC",correo);
  }
@@ -313,6 +339,7 @@ public class PedidoService {
     case "RETIRO" -> " AND p.estado='LISTO_PARA_ENTREGA' AND "+logistica+" IN ('LISTO_RETIRO','DISPONIBLE_PUNTO')";
     case "VIAJE" -> " AND p.estado='LISTO_PARA_ENTREGA' AND "+logistica+" IN ('EN_VIAJE','CLIENTE_AUSENTE')";
     case "CURSO" -> " AND p.estado NOT IN "+finales+" AND (p.estado<>'LISTO_PARA_ENTREGA' OR "+logistica+" NOT IN ('LISTO_RETIRO','DISPONIBLE_PUNTO','EN_VIAJE','CLIENTE_AUSENTE'))";
+    case "ACTIVOS" -> " AND p.estado NOT IN "+finales;
     case "HISTORIAL" -> " AND p.estado IN "+finales;
     default -> throw error(HttpStatus.BAD_REQUEST,"Vista de pedidos inválida.");
    };

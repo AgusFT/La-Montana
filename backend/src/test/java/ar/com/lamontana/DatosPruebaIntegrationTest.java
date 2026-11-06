@@ -162,7 +162,18 @@ class DatosPruebaIntegrationTest {
             var summary=orders.listarGlobal(0,"LISTO_PARA_ENTREGA","MOVIMIENTO_DESC",ADMIN).elementos().stream().filter(o->o.codigoPublico().equals(id)).findFirst().orElseThrow();assertThat(summary.situacionOperativa()).isEqualTo("CLIENTE_AUSENTE");assertThat(summary.ultimoMovimiento().accion()).isEqualTo("CLIENTE_AUSENTE");assertThat(summary.accionEntrega()).isNull();
             assertThatThrownBy(()->delivery.recibir(id,new ar.com.lamontana.entregas.EntregaController.Recibir(UUID.randomUUID(),absent.version(),original.texto(),null,null,true),ADMIN)).hasMessageContaining("recorrido");
             var retry=delivery.mover(id,new ar.com.lamontana.entregas.EntregaController.Movimiento(UUID.randomUUID(),absent.version(),ar.com.lamontana.entregas.EntregaController.Accion.REINTENTAR_ENTREGA,null,true),ADMIN);assertThat(retry.estadoLogistico()).isEqualTo("EN_VIAJE");assertThat(delivery.consultar(id,client,false).codigo().texto()).isEqualTo(original.texto());
+            var cliente=login(client);
+            String resumenPath="/api/cliente/pedidos/resumen";
+            var antes=get(cliente,resumenPath,200);
+            assertThat(antes.get("actual").get("estadoLogistico").asString()).isEqualTo("EN_VIAJE");
             var received=delivery.recibir(id,new ar.com.lamontana.entregas.EntregaController.Recibir(UUID.randomUUID(),retry.version(),original.texto(),null,null,true),ADMIN);assertThat(received.aceptado()).isTrue();assertThat(received.vista().estadoPedido()).isEqualTo("ENTREGADO");
+            var despues=get(cliente,resumenPath,200);
+            assertThat(despues.get("total").asLong()).isEqualTo(antes.get("total").asLong());
+            assertThat(despues.get("activos").get("total").asLong()).isEqualTo(antes.get("activos").get("total").asLong()-1);
+            assertThat(despues.get("activos").get("elementos")).noneMatch(o->o.get("codigoPublico").asString().equals(id.toString()));
+            assertThat(despues.get("actual").isNull()||!despues.get("actual").get("codigoPublico").asString().equals(id.toString())).isTrue();
+            assertThat(get(cliente,"/api/cliente/pedidos?estado=ENTREGADO&vista=HISTORIAL",200).get("elementos"))
+                .anyMatch(o->o.get("codigoPublico").asString().equals(id.toString()));
             assertThat(delivery.cerrar(id,new ar.com.lamontana.entregas.EntregaController.Cerrar(UUID.randomUUID(),received.vista().version(),null,true),ADMIN).estadoPedido()).isEqualTo("CERRADO");
         }finally{limpiar(files);}
     }

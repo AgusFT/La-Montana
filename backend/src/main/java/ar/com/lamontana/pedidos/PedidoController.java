@@ -21,6 +21,8 @@
  *   Entrada HTTP POST · ruta del método: /api/cliente/cotizaciones/{id}/confirmacion.
  * - [public] PedidoService.Pagina listar(int pagina, String estado, Principal p)
  *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos.
+ * - [public] PedidoService.ResumenCliente resumen(Principal p)
+ *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/resumen.
  * - [public] PedidoService.Detalle cliente(UUID id, Principal p)
  *   Entrada HTTP GET · ruta del método: /api/cliente/pedidos/{id}.
  * - [public] PedidoService.Detalle interno(UUID id, Principal p)
@@ -56,6 +58,7 @@ public class PedidoController {
  @PostMapping("/api/cliente/cotizaciones/{id}/confirmacion") public PedidoService.Detalle confirmar(@PathVariable UUID id,@Valid @RequestBody Confirmar in,Principal p){if(cotizaciones.detalle(id,p.getName()).oferta().origenGlobal())throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Confirmá desde el resumen completo de tu trabajo preparado.");return pedidos.confirmar(id,in,p.getName());}
  @GetMapping("/api/admin/pedidos") public PedidoService.Pagina global(@RequestParam(defaultValue="0") int pagina,@RequestParam(required=false) String estado,@RequestParam(defaultValue="CONFIRMADO_DESC") String orden,@RequestParam(required=false) String despacho,Principal p){return pedidos.listarGlobal(pagina,estado,orden,despacho,p.getName());}
  @GetMapping("/api/cliente/pedidos") public PedidoService.Pagina listar(@RequestParam(defaultValue="0") int pagina,@RequestParam(required=false) String estado,@RequestParam(required=false) String vista,Principal p){return pedidos.listar(null,pagina,estado,"CONFIRMADO_DESC",vista,p.getName());}
+ @GetMapping("/api/cliente/pedidos/resumen") public PedidoService.ResumenCliente resumen(Principal p){return pedidos.resumenCliente(p.getName());}
  @GetMapping("/api/cliente/pedidos/{id}") public PedidoService.Detalle cliente(@PathVariable UUID id,Principal p){return pedidos.detalle(id,p.getName(),false);}
  @GetMapping("/api/operacion/pedidos/{id}") public PedidoService.Detalle interno(@PathVariable UUID id,Principal p){return pedidos.detalle(id,p.getName(),true);}
  @GetMapping("/api/operacion/sucursales/{id}/pedidos") public PedidoService.Pagina sucursal(@PathVariable UUID id,@RequestParam(defaultValue="0") int pagina,@RequestParam(required=false) String estado,@RequestParam(defaultValue="CONFIRMADO_DESC") String orden,@RequestParam(required=false) String despacho,Principal p){return pedidos.listar(id,pagina,estado,orden,despacho,p.getName());}
