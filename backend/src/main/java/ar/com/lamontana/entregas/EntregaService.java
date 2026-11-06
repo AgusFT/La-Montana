@@ -80,6 +80,7 @@ import ar.com.lamontana.pagos.PagoService;
 import ar.com.lamontana.pagos.PagoController;
 import ar.com.lamontana.pedidos.PedidoService;
 import ar.com.lamontana.puntos.CuentaPuntoAcceso;
+import ar.com.lamontana.puntos.PuntoRetiroController.CobrarEntrega;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -342,6 +343,45 @@ public class EntregaService {
   var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash,false,retiro);
   if(in.cerrar())out=cerrar(pedido,new Cerrar(derivada(in.operacion(),"cerrar"),out.version(),null,true),correo,retiro);
   return new Validacion(out,true,in.cerrar()?"Efectivo registrado, pedido entregado y cerrado. El comprobante interno quedó disponible.":"Efectivo registrado y pedido entregado. El responsable de cierre puede completar el cierre administrativo.");
+ }
+ @Transactional public Validacion cobrarEntregaPunto(UUID pedido,CobrarEntrega in,String correo){
+  bloquear();
+  var p=detalleEntrega(pedido,correo,false,null);
+  exigirResponsablePunto(p,correo);
+  if(p.reserva().modalidad()!=Modalidad.RETIRO_PUNTO_ENTREGA||CuentaPuntoAcceso.punto(jdbc,correo)==null)
+   throw error(HttpStatus.FORBIDDEN,"El cobro corresponde a un pedido de este punto.");
+  var a=actor(correo);
+  String hash=huella(List.of(pedido,"COBRAR_ENTREGA_PUNTO",in));
+  if(recuperar(in.operacion(),hash,p,a))return new Validacion(vista(p,correo,true),true,"Cobro y entrega ya registrados.");
+  version(p,in.version());
+  confirmar(in.confirmado());
+  if(!disponible(p))throw conflicto("El pedido todavía no está disponible para retirar.");
+  String bloqueo=bloqueoCobroPunto(p,in.medio(),correo);
+  if(bloqueo!=null)throw conflicto(bloqueo);
+  BigDecimal saldo=new BigDecimal(p.oferta().total()).subtract(aplicado(p));
+  if(new BigDecimal(in.importe()).compareTo(saldo)!=0)throw conflicto("El saldo cambió. Actualizá el pedido antes de cobrar.");
+  var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),in.codigo()),correo,hash,false,null);
+  if(!check.aceptado())return check;
+
+  boolean efectivo=in.medio()==MedioPago.EFECTIVO;
+  String referencia=efectivo?"Entrega PED-"+p.numero()+" · "+in.operacion():in.referencia();
+  var cobro=new PagoController.Recibir(derivada(in.operacion(),efectivo?"efectivo":"transferencia"),
+    null,in.medio(),dinero(saldo),referencia,null,true,"Saldo cobrado al entregar el pedido PED-"+p.numero()+".",true);
+  pagos.recibirEnPunto(p.cotizacion(),cobro,correo,in.destino(),p.reserva().nombre());
+
+  String receptor=in.receptor()==null||in.receptor().isBlank()?receptorRegistrado(p):in.receptor().strip();
+  var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),
+    receptor,null,true),correo,hash,false,null);
+  if(out.puedeCerrar()&&out.bloqueosCierre().isEmpty()){
+   out=cerrar(pedido,new Cerrar(derivada(in.operacion(),"cerrar"),out.version(),null,true),correo);
+  }
+  return new Validacion(out,true,out.cierre()==null?"Cobro y entrega registrados.":"Cobro registrado, pedido entregado y cerrado.");
+ }
+ public String bloqueoCobroPunto(PedidoService.Detalle p,MedioPago medio,String correo){
+  String bloqueo=pagos.bloqueoSaldo(p.cotizacion(),correo,medio);
+  if(bloqueo!=null)return bloqueo;
+  return jdbc.queryForObject("SELECT lamontana.dinero_pendiente_cierre(?)",BigDecimal.class,p.numero()).signum()>0
+    ?"Hay dinero recibido sin aplicar. Revisá cobros para evitar cobrarlo otra vez.":null;
  }
  private String receptorRegistrado(PedidoService.Detalle p){
   return p.nombreInvitado()==null?"Persona que presentó el código de entrega":p.nombreInvitado();

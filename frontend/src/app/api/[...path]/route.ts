@@ -120,7 +120,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const dailyPrinter=path[0]==="operacion"&&path[1]==="impresoras"&&uuidPattern.test(path[2]??"")?(path.length===3?["POST"]:path.length===4&&path[3]==="historial"?["GET"]:null):null;
   const dailyPoint=["admin","operacion"].includes(path[0])&&path[1]==="puntos-entrega"&&path[2]==="disponibilidad"&&uuidPattern.test(path[3]??"")?(path.length===4?["PUT"]:path.length===5&&path[4]==="historial"?["GET"]:null):null;
   const accountPoint=path.length===4&&path[0]==="admin"&&path[1]==="puntos-entrega"&&path[2]==="cuentas"&&uuidPattern.test(path[3])?["POST","PUT"]:null;
-  const counterOrder=path[0]==="punto"&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")?(path.length===3?["GET"]:path.length===4&&["entregar","efectivo-entrega","cobrar"].includes(path[3])?["POST"]:null):null;
+  const counterOrder=path[0]==="punto"&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")?(path.length===3?["GET"]:path.length===4&&["entregar","efectivo-entrega","cobrar","cobro-entrega"].includes(path[3])?["POST"]:null):null;
   const riderAction=path.length===4&&path[0]==="rider"&&uuidPattern.test(path[2])&&(
     path[1]==="pedidos"&&["parada","entregar"].includes(path[3])||path[1]==="recorridos"&&path[3]==="presentar")?["POST"]:null;
   const cashRoute=path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2]??"")&&path[3]==="caja";

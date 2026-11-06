@@ -4,9 +4,14 @@ import static org.assertj.core.api.Assertions.*;
 import ar.com.lamontana.archivos.ArchivosPrivados;
 import ar.com.lamontana.catalogo.*;
 import ar.com.lamontana.configuracion.*;
+import ar.com.lamontana.configuracion.ConfiguracionController.MedioPago;
 import ar.com.lamontana.cotizaciones.CotizacionService;
 import ar.com.lamontana.entregas.EntregaService;
 import ar.com.lamontana.pagos.PagoService;
+import ar.com.lamontana.pagos.PagoController;
+import ar.com.lamontana.pagos.PagoService.DestinoCobro;
+import ar.com.lamontana.puntos.PuntoRetiroController;
+import ar.com.lamontana.puntos.PuntoRetiroService;
 import ar.com.lamontana.pedidos.*;
 import ar.com.lamontana.produccion.ProduccionService;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
@@ -146,6 +151,76 @@ class DatosPruebaIntegrationTest {
             UUID point=UUID.fromString(get(cab,"/api/punto/contexto",200).get("punto").asString());var account=service.cuentas(ADMIN).stream().filter(o->o.punto().equals(point)).findFirst().orElseThrow();sendPoint(admin,"PUT","/api/admin/puntos-entrega/cuentas/"+point,new ar.com.lamontana.puntos.PuntoRetiroController.Cambio(UUID.randomUUID(),account.cuenta().version(),account.cuenta().responsable(),false,false),200);get(cab,"/api/punto/contexto",401);
             UUID fresh=UUID.randomUUID();jdbc.update("INSERT INTO lamontana.punto_entrega(codigo_publico,codigo,id_usuario_creador) SELECT ?,'PUNTO-ENSAYO',id_usuario FROM lamontana.usuario WHERE correo=?",fresh,ADMIN);var alta=new ar.com.lamontana.puntos.PuntoRetiroController.Alta(UUID.randomUUID(),"punto.ensayo.retiro","punto.ensayo@prueba.local","Responsable de ensayo",CLAVE,false);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,alta,200);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,alta,200);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,new ar.com.lamontana.puntos.PuntoRetiroController.Alta(UUID.randomUUID(),"punto.otra.retiro","punto.otra@prueba.local","Otro responsable",CLAVE,false),409);
             var freshLogin=login("punto.ensayo.retiro");assertThat(get(freshLogin,"/api/auth/me",200).get("debeCambiarContrasena").asBoolean()).isTrue();get(freshLogin,"/api/punto/contexto",403);
+        }finally{limpiar(files);}
+    }
+
+    @Test void puntoCobraConMedioRealYSeparaElDestinoDeLaTransferencia()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-destino-cobro-");
+        try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
+            var jdbc=app.getBean(JdbcTemplate.class);
+            var service=app.getBean(PuntoRetiroService.class);
+            var delivery=app.getBean(EntregaService.class);
+            var payments=app.getBean(PagoService.class);
+            var pedidos=app.getBean(PedidoService.class);
+            record Caso(String punto,MedioPago elegido,MedioPago recibido,DestinoCobro destino){}
+            for(var caso:List.of(
+                new Caso("caballito",MedioPago.TRANSFERENCIA,MedioPago.EFECTIVO,DestinoCobro.PUNTO_ENTREGA),
+                new Caso("caballito",MedioPago.EFECTIVO,MedioPago.TRANSFERENCIA,DestinoCobro.PUNTO_ENTREGA),
+                new Caso("palermo",MedioPago.EFECTIVO,MedioPago.TRANSFERENCIA,DestinoCobro.SUCURSAL_ORIGEN))){
+                String usuario="punto."+caso.punto()+".retiro";
+                String correo=usuario+"@prueba.local";
+                var sesion=login(usuario);
+                var row=service.buscar(new PuntoRetiroController.Buscar("DISPONIBLES","",0),correo).pedidos().stream()
+                    .filter(p->p.medio().equals(caso.elegido().name())&&new BigDecimal(p.saldo()).signum()>0)
+                    .findFirst().orElseThrow();
+                String ficha="/api/punto/pedidos/"+row.pedido(),ruta=ficha+"/cobro-entrega";
+                assertThat(get(sesion,ficha,200).get("mediosSaldo").toString()).contains(caso.recibido().name());
+                var pedido=pedidos.detalle(row.pedido(),ADMIN,true);
+                String cliente=row.correo();
+                String codigo=delivery.consultar(row.pedido(),cliente,false).codigo().texto();
+                boolean transferencia=caso.recibido()==MedioPago.TRANSFERENCIA;
+                String referencia=transferencia?"Transferencia de prueba "+UUID.randomUUID():null;
+                boolean enOrigen=caso.destino()==DestinoCobro.SUCURSAL_ORIGEN;
+                if(enOrigen)payments.informar(pedido.cotizacion(),new PagoController.Informar(
+                    UUID.randomUUID(),row.saldo(),referencia,"Transferencia informada antes del retiro"),cliente);
+                var antes=service.finanzas("","",0,correo);
+                long cobros=count(jdbc,"pago");
+                if(transferencia){
+                    var incompleto=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigo,
+                        caso.recibido(),row.saldo(),caso.destino(),null,null,true);
+                    sendPoint(sesion,"POST",ruta,incompleto,400);
+                }
+                String codigoErroneo=codigo.equals("ZZZZZZZZ")?"YYYYYYYY":"ZZZZZZZZ";
+                var erroneo=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigoErroneo,
+                    caso.recibido(),row.saldo(),caso.destino(),referencia,null,true);
+                assertThat(sendPoint(sesion,"POST",ruta,erroneo,200).get("aceptado").asBoolean()).isFalse();
+                assertThat(count(jdbc,"pago")).isEqualTo(cobros);
+                var cobro=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigo,
+                    caso.recibido(),row.saldo(),caso.destino(),referencia,null,true);
+                var entrega=sendPoint(sesion,"POST",ruta,cobro,200);
+                assertThat(entrega.get("vista").get("estadoPedido").asString()).isEqualTo("CERRADO");
+                assertThat(entrega.get("vista").get("saldo").asString()).isEqualTo("0.00");
+                assertThat(sendPoint(sesion,"POST",ruta,cobro,200).get("aceptado").asBoolean()).isTrue();
+                assertThat(count(jdbc,"pago")).isEqualTo(cobros+1);
+
+                var vista=payments.vista(pedido.cotizacion(),cliente,false);
+                if(enOrigen)assertThat(vista.intentos()).anySatisfy(i->{
+                    assertThat(i.referencia()).isEqualTo(referencia);
+                    assertThat(i.estado()).isEqualTo("ACREDITADO");
+                });
+                var pago=vista.pagos().stream().filter(p->p.destinoCobro()!=null).findFirst().orElseThrow();
+                assertThat(pago.medio()).isEqualTo(caso.recibido().name());
+                assertThat(pago.destinoCobro().tipo()).isEqualTo(caso.destino());
+                assertThat(pago.destinoCobro().nombre()).isEqualTo(enOrigen?pedido.oferta().sucursal().nombre():pedido.reserva().nombre());
+                assertThat(get(sesion,ficha,200).get("pagos").toString()).contains(caso.destino().name());
+                var caja=jdbc.query("SELECT s.codigo_publico FROM lamontana.caja_movimiento m JOIN lamontana.sucursal s USING(id_sucursal) WHERE m.codigo=?",
+                    (r,n)->r.getObject(1,UUID.class),pago.codigoPublico());
+                assertThat(caja).isEqualTo(enOrigen?List.of(pedido.oferta().sucursal().codigoPublico()):List.of());
+                var despues=service.finanzas("","",0,correo);
+                BigDecimal cambio=new BigDecimal(transferencia?despues.transferencia():despues.efectivo())
+                    .subtract(new BigDecimal(transferencia?antes.transferencia():antes.efectivo()));
+                assertThat(cambio).isEqualByComparingTo(enOrigen?BigDecimal.ZERO:new BigDecimal(row.saldo()));
+            }
         }finally{limpiar(files);}
     }
 

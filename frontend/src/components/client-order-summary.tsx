@@ -50,6 +50,10 @@ export function ClientOrderSummary({order,actions,onSaved}:{order:Order;actions?
  const dateLabel=new Intl.DateTimeFormat("es-AR",{dateStyle:"medium",timeZone:slot.zonaHoraria}).format(new Date(slot.desde));
  const pendingPayment=order.cobro&&!["PAGO_ACREDITADO","SIN_ANTICIPO"].includes(order.cobro.estado);
  const pendingTransfer=payment?.intentos.some(i=>i.estado==="PENDIENTE");
+ const pointPayments=payment?.pagos.flatMap(p=>{
+  const amount=p.aplicaciones.filter(a=>a.cotizacion===order.cotizacion).reduce((sum,a)=>sum+Number(a.vigente),0);
+  return p.destinoCobro&&amount>0?[{id:p.codigoPublico,medio:p.medio,amount,destino:p.destinoCobro.nombre}]:[];
+ })??[];
  const canReport=payment?.puedeInformar&&Number(payment.pendiente)>0&&!pendingTransfer;
  return <div id="client-order-details" className="client-order-content">
   {actions?actions(disabled=>canReport?<button type="button" disabled={disabled} className="client-button payment-confirm" onClick={()=>setTransferData(payment)}>Informar transferencia</button>:null):canReport&&<div className="client-order-action-buttons"><button type="button" className="client-button payment-confirm" onClick={()=>setTransferData(payment)}>Informar transferencia</button></div>}
@@ -75,7 +79,8 @@ export function ClientOrderSummary({order,actions,onSaved}:{order:Order;actions?
    </section>
    <section className="workspace-panel client-order-card client-order-pay">
     <CardTitle kind="payment">Método de pago</CardTitle>
-    <p className="client-order-method">{o.medioPago==="EFECTIVO"?"Efectivo":"Transferencia"}</p>
+    <p className="client-order-method">{slot.modalidad==="RETIRO_PUNTO_ENTREGA"&&"Medio elegido · "}{o.medioPago==="EFECTIVO"?"Efectivo":"Transferencia"}</p>
+    {pointPayments.map(p=><p className="client-note" key={p.id}><strong>{p.medio==="EFECTIVO"?"Efectivo recibido":"Transferencia acreditada"} · {money(String(p.amount))}</strong><br/>{p.destino}</p>)}
     {payment?<><dl className="client-order-balances"><div><dt>Acreditado y aplicado</dt><dd>{money(payment.aplicado)}</dd></div><div><dt>Saldo pendiente</dt><dd>{money(payment.pendiente)}</dd></div></dl>{payment.intentos.some(i=>i.estado==="PENDIENTE")&&<p className="client-note">Transferencia informada. La imprenta está verificando el pago.</p>}</>:<p role={paymentError?"alert":"status"}>{paymentError?"No pudimos consultar el saldo. Podés volver a consultarlo en los pagos.":"Consultando el saldo…"}</p>}
     {pendingPayment&&!payment?.intentos.some(i=>i.estado==="PENDIENTE")&&<p className="client-order-payment-notice">{order.cobro!.mensaje}</p>}
     <details id="pedido-pagos" className="client-order-context-details"><summary>Ver pagos y comprobantes</summary><PaymentPanel quote={order.cotizacion} compact title="Pagos de tu pedido" allowReport={false} refresh={reportRevision} onChange={paymentChanged}/></details>
