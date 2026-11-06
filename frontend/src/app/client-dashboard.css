@@ -88,7 +88,7 @@
   cursor:pointer;
 }
 .client-current-refresh:disabled { opacity:.75;cursor:wait; }
-.client-current-order :is(a,button,summary):focus-visible { outline:2px solid #ffbb79;outline-offset:3px; }
+.client-current-order :is(a,button):focus-visible { outline:2px solid #ffbb79;outline-offset:3px; }
 
 .client-current-order .order-progress-compact {
   min-width:0;
@@ -130,11 +130,6 @@
 .order-progress-compact .order-progress-summary [data-state=complete] .order-progress-marker { background:#d2f2e1;color:#174b36; }
 .order-progress-compact .order-progress-summary [data-state=pending] .order-progress-marker { background:#2e4c68;color:#e5eff9;border:1px solid #ffffff50; }
 .order-progress-compact .order-progress-summary [aria-current=step] .order-progress-marker { background:#ffad67;color:#272013; }
-.order-progress-compact .order-progress-details { margin:0;padding-top:8px;border-color:#ffffff30; }
-.order-progress-compact .order-progress-details > summary { color:#e5eff9;line-height:1.45; }
-.order-progress-compact .order-progress-detail-list { grid-template-columns:minmax(0,1fr);color:var(--ui-text,#1c3859); }
-.order-progress-compact .order-progress-detail-list > li { background:var(--ui-surface,#f5f8fc); }
-.order-progress-compact .order-progress-detail-list > li[data-state=current] { background:var(--ui-info-bg,#edf4ff); }
 .order-progress-compact .order-progress-note { color:var(--ui-info-text,#224d80); }
 .order-progress-compact :is(.order-progress-note,.client-warning) { margin:8px 0;padding:8px 10px;font-size:12px; }
 

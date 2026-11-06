@@ -31,7 +31,7 @@ export type TrackingOrder=Pick<Order,"estado"|"estadoLogistico"|"confirmadaEn"|"
 export type TrackingStep={id:string;label:string;state:"complete"|"current"|"pending"|"recorded"|"stopped";date:string|null};
 export type OrderTracking={label:string;steps:TrackingStep[];notice:string|null;unavailable:boolean};
 export type TrackingSummaryStep=TrackingStep&{detailIds:string[]};
-const labels:Record<string,string>={received:"Pedido recibido",payment:"Condición económica",review:"Revisión humana",approved:"Aprobado",production:"Producción y calidad",ready:"Listo para retirar",preparing:"Preparación del envío",prepared:"Preparado para salir",travel:"En viaje",absent:"Entrega pendiente · cliente ausente",point:"Disponible en destino de retiro",delivered:"Entregado",closed:"Finalizado"};
+const labels:Record<string,string>={received:"Pedido recibido",payment:"Condición económica",review:"Revisión humana",approved:"Aprobado",production:"Producción y calidad",ready:"Disponible para retirar",preparing:"Preparación del envío",prepared:"Preparado para salir",travel:"En viaje",absent:"Entrega pendiente · cliente ausente",point:"Disponible para retirar en destino",delivered:"Entregado",closed:"Finalizado"};
 const knownOrders=["PENDIENTE_REVISION","CORRECCION_SOLICITADA","APROBADO","EN_PRODUCCION","LISTO_PARA_ENTREGA","ENTREGADO","CERRADO","CANCELADO","RECHAZADO"];
 const shipmentStates:Record<string,string>={PENDIENTE_PREPARACION:"preparing",PREPARADO:"prepared",EN_VIAJE:"travel",CLIENTE_AUSENTE:"absent",DISPONIBLE_PUNTO:"point"};
 
@@ -85,23 +85,29 @@ export function orderTracking(order:TrackingOrder):OrderTracking{
   return {label,steps,notice:absence?"No encontramos a una persona para recibir el pedido. La entrega sigue pendiente; coordiná un nuevo intento con la imprenta. Conservá tu código.":correction?"La imprenta solicitó una corrección. Revisá lo solicitado para poder continuar.":current==="production"?"Producción y control de calidad comparten esta etapa. El pedido estará listo cuando el personal registre los controles requeridos.":current==="point"?"El pedido ya llegó al destino acordado. Consultá la franja de retiro; la llegada no significa que ya fue entregado al cliente.":null,unavailable:false};
 }
 
-/** Five public milestones keep the overview readable; the original events remain available as detail. */
+/** The overview separates travel from pickup availability when the order has a transfer. */
 export function orderTrackingSummary(order:TrackingOrder,steps:TrackingStep[]):TrackingSummaryStep[]{
   if(!steps.length)return [];
-  const directPickup=order.reserva.modalidad==="RETIRO_SUCURSAL"&&!order.retiroConTraslado;
   const groups=[
     {id:"received",label:"Pedido recibido",detailIds:["received"]},
     {id:"approval",label:"Revisión y aprobación",detailIds:["payment","review","approved"]},
     {id:"production",label:"Producción y calidad",detailIds:["production"]},
-    {id:"delivery",label:directPickup?"Retiro en sucursal":order.reserva.modalidad==="ENVIO_DOMICILIO"?"Entrega a domicilio":"Traslado y retiro",detailIds:["ready","preparing","prepared","travel","absent","point"]},
-    {id:"finished",label:"Entrega y finalización",detailIds:["delivered","closed","stopped"]},
   ];
+  if(steps.some(step=>step.id==="travel")){
+    groups.push({id:"travel",label:"En viaje",detailIds:["preparing","prepared","travel"]});
+  }
+  if(order.reserva.modalidad!=="ENVIO_DOMICILIO"){
+    groups.push({id:"pickup",label:"Disponible para retirar",detailIds:["ready","point"]});
+  }
+  groups.push({id:"finished",label:"Entrega y finalización",detailIds:["absent","delivered","closed","stopped"]});
+
   return groups.map(group=>{
     const members=steps.filter(step=>group.detailIds.includes(step.id));
     const active=members.find(step=>step.state==="current"||step.state==="stopped");
     const completed=members.length>0&&members.every(step=>["complete","recorded"].includes(step.state));
     const state=active?.state??(completed?"complete":"pending");
-    const dated=[...members].reverse().find(step=>step.date)?.date??null;
-    return {...group,state,date:active?.date??dated};
+    const label=active&&(group.id==="travel"||active.id==="absent")?active.label:group.label;
+    const dated=group.id==="travel"?members.find(step=>step.id==="travel"):[...members].reverse().find(step=>step.date);
+    return {...group,label,state,date:(active??dated)?.date??null};
   });
 }

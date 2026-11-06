@@ -28,9 +28,11 @@ test('producción y calidad se agrupan sin inventar una aprobación de calidad',
 test('retiro local listo no muestra logística de reparto',()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'LISTO_RETIRO'});assert.equal(actual(p)[0].id,'ready');assert.match(orderTrackingLabel(p),/Disponible para retirar/);assert(!orderTracking(p).steps.some(s=>s.id==='travel'));
 });
-test('el resumen público agrupa el recorrido real en cinco etapas y conserva el detalle',()=>{
+test('el resumen de retiro directo muestra disponibilidad y finalización, sin viaje',()=>{
  const local=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'LISTO_RETIRO'}),tracking=orderTracking(local),summary=orderTrackingSummary(local,tracking.steps);
- assert.equal(summary.length,5);assert.equal(summary.find(s=>s.state==='current').id,'delivery');assert.equal(summary[3].label,'Retiro en sucursal');
+ assert.deepEqual(summary.map(s=>s.id),['received','approval','production','pickup','finished']);
+ assert.equal(summary.find(s=>s.state==='current').label,'Disponible para retirar');
+ assert.equal(summary.at(-1).label,'Entrega y finalización');
  assert.ok(tracking.steps.length>summary.length);assert.ok(tracking.steps.some(s=>s.id==='review'));
 });
 for(const [logistic,id] of [['PENDIENTE_PREPARACION','preparing'],['PREPARADO','prepared'],['EN_VIAJE','travel'],['DISPONIBLE_PUNTO','point']])test(`punto de entrega: ${logistic} usa el estado logístico real`,()=>{
@@ -38,6 +40,9 @@ for(const [logistic,id] of [['PENDIENTE_PREPARACION','preparing'],['PREPARADO','
 });
 test('domicilio incluye viaje y excluye disponibilidad en punto',()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'EN_VIAJE',reserva:{modalidad:'ENVIO_DOMICILIO'}});assert.equal(actual(p)[0].id,'travel');assert(!orderTracking(p).steps.some(s=>s.id==='point'));assert.equal(orderTrackingLabel(p),'En viaje');
+ const summary=orderTrackingSummary(p,orderTracking(p).steps);
+ assert.equal(summary.find(s=>s.state==='current').label,'En viaje');
+ assert.ok(!summary.some(s=>s.id==='pickup'));
 });
 test('corrección después de aprobación vuelve a pedir intervención sin mostrar aprobación completada',()=>{
  const p=pedido({estado:'CORRECCION_SOLICITADA',aprobadaEn:'2026-10-20T12:01:00Z',historial:[{estado:'APROBADO',fecha:'2026-10-20T12:01:00Z'},{estado:'CORRECCION_SOLICITADA',fecha:'2026-10-20T12:02:00Z'}]});const r=orderTracking(p);assert.equal(actual(p)[0].label,'Corrección solicitada');assert.equal(r.steps.find(s=>s.id==='approved').state,'pending');assert.equal(r.steps.find(s=>s.id==='approved').date,null);
@@ -72,13 +77,30 @@ test('la llegada real anticipada tiene fecha propia, sin modificar la de calidad
  assert.equal(result.steps.find(s=>s.id==='preparing').date,'2026-10-27T10:00:00Z');
  assert.equal(actual(p)[0].date,'2026-10-27T10:30:00Z');
  assert.equal(result.steps.find(s=>s.id==='delivered').state,'pending');
+ const summary=orderTrackingSummary(p,result.steps);
+ assert.deepEqual(summary.map(s=>s.id),['received','approval','production','travel','pickup','finished']);
+ assert.deepEqual(summary.slice(3).map(({label,state,date})=>[label,state,date]),[
+  ['En viaje','complete','2026-10-27T10:10:00Z'],
+  ['Disponible para retirar','current','2026-10-27T10:30:00Z'],
+  ['Entrega y finalización','pending',null],
+ ]);
 });
 
 for(const [state,id] of [['PENDIENTE_PREPARACION','preparing'],['PREPARADO','prepared'],['EN_VIAJE','travel'],['DISPONIBLE_PUNTO','point']])test(`otra sucursal: ${state} requiere recorrido guardado`,()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:state,oferta:{entrega:{llegadaEstimada:'2099-01-01T12:00:00Z'}}});
  assert.equal(actual(p)[0].id,id);assert(!orderTracking(p).steps.some(s=>s.id==='ready'));
  assert.equal(orderTracking(p).steps.find(s=>s.id==='delivered').state,'pending');
+ const summary=orderTrackingSummary(p,orderTracking(p).steps);
+ assert.equal(summary.find(s=>s.state==='current').id,id==='point'?'pickup':'travel');
+ if(id==='preparing'||id==='prepared')assert.equal(summary.find(s=>s.state==='current').label,actual(p)[0].label);
  if(id==='point')assert.match(orderTracking(p).notice,/franja de retiro/);
+});
+test('el resumen de viaje no usa la fecha de preparación como fecha de salida',()=>{
+ const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'EN_VIAJE',reserva:{modalidad:'RETIRO_PUNTO_ENTREGA'},historial:[
+  {estado:'LISTO_PARA_ENTREGA',accion:'PREPARAR_ENVIO',fecha:'2026-11-02T12:00:00Z'},
+ ]});
+ const travel=orderTrackingSummary(p,orderTracking(p).steps).find(s=>s.id==='travel');
+ assert.equal(travel.state,'current');assert.equal(travel.date,null);
 });
 test('una estimación vencida no avanza el timeline sin movimiento real',()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'PENDIENTE_PREPARACION',oferta:{entrega:{llegadaEstimada:'2000-01-01T12:00:00Z'}}});
@@ -101,6 +123,9 @@ test('manual sin anticipo espera revisión humana, no un cobro inexistente',()=>
 });
 test('ausencia a domicilio conserva el viaje, la fecha del intento y la entrega pendiente',()=>{
  const p=pedido({estado:'LISTO_PARA_ENTREGA',estadoLogistico:'CLIENTE_AUSENTE',reserva:{modalidad:'ENVIO_DOMICILIO'},historial:[{estado:'LISTO_PARA_ENTREGA',accion:'SALIR_REPARTO',fecha:'2026-11-02T12:00:00Z'},{estado:'LISTO_PARA_ENTREGA',accion:'CLIENTE_AUSENTE',fecha:'2026-11-02T12:30:00Z'}]});
- const result=orderTracking(p);assert.equal(result.unavailable,false);assert.equal(actual(p)[0].id,'absent');assert.equal(actual(p)[0].date,'2026-11-02T12:30:00Z');assert.match(result.label,/ausente/);assert.match(result.notice,/Conservá tu código/);assert.equal(result.steps.find(s=>s.id==='delivered').state,'pending');assert.equal(orderTrackingSummary(p,result.steps).find(s=>s.state==='current').id,'delivery');
+ const result=orderTracking(p);assert.equal(result.unavailable,false);assert.equal(actual(p)[0].id,'absent');assert.equal(actual(p)[0].date,'2026-11-02T12:30:00Z');assert.match(result.label,/ausente/);assert.match(result.notice,/Conservá tu código/);assert.equal(result.steps.find(s=>s.id==='delivered').state,'pending');
+ const summary=orderTrackingSummary(p,result.steps);
+ assert.equal(summary.find(s=>s.id==='travel').state,'complete');
+ assert.equal(summary.find(s=>s.state==='current').label,'Entrega pendiente · cliente ausente');
  const retry={...p,estadoLogistico:'EN_VIAJE',historial:[...p.historial,{estado:'LISTO_PARA_ENTREGA',accion:'REINTENTAR_ENTREGA',fecha:'2026-11-02T14:00:00Z'}]};assert.equal(actual(retry)[0].id,'travel');assert.equal(actual(retry)[0].date,'2026-11-02T14:00:00Z');
 });
