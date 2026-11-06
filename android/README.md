@@ -5,20 +5,23 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 ## Estado v0.1
 
 - Login real contra `POST /api/auth/login` y consulta de `GET /api/auth/me`.
-- Enrutamiento por perfil: cuenta de punto, empleado pendiente de contrato rider o cuenta no habilitada.
+- Enrutamiento por perfil: mostrador del punto, recorridos del rider o cuenta sin acceso a Android.
 - Mostrador mobile con cabecera, contadores y menú **Por llegar / Para retirar / Entregados / Finanzas**.
 - Contexto real del punto mediante `GET /api/punto/contexto` y primeras bandejas reales mediante `POST /api/punto/pedidos/buscar` con sesión y CSRF.
-- Cliente HTTP con sesión por cookie y preparación CSRF para las próximas mutaciones.
+- Cliente HTTP con sesión por cookie y CSRF para registrar movimientos.
 - Las tarjetas del `@Preview` usan ejemplos exclusivamente visuales; al ejecutar la app, las bandejas y la búsqueda muestran la respuesta real del backend.
-- Recepción, detalle, entrega/cobro y finanzas se conectarán en el siguiente incremento.
-- Rider no se simula: la pantalla informa que falta la asignación individual de recorridos en el backend.
-- La composición `RiderRouteScreen` y su `@Preview` muestran el recorrido asignado, pedidos agrupados por parada y direcciones. La referencia exportada está en `docs/mockups/android-v0-rider-recorrido.svg`; todavía no consume recorridos reales.
+- El rider consulta sus recorridos y selecciona los pedidos que dejó en cada punto. La presentación deja el lote pendiente de recepción.
+- En **Por llegar**, el punto confirma la recepción física de los pedidos presentados. Después aparecen en **Para retirar**.
+- La ficha del punto muestra el estado, los trabajos, la franja y el saldo. Permite entregar con código y, cuando el servidor lo habilita, cobrar efectivo y entregar en una sola operación.
+- Los movimientos de finanzas y el registro de transferencias se gestionan desde el mostrador web.
 
 ## Abrir en Android Studio
 
 Abrir la carpeta `android/`. El proyecto usa Java 17, Android Gradle Plugin 9.5, Kotlin 2.4.10, `compileSdk 37` y Compose BOM `2026.09.00`.
 
 El desarrollo Android usa de forma predeterminada el entorno `pruebas`: la Web se abre en `http://localhost:3100` y su backend se publica en `http://localhost:8180`. Desde el emulador, la PC anfitriona se alcanza como `10.0.2.2`, por lo que la app utiliza `http://10.0.2.2:8180`.
+
+Para probar la recepción de lotes, levantá primero la rama `pruebas` actualizada desde la copia web.
 
 La URL puede reemplazarse en `~/.gradle/gradle.properties` cuando sea necesario apuntar a otro entorno:
 

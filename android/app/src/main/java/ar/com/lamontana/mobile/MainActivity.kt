@@ -33,9 +33,11 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
@@ -66,6 +68,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import ar.com.lamontana.mobile.model.MobileDestination
 import ar.com.lamontana.mobile.model.PointContext
 import ar.com.lamontana.mobile.model.PointOrder
+import ar.com.lamontana.mobile.model.PointOrderDetail
+import ar.com.lamontana.mobile.model.PointPage
 import ar.com.lamontana.mobile.model.PointSection
 import ar.com.lamontana.mobile.ui.Blue
 import ar.com.lamontana.mobile.ui.Canvas
@@ -87,12 +91,11 @@ fun LaMontanaApp(vm: AppViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     when (state.destination) {
         MobileDestination.LOGIN -> LoginScreen(state.loading, state.error, vm::login)
-        MobileDestination.POINT -> PointDeskScreen(state.point, state.pointOrders, state.loading, state.error, vm::refreshPoint, vm::loadPointOrders, vm::logout)
-        MobileDestination.RIDER_PENDING -> PendingRoleScreen(
-            title = "Reparto mobile",
-            message = "Tu usuario fue reconocido. La asignación individual de recorridos todavía no está habilitada en el backend.",
-            onLogout = vm::logout,
+        MobileDestination.POINT -> PointDeskScreen(
+            state, vm::refreshPoint, vm::loadPointOrders, vm::openPointOrder,
+            vm::closePointOrder, vm::receivePointOrders, vm::deliverPointOrder, vm::logout,
         )
+        MobileDestination.RIDER -> RiderDesk(state, vm::refreshRider, vm::presentRiderOrders, vm::riderAction, vm::logout)
         MobileDestination.UNSUPPORTED -> PendingRoleScreen(
             title = "Acceso no disponible",
             message = state.error ?: "Esta cuenta no tiene una experiencia Android habilitada.",
@@ -158,23 +161,28 @@ private fun LoginScreen(loading: Boolean, error: String?, onLogin: (String, Stri
 
 @Composable
 private fun PointDeskScreen(
-    point: PointContext?,
-    orders: List<PointOrder>,
-    loading: Boolean,
-    error: String?,
+    state: AppUiState,
     onRefresh: () -> Unit,
-    onLoadOrders: (PointSection, String) -> Unit,
+    onLoadOrders: (PointSection, String, Int) -> Unit,
+    onOpenOrder: (PointOrder) -> Unit,
+    onCloseOrder: () -> Unit,
+    onReceive: (Set<String>) -> Unit,
+    onDeliver: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
-    var section by remember { mutableStateOf(PointSection.READY) }
+    val section = state.pointSection
+    val point = state.point
+    val loading = state.loading
+    val page = state.pointPage
     Scaffold(
-        topBar = { MobileHeader("RETIRO DE PEDIDOS", onRefresh, onLogout) },
+        topBar = { MobileHeader("RETIRO DE PEDIDOS", onRefresh, onLogout, loading) },
         bottomBar = {
             NavigationBar(containerColor = Color.White) {
                 PointSection.entries.forEach { item ->
                     NavigationBarItem(
                         selected = section == item,
-                        onClick = { section = item; onLoadOrders(item, "") },
+                        enabled = !loading,
+                        onClick = { if (item != section) onLoadOrders(item, "", 0) },
                         icon = { Icon(sectionIcon(item), null) },
                         label = { Text(item.title, fontSize = 10.sp) },
                     )
@@ -194,45 +202,84 @@ private fun PointDeskScreen(
                 Counter("Para retirar", point?.disponibles, Green, Modifier.weight(1f))
                 Counter("Entregados", point?.entregados, Blue, Modifier.weight(1f))
             }
-            if (error != null) Notice(error, Color(0xFFFFE9E7), Color(0xFF9B1C1C))
+            if (state.pointDetail == null) state.error?.let { Notice(it, Color(0xFFFFE9E7), Color(0xFF9B1C1C)) }
+            state.message?.let { Notice(it, Color(0xFFE5F5EA), Green) }
             if (loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(24.dp))
-            when (section) {
-                PointSection.ARRIVING -> OrdersSection(section, orders, onLoadOrders)
-                PointSection.READY -> OrdersSection(section, orders, onLoadOrders)
-                PointSection.DELIVERED -> OrdersSection(section, orders, onLoadOrders)
-                PointSection.FINANCE -> EmptySection("Finanzas del punto", "Movimientos, efectivo y transferencias de los últimos seis meses.")
+            if (section == PointSection.FINANCE) {
+                EmptySection("Finanzas del punto", "Podés consultar los movimientos desde el mostrador web.")
+            } else {
+                OrdersSection(section, page, state.pointQuery, loading, onLoadOrders, onOpenOrder, onReceive)
             }
         }
+    }
+    state.pointDetail?.let {
+        PointOrderDialog(it, loading, state.error, onCloseOrder, onDeliver)
     }
 }
 
 @Composable
-private fun OrdersSection(section: PointSection, orders: List<PointOrder>, onSearch: (PointSection, String) -> Unit) {
-    var query by remember { mutableStateOf("") }
+private fun OrdersSection(
+    section: PointSection,
+    page: PointPage,
+    appliedQuery: String,
+    loading: Boolean,
+    onSearch: (PointSection, String, Int) -> Unit,
+    onOpen: (PointOrder) -> Unit,
+    onReceive: (Set<String>) -> Unit,
+) {
+    var query by remember(section, appliedQuery) { mutableStateOf(appliedQuery) }
+    var selected by remember(section, page) { mutableStateOf(emptySet<String>()) }
+    var confirming by remember(section, page) { mutableStateOf(false) }
     OutlinedTextField(
         value = query,
         onValueChange = { query = it },
         modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
-        label = { Text("Buscar pedido o cliente") },
+        label = { Text("Buscar pedido, cliente o código") },
         leadingIcon = { Icon(Icons.Default.Search, null) },
-        trailingIcon = { IconButton(onClick = { onSearch(section, query) }) { Icon(Icons.Default.Search, "Buscar") } },
+        trailingIcon = { IconButton(enabled = !loading, onClick = { onSearch(section, query, 0) }) { Icon(Icons.Default.Search, "Buscar") } },
         singleLine = true,
     )
     Text(section.title, modifier = Modifier.padding(top = 22.dp, bottom = 10.dp), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-    if (orders.isEmpty()) EmptySection("Sin pedidos", "No hay pedidos para esta búsqueda.")
-    orders.forEach { order ->
-        SampleOrder(
-            number = "PED-${order.numero}",
-            customer = order.cliente,
-            status = logisticsLabel(order.recorrido),
-            balance = money(order.saldo),
-            cash = order.medio == "EFECTIVO" && order.saldo.toBigDecimalOrNull()?.signum() == 1,
+    if (page.orders.isEmpty() && !loading) EmptySection("Sin pedidos", "No hay pedidos para esta búsqueda.")
+    if (section == PointSection.ARRIVING && page.orders.isNotEmpty()) {
+        Text("Seleccioná los pedidos que el rider ya dejó en el punto.", modifier = Modifier.padding(bottom = 8.dp))
+        Button(enabled = selected.isNotEmpty() && !loading, onClick = { confirming = true }) {
+            Text("Confirmar recepción (${selected.size})")
+        }
+    }
+    page.orders.forEach { order ->
+        PointOrderCard(
+            order = order,
+            enabled = !loading,
+            checked = order.pedido in selected,
+            onSelect = if (section == PointSection.ARRIVING && order.puedeRecibir) {
+                { checked -> selected = if (checked) selected + order.pedido else selected - order.pedido }
+            } else null,
+            onOpen = { onOpen(order) },
+        )
+    }
+    if (page.total > 25) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextButton(enabled = !loading && page.page > 0, onClick = { onSearch(section, appliedQuery, page.page - 1) }) { Text("Anterior") }
+            TextButton(enabled = !loading && (page.page + 1) * 25 < page.total, onClick = { onSearch(section, appliedQuery, page.page + 1) }) { Text("Siguiente") }
+        }
+    }
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text("Confirmar recepción") },
+            text = { Text("Confirmá que recibiste físicamente los ${selected.size} pedidos seleccionados. Pasarán a Para retirar.") },
+            confirmButton = { Button(onClick = { confirming = false; onReceive(selected) }) { Text("Recibí los pedidos") } },
+            dismissButton = { TextButton(onClick = { confirming = false }) { Text("Volver") } },
         )
     }
 }
 
 @Composable
-private fun SampleOrder(number: String, customer: String, status: String, balance: String, cash: Boolean) {
+private fun PointOrderCard(
+    order: PointOrder, enabled: Boolean, checked: Boolean, onSelect: ((Boolean) -> Unit)?, onOpen: () -> Unit,
+) {
+    val status = if (order.puedeRecibir) "Listo para recibir" else logisticsLabel(order.recorrido)
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
         shape = RoundedCornerShape(16.dp),
@@ -240,19 +287,66 @@ private fun SampleOrder(number: String, customer: String, status: String, balanc
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column { Text(number, fontWeight = FontWeight.Bold, fontSize = 18.sp); Text(customer, color = Color(0xFF52677E)) }
+                Column(Modifier.weight(1f)) {
+                    Text("PED-${order.numero}", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text(order.cliente, color = Color(0xFF52677E))
+                }
                 Box(Modifier.clip(RoundedCornerShape(50)).background(Color(0xFFE5F5EA)).padding(horizontal = 10.dp, vertical = 5.dp)) {
                     Text(status, color = Color(0xFF087532), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column { Text("Saldo pendiente", fontSize = 11.sp, color = Color(0xFF6A7B8E)); Text(balance, fontWeight = FontWeight.Bold) }
-                Button(onClick = {}, enabled = false, colors = ButtonDefaults.buttonColors(containerColor = if (cash) Orange else Green)) {
+                Column { Text("Saldo pendiente", fontSize = 11.sp, color = Color(0xFF6A7B8E)); Text(money(order.saldo), fontWeight = FontWeight.Bold) }
+                Button(onClick = onOpen, enabled = enabled) {
                     Text("Abrir pedido", fontSize = 12.sp)
                 }
             }
+            if (onSelect != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked, onSelect, enabled = enabled)
+                Text("Incluir en la recepción")
+            }
         }
     }
+}
+
+@Composable
+private fun PointOrderDialog(
+    detail: PointOrderDetail, loading: Boolean, error: String?, onClose: () -> Unit, onDeliver: (String) -> Unit,
+) {
+    val order = detail.order
+    val canDeliver = order.recorrido == "DISPONIBLE_PUNTO" && (detail.deliveryBlocks.isEmpty() || detail.cashAmount != null)
+    val action = if (detail.cashAmount == null) "Confirmar entrega" else "Confirmar cobro y entrega"
+    var code by remember(order.pedido) { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("PED-${order.numero} · ${order.cliente}") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(if (order.puedeRecibir) "Listo para confirmar recepción" else logisticsLabel(order.recorrido))
+                if (order.franja.isNotBlank()) Text(order.franja)
+                Text("Saldo pendiente: ${money(order.saldo)} · ${logisticsLabel(order.medio)}")
+                detail.works.forEach { Text("${it.nombre} · ${it.paginas} pág. · ${it.copias} copias") }
+                if (order.recorrido == "DISPONIBLE_PUNTO" && detail.cashAmount == null) {
+                    detail.deliveryBlocks.forEach { Text(it) }
+                }
+                detail.cashAmount?.let { if (canDeliver) Text("Confirmá después de recibir ${money(it)} en efectivo.") }
+                if (canDeliver) OutlinedTextField(
+                    value = code,
+                    onValueChange = { code = it.uppercase().trim().take(8) },
+                    label = { Text("Código de entrega") },
+                    enabled = !loading,
+                    singleLine = true,
+                )
+                error?.let { Text(it, color = Color(0xFFB3261E)) }
+            }
+        },
+        confirmButton = {
+            if (canDeliver) Button(enabled = !loading && code.length == 8, onClick = { onDeliver(code) }) {
+                Text(if (loading) "Registrando…" else action)
+            }
+        },
+        dismissButton = { TextButton(enabled = !loading, onClick = onClose) { Text("Cerrar") } },
+    )
 }
 
 @Composable
@@ -271,7 +365,7 @@ private fun PendingRoleScreen(title: String, message: String, onLogout: () -> Un
 }
 
 @Composable
-private fun MobileHeader(section: String, onRefresh: () -> Unit, onLogout: () -> Unit) {
+internal fun MobileHeader(section: String, onRefresh: () -> Unit, onLogout: () -> Unit, loading: Boolean) {
     Row(
         Modifier.fillMaxWidth().background(Navy).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -279,8 +373,8 @@ private fun MobileHeader(section: String, onRefresh: () -> Unit, onLogout: () ->
         Brand(true, compact = true)
         Spacer(Modifier.weight(1f))
         Text(section, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        IconButton(onClick = onRefresh) { Icon(Icons.Default.Refresh, "Actualizar", tint = Color.White) }
-        IconButton(onClick = onLogout) { Icon(Icons.Default.Logout, "Cerrar sesión", tint = Color.White) }
+        IconButton(enabled = !loading, onClick = onRefresh) { Icon(Icons.Default.Refresh, "Actualizar", tint = Color.White) }
+        IconButton(enabled = !loading, onClick = onLogout) { Icon(Icons.Default.Logout, "Cerrar sesión", tint = Color.White) }
     }
 }
 
@@ -338,7 +432,7 @@ private fun Counter(label: String, value: Int?, color: Color, modifier: Modifier
 }
 
 @Composable
-private fun Notice(text: String, background: Color, foreground: Color) {
+internal fun Notice(text: String, background: Color, foreground: Color) {
     Box(Modifier.fillMaxWidth().padding(top = 14.dp).clip(RoundedCornerShape(12.dp)).background(background).padding(14.dp)) {
         Text(text, color = foreground, fontSize = 13.sp)
     }
@@ -361,7 +455,7 @@ private fun sectionIcon(section: PointSection): ImageVector = when (section) {
     PointSection.FINANCE -> Icons.Default.AccountBalanceWallet
 }
 
-private fun logisticsLabel(value: String): String = when (value) {
+internal fun logisticsLabel(value: String): String = when (value) {
     "EN_VIAJE" -> "En viaje"
     "DISPONIBLE_PUNTO", "LISTO_RETIRO" -> "Disponible para retirar"
     "ENTREGADO" -> "Entregado"
@@ -381,15 +475,13 @@ private fun LoginPreview() = LaMontanaTheme { LoginScreen(false, null) { _, _ ->
 @Composable
 private fun PointPreview() = LaMontanaTheme {
     PointDeskScreen(
-        PointContext("1", "Punto Caballito", "Responsable Caballito", true, 3, 5, 18),
-        listOf(
-            PointOrder("1", 176, "Martín Gómez", "LISTO_PARA_ENTREGA", "DISPONIBLE_PUNTO", "1137.00", "EFECTIVO", "2026-11-02T12:00:00Z"),
-            PointOrder("2", 143, "Sofía Rossi", "LISTO_PARA_ENTREGA", "DISPONIBLE_PUNTO", "0.00", "TRANSFERENCIA", "2026-11-02T12:00:00Z"),
+        AppUiState(
+            point = PointContext("1", "Punto Caballito", "Responsable Caballito", true, 3, 5, 18),
+            pointPage = PointPage(listOf(
+                PointOrder("1", 176, "Martín Gómez", "LISTO_PARA_ENTREGA", "DISPONIBLE_PUNTO", "1137.00", "EFECTIVO", "2026-11-02T12:00:00Z"),
+                PointOrder("2", 143, "Sofía Rossi", "LISTO_PARA_ENTREGA", "DISPONIBLE_PUNTO", "0.00", "TRANSFERENCIA", "2026-11-02T12:00:00Z"),
+            ), 2, 0),
         ),
-        false,
-        null,
-        {},
-        { _, _ -> },
-        {},
+        {}, { _, _, _ -> }, {}, {}, {}, {}, {},
     )
 }

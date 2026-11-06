@@ -18,7 +18,7 @@ class ProfileRoutingTest {
 
     @Test
     fun enabledRiderOpensAssignedRouteExperience() {
-        assertEquals(MobileDestination.RIDER_PENDING, destinationFor(profile(rider = true)))
+        assertEquals(MobileDestination.RIDER, destinationFor(profile(rider = true)))
     }
 
     @Test
