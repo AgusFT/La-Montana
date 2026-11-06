@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,6 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +56,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -69,6 +73,7 @@ import ar.com.lamontana.mobile.model.MobileDestination
 import ar.com.lamontana.mobile.model.PointContext
 import ar.com.lamontana.mobile.model.PointOrder
 import ar.com.lamontana.mobile.model.PointOrderDetail
+import ar.com.lamontana.mobile.model.PointPayment
 import ar.com.lamontana.mobile.model.PointPage
 import ar.com.lamontana.mobile.model.PointSection
 import ar.com.lamontana.mobile.ui.Blue
@@ -167,7 +172,7 @@ private fun PointDeskScreen(
     onOpenOrder: (PointOrder) -> Unit,
     onCloseOrder: () -> Unit,
     onReceive: (Set<String>) -> Unit,
-    onDeliver: (String) -> Unit,
+    onDeliver: (String, PointPayment?) -> Unit,
     onLogout: () -> Unit,
 ) {
     val section = state.pointSection
@@ -213,7 +218,7 @@ private fun PointDeskScreen(
         }
     }
     state.pointDetail?.let {
-        PointOrderDialog(it, loading, state.error, onCloseOrder, onDeliver)
+        PointOrderDialog(it, point?.nombre.orEmpty(), loading, state.error, onCloseOrder, onDeliver)
     }
 }
 
@@ -311,12 +316,24 @@ private fun PointOrderCard(
 
 @Composable
 private fun PointOrderDialog(
-    detail: PointOrderDetail, loading: Boolean, error: String?, onClose: () -> Unit, onDeliver: (String) -> Unit,
+    detail: PointOrderDetail,
+    pointName: String,
+    loading: Boolean,
+    error: String?,
+    onClose: () -> Unit,
+    onDeliver: (String, PointPayment?) -> Unit,
 ) {
     val order = detail.order
-    val canDeliver = order.recorrido == "DISPONIBLE_PUNTO" && (detail.deliveryBlocks.isEmpty() || detail.cashAmount != null)
-    val action = if (detail.cashAmount == null) "Confirmar entrega" else "Confirmar cobro y entrega"
+    val collect = order.recorrido == "DISPONIBLE_PUNTO" && detail.paymentMethods.isNotEmpty()
+    val canDeliver = order.recorrido == "DISPONIBLE_PUNTO" && (detail.deliveryBlocks.isEmpty() || collect)
+    val action = if (collect) "Confirmar cobro y entrega" else "Confirmar entrega"
     var code by remember(order.pedido) { mutableStateOf("") }
+    var method by remember(order.pedido, detail.paymentMethods) {
+        mutableStateOf(order.medio.takeIf { it in detail.paymentMethods } ?: detail.paymentMethods.firstOrNull().orEmpty())
+    }
+    var destination by remember(order.pedido) { mutableStateOf("SUCURSAL_ORIGEN") }
+    var reference by remember(order.pedido) { mutableStateOf("") }
+    val transfer = collect && method == "TRANSFERENCIA"
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text("PED-${order.numero} · ${order.cliente}") },
@@ -324,12 +341,48 @@ private fun PointOrderDialog(
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(if (order.puedeRecibir) "Listo para confirmar recepción" else logisticsLabel(order.recorrido))
                 if (order.franja.isNotBlank()) Text(order.franja)
-                Text("Saldo pendiente: ${money(order.saldo)} · ${logisticsLabel(order.medio)}")
+                Text("Saldo pendiente: ${money(order.saldo)}")
+                if (collect) Text("Medio elegido al hacer el pedido: ${logisticsLabel(order.medio)}")
                 detail.works.forEach { Text("${it.nombre} · ${it.paginas} pág. · ${it.copias} copias") }
-                if (order.recorrido == "DISPONIBLE_PUNTO" && detail.cashAmount == null) {
+                detail.receipts.forEach {
+                    Text("${logisticsLabel(it.medio)} · ${money(it.importe)} · ${it.destino}")
+                }
+                if (order.recorrido == "DISPONIBLE_PUNTO" && !collect) {
                     detail.deliveryBlocks.forEach { Text(it) }
                 }
-                detail.cashAmount?.let { if (canDeliver) Text("Confirmá después de recibir ${money(it)} en efectivo.") }
+                if (collect) {
+                    Text("Medio de pago recibido", fontWeight = FontWeight.Bold)
+                    Column(Modifier.selectableGroup()) {
+                        detail.paymentMethods.forEach { option ->
+                            PaymentOption(logisticsLabel(option), method == option, !loading) { method = option }
+                        }
+                    }
+                    if (transfer) {
+                        Text("Cuenta que recibió la transferencia", fontWeight = FontWeight.Bold)
+                        Column(Modifier.selectableGroup()) {
+                            PaymentOption("Sucursal de origen · ${detail.originBranch}", destination == "SUCURSAL_ORIGEN", !loading) {
+                                destination = "SUCURSAL_ORIGEN"
+                            }
+                            PaymentOption("Punto de entrega · $pointName", destination == "PUNTO_ENTREGA", !loading) {
+                                destination = "PUNTO_ENTREGA"
+                            }
+                        }
+                        OutlinedTextField(
+                            value = reference,
+                            onValueChange = { reference = it.take(160) },
+                            label = { Text("Número de operación") },
+                            enabled = !loading,
+                            singleLine = true,
+                        )
+                        Text(if (destination == "SUCURSAL_ORIGEN") {
+                            "Confirmá cuando la sucursal verifique la acreditación."
+                        } else {
+                            "Verificá la acreditación en la cuenta del punto antes de confirmar."
+                        })
+                    } else {
+                        Text("Confirmá después de recibir el efectivo en el punto.")
+                    }
+                }
                 if (canDeliver) OutlinedTextField(
                     value = code,
                     onValueChange = { code = it.uppercase().trim().take(8) },
@@ -341,12 +394,36 @@ private fun PointOrderDialog(
             }
         },
         confirmButton = {
-            if (canDeliver) Button(enabled = !loading && code.length == 8, onClick = { onDeliver(code) }) {
+            if (canDeliver) Button(
+                enabled = !loading && code.length == 8 && (!transfer || reference.isNotBlank()),
+                onClick = {
+                    val payment = if (!collect) null else PointPayment(
+                        method,
+                        if (transfer) destination else "PUNTO_ENTREGA",
+                        reference.trim().takeIf { transfer },
+                    )
+                    onDeliver(code, payment)
+                },
+            ) {
                 Text(if (loading) "Registrando…" else action)
             }
         },
         dismissButton = { TextButton(enabled = !loading, onClick = onClose) { Text("Cerrar") } },
     )
+}
+
+@Composable
+private fun PaymentOption(label: String, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth()
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        RadioButton(selected = selected, onClick = null, enabled = enabled)
+        Text(label)
+    }
 }
 
 @Composable

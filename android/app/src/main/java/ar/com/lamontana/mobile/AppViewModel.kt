@@ -9,6 +9,7 @@ import ar.com.lamontana.mobile.model.OrderVersion
 import ar.com.lamontana.mobile.model.PointContext
 import ar.com.lamontana.mobile.model.PointOrder
 import ar.com.lamontana.mobile.model.PointOrderDetail
+import ar.com.lamontana.mobile.model.PointPayment
 import ar.com.lamontana.mobile.model.PointPage
 import ar.com.lamontana.mobile.model.PointSection
 import ar.com.lamontana.mobile.model.Profile
@@ -93,11 +94,11 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
         }
     }
 
-    fun deliverPointOrder(code: String) {
+    fun deliverPointOrder(code: String, payment: PointPayment?) {
         val detail = state.value.pointDetail ?: return
         if (state.value.loading || !validCode(code)) return
-        val operation = operationFor(listOf(detail.order.pedido, detail.order.version, detail.cashAmount, code))
-        request({ api.deliverAtPoint(operation, detail, code) }) { result ->
+        val operation = operationFor(listOf(detail.order.pedido, detail.order.version, detail.order.saldo, payment, code))
+        request({ api.deliverAtPoint(operation, detail, code, payment) }) { result ->
             if (result.accepted) closePointOrder()
             actionFinished(result, ::refreshPoint)
         }

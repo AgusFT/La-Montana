@@ -6,6 +6,8 @@ import ar.com.lamontana.mobile.model.OrderVersion
 import ar.com.lamontana.mobile.model.PointContext
 import ar.com.lamontana.mobile.model.PointOrder
 import ar.com.lamontana.mobile.model.PointOrderDetail
+import ar.com.lamontana.mobile.model.PointPayment
+import ar.com.lamontana.mobile.model.PointReceipt
 import ar.com.lamontana.mobile.model.PointPage
 import ar.com.lamontana.mobile.model.PointSection
 import ar.com.lamontana.mobile.model.PointWork
@@ -96,7 +98,8 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
         val delivery = detail.getJSONObject("entrega")
         val work = detail.getJSONArray("trabajos")
         val blocks = delivery.getJSONArray("bloqueosEntrega")
-        val cash = delivery.optJSONObject("cobroEfectivo")?.takeIf { it.optBoolean("habilitado") }
+        val methods = detail.optJSONArray("mediosSaldo") ?: JSONArray()
+        val payments = detail.optJSONArray("pagos") ?: JSONArray()
         return PointOrderDetail(
             order = pointOrder(detail.getJSONObject("pedido")),
             works = List(work.length()) {
@@ -104,8 +107,16 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
                 PointWork(item.getString("nombre"), item.getInt("paginas"), item.getInt("copias"))
             },
             deliveryBlocks = List(blocks.length()) { blocks.getString(it) },
-            cashAmount = cash?.getString("importe"),
-            canCloseWithCash = cash?.optBoolean("puedeCerrar") == true,
+            paymentMethods = List(methods.length()) { methods.getString(it) },
+            originBranch = detail.optString("sucursalOrigen"),
+            receipts = List(payments.length()) {
+                val payment = payments.getJSONObject(it)
+                PointReceipt(
+                    payment.getString("medio"),
+                    payment.getString("importe"),
+                    payment.getJSONObject("destinoCobro").getString("nombre"),
+                )
+            },
         )
     }
 
@@ -114,12 +125,15 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
         secureRequest("/api/punto/recibir", "POST", body.toString())
     }
 
-    fun deliverAtPoint(operation: String, detail: PointOrderDetail, code: String): ActionResult {
+    fun deliverAtPoint(operation: String, detail: PointOrderDetail, code: String, payment: PointPayment?): ActionResult {
         val body = confirmedAction(operation, detail.order.version).put("codigo", code)
-        val action = detail.cashAmount?.let {
-            body.put("importe", it).put("cerrar", detail.canCloseWithCash)
-            "efectivo-entrega"
-        } ?: "entregar"
+        val action = if (payment == null) "entregar" else {
+            body.put("importe", detail.order.saldo)
+                .put("medio", payment.medio)
+                .put("destino", payment.destino)
+                .put("referencia", payment.referencia)
+            "cobro-entrega"
+        }
         return actionResult(secureRequest("/api/punto/pedidos/${detail.order.pedido}/$action", "POST", body.toString()))
     }
 

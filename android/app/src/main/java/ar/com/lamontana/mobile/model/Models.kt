@@ -36,12 +36,15 @@ data class PointOrder(
 
 data class PointPage(val orders: List<PointOrder>, val total: Int, val page: Int)
 data class PointWork(val nombre: String, val paginas: Int, val copias: Int)
+data class PointPayment(val medio: String, val destino: String, val referencia: String?)
+data class PointReceipt(val medio: String, val importe: String, val destino: String)
 data class PointOrderDetail(
     val order: PointOrder,
     val works: List<PointWork>,
     val deliveryBlocks: List<String>,
-    val cashAmount: String?,
-    val canCloseWithCash: Boolean,
+    val paymentMethods: List<String>,
+    val originBranch: String,
+    val receipts: List<PointReceipt>,
 )
 
 data class RiderRoute(val id: String, val orders: List<RiderOrder>)
