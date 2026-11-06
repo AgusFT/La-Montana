@@ -43,7 +43,7 @@ Al iniciar sesión, el rider ve exclusivamente:
 - incidencias propias;
 - recorridos finalizados por esa identidad.
 
-La referencia visual está en [Rider · recorrido y parada](mockups/android-v0-rider-recorrido.svg).
+La referencia visual está en [Rider · recorrido y parada](https://github.com/AgusFT/La-Montana/blob/android/docs/mockups/android-v0-rider-recorrido.svg).
 
 Una parada en punto agrupa todos los pedidos destinados al mismo kiosco. El rider presenta el lote y la cuenta del punto confirma la recepción. En domicilio, el rider ingresa el código del cliente; si corresponde efectivo, sólo podrá cobrar cuando tenga permiso explícito y el backend ofrezca la acción atómica de cobro y entrega.
 

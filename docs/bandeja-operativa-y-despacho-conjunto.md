@@ -33,7 +33,7 @@ La selección abarca hasta 25 pedidos de la página actual. Cambiar tarea, filtr
 
 Cada pedido conserva su evento con usuario, fecha, hora e identificador del grupo. El despacho reutiliza la generación automática de su código y aviso al cliente. La migración V48 agrega la constancia inmutable del grupo; un reintento idéntico devuelve el resultado guardado y no repite movimientos. Reutilizar su UUID con otros pedidos o acción se rechaza. La interfaz conserva el mismo intento ante una respuesta incierta.
 
-El despacho conjunto exige elegir una cuenta individual de rider activa. Una única transacción crea el recorrido, registra la custodia, vincula sus pedidos y los pone en viaje; si uno cambió de versión o perdió calidad, no modifica ninguno. El rider puede consultar sólo su manifiesto activo desde Android. Véase [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
+El despacho conjunto exige elegir una cuenta individual de rider activa. Una única transacción crea el recorrido, registra la custodia, vincula sus pedidos y los pone en viaje; si uno cambió de versión o perdió calidad, no modifica ninguno. El rider puede consultar sólo su manifiesto activo desde Android. Véase [Android Mobile: alcance y flujos de puntos de retiro y reparto](https://github.com/AgusFT/La-Montana/blob/android/docs/mobile-android-alcance-y-flujos.md).
 
 La asignación se administra desde **Empleados → Habilitar como rider** y es obligatoria al salir, incluso para un solo pedido. El detalle de un pedido preparado tiene un acceso directo a esta bandeja. Preparar el grupo no exige rider. Una reasignación posterior deberá registrarse como traspaso explícito, no como edición del historial.
 

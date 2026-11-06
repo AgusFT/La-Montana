@@ -29,4 +29,4 @@ La prueba heredada `ActivacionConfiguracionIntegrationTest.entregasTresModalidad
 
 ## Proyección mobile
 
-La futura experiencia del repartidor conserva este mismo contrato: cuenta individual, recorrido asignado, entrega domiciliaria con código y acción breve **Cliente ausente**, sin observación ni fotografía obligatorias. La recepción de lotes en puntos sin PC y la custodia durante el recorrido se detallan en [Android Mobile: alcance y flujos de puntos de retiro y reparto](mobile-android-alcance-y-flujos.md).
+La futura experiencia del repartidor conserva este mismo contrato: cuenta individual, recorrido asignado, entrega domiciliaria con código y acción breve **Cliente ausente**, sin observación ni fotografía obligatorias. La recepción de lotes en puntos sin PC y la custodia durante el recorrido se detallan en [Android Mobile: alcance y flujos de puntos de retiro y reparto](https://github.com/AgusFT/La-Montana/blob/android/docs/mobile-android-alcance-y-flujos.md).
