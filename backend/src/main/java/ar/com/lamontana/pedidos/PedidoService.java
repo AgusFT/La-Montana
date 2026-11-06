@@ -293,7 +293,7 @@ public class PedidoService {
             p.confirmada_en DESC,p.id_pedido DESC
    LIMIT 1
    """,UUID.class,cliente.id());
-  UUID elegido=enViaje.isEmpty()?activos.elementos().getFirst().codigoPublico():enViaje.getFirst();
+  UUID elegido=enViaje.isEmpty()?activos.elementos().get(0).codigoPublico():enViaje.get(0);
   return new ResumenCliente(total,activos,detalle(elegido,correo,false));
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Pagina listar(UUID branch,int pagina,String estado,String correo){
