@@ -1,10 +1,14 @@
 package ar.com.lamontana.entregas;
 
+import ar.com.lamontana.entregas.EntregaController.PedidoLote;
 import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,9 +27,16 @@ public class RiderController {
 
     public record Pedido(UUID codigoPublico,long numero,String modalidad,String destino,String cliente,
                          String receptor,String telefono,Instant desde,Instant hasta,int orden,
-                         long version,String estadoLogistico,Instant presentadoEn) {}
+                         long version,String estadoLogistico,Instant presentadoEn,UUID destinoPublico) {}
     public record Recorrido(UUID codigoPublico,String estado,Instant asignadoEn,String asignadoPor,List<Pedido> pedidos) {}
     public record Resultado(boolean aceptado,String mensaje) {}
+    public record Presentacion(@NotEmpty @Size(max=25) List<@NotNull @Valid PedidoLote> pedidos) {}
+
+    @PostMapping("/api/rider/recorridos/{recorrido}/presentar")
+    public Resultado presentar(@PathVariable UUID recorrido,@Valid @RequestBody Presentacion in,Principal principal){
+        entregas.presentarEnPunto(recorrido,in.pedidos(),principal.getName());
+        return new Resultado(true,"Pedidos presentados. El punto debe confirmar la recepción.");
+    }
 
     @PostMapping("/api/admin/reparto/propio")
     public Resultado habilitar(Principal principal){
@@ -84,7 +95,7 @@ public class RiderController {
                            END),''),r.nombre_destino),
                        concat_ws(' ',c.nombre,c.apellido),coalesce(p.receptor,concat_ws(' ',c.nombre,c.apellido)),p.telefono,
                        r.franja_desde,r.franja_hasta,rp.orden,p.version,
-                       lamontana.estado_logistico(p.id_pedido),rp.presentado_en
+                       lamontana.estado_logistico(p.id_pedido),rp.presentado_en,r.destino_publico
                 FROM lamontana.recorrido_reparto_pedido rp
                 JOIN lamontana.pedido p USING(id_pedido)
                 JOIN lamontana.usuario c ON c.id_usuario=p.id_usuario_creador
@@ -94,7 +105,7 @@ public class RiderController {
                 LEFT JOIN lamontana.configuracion_definicion_punto d
                   ON d.id_punto_entrega=pt.id_punto_entrega AND d.id_configuracion_version=p.id_configuracion_version
                 WHERE rp.id_recorrido=? ORDER BY rp.orden
-                """,(rs,row)->new Pedido(rs.getObject(1,UUID.class),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7),rs.getTimestamp(8).toInstant(),rs.getTimestamp(9).toInstant(),rs.getInt(10),rs.getLong(11),rs.getString(12),rs.getTimestamp(13)==null?null:rs.getTimestamp(13).toInstant()),id);
+                """,(rs,row)->new Pedido(rs.getObject(1,UUID.class),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7),rs.getTimestamp(8).toInstant(),rs.getTimestamp(9).toInstant(),rs.getInt(10),rs.getLong(11),rs.getString(12),rs.getTimestamp(13)==null?null:rs.getTimestamp(13).toInstant(),rs.getObject(14,UUID.class)),id);
         return new Recorrido((UUID)route[1],(String)route[2],(Instant)route[3],(String)route[4],orders);
     }
 }

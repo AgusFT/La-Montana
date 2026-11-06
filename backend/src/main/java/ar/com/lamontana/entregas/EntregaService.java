@@ -190,19 +190,51 @@ public class EntregaService {
   boolean punto=p.reserva().modalidad().name().equals("RETIRO_PUNTO_ENTREGA");
   if(in.accion()==Accion.LLEGAR_PUNTO&&punto){
    confirmar(in.confirmado());
-   version(p,in.version());
-   if(!p.estado().equals("LISTO_PARA_ENTREGA")||!logistica(p).equals("EN_VIAJE"))
-    throw conflicto("El pedido ya no está en viaje hacia el punto.");
-   jdbc.update("""
-    UPDATE lamontana.recorrido_reparto_pedido
-    SET presentado_en=COALESCE(presentado_en,now())
-    WHERE id_pedido=?
-    """,p.numero());
+   presentarPedidos(null,List.of(new PedidoLote(pedido,in.version())),correo);
    return;
   }
   if(!List.of(Accion.LLEGAR_PUNTO,Accion.CLIENTE_AUSENTE,Accion.REINTENTAR_ENTREGA).contains(in.accion()))
    throw error(HttpStatus.FORBIDDEN,"Esta acción no está disponible durante el reparto.");
   registrarMovimiento(pedido,in,correo,true,null);
+ }
+ @Transactional public void presentarEnPunto(UUID recorrido,List<PedidoLote> items,String correo){
+  bloquear();
+  presentarPedidos(recorrido,items,correo);
+ }
+ private record Presentacion(long pedido,UUID punto,long version,boolean presentada,boolean enViaje){}
+ private void presentarPedidos(UUID recorrido,List<PedidoLote> items,String correo){
+  if(items.isEmpty()||items.size()>25||items.stream().map(PedidoLote::pedido).distinct().count()!=items.size())
+   throw error(HttpStatus.BAD_REQUEST,"Seleccioná entre 1 y 25 pedidos sin repetir.");
+  UUID destino=null;
+  var pendientes=new ArrayList<Long>();
+  for(var item:items){
+   var orden=jdbc.query("""
+    SELECT p.id_pedido,r.destino_publico,p.version,rp.presentado_en IS NOT NULL,
+           rr.estado='EN_REPARTO' AND r.estado='ACTIVA' AND p.estado='LISTO_PARA_ENTREGA'
+             AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE'
+    FROM lamontana.recorrido_reparto_pedido rp
+    JOIN lamontana.recorrido_reparto rr USING(id_recorrido)
+    JOIN lamontana.pedido p USING(id_pedido)
+    JOIN lamontana.cuenta_repartidor cr ON cr.id_usuario=rr.id_repartidor
+    JOIN lamontana.usuario u ON u.id_usuario=cr.id_usuario
+    JOIN LATERAL (SELECT modalidad,destino_publico,estado FROM lamontana.reserva_entrega
+                  WHERE id_pedido=p.id_pedido ORDER BY id_reserva_entrega DESC LIMIT 1) r ON true
+    WHERE p.codigo_publico=? AND (?::uuid IS NULL OR rr.codigo_publico=?)
+      AND lower(u.correo)=lower(?) AND u.estado='ACTIVO' AND cr.activa
+      AND r.modalidad='RETIRO_PUNTO_ENTREGA'
+    """,(r,n)->new Presentacion(r.getLong(1),r.getObject(2,UUID.class),r.getLong(3),r.getBoolean(4),r.getBoolean(5)),
+    item.pedido(),recorrido,recorrido,correo);
+   if(orden.isEmpty())throw error(HttpStatus.FORBIDDEN,"El pedido no pertenece a esta parada de tu recorrido.");
+   var p=orden.get(0);
+   if(destino==null)destino=p.punto();
+   if(!destino.equals(p.punto()))throw conflicto("Seleccioná pedidos del mismo punto de retiro.");
+   if(p.presentada())continue;
+   if(!p.enViaje()||p.version()!=item.version())
+    throw conflicto("PED-"+p.pedido()+": el pedido cambió o ya no está en viaje. Actualizá el recorrido.");
+   pendientes.add(p.pedido());
+  }
+  for(long pedido:pendientes)jdbc.update(
+   "UPDATE lamontana.recorrido_reparto_pedido SET presentado_en=now() WHERE id_pedido=? AND presentado_en IS NULL",pedido);
  }
  /** All selected orders are checked before the first write; retries recover the same audited group. */
  @Transactional public ResultadoLote moverLote(MovimientoLote in,String correo){

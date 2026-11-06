@@ -95,7 +95,34 @@ class DatosPruebaIntegrationTest {
             var p=app.getBean(PedidoService.class).detalle(cash.pedido(),ADMIN,true);get(cab,"/api/operacion/cotizaciones/"+p.cotizacion()+"/archivos",403);
             assertThatThrownBy(()->app.getBean(PedidoService.class).detalle(cash.pedido(),"punto.palermo.retiro@prueba.local",true)).hasMessageContaining("no está disponible");assertThatThrownBy(()->app.getBean(PagoService.class).vista(p.cotizacion(),"punto.palermo.retiro@prueba.local",true)).hasMessageContaining("acceso");
             var transit=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("POR_LLEGAR","",0),alias).pedidos();assertThat(transit).isNotEmpty();long before=count(jdbc,"movimiento_entrega");var receive=new ar.com.lamontana.puntos.PuntoRetiroController.Recepcion(UUID.randomUUID(),transit.stream().map(i->new ar.com.lamontana.entregas.EntregaController.PedidoLote(i.pedido(),i.version())).toList());
+            sendPoint(cab,"POST","/api/punto/recibir",receive,409);
+            assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before);
+            for(var row:transit){
+                var assigned=jdbc.queryForMap("""
+                    SELECT rr.codigo_publico,u.correo
+                    FROM lamontana.recorrido_reparto_pedido rp
+                    JOIN lamontana.recorrido_reparto rr USING(id_recorrido)
+                    JOIN lamontana.pedido p USING(id_pedido)
+                    JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor
+                    WHERE p.codigo_publico=?
+                    """,row.pedido());
+                var manifest=Map.of("pedidos",List.of(Map.of("pedido",row.pedido(),"version",row.version())));
+                String present="/api/rider/recorridos/"+assigned.get("codigo_publico")+"/presentar";
+                sendPoint(cab,"POST",present,manifest,403);
+                sendPoint(admin,"POST",present,manifest,403);
+                var riderSession=login((String)assigned.get("correo"));
+                sendPoint(riderSession,"POST",present,manifest,200);
+                sendPoint(riderSession,"POST",present,manifest,200);
+                var detail=get(cab,"/api/punto/pedidos/"+row.pedido(),200);
+                assertThat(detail.get("pedido").get("puedeRecibir").asBoolean()).isTrue();
+                assertThat(detail.get("pedido").get("recorrido").asString()).isEqualTo("EN_VIAJE");
+            }
             sendPoint(cab,"POST","/api/punto/recibir",receive,200);sendPoint(cab,"POST","/api/punto/recibir",receive,200);assertThat(count(jdbc,"movimiento_entrega")).isEqualTo(before+transit.size());
+            for(var row:transit){
+                var detail=get(cab,"/api/punto/pedidos/"+row.pedido(),200);
+                assertThat(detail.get("pedido").get("puedeRecibir").asBoolean()).isFalse();
+                assertThat(detail.get("pedido").get("recorrido").asString()).isEqualTo("DISPONIBLE_PUNTO");
+            }
             var foreign=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),"punto.palermo.retiro@prueba.local").pedidos().get(0);sendPoint(cab,"POST","/api/punto/recibir",new ar.com.lamontana.puntos.PuntoRetiroController.Recepcion(UUID.randomUUID(),List.of(new ar.com.lamontana.entregas.EntregaController.PedidoLote(foreign.pedido(),foreign.version()))),404);
             String customer=jdbc.queryForObject("SELECT u.correo FROM lamontana.pedido p JOIN lamontana.usuario u ON u.id_usuario=p.id_usuario_creador WHERE p.codigo_publico=?",String.class,cash.pedido());String code=delivery.consultar(cash.pedido(),customer,false).codigo().texto();
             var byCode=sendPoint(cab,"POST","/api/punto/pedidos/buscar",new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES",code,0),200);assertThat(byCode.get("total").asInt()).isEqualTo(1);assertThat(byCode.toString()).doesNotContain(code);

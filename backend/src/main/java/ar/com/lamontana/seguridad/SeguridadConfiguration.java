@@ -57,7 +57,7 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
                         .requestMatchers("/api/punto/**").hasRole("EMPLEADO")
                         .requestMatchers(HttpMethod.GET,"/api/rider/recorridos","/api/rider/recorridos/activo").hasAnyRole("ADMIN_ADMIN","EMPLEADO")
-                        .requestMatchers(HttpMethod.POST,"/api/rider/pedidos/*/parada","/api/rider/pedidos/*/entregar").hasAnyRole("ADMIN_ADMIN","EMPLEADO")
+                        .requestMatchers(HttpMethod.POST,"/api/rider/pedidos/*/parada","/api/rider/pedidos/*/entregar","/api/rider/recorridos/*/presentar").hasAnyRole("ADMIN_ADMIN","EMPLEADO")
                         .requestMatchers(HttpMethod.POST,"/api/admin/reparto/propio").hasRole("ADMIN_ADMIN")
                         .requestMatchers("/api/admin/puntos-entrega/cuentas", "/api/admin/puntos-entrega/cuentas/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
