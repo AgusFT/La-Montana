@@ -9,6 +9,7 @@
 .client-order-experience .order-detail-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 16px;padding:14px 18px;border:1px solid var(--ui-border,#dce5ef);border-radius:12px;background:var(--ui-surface,#fff)}
 .client-order-experience .order-detail-heading h2{font-size:20px;margin:0 0 5px}
 .client-order-experience .order-detail-heading p{font-size:12px;margin:0;color:var(--ui-muted,#61748d)}
+.client-order-experience .order-detail-heading .client-order-rider{margin-top:5px;color:var(--ui-text,#1c3859);overflow-wrap:anywhere}
 .client-order-heading-state{display:flex;align-items:center;flex-wrap:wrap;gap:12px;min-width:0}
 .client-order-heading-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .client-order-heading-actions .client-button{min-height:38px;font-size:12px;padding:9px 12px}

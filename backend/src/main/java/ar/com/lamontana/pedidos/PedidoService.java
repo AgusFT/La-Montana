@@ -103,7 +103,7 @@ public class PedidoService {
  public record Condiciones(CotizacionService.Condiciones cotizadas,EvaluadorFinanciero.Simulacion actuales,boolean revisionHumana){}
  public record Revision(UUID pedido,long version,UUID configuracion,long numeroConfiguracion,String huella,boolean habilitada,List<String> bloqueos,Condiciones condiciones,Franja franja,List<Pdf> archivos){}
  public record Evento(String estado,String motivo,Instant fecha,String accion,String actor){}
- public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro,String nombreInvitado){}
+ public record Detalle(UUID codigoPublico,long numero,UUID cotizacion,String estado,Instant confirmadaEn,Instant aprobadaEn,UUID configuracion,long numeroConfiguracion,CotizacionService.Oferta oferta,Condiciones condiciones,Franja reserva,PedidoController.Contacto contacto,List<Pdf> archivos,List<Evento> historial,long version,String estadoReserva,Instant finalizadaEn,String estadoLogistico,boolean retiroConTraslado,ar.com.lamontana.pagos.CobroPedidoService.Vista cobro,String nombreInvitado,String nombreRepartidor){}
  public record MovimientoReciente(String accion,Instant fecha,String actor){}
  public record Resumen(UUID codigoPublico,long numero,String estado,Instant confirmadaEn,String sucursal,String total,Modalidad modalidad,String estadoLogistico,String destino,boolean retiroConTraslado,long version,String situacionOperativa,Instant situacionDesde,MovimientoReciente ultimoMovimiento,String accionEntrega,String nombreInvitado){}
  public record Pagina(List<Resumen> elementos,long total,int pagina,boolean puedeGestionarEntregas){}
@@ -270,7 +270,18 @@ public class PedidoService {
     WHERE h.id_pedido=? ORDER BY h.id_evento
     """,(rs,nr)->new Evento(rs.getString(1),rs.getString(2),rs.getTimestamp(3).toInstant(),rs.getString(4),rs.getString(5)),
       interno,r.getLong("id_usuario_creador"),id);
-   return new Detalle(codigo,id,r.getObject("cotizacion",UUID.class),r.getString("estado"),r.getTimestamp("confirmada_en").toInstant(),r.getTimestamp("aprobada_en")==null?null:r.getTimestamp("aprobada_en").toInstant(),r.getObject("config",UUID.class),r.getLong("numero_version"),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class),json.readValue(r.getString("condiciones_finales"),Condiciones.class),reserva,r.getString("receptor")==null?null:new PedidoController.Contacto(r.getString("receptor"),r.getString("telefono")),files,history,r.getLong("version"),jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",String.class,id),r.getTimestamp("finalizada_en")==null?null:r.getTimestamp("finalizada_en").toInstant(),jdbc.queryForObject("SELECT lamontana.estado_logistico(?)",String.class,id),Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.retiro_con_traslado(?)",Boolean.class,id)),cobro.vista(id,a.rol().equals("ADMIN_ADMIN")),r.getString("nombre_invitado"));
+   String estadoLogistico=jdbc.queryForObject("SELECT lamontana.estado_logistico(?)",String.class,id);
+   String nombreRepartidor=null;
+   if(!interno&&reserva.modalidad()==Modalidad.ENVIO_DOMICILIO&&"EN_VIAJE".equals(estadoLogistico)){
+    nombreRepartidor=jdbc.queryForList("""
+      SELECT u.nombre FROM lamontana.recorrido_reparto_pedido rp
+      JOIN lamontana.recorrido_reparto rr USING(id_recorrido)
+      JOIN lamontana.usuario u ON u.id_usuario=rr.id_repartidor
+      JOIN lamontana.cuenta_repartidor cr ON cr.id_usuario=u.id_usuario
+      WHERE rp.id_pedido=? AND rr.estado='EN_REPARTO' AND u.estado='ACTIVO' AND cr.activa
+      """,String.class,id).stream().findFirst().orElse(null);
+   }
+   return new Detalle(codigo,id,r.getObject("cotizacion",UUID.class),r.getString("estado"),r.getTimestamp("confirmada_en").toInstant(),r.getTimestamp("aprobada_en")==null?null:r.getTimestamp("aprobada_en").toInstant(),r.getObject("config",UUID.class),r.getLong("numero_version"),json.readValue(r.getString("oferta"),CotizacionService.Oferta.class),json.readValue(r.getString("condiciones_finales"),Condiciones.class),reserva,r.getString("receptor")==null?null:new PedidoController.Contacto(r.getString("receptor"),r.getString("telefono")),files,history,r.getLong("version"),jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega WHERE id_pedido=? ORDER BY id_reserva_entrega DESC LIMIT 1",String.class,id),r.getTimestamp("finalizada_en")==null?null:r.getTimestamp("finalizada_en").toInstant(),estadoLogistico,Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.retiro_con_traslado(?)",Boolean.class,id)),cobro.vista(id,a.rol().equals("ADMIN_ADMIN")),r.getString("nombre_invitado"),nombreRepartidor);
   },codigo,interno,a.id());if(rows.isEmpty())throw error(HttpStatus.NOT_FOUND,"El pedido no está disponible en tu cuenta.");return rows.get(0);
  }
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
