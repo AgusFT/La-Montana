@@ -41,5 +41,11 @@ export function ClientShell({name,title,description,active,children}:{name:strin
    <a href="/cliente/pedidos" aria-current={active==="orders"||active==="quotes"?"page":undefined}><ClientNavIcon kind="orders"/>Mis pedidos</a>
    <a href="/cliente/cotizaciones/nueva" className="client-nav-create" aria-current={active==="new"?"page":undefined}><ClientNavIcon kind="new"/>Crear pedido</a>
    <a href="/cuenta/seguridad" className="client-nav-security"><ClientNavIcon kind="security"/>Seguridad de la cuenta</a>
-  </nav><p className="client-sidebar-note">Piloto v0.1<br/>Clientes particulares</p></aside><div className="client-main"><header className="client-top"><a href="/cliente" className="client-logo">{brand}</a><div><span>{name}</span><LogoutButton/></div></header><main className="client-content"><div className="client-title"><h1>{title}</h1><p>{description}</p></div>{children}</main><footer className="client-footer">La Montaña impresiones · Piloto local v0.1</footer></div></div></NavigationBoundary>;
+  </nav><p className="client-sidebar-note">Piloto v0.1<br/>Clientes particulares</p></aside><div className="client-main"><header className="client-top"><a href="/cliente" className="client-logo">{brand}</a><div><span>{name}</span><LogoutButton/></div></header><main className={active==="home"?"client-content client-home":"client-content"}>
+    <div className="client-title">
+      <div><h1>{title}</h1><p>{description}</p></div>
+      {active==="home"&&<a className="client-button" href="/cliente/cotizaciones/nueva"><span aria-hidden="true">＋</span> Crear pedido</a>}
+    </div>
+    {children}
+  </main><footer className="client-footer">La Montaña impresiones · Piloto local v0.1</footer></div></div></NavigationBoundary>;
 }
