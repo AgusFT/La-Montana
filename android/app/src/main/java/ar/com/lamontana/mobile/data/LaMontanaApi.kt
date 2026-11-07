@@ -139,7 +139,7 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
     }
 
     fun riderRoutes(): List<RiderRoute> {
-        val routes = JSONArray(request("/api/rider/recorridos"))
+        val routes = JSONArray(request("/api/rider/recorridos?jornada=true"))
         return List(routes.length()) { index ->
             val route = routes.getJSONObject(index)
             val orders = route.getJSONArray("pedidos")
@@ -155,6 +155,8 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
                     recipient = order.getString("receptor"),
                     status = order.getString("estadoLogistico"),
                     presented = !order.isNull("presentadoEn"),
+                    dueAt = if (order.isNull("hasta")) null else order.getString("hasta"),
+                    finishedAt = if (order.isNull("finalizadoEn")) null else order.getString("finalizadoEn"),
                 )
             })
         }

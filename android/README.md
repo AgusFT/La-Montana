@@ -11,6 +11,9 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 - Cliente HTTP con sesión por cookie y CSRF para registrar movimientos.
 - Las tarjetas del `@Preview` usan ejemplos exclusivamente visuales; al ejecutar la app, las bandejas y la búsqueda muestran la respuesta real del backend.
 - El rider consulta sus recorridos y selecciona los pedidos que dejó en cada punto. La presentación deja el lote pendiente de recepción.
+- Reparto tiene **Actuales / Puntos / A domicilio / Entregados** y búsqueda por cliente, destino o número. Las tres primeras vistas muestran sólo pendientes, incluso si vienen de días anteriores. Los domicilios aparecen primero, ordenados por el fin de su franja de entrega.
+- **Entregados** muestra las finalizaciones del día de la sucursal. En puntos y sucursales cuenta la recepción física; en domicilios, la entrega al cliente. Una presentación todavía sin aceptar permanece pendiente. Las paradas mixtas separan los pedidos recibidos de los que faltan.
+- La jornada se consulta con `GET /api/rider/recorridos?jornada=true`: conserva la asignación y los permisos del rider, deja fuera los completados de otros días y usa la hora de la sucursal en lugar del reloj del teléfono. Las listas se renderizan a medida que se recorren.
 - En **Por llegar**, el punto confirma la recepción física de los pedidos presentados. Después aparecen en **Para retirar**.
 - La ficha del punto muestra el estado, los trabajos, la franja y el saldo. Permite entregar con código y, cuando el servidor lo habilita, cobrar efectivo y entregar en una sola operación.
 - El mostrador de sucursal tiene **Para retirar / En camino / Entregados**, búsqueda por cliente o número y selector limitado a las sucursales autorizadas. Se habilita con `GESTIONAR_ENTREGAS`.

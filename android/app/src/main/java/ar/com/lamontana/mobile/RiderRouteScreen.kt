@@ -8,12 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Storefront
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,6 +31,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -39,6 +43,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,22 +61,6 @@ import ar.com.lamontana.mobile.ui.Green
 import ar.com.lamontana.mobile.ui.LaMontanaTheme
 import ar.com.lamontana.mobile.ui.Orange
 
-internal enum class StopType { POINT, HOME, BRANCH }
-
-internal data class RiderStop(
-    val order: Int,
-    val type: StopType,
-    val name: String,
-    val address: String,
-    val orders: List<Int>,
-    val status: String,
-    val completed: Boolean = false,
-    val routeId: String = "",
-    val items: List<RiderOrder> = emptyList(),
-) {
-    val key: String get() = "$routeId:${items.firstOrNull()?.id ?: order}"
-}
-
 @Composable
 internal fun RiderDesk(
     state: AppUiState,
@@ -80,32 +70,13 @@ internal fun RiderDesk(
     onLogout: () -> Unit,
 ) {
     var stopKey by remember { mutableStateOf<String?>(null) }
-    val stops = state.riderRoutes.flatMap { route ->
-        route.orders.groupBy { order ->
-            if (order.mode == "RETIRO_PUNTO_ENTREGA") order.destinationId ?: order.destination else order.id
-        }.values.map { items ->
-            val first = items.first()
-            val type = when (first.mode) {
-                "RETIRO_PUNTO_ENTREGA" -> StopType.POINT
-                "ENVIO_DOMICILIO" -> StopType.HOME
-                else -> StopType.BRANCH
-            }
-            val finished = items.none { it.status == "EN_VIAJE" || it.status == "CLIENTE_AUSENTE" }
-            val status = when {
-                finished -> "Completada"
-                items.any { it.status == "CLIENTE_AUSENTE" } -> "Sin receptor"
-                type == StopType.POINT && items.none { it.canPresent } -> "Pendiente de recepción"
-                else -> "Pendiente"
-            }
-            val name = if (type == StopType.HOME) first.recipient else first.destination.substringBefore(" · ")
-            val address = if (type == StopType.HOME) first.destination else first.destination.substringAfter(" · ", "")
-            RiderStop(0, type, name, address, items.map { it.number }, status, finished, route.id, items)
-        }
-    }.mapIndexed { index, stop -> stop.copy(order = index + 1) }
-    val open = stops.firstOrNull { it.key == stopKey }
+    var section by rememberSaveable { mutableStateOf(RiderSection.CURRENT) }
+    val board = remember(state.riderRoutes) { riderBoard(state.riderRoutes) }
+    val open = (board.pending + board.delivered).firstOrNull { it.key == stopKey }
     RiderRouteScreen(
-        route = "${state.riderRoutes.size} recorridos asignados",
-        stops = stops,
+        board = board,
+        section = section,
+        onSectionChange = { section = it },
         onOpenStop = { stopKey = it.key },
         onRefresh = onRefresh,
         onLogout = onLogout,
@@ -125,68 +96,85 @@ internal fun RiderDesk(
 
 @Composable
 internal fun RiderRouteScreen(
-    route: String,
-    stops: List<RiderStop>,
+    board: RiderBoard,
     onOpenStop: (RiderStop) -> Unit,
+    section: RiderSection = RiderSection.CURRENT,
+    onSectionChange: (RiderSection) -> Unit = {},
     onRefresh: () -> Unit = {},
     onLogout: () -> Unit = {},
     loading: Boolean = false,
     error: String? = null,
     message: String? = null,
 ) {
-    val completed = stops.count { it.completed }
-    val orders = stops.sumOf { it.orders.size }
+    var query by rememberSaveable(section) { mutableStateOf("") }
+    val stops = board.stops(section, query)
     Scaffold(
         containerColor = Canvas,
         topBar = { MobileHeader("REPARTO", onRefresh, onLogout, loading) },
+        bottomBar = {
+            NavigationBar(containerColor = Color.White) {
+                RiderSection.entries.forEach { item -> NavigationBarItem(
+                    selected = section == item, enabled = !loading,
+                    onClick = { if (item != section) onSectionChange(item) },
+                    icon = { Icon(when (item) {
+                        RiderSection.CURRENT -> Icons.Default.LocalShipping
+                        RiderSection.POINTS -> Icons.Default.Storefront
+                        RiderSection.HOME -> Icons.Default.Home
+                        RiderSection.DELIVERED -> Icons.Default.CheckCircle
+                    }, null) }, label = { Text(item.title, fontSize = 10.sp) },
+                ) }
+            }
+        },
     ) { padding ->
-        Column(
-            Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(18.dp),
-        ) {
-            Text("Mis recorridos", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold)
-            Text("Sólo ves los pedidos que Administración te asignó.", color = Color(0xFF5D7187), fontSize = 13.sp)
-            error?.let { Notice(it, Color(0xFFFFE9E7), Color(0xFF9B1C1C)) }
-            message?.let { Notice(it, Color(0xFFE5F5EA), Green) }
-            if (loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
-            if (stops.isNotEmpty()) {
-                RouteSummary(route, orders, completed, stops.size)
-                Text("Paradas", fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 22.dp, bottom = 10.dp))
-                stops.forEach { stop -> RiderStopCard(stop, onOpenStop, loading) }
-            } else if (!loading && error == null) {
-                Text("Todavía no tenés recorridos asignados.", modifier = Modifier.padding(top = 24.dp))
+        key(section) {
+            LazyColumn(Modifier.padding(padding).fillMaxSize(), contentPadding = PaddingValues(18.dp)) {
+                item {
+                    Text("Mis repartos", fontSize = 27.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Sólo tus pedidos asignados.", color = Color(0xFF5D7187), fontSize = 13.sp)
+                    error?.let { Notice(it, Color(0xFFFFE9E7), Color(0xFF9B1C1C)) }
+                    message?.let { Notice(it, Color(0xFFE5F5EA), Green) }
+                    if (loading) LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 12.dp))
+                    RouteSummary(board)
+                    OutlinedTextField(value = query, onValueChange = { query = it.take(160) }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth().padding(top = 14.dp), leadingIcon = { Icon(Icons.Default.Search, null) },
+                        label = { Text("Cliente, destino o PED-156") })
+                    Text(if (section == RiderSection.POINTS) "Puntos y sucursales" else if (section == RiderSection.DELIVERED) "Entregados hoy" else section.title,
+                        fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 18.dp))
+                    Text(if (section == RiderSection.DELIVERED) "Recepciones y entregas confirmadas hoy." else "Pendientes, incluidos los de días anteriores.",
+                        fontSize = 12.sp, color = Color(0xFF5D7187), modifier = Modifier.padding(top = 4.dp))
+                    Text("${stops.size} paradas · ${stops.sumOf { it.orders.size }} pedidos", fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 5.dp, bottom = 12.dp))
+                }
+                items(stops, key = { it.key }) { stop -> RiderStopCard(stop, onOpenStop, loading) }
+                if (stops.isEmpty() && !loading && error == null) item {
+                    Text(if (query.isNotBlank()) "No encontramos paradas con esa búsqueda." else when (section) {
+                        RiderSection.CURRENT -> "No tenés paradas pendientes."
+                        RiderSection.POINTS -> "No tenés puntos ni sucursales pendientes."
+                        RiderSection.HOME -> "No tenés entregas a domicilio pendientes."
+                        RiderSection.DELIVERED -> "Todavía no hay entregas confirmadas hoy."
+                    }, modifier = Modifier.padding(vertical = 20.dp))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun RouteSummary(route: String, orders: Int, completed: Int, total: Int) {
+private fun RouteSummary(board: RiderBoard) {
     Card(
         Modifier.fillMaxWidth().padding(top = 18.dp),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = Blue),
     ) {
         Column(Modifier.padding(18.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Column {
-                    Text("RECORRIDO ACTIVO", color = Color(0xFFCFE0FF), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                    Text(route, color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
-                }
-                Box(Modifier.clip(RoundedCornerShape(50)).background(Color(0x33FFFFFF)).padding(horizontal = 12.dp, vertical = 7.dp)) {
-                    Text("En reparto", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                }
+            Text("JORNADA", color = Color(0xFFCFE0FF), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(if (board.pendingOrders == 0) "Sin paradas pendientes" else "${board.pendingOrders} pedidos por completar",
+                color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                SummaryValue(board.pendingOrders.toString(), "pendientes")
+                SummaryValue(board.homeOrders.toString(), "a domicilio")
+                SummaryValue(board.deliveredOrders.toString(), "entregados hoy")
             }
-            Row(Modifier.padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                SummaryValue(orders.toString(), "pedidos")
-                SummaryValue(total.toString(), "paradas")
-                SummaryValue("$completed/$total", "completadas")
-            }
-            LinearProgressIndicator(
-                progress = { if (total == 0) 0f else completed.toFloat() / total },
-                modifier = Modifier.fillMaxWidth().padding(top = 16.dp).height(7.dp).clip(CircleShape),
-                color = Color.White,
-                trackColor = Color(0x44FFFFFF),
-            )
         }
     }
 }
@@ -228,21 +216,20 @@ private fun RiderStopCard(stop: RiderStop, onOpen: (RiderStop) -> Unit, loading:
                 }
             }
             Text(
-                "${stop.orders.size} ${if (stop.orders.size == 1) "pedido" else "pedidos"}: ${stop.orders.joinToString { "PED-$it" }}",
+                "${stop.orders.size} ${if (stop.orders.size == 1) "pedido" else "pedidos"}: ${stop.orders.take(4).joinToString { "PED-$it" }}" +
+                    if (stop.orders.size > 4) " y ${stop.orders.size - 4} más" else "",
                 fontSize = 12.sp,
                 color = Color(0xFF425A72),
                 modifier = Modifier.padding(top = 13.dp),
             )
-            if (!stop.completed) {
-                Button(
-                    onClick = { onOpen(stop) },
-                    enabled = !loading,
-                    modifier = Modifier.fillMaxWidth().padding(top = 13.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = if (stop.order == 1) Orange else Blue),
-                    shape = RoundedCornerShape(11.dp),
-                ) {
-                    Text(if (stop.order == 1) "Abrir próxima parada" else "Ver parada", fontWeight = FontWeight.Bold)
-                }
+            Button(
+                onClick = { onOpen(stop) },
+                enabled = !loading,
+                modifier = Modifier.fillMaxWidth().padding(top = 13.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = if (stop.completed) Green else if (stop.order == 1) Orange else Blue),
+                shape = RoundedCornerShape(11.dp),
+            ) {
+                Text(if (stop.completed) "Ver detalle" else if (stop.order == 1) "Abrir próxima parada" else "Ver parada", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -271,17 +258,20 @@ private fun RiderStopDialog(
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (stop.address.isNotBlank()) Text(stop.address)
                 if (stop.type == StopType.POINT) {
-                    Text("Marcá los pedidos que dejaste. El punto debe confirmar la recepción antes de habilitar el retiro.")
+                    Text(if (stop.completed) "El punto ya confirmó la recepción de estos pedidos." else if (eligible.isEmpty())
+                        "Esperando que el punto confirme la recepción de los pedidos presentados." else
+                        "Marcá los pedidos que dejaste. El punto debe confirmar la recepción antes de habilitar el retiro.")
                     if (eligible.size > 1) TextButton(enabled = !loading, onClick = {
-                        selected = if (selected.size == eligible.size) emptySet() else eligible.map { it.id }.toSet()
-                    }) { Text(if (selected.size == eligible.size) "Quitar selección" else "Seleccionar todos") }
+                        selected = if (selected.isNotEmpty()) emptySet() else eligible.take(25).map { it.id }.toSet()
+                    }) { Text(if (selected.isNotEmpty()) "Quitar selección" else if (eligible.size > 25) "Seleccionar 25" else "Seleccionar todos") }
+                    if (eligible.size > 25) Text("Podés confirmar hasta 25 pedidos por vez.")
                 }
                 items.forEach { item ->
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (item.canPresent) Checkbox(
                             checked = item.id in selected,
-                            onCheckedChange = { selected = if (it) selected + item.id else selected - item.id },
-                            enabled = !loading,
+                            onCheckedChange = { selected = if (!it) selected - item.id else if (selected.size < 25) selected + item.id else selected },
+                            enabled = !loading && (item.id in selected || selected.size < 25),
                         )
                         val status = if (item.presented && item.status == "EN_VIAJE") "Pendiente de recepción"
                             else logisticsLabel(item.status)
@@ -335,13 +325,12 @@ private fun stopIcon(type: StopType): ImageVector = when (type) {
 @Composable
 private fun RiderRoutePreview() = LaMontanaTheme {
     RiderRouteScreen(
-        route = "REC-024",
-        stops = listOf(
-            RiderStop(1, StopType.POINT, "Punto Caballito", "Av. Acoyte 550, Caballito", listOf(176, 143, 137), "Próxima"),
-            RiderStop(2, StopType.HOME, "Martín Gómez", "Av. Rivadavia 8350, Floresta", listOf(138), "Pendiente"),
-            RiderStop(3, StopType.POINT, "Punto Palermo", "Av. Santa Fe 3200, Palermo", listOf(136, 135), "Pendiente"),
-            RiderStop(4, StopType.HOME, "Sofía Rossi", "Paraguay 2155, Recoleta", listOf(133), "Completada", true),
-        ),
+        board = riderBoard(listOf(ar.com.lamontana.mobile.model.RiderRoute("ruta", listOf(
+            RiderOrder("1", 176, 1, "RETIRO_PUNTO_ENTREGA", "Punto Caballito · Av. Acoyte 550, Caballito", "caballito", "Lucía", "EN_VIAJE", false),
+            RiderOrder("2", 138, 1, "ENVIO_DOMICILIO", "Av. Rivadavia 8350, Floresta", null, "Martín Gómez", "EN_VIAJE", false),
+            RiderOrder("3", 136, 1, "RETIRO_PUNTO_ENTREGA", "Punto Palermo · Av. Santa Fe 3200, Palermo", "palermo", "Matías", "EN_VIAJE", true),
+            RiderOrder("4", 133, 1, "ENVIO_DOMICILIO", "Paraguay 2155, Recoleta", null, "Sofía Rossi", "ENTREGADO", false, finishedAt = "2026-11-07T15:00:00Z"),
+        )))),
         onOpenStop = {},
     )
 }

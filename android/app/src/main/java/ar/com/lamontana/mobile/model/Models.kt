@@ -58,6 +58,8 @@ data class RiderOrder(
     val recipient: String,
     val status: String,
     val presented: Boolean,
+    val dueAt: String? = null,
+    val finishedAt: String? = null,
 ) {
     val canPresent: Boolean get() = mode == "RETIRO_PUNTO_ENTREGA" && status == "EN_VIAJE" && !presented
 }
