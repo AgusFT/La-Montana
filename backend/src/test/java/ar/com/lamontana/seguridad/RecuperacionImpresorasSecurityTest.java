@@ -157,6 +157,15 @@ class RecuperacionImpresorasSecurityTest {
         for(String ruta:new String[]{pagos+"/aplicar",pagos+"/devolver",pagos+"/recibir-otro"})comprobar("POST",ruta,sesion,csrf,403,false);
     }
 
+    @Test void pausasSucursalExigenAdministradorYCsrfSinAbrirOtrosMetodos()throws Exception{
+        String listado="/api/admin/sucursales/disponibilidad", cambio=listado+"/11111111-1111-1111-1111-111111111111";
+        var admin=sesion("ADMIN_ADMIN");comprobar("GET",listado,admin,null,200,true);comprobar("PUT",cambio,admin,token(admin),200,true);
+        comprobar("PUT",cambio,admin,null,403,false);
+        for(String rol:new String[]{"EMPLEADO","CLIENTE"}){var s=sesion(rol);comprobar("GET",listado,s,null,403,false);comprobar("PUT",cambio,s,token(s),403,false);}
+        for(String method:new String[]{"POST","PATCH","DELETE"})comprobar(method,cambio,admin,token(admin),403,false);
+        var anonima=new MockHttpSession(context.getServletContext());comprobar("GET",listado,anonima,null,401,false);
+    }
+
     private MockHttpServletRequest request(String metodo,String ruta,MockHttpSession sesion){
         var request=new MockHttpServletRequest(context.getServletContext(),metodo,ruta);
         request.setServletPath(ruta);request.setSession(sesion);return request;
@@ -178,3 +187,4 @@ class RecuperacionImpresorasSecurityTest {
         assertThat(invocada.get()).isEqualTo(pasa);
     }
 }
+

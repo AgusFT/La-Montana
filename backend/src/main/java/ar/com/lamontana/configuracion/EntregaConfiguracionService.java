@@ -192,6 +192,7 @@ public class EntregaConfiguracionService {
         boolean legado=e.casaMatriz()==null&&b.estado().equals("ACTIVA");
         if(!legado&&(e.casaMatriz()==null||!e.matrizConfirmada()))throw conflicto("Seleccioná y confirmá la casa matriz de este borrador antes de simular o aplicar sus plazos.");
         UUID origen=input.sucursal();
+        if(b.estado().equals("ACTIVA"))DisponibilidadSucursalService.exigirAtencion(jdbc,input.sucursal());
         if(sucursales.stream().noneMatch(s->s.codigo().equals(origen)))throw conflicto("La casa matriz debe permanecer activa.");
         var horario=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(origen)).findFirst().orElse(null);
         var horarioRetiro=e.horariosPorSucursal().stream().filter(h->h.sucursal().equals(input.sucursal())).findFirst().orElse(null);

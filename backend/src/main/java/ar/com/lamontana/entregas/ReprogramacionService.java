@@ -113,6 +113,9 @@ public class ReprogramacionService {
  }
  private Disponibilidad ventanas(PedidoService.Detalle p,LocalDate fecha){
   var b=operativa.configuracionActiva();if(b==null)throw conflicto("No hay configuración operativa activa.");var e=b.entrega();var old=p.reserva();UUID branch=old.origen();
+  ar.com.lamontana.configuracion.DisponibilidadSucursalService.exigirAtencion(jdbc,branch);
+  if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL)
+   ar.com.lamontana.configuracion.DisponibilidadSucursalService.exigirAtencion(jdbc,old.destino());
   if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,branch)||!e.modalidades().contains(old.modalidad()))throw conflicto("La sucursal o modalidad ya no está habilitada para reprogramar.");
   String zona,nombre;List<PuntoEntregaController.Franja> templates;
   if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL){

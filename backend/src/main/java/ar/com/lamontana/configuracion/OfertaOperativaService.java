@@ -51,13 +51,16 @@ public class OfertaOperativaService {
     public Contexto leer(){
         var activa=configuracion.activa();var comercial=catalogo.leerEstado();
         if(activa==null)return new Contexto(null,comercial,List.of(),List.of(),List.of());
-        var sucursales=jdbc.query("SELECT codigo_publico,nombre,calle||' '||numero||', '||localidad||', '||provincia AS direccion FROM lamontana.sucursal WHERE estado='ACTIVA' ORDER BY codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getString(3)));
+        var sucursales=sucursalesDisponibles();
         var ids=new HashSet<UUID>();sucursales.forEach(s->ids.add(s.codigoPublico()));
         var b=activa.configuracion();var opciones=OpcionesImpresion.calcular(b,comercial,ids);
         var utilizables=sucursales.stream().filter(s->opciones.stream().anyMatch(o->o.sucursal().equals(s.codigoPublico()))).toList();
         return new Contexto(b,comercial,utilizables,opciones,entrega.puntosCotizacion(b));
     }
     public EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,EntregaConfiguracionController.SimularEntrega in,int minutos){return calcularEntrega(c,in,minutos,false);}
+    List<Sucursal> sucursalesDisponibles(){
+        return jdbc.query("SELECT s.codigo_publico,s.nombre,s.calle||' '||s.numero||', '||s.localidad||', '||s.provincia AS direccion FROM lamontana.sucursal s WHERE s.estado='ACTIVA' AND NOT EXISTS(SELECT 1 FROM lamontana.disponibilidad_sucursal d WHERE d.id_sucursal=s.id_sucursal AND d.estado='PAUSADA') ORDER BY s.codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getString(3)));
+    }
     public EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,EntregaConfiguracionController.SimularEntrega in,int minutos,boolean mostrador){
         return entrega.calcular(c.configuracion(),in,minutos,mostrador);
     }
