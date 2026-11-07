@@ -7,7 +7,7 @@ const order=(modalidad,retiroConTraslado=false)=>({reserva:{modalidad},retiroCon
 test('domicilio en viaje permite entregar sin pedir llegada a un punto de retiro',()=>{
  const home=deliveryExperience(order('ENVIO_DOMICILIO'),'EN_VIAJE');
  assert.equal(home.title,'Entrega a domicilio en curso');assert.equal(home.canReceive,true);assert.equal(home.home,true);assert.doesNotMatch(home.description,/registrá la llegada/i);
- const point=deliveryExperience(order('RETIRO_PUNTO_ENTREGA'),'EN_VIAJE');assert.equal(point.canReceive,false);assert.equal(point.title,'Registrar llegada al destino');
+ const point=deliveryExperience(order('RETIRO_PUNTO_ENTREGA'),'EN_VIAJE');assert.equal(point.canReceive,false);assert.equal(point.title,'Esperando recepción del punto');assert.match(point.description,/rider.*responsable del punto/);
 });
 test('ausencia deja la entrega pendiente e impide ingresar código hasta el nuevo intento',()=>{
  const absent=deliveryExperience(order('ENVIO_DOMICILIO'),'CLIENTE_AUSENTE');assert.equal(absent.canReceive,false);assert.equal(absent.absent,true);assert.match(absent.description,/código se conserva/);

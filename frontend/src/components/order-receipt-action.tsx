@@ -22,6 +22,7 @@ export function OrderReceiptAction({base,medio,saldo,disabled,onSaved,onLockChan
   setLoading(true);setError('');setMessage('');
   try{
    const value=await quoteRead(base,isPaymentView);
+   if(Number(value.pendiente)<=0){setMessage('El pedido ya no tiene saldo pendiente.');onSaved();return;}
    const methods=value.mediosRecepcion.filter(m=>value.permisos.includes(m==='EFECTIVO'?'REGISTRAR_COBRO':'ACREDITAR_PAGO'));
    if(!methods.length)throw Error('Tu cuenta no tiene habilitado el registro de cobros para este pedido.');
    setMethod(methods.includes(medio)?medio:methods[0]);setData(value);
@@ -47,6 +48,7 @@ export function OrderReceiptAction({base,medio,saldo,disabled,onSaved,onLockChan
   if(locked||running.current)return;
   command.current=JSON.stringify({operacion:crypto.randomUUID(),...body});void execute();
  }
+ if(saldo!==undefined&&Number(saldo)<=0&&!locked&&!data)return null;
  return <div className="order-receipt-action">
   <div><h3>Registrar cobro</h3>{saldo!==undefined&&<small>Saldo pendiente {money(saldo)}</small>}</div>
   <button type="button" className="client-button order-receipt-button" disabled={disabled||locked} onClick={()=>void open()}>{loading?'Consultando…':'Registrar cobro'}</button>

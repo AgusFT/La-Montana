@@ -43,6 +43,22 @@ class EntregaConCodigoServiceTest {
   assertFalse(validated);
   assertEquals(0,attempts);
  }
+ @Test void administracionNoPuedeDarPorRecibidoUnPedidoDelPunto(){
+  logistics="EN_VIAJE";
+  var consulta=service.consultar(id,"admin",true);
+  assertFalse(consulta.acciones().stream().filter(a->a.accion()==EntregaController.Accion.LLEGAR_PUNTO).findFirst().orElseThrow().habilitada());
+  var in=new EntregaController.Movimiento(UUID.randomUUID(),version,EntregaController.Accion.LLEGAR_PUNTO,null,true);
+  var error=assertThrows(ResponseStatusException.class,()->service.mover(id,in,"admin"));
+  assertEquals(HttpStatus.FORBIDDEN,error.getStatusCode());
+  assertTrue(error.getReason().contains("recepción debe confirmarla"));
+  assertTrue(events.isEmpty());assertEquals("EN_VIAJE",logistics);
+ }
+ @Test void elResponsableDelPuntoPuedeConfirmarLaRecepcion(){
+  logistics="EN_VIAJE";
+  var in=new EntregaController.Movimiento(UUID.randomUUID(),version,EntregaController.Accion.LLEGAR_PUNTO,null,true);
+  assertEquals("DISPONIBLE_PUNTO",service.mover(id,in,"operadora").estadoLogistico());
+  assertEquals(1,events.size());
+ }
  @Test void codigoIncorrectoNoEntregaYPreservaUnSoloIntento(){correct=false;var in=command();assertFalse(service.recibir(id,in,"operadora").aceptado());assertEquals(1,attempts);assertFalse(service.recibir(id,in,"operadora").aceptado());assertEquals(1,attempts);assertTrue(events.isEmpty());assertFalse(used);}
  @Test void saldoOLlegadaPendientesNoSeOmitenPorPresentarCodigo(){paid=false;assertThrows(ResponseStatusException.class,()->service.recibir(id,command(),"operadora"));paid=true;logistics="EN_VIAJE";assertThrows(ResponseStatusException.class,()->service.recibir(id,command(),"operadora"));assertTrue(events.isEmpty());assertFalse(validated);}
  @Test void permisoYConfirmacionSiguenSiendoNecesarios(){doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN)).when(org).exigirPermiso("operadora","GESTIONAR_ENTREGAS");assertThrows(ResponseStatusException.class,()->service.recibir(id,command(),"operadora"));doNothing().when(org).exigirPermiso("operadora","GESTIONAR_ENTREGAS");var in=command();assertThrows(ResponseStatusException.class,()->service.recibir(id,new EntregaController.Recibir(in.operacion(),4,in.codigo(),null,null,false),"operadora"));assertTrue(events.isEmpty());}

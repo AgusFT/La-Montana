@@ -119,3 +119,11 @@
 
 .operation-decision-actions>.order-receipt-action{margin-left:auto;border-left:1px solid var(--ui-border,#dce5ef);padding-left:24px}
 @media(max-width:650px){.operation-decision-actions>.order-receipt-action{margin-left:0;padding-left:0;border-left:0;flex-basis:100%}}
+
+.operation-primary-action,.operation-primary-action>.client-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0}
+.operation-primary-action{flex-shrink:0;max-width:100%}
+.operation-primary-action .client-button{min-height:44px;padding:11px 18px;font-size:14px}
+.operation-payment-settled{padding:10px 12px;border-radius:7px;background:var(--ui-success-bg,#e8f7ed);color:var(--ui-success-text,#146b3a)}
+.operation-order-simple .operation-action-shell{margin-top:12px}
+.operation-action-shell>header>div:first-child{min-width:0}
+@media(max-width:700px){.operation-action-shell>header{flex-wrap:wrap}.operation-primary-action{width:100%}.operation-primary-action>.client-actions{width:100%}}

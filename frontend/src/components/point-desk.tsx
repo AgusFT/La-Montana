@@ -49,7 +49,7 @@ export function PointDesk(){
     const title=mode==='cobrar'?'Cobro registrado':mode==='cobro-entrega'?'Cobro y entrega confirmados':'Entrega confirmada';
     setNotice({title,message:result.mensaje??`Se registró el cobro del pedido PED-${order.pedido.numero}.`});
     setOrder(mode==='cobrar'?result:null);
-   }else setMessage(result.mensaje??'Recepción registrada con tu usuario, fecha y hora.');
+   }else{setOrder(null);setMessage(result.mensaje??'Recepción registrada con tu usuario, fecha y hora.');}
    await load();
   }catch(e){
    setError(e instanceof Error?e.message:'No se pudo completar el registro.');
@@ -111,7 +111,9 @@ export function PointDesk(){
      <button type="button" className="client-button secondary" autoFocus disabled={locked} onClick={closeDetail}>Cerrar detalle</button>
     </header>
     <ul>{order.trabajos.map((t,i)=><li key={i}>{t.nombre} · {t.paginas} páginas × {t.copias} copias</li>)}</ul>
-    <p>Saldo pendiente: <strong>{money(order.entrega.saldo)}</strong></p>
+    {order.pedido.puedeRecibir&&<div className="client-actions"><p>El rider ya presentó el pedido. Confirmá después de verificar la recepción física.</p><button type="button" className="client-button order-approve" disabled={locked} onClick={()=>send('/api/punto/recibir',{pedidos:[{pedido:order.pedido.pedido,version:order.pedido.version}]})}>Confirmar recepción</button></div>}
+    {order.pedido.recorrido==='EN_VIAJE'&&!order.pedido.puedeRecibir&&<p className="client-note">El rider debe presentar el pedido antes de que puedas confirmar la recepción.</p>}
+    {Number(order.entrega.saldo)>0?<p>Saldo pendiente: <strong>{money(order.entrega.saldo)}</strong></p>:<p className="client-success">Sin deuda pendiente.</p>}
     {order.entrega.estadoLogistico==='DISPONIBLE_PUNTO'&&!order.entrega.entrega&&<div className="client-actions">
      {!!order.mediosSaldo?.length?<button className="client-button order-approve" disabled={locked} onClick={()=>choose('cobro-entrega')}>Cobrar {money(order.entrega.saldo)} y entregar</button>:<button className="client-button order-approve" disabled={locked||!!order.entrega.bloqueosEntrega.length} onClick={()=>choose('entregar')}>Ingresar código y entregar</button>}
      {context?.cobros&&Number(order.entrega.saldo)>0&&!!order.medios.length&&<button className="client-button secondary" disabled={locked} onClick={()=>choose('cobrar')}>Registrar un pago sin entregar</button>}

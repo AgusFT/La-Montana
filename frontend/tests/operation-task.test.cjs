@@ -89,7 +89,7 @@ test('entrega local evita un viaje ficticio y el traslado muestra una acción pr
  const transfer=state=>order('LISTO_PARA_ENTREGA',{reserva:{modalidad:'RETIRO_PUNTO_ENTREGA'},retiroConTraslado:false});
  assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'PENDIENTE_PREPARACION'})})).title,'Preparar para el despacho');
  assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'PREPARADO'})})).title,'Despachar · poner en viaje');
- assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'EN_VIAJE'})})).title,'Registrar llegada al destino');
+ assert.equal(operationTask(transfer(),['GESTIONAR_ENTREGAS'],facts({delivery:delivery({estadoLogistico:'EN_VIAJE'})})).title,'Esperando recepción del punto');
 });
 test('cierre conserva la espera mientras el servidor no lo habilita',()=>{
  assert.equal(operationTask(order('ENTREGADO'),['CERRAR_PEDIDOS'],facts({delivery:delivery({puedeCerrar:false})})).waiting,true);

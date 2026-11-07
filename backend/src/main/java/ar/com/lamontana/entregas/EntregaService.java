@@ -170,8 +170,9 @@ public class EntregaService {
  }
  private Vista registrarMovimiento(UUID pedido,Movimiento in,String correo,boolean rider,UUID retiro){
   bloquear();var p=detalleEntrega(pedido,correo,rider,retiro);var a=actor(correo);String hash=huella(List.of(pedido,"MOVIMIENTO",in));
+  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true,retiro);
   exigirDespacho(p,in.accion(),correo,a);
-  if(recuperar(in.operacion(),hash,p,a))return vista(p,correo,true,retiro);version(p,in.version());String motivo=nota(in.motivo(),switch(in.accion()){case PREPARAR_ENVIO->"Pedido preparado para despacho.";case SALIR_REPARTO->"Salida al destino acordado confirmada.";case LLEGAR_PUNTO->"Llegada al destino de retiro confirmada.";case CLIENTE_AUSENTE->"Intento de entrega a domicilio sin receptor.";case REINTENTAR_ENTREGA->"Nuevo intento de entrega a domicilio iniciado.";});confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
+  version(p,in.version());String motivo=nota(in.motivo(),switch(in.accion()){case PREPARAR_ENVIO->"Pedido preparado para despacho.";case SALIR_REPARTO->"Salida al destino acordado confirmada.";case LLEGAR_PUNTO->"Llegada al destino de retiro confirmada.";case CLIENTE_AUSENTE->"Intento de entrega a domicilio sin receptor.";case REINTENTAR_ENTREGA->"Nuevo intento de entrega a domicilio iniciado.";});confirmar(in.confirmado());String estado=logistica(p),bloqueo=bloqueoMovimiento(p,estado,in.accion(),true);if(bloqueo!=null)throw conflicto(bloqueo);
   String destino=switch(in.accion()){case PREPARAR_ENVIO->"PREPARADO";case SALIR_REPARTO->"EN_VIAJE";case LLEGAR_PUNTO->"DISPONIBLE_PUNTO";case CLIENTE_AUSENTE->"CLIENTE_AUSENTE";case REINTENTAR_ENTREGA->"EN_VIAJE";};String mensaje=switch(in.accion()){case PREPARAR_ENVIO->"El pedido está preparado para salir hacia el destino acordado.";case SALIR_REPARTO->"El pedido salió de la sucursal y está en viaje hacia el destino acordado.";case LLEGAR_PUNTO->"El pedido llegó al destino de retiro acordado. Consultá su franja de atención para retirarlo. Todavía no fue entregado al cliente.";case CLIENTE_AUSENTE->"No encontramos a una persona para recibir el pedido en el domicilio. La entrega sigue pendiente; coordiná un nuevo intento con la imprenta. Tu código se conserva.";case REINTENTAR_ENTREGA->"Comenzó un nuevo intento de entrega a domicilio. Conservá tu código para recibir el pedido.";};Instant ahora=clock.instant();
   long event=evento(p,a,in.operacion(),hash,in.accion().name(),p.estado(),motivo,mensaje,ahora);
   jdbc.update("INSERT INTO lamontana.movimiento_entrega(id_pedido,id_reserva_entrega,id_evento_pedido,estado_origen,estado_destino) VALUES (?,?,?,?,?)",p.numero(),reserva(p),event,estado,destino);
@@ -271,6 +272,9 @@ public class EntregaService {
   if(motivo!=null)throw error(HttpStatus.FORBIDDEN,motivo);
  }
  private String bloqueoDespacho(PedidoService.Detalle pedido,Accion accion,String correo,Actor actor){
+  if(accion==Accion.LLEGAR_PUNTO&&pedido.reserva().modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA
+    &&CuentaPuntoAcceso.punto(jdbc,correo)==null)
+   return "La recepción debe confirmarla el responsable de "+pedido.reserva().nombre()+" desde la cuenta del punto, después de la presentación del rider.";
   if(accion!=Accion.PREPARAR_ENVIO&&accion!=Accion.SALIR_REPARTO)return null;
   if(actor.rol().equals("ADMIN_ADMIN"))return null;
   if(CuentaPuntoAcceso.punto(jdbc,correo)!=null)return "El despacho se registra desde la sucursal de origen.";
