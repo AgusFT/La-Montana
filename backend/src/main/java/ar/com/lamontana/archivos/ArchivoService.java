@@ -113,17 +113,17 @@ public class ArchivoService {
     private record Cotizacion(long id,long propietario,CotizacionService.Oferta oferta,String estado,Instant vence,Instant aceptada,long version){}
     private record Contexto(Cotizacion cotizacion,long usuario,String rol){}
     public record Contenido(byte[] bytes,String tipo,String nombre){}
-    public record Recibida(UUID cotizacion,long numero,String cliente,String estado,long archivos,long validos,long aceptados){}
+    public record Recibida(UUID cotizacion,long numero,String cliente,String estado,long archivos,long validos,long aceptados,UUID pedido){}
     public record Bandeja(List<Recibida> elementos,long total,int pagina){}
     public Bandeja bandeja(UUID branch,int page,String correo){return tx.execute(s->{
         organizacion.sucursalAutorizada(correo,branch);
         if(page<0||page>100000)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Página inválida.");
         String from=" FROM lamontana.cotizacion c JOIN lamontana.destinatario_cotizacion d USING(id_cotizacion) JOIN lamontana.sucursal s ON s.id_sucursal=c.id_sucursal WHERE s.codigo_publico=? AND (c.id_preparacion_interna IS NULL OR c.estado='CONFIRMADA') AND EXISTS (SELECT 1 FROM lamontana.cotizacion_item ci JOIN lamontana.archivo_trabajo t USING(id_cotizacion_item) WHERE ci.id_cotizacion=c.id_cotizacion)";
         long total=jdbc.queryForObject("SELECT count(*)"+from,Long.class,branch);
-        var list=jdbc.query("SELECT c.codigo_publico,c.id_cotizacion,d.nombre,d.invitado,c.estado,c.vigente_hasta"+from+" ORDER BY c.id_cotizacion DESC LIMIT 25 OFFSET ?",(r,n)->{
+        var list=jdbc.query("SELECT c.codigo_publico,c.id_cotizacion,d.nombre,d.invitado,c.estado,c.vigente_hasta,(SELECT p.codigo_publico FROM lamontana.pedido_actual p WHERE p.id_cotizacion=c.id_cotizacion AND p.id_sucursal=c.id_sucursal) AS pedido"+from+" ORDER BY c.id_cotizacion DESC LIMIT 25 OFFSET ?",(r,n)->{
             long id=r.getLong("id_cotizacion");long[] counts=jdbc.queryForObject("SELECT count(*),count(*) FILTER(WHERE t.activo AND a.estado='VALIDO'),count(*) FILTER(WHERE t.activo AND p.tipo_registro='VISTA_PREVIA') FROM lamontana.cotizacion_item ci JOIN lamontana.archivo_trabajo t USING(id_cotizacion_item) JOIN lamontana.archivo_almacenado a USING(id_archivo_almacenado) LEFT JOIN lamontana.aceptacion_vista_previa p USING(id_archivo_almacenado) WHERE ci.id_cotizacion=?",(row,index)->new long[]{row.getLong(1),row.getLong(2),row.getLong(3)},id);
             String state=r.getString("estado");if(state.equals("VIGENTE")&&!clock.instant().isBefore(r.getTimestamp("vigente_hasta").toInstant()))state="EXPIRADA";
-            return new Recibida(r.getObject("codigo_publico",UUID.class),id,r.getString("nombre")+(r.getBoolean("invitado")?" · Invitado":""),state,counts[0],counts[1],counts[2]);
+            return new Recibida(r.getObject("codigo_publico",UUID.class),id,r.getString("nombre")+(r.getBoolean("invitado")?" · Invitado":""),state,counts[0],counts[1],counts[2],r.getObject("pedido",UUID.class));
         },branch,(long)page*25);return new Bandeja(list,total,page);
     });}
 

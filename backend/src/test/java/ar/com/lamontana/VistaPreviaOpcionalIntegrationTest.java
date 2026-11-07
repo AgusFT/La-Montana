@@ -311,7 +311,9 @@ class VistaPreviaOpcionalIntegrationTest {
    var item=new EvaluadorPrecioItem.Item(combo.servicio(),combo.formato(),combo.papel(),combo.color(),2,1,false,List.of());
    p=prep.presupuestar(p.codigoPublico(),new PreparacionClienteService.Presupuestar(UUID.randomUUID(),prep.consultar(p.codigoPublico(),ADMIN).version(),
     opciones.configuracion(),opciones.revisionComercial(),List.of(new PreparacionClienteService.Entrada(archivo.codigoPublico(),item))),ADMIN);
-   var checkout=prep.cotizar(p.codigoPublico(),new PreparacionClienteService.Cotizar(UUID.randomUUID(),p.version(),
+   var borrador=prep.cotizar(p.codigoPublico(),new PreparacionClienteService.Cotizar(UUID.randomUUID(),p.version(),
+    new PreparacionClienteService.Preferencias(Modalidad.RETIRO_SUCURSAL,sucursal,null,null,MedioPago.EFECTIVO)),ADMIN);
+   var checkout=prep.cotizar(p.codigoPublico(),new PreparacionClienteService.Cotizar(UUID.randomUUID(),borrador.preparacion().version(),
     new PreparacionClienteService.Preferencias(Modalidad.RETIRO_PUNTO_ENTREGA,null,cityBell,null,MedioPago.TRANSFERENCIA)),ADMIN);
    assertThat(checkout.revision().franja().origen()).isEqualTo(sucursal);
    assertThat(checkout.revision().franja().destino()).isEqualTo(cityBell);
@@ -319,6 +321,19 @@ class VistaPreviaOpcionalIntegrationTest {
     checkout.cotizacion().codigoPublico(),checkout.huella(),true,null),ADMIN);
    assertThat(pedido.nombreInvitado()).isEqualTo("Matías por WhatsApp");
    assertThat(pedido.reserva().modalidad()).isEqualTo(Modalidad.RETIRO_PUNTO_ENTREGA);
+   var pagos=app.getBean(PagoService.class);
+   var financiera=pagos.vista(pedido.cotizacion(),"sucursal.la.plata",true);
+   assertThat(financiera.cliente()).isEqualTo(pedido.nombreInvitado());
+   assertThat(financiera.relacionadas()).extracting(PagoService.OfertaRelacionada::codigoPublico).doesNotContain(borrador.cotizacion().codigoPublico());
+   assertThatThrownBy(()->pagos.vista(borrador.cotizacion().codigoPublico(),"sucursal.la.plata",true)).hasMessageContaining("no está disponible");
+   assertThatThrownBy(()->pagos.vista(pedido.cotizacion(),"sucursal.floresta",true)).hasMessageContaining("No tenés acceso");
+   var recibidos=app.getBean(ArchivoService.class).bandeja(sucursal,0,"sucursal.la.plata");
+   assertThat(recibidos.elementos()).filteredOn(q->q.cotizacion().equals(pedido.cotizacion()))
+    .extracting(ArchivoService.Recibida::pedido).containsExactly(pedido.codigoPublico());
+   var cobro=new PagoController.Recibir(UUID.randomUUID(),null,MedioPago.TRANSFERENCIA,financiera.pendiente(),null,null,true,"",true);
+   long cantidad=jdbc.queryForObject("SELECT count(*) FROM lamontana.pago",Long.class);
+   for(int repeticion=0;repeticion<2;repeticion++)assertThat(pagos.recibir(pedido.cotizacion(),cobro,"sucursal.la.plata").pendiente()).isEqualTo("0.00");
+   assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.pago",Long.class)).isEqualTo(cantidad+1);
    var aprobada=revision.decidir(pedido.codigoPublico(),new RevisionPedidoController.Decision(UUID.randomUUID(),pedido.version(),RevisionPedidoController.Accion.APROBAR,true,"",null),ADMIN);
    var trabajo=produccion.consultar(pedido.codigoPublico(),ADMIN).items().get(0);
    var iniciada=produccion.iniciar(pedido.codigoPublico(),new ProduccionController.Inicio(UUID.randomUUID(),aprobada.version(),trabajo.codigoPublico(),trabajo.impresoras().get(0).codigoPublico(),"",true),ADMIN);

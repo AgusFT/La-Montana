@@ -60,7 +60,7 @@ export default async function OperationBranchPage({ params, searchParams }: { pa
       {context?.permisos.includes("CREAR_PEDIDOS")&&<a className="admin-button" href={`/operacion/pedidos/nuevo?sucursal=${codigoPublico}`}>Crear pedido</a>}
       {context?.permisos.includes("GESTIONAR_ENTREGAS")&&<a className="admin-button secondary" href={`/operacion/sucursales/${codigoPublico}?estado=LISTO_PARA_ENTREGA#despachos`}>Despachos de esta sucursal</a>}
       {context?.permisos.includes("GESTIONAR_ENTREGAS")&&<a className="admin-button secondary" href={`/operacion/retiros?sucursal=${codigoPublico}`}>Retiros en esta sucursal</a>}
-    </div><OrderListView branch={codigoPublico} initialState={initialState}/><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}</>}
+    </div><OrderListView branch={codigoPublico} initialState={initialState}/><details className="client-card"><summary className="secondary-link">Archivos y cobros de cotizaciones</summary><p>Consulta complementaria de todas las cotizaciones de esta sucursal. Para continuar el trabajo, usá la bandeja de pedidos de arriba.</p><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}</details></>}
     <a className="secondary-link" href="/operacion">Volver a tus sucursales</a>
   </AdminShell>;
 }

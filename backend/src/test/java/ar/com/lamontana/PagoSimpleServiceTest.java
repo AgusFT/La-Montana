@@ -25,8 +25,9 @@ class PagoSimpleServiceTest {
  private JdbcTemplate jdbc;private OrganizacionService org;private CoberturaPagos coverage;private CobroPedidoService deadlines;private PagoService service;
  private final Map<UUID,Object[]> events=new LinkedHashMap<>();private final Map<UUID,Object[]> payments=new LinkedHashMap<>();
  private BigDecimal applied;private String state;private Instant expires;private List<MedioPago> admitted;
+ private final Map<UUID,String> relatedQuotes=new LinkedHashMap<>();private final Set<UUID> privateDrafts=new HashSet<>();
  @BeforeEach @SuppressWarnings("unchecked") void setup() throws Exception {
-  events.clear();payments.clear();applied=BigDecimal.ZERO;state="VIGENTE";expires=Instant.now().plusSeconds(3600);admitted=List.of(MedioPago.TRANSFERENCIA);
+  events.clear();payments.clear();relatedQuotes.clear();privateDrafts.clear();applied=BigDecimal.ZERO;state="VIGENTE";expires=Instant.now().plusSeconds(3600);admitted=List.of(MedioPago.TRANSFERENCIA);
   jdbc=mock(JdbcTemplate.class);org=mock(OrganizacionService.class);coverage=mock(CoberturaPagos.class);deadlines=mock(CobroPedidoService.class);
   var operational=mock(OfertaOperativaService.class);when(operational.leer()).thenReturn(new OfertaOperativaService.Contexto(null,null,List.of(),List.of(),List.of()));
   when(org.contexto(anyString())).thenReturn(new OrganizacionService.Contexto(List.of(),List.of("ACREDITAR_PAGO","REGISTRAR_COBRO")));
@@ -34,7 +35,15 @@ class PagoSimpleServiceTest {
   when(jdbc.query(anyString(),any(RowMapper.class),any(Object[].class))).thenAnswer(i->{
    String sql=i.getArgument(0);Object[] args=(Object[])i.getRawArguments()[2];RowMapper<?> mapper=i.getArgument(1);
    if(sql.startsWith("SELECT u.id_usuario"))return rows(mapper,Map.of(1,7L,2,"Cajero de prueba",3,"ADMIN_ADMIN"));
-   if(sql.startsWith("SELECT c.*,s.codigo_publico"))return rows(mapper,Map.of("id_cotizacion",1L,"id_usuario_creador",2L,"sucursal",branch,"sucursal_estado","ACTIVA","estado",state,"vigente_hasta",Timestamp.from(expires),"aceptada_en",Timestamp.from(Instant.now().minusSeconds(3600)),"oferta",offer()));
+   if(sql.startsWith("SELECT c.*,s.codigo_publico")){
+    if(privateDrafts.contains(args[0]))return List.of();
+    return rows(mapper,Map.of("id_cotizacion",1L,"id_usuario_creador",2L,"sucursal",branch,"sucursal_estado","ACTIVA","estado",relatedQuotes.getOrDefault(args[0],state),"vigente_hasta",Timestamp.from(expires),"aceptada_en",Timestamp.from(Instant.now().minusSeconds(3600)),"oferta",offer()));
+   }
+   if(sql.startsWith("SELECT codigo_publico FROM lamontana.cotizacion WHERE id_cotizacion<>")){
+    var result=new ArrayList<Object>();
+    for(var id:relatedQuotes.keySet())if(!privateDrafts.contains(id)||!sql.contains("id_preparacion_interna IS NULL OR estado='CONFIRMADA'"))result.addAll(rows(mapper,Map.of(1,id)));
+    return result;
+   }
    if(sql.startsWith("SELECT tipo,huella,id_actor")){var e=events.get(args[0]);return e==null?List.of():rows(mapper,Map.of(1,e[5],2,e[6],3,e[2]));}
    if(sql.startsWith("SELECT * FROM lamontana.pago_disponible")){var p=payments.get(args[0]);return p==null?List.of():rows(mapper,funds(p));}
    if(sql.startsWith("SELECT p.codigo_publico FROM lamontana.pago")){var result=new ArrayList<Object>();for(var p:payments.values())result.addAll(rows(mapper,Map.of(1,p[0])));return result;}
@@ -46,7 +55,7 @@ class PagoSimpleServiceTest {
    if(sql.startsWith("INSERT INTO lamontana.evento_financiero")){events.put((UUID)args[0],new Object[]{args[0],args[1],args[2],args[3],args[4],args[5],args[6],args[7]});return (long)events.size();}
    if(type==Boolean.class)return sql.startsWith("SELECT lamontana.cotizacion_descendiente")||sql.startsWith("SELECT EXISTS(SELECT 1 FROM lamontana.pago WHERE clave_referencia")&&payments.values().stream().anyMatch(p->p[7].equals(args[0]));
    if(type==UUID.class)return quote;
-   if(type==String.class)return "Cliente de prueba";
+   if(type==String.class)return sql.contains("destinatario_cotizacion")?"Raúl del mostrador":"Cliente de prueba";
    if(type==Long.class)return applied.signum()>0?2L:1L;
    return null;
   });
@@ -86,4 +95,20 @@ class PagoSimpleServiceTest {
  @Test void conservaDineroDeOfertaVencidaSinAplicarlo(){expires=Instant.now().minusSeconds(60);var v=service.recibir(quote,command("300.00","",true),"caja");assertEquals("0.00",v.aplicado());assertEquals(1,events.size());}
  @Test void elModoAnteriorSoloRegistraYLaReferenciaBancariaSigueEvitandoDuplicados(){var cmd=command("300.00","BANCO-123",false);service.recibir(quote,cmd,"caja");service.recibir(quote,new PagoController.Recibir(cmd.operacion(),null,cmd.medio(),cmd.importe(),cmd.referencia(),cmd.recibidoEn(),true,cmd.motivo(),null),"caja");assertEquals(1,events.size());assertEquals(BigDecimal.ZERO,applied);assertThrows(ResponseStatusException.class,()->service.recibir(quote,command("300.00","BANCO-123",true),"caja"));assertEquals(1,payments.size());}
  @Test void exigePermisoYConfirmacionAntesDeRegistrar(){var cmd=new PagoController.Recibir(UUID.randomUUID(),null,MedioPago.TRANSFERENCIA,"300.00","",null,false,"",true);assertThrows(ResponseStatusException.class,()->service.recibir(quote,cmd,"caja"));assertTrue(events.isEmpty());doThrow(new ResponseStatusException(HttpStatus.FORBIDDEN)).when(org).exigirPermiso("sin-permiso","ACREDITAR_PAGO");assertThrows(ResponseStatusException.class,()->service.recibir(quote,command("300.00","",true),"sin-permiso"));assertTrue(payments.isEmpty());}
+ @Test void recotizarUnInvitadoNoImpideConsultarNiCobrarSuPedido(){
+  UUID draft=UUID.randomUUID();relatedQuotes.put(draft,"REEMPLAZADA");privateDrafts.add(draft);
+  var vista=service.vista(quote,"caja",true);
+  assertTrue(vista.relacionadas().isEmpty());assertEquals("Raúl del mostrador",vista.cliente());
+  var cmd=command("300.00","",true);
+  var cobro=service.recibir(quote,cmd,"caja");assertEquals("300.00",cobro.aplicado());assertEquals("700.00",cobro.pendiente());
+  service.recibir(quote,cmd,"caja");assertEquals(1,payments.size());assertEquals(2,events.size());
+ }
+ @Test void conservaCotizacionesFinancierasRelacionadasSinAbrirBorradores(){
+  UUID draft=UUID.randomUUID(),previous=UUID.randomUUID();
+  relatedQuotes.put(draft,"REEMPLAZADA");privateDrafts.add(draft);relatedQuotes.put(previous,"REEMPLAZADA");
+  var vista=service.vista(quote,"caja",true);
+  assertEquals(List.of(previous),vista.relacionadas().stream().map(PagoService.OfertaRelacionada::codigoPublico).toList());
+  var error=assertThrows(ResponseStatusException.class,()->service.vista(draft,"caja",true));assertEquals(HttpStatus.NOT_FOUND,error.getStatusCode());
+  assertThrows(ResponseStatusException.class,()->service.recibir(draft,command("300.00","",true),"caja"));assertTrue(events.isEmpty());
+ }
 }
