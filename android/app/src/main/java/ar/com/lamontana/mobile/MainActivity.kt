@@ -570,13 +570,19 @@ private fun LoginPreview() = LaMontanaTheme { LoginScreen(false, null) { _, _ ->
 @Composable
 private fun PointPreview() = LaMontanaTheme {
     PointDeskScreen(
-        AppUiState(
+        state = AppUiState(
             point = PointContext("1", "Punto Caballito", "Responsable Caballito", true, 3, 5, 18),
             pointPage = PointPage(listOf(
                 PointOrder("1", 176, "Martín Gómez", "LISTO_PARA_ENTREGA", "DISPONIBLE_PUNTO", "1137.00", "EFECTIVO", "2026-11-02T12:00:00Z"),
                 PointOrder("2", 143, "Sofía Rossi", "LISTO_PARA_ENTREGA", "DISPONIBLE_PUNTO", "0.00", "TRANSFERENCIA", "2026-11-02T12:00:00Z"),
             ), 2, 0),
         ),
-        {}, { _, _, _ -> }, {}, {}, {}, {}, {},
+        onRefresh = {},
+        onLoadOrders = { _, _, _ -> },
+        onOpenOrder = { _ -> },
+        onCloseOrder = {},
+        onReceive = { _ -> },
+        onDeliver = { _, _ -> },
+        onLogout = {},
     )
 }
