@@ -218,7 +218,7 @@ private fun PointDeskScreen(
         }
     }
     state.pointDetail?.let {
-        PointOrderDialog(it, point?.nombre.orEmpty(), loading, state.error, onCloseOrder, onDeliver)
+        PointOrderDialog(it, point?.nombre.orEmpty(), loading, state.error, onCloseOrder, onDeliver, onReceive)
     }
 }
 
@@ -301,9 +301,16 @@ private fun PointOrderCard(
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Column { Text("Saldo pendiente", fontSize = 11.sp, color = Color(0xFF6A7B8E)); Text(money(order.saldo), fontWeight = FontWeight.Bold) }
+                Column {
+                    if (order.saldo.toBigDecimalOrNull()?.signum() == 0) {
+                        Text("Sin deuda pendiente", fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("Saldo pendiente", fontSize = 11.sp, color = Color(0xFF6A7B8E))
+                        Text(money(order.saldo), fontWeight = FontWeight.Bold)
+                    }
+                }
                 Button(onClick = onOpen, enabled = enabled) {
-                    Text("Abrir pedido", fontSize = 12.sp)
+                    Text("Ver pedido", fontSize = 12.sp)
                 }
             }
             if (onSelect != null) Row(verticalAlignment = Alignment.CenterVertically) {
@@ -322,6 +329,7 @@ private fun PointOrderDialog(
     error: String?,
     onClose: () -> Unit,
     onDeliver: (String, PointPayment?) -> Unit,
+    onReceive: (Set<String>) -> Unit,
 ) {
     val order = detail.order
     val collect = order.recorrido == "DISPONIBLE_PUNTO" && detail.paymentMethods.isNotEmpty()
@@ -341,7 +349,14 @@ private fun PointOrderDialog(
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(if (order.puedeRecibir) "Listo para confirmar recepción" else logisticsLabel(order.recorrido))
                 if (order.franja.isNotBlank()) Text(order.franja)
-                Text("Saldo pendiente: ${money(order.saldo)}")
+                Text(if (order.saldo.toBigDecimalOrNull()?.signum() == 0) "Sin deuda pendiente" else "Saldo pendiente: ${money(order.saldo)}")
+                if (order.recorrido == "EN_VIAJE") {
+                    Text(if (order.puedeRecibir) {
+                        "El rider ya presentó el pedido. Confirmá la recepción después de verificar que lo tenés en el punto."
+                    } else {
+                        "El rider debe presentar este pedido antes de que puedas confirmar la recepción."
+                    })
+                }
                 if (collect) Text("Medio elegido al hacer el pedido: ${logisticsLabel(order.medio)}")
                 detail.works.forEach { Text("${it.nombre} · ${it.paginas} pág. · ${it.copias} copias") }
                 detail.receipts.forEach {
@@ -394,6 +409,9 @@ private fun PointOrderDialog(
             }
         },
         confirmButton = {
+            if (order.puedeRecibir) Button(enabled = !loading, onClick = { onReceive(setOf(order.pedido)) }) {
+                Text(if (loading) "Registrando…" else "Confirmar recepción")
+            }
             if (canDeliver) Button(
                 enabled = !loading && code.length == 8 && (!transfer || reference.isNotBlank()),
                 onClick = {

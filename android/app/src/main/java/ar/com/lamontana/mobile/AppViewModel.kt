@@ -90,6 +90,7 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
         if (selected.isEmpty()) return
         val operation = operationFor(selected)
         request({ api.receiveAtPoint(operation, selected) }) {
+            closePointOrder()
             actionFinished(ActionResult(true, "Recepción confirmada. Ya figuran en Para retirar."), ::refreshPoint)
         }
     }
