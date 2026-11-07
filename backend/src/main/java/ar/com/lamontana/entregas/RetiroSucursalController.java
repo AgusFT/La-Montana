@@ -1,5 +1,7 @@
 package ar.com.lamontana.entregas;
 
+import ar.com.lamontana.pagos.PagoController;
+import ar.com.lamontana.pagos.PagoService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -30,6 +32,17 @@ public class RetiroSucursalController {
     @GetMapping("/{pedido}")
     public EntregaService.Vista detalle(@PathVariable UUID sucursal, @PathVariable UUID pedido, Principal p) {
         return entregas.consultarRetiro(sucursal, pedido, p.getName());
+    }
+
+    @GetMapping("/{pedido}/pagos")
+    public PagoService.Vista pagos(@PathVariable UUID sucursal,@PathVariable UUID pedido,Principal p){
+        return retiros.pagos(sucursal,pedido,p.getName());
+    }
+
+    @PostMapping("/{pedido}/pagos/recibir")
+    public PagoService.Vista cobrarSaldo(@PathVariable UUID sucursal,@PathVariable UUID pedido,
+            @Valid @RequestBody PagoController.Recibir in,Principal p){
+        return retiros.cobrar(sucursal,pedido,in,p.getName());
     }
 
     @PostMapping("/{pedido}/llegada")

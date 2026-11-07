@@ -7,7 +7,7 @@ import type {Branch} from '@/lib/organization-types';
 import styles from './internal-order-customer.module.css';
 
 const customerTypes = [
- {value:'guest', label:'Invitado de mostrador', description:'Cargá el pedido con un nombre.'},
+ {value:'guest', label:'Invitado sin cuenta', description:'Cargá un pedido de mostrador o recibido por WhatsApp.'},
  {value:'registered', label:'Cliente registrado', description:'Buscá su cuenta por correo.'},
 ] as const;
 
@@ -54,7 +54,7 @@ export function InternalOrderCustomer({branches,initialBranch}:{branches:Pick<Br
      </select></label>
     </>:<label>Correo del cliente<input type="email" required maxLength={254} autoComplete="off" disabled={busy} value={email} onChange={e=>setEmail(e.target.value)}/></label>}
    </div>
-   <p className={styles.hint}>{kind==='guest'?'El trabajo se entrega en esta sucursal.':'Al confirmar, el pedido aparecerá en la cuenta del cliente.'}</p>
+   <p className={styles.hint}>{kind==='guest'?'Después de cargar los PDF, elegí retiro en esta sucursal o en uno de sus puntos de entrega.':'Al confirmar, el pedido aparecerá en la cuenta del cliente.'}</p>
    {error&&<p className="client-warning" role="alert">{error}</p>}
    <div className={styles.actions}>
     <button type="submit" className="admin-button" disabled={busy||kind==='guest'&&!branches.length}>{busy?'Preparando pedido…':'Continuar'}</button>

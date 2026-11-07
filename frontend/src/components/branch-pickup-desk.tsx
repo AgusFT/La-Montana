@@ -5,6 +5,7 @@ import {date, money, quoteRead} from '@/lib/quote-types';
 import {MutationError, secureMutation} from '@/lib/secure-mutation';
 import {useNavigationGuard} from './navigation-boundary';
 import {isDelivery, type Delivery} from './order-delivery';
+import {OrderReceiptAction} from './order-receipt-action';
 import '@/app/client.css';
 import '@/app/point-desk.css';
 import styles from './branch-pickup-desk.module.css';
@@ -106,7 +107,7 @@ function PickupQueue({branch}:{branch:string}) {
       <span>{list.total} pedidos · página {page+1}</span>
       <button type="button" className="admin-button secondary" disabled={(page+1)*25>=list.total} onClick={() => setPage(value => value+1)}>Siguientes</button>
     </footer>}
-    {row&&<PickupDialog path={base+'/'+row.pedido} row={row} onClose={() => setRow(null)} onSaved={notice => {
+    {row&&<PickupDialog path={base+'/'+row.pedido} row={row} onClose={() => {setRow(null);setRevision(value => value+1);}} onSaved={notice => {
       setRow(null);setMessage(notice);setPage(0);setRevision(value => value+1);
     }}/>}
   </section>;
@@ -123,7 +124,9 @@ function PickupDialog({path,row,onClose,onSaved}:{path:string;row:Row;onClose:()
   const [busy,setBusy] = useState(false);
   const [uncertain,setUncertain] = useState(false);
   const [refresh,setRefresh] = useState(0);
-  const locked = busy || uncertain;
+  const [receiptLocked,setReceiptLocked] = useState(false);
+  const [receiptMessage,setReceiptMessage] = useState('');
+  const locked = busy || uncertain || receiptLocked;
   useNavigationGuard({blocked:locked});
   useEffect(() => {dialog.current?.showModal();}, []);
   useEffect(() => {
@@ -141,6 +144,7 @@ function PickupDialog({path,row,onClose,onSaved}:{path:string;row:Row;onClose:()
   const ready = detail?.estadoPedido==='LISTO_PARA_ENTREGA' && ['LISTO_RETIRO','DISPONIBLE_PUNTO'].includes(detail.estadoLogistico);
   const cash = ready && detail.cobroEfectivo?.habilitado ? detail.cobroEfectivo : null;
   const canDeliver = ready && (cash || !detail.bloqueosEntrega.length);
+  const guestWithoutCode=row.invitado&&detail?.estadoLogistico==='LISTO_RETIRO';
   const action = arrival?'llegada':cash?'cobrar-efectivo':'entregar';
   const title = arrival?'Registrar llegada':cash?'Cobrar efectivo y entregar':detail?.entrega?'Entrega registrada':'Entregar pedido';
 
@@ -183,7 +187,7 @@ function PickupDialog({path,row,onClose,onSaved}:{path:string;row:Row;onClose:()
       url:path+'/'+action,
       body:JSON.stringify({
         operacion:crypto.randomUUID(), version:detail.version, confirmado:true,
-        ...(arrival?{}:{codigo:row.invitado?null:code}),
+        ...(arrival?{}:{codigo:guestWithoutCode?null:code}),
         ...(cash?{importe:cash.importe,cerrar:cash.puedeCerrar}:{}),
       }),
     };
@@ -197,11 +201,13 @@ function PickupDialog({path,row,onClose,onSaved}:{path:string;row:Row;onClose:()
       <p><strong>PED-{row.numero} · {row.cliente}</strong>{row.invitado&&' · Invitado de mostrador'}</p>
       {loading&&<p role="status">Consultando el pedido…</p>}
       {error&&<p className="client-warning" role="alert">{error}</p>}
+      {receiptMessage&&<p className="client-success" role="status">{receiptMessage}</p>}
       {detail?.entrega&&<p>{date(detail.entrega.fecha)} · {detail.entrega.responsable}{detail.cierre&&' · Pedido cerrado'}</p>}
       {arrival&&<p>Confirmá que el pedido está físicamente en esta sucursal. Quedará listo para que el cliente lo retire.</p>}
       {ready&&<>
+        {Number(detail.saldo)>0&&<OrderReceiptAction base={path+'/pagos'} medio={row.medio} saldo={detail.saldo} disabled={busy||uncertain} onSaved={()=>{setReceiptMessage('Cobro registrado. El saldo del pedido está actualizado.');setRefresh(value=>value+1);}} onLockChange={setReceiptLocked}/>}
         <p className={cash?'client-success':undefined}>Saldo pendiente <strong>{money(detail.saldo)}</strong>{cash&&' · Confirmá después de recibir el efectivo.'}</p>
-        {canDeliver?row.invitado?<p>Verificá el nombre del invitado y el número de pedido.</p>:
+        {canDeliver?guestWithoutCode?<p>Verificá el nombre del invitado y el número de pedido.</p>:
           <label>Código de entrega
             <input className="point-code" autoFocus required autoComplete="off" minLength={8} pattern="[A-HJ-NP-Z2-9]{8}"
               disabled={locked} placeholder="ABCD2345" value={code}

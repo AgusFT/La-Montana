@@ -263,13 +263,77 @@ class VistaPreviaOpcionalIntegrationTest {
       assertThat(vista.get("saldo").asString()).isEqualTo("0.00");
      }
     }else{
-     pagos.recibir(pedido.cotizacion(),new PagoController.Recibir(UUID.randomUUID(),null,medio,listo.saldo(),"Mostrador "+id,null,true,"Transferencia acreditada en mostrador",true),ADMIN);
+     String rutaCobro=mostrador+"/"+id+"/pagos";
+     var estadoCobro=sesion.send(HttpRequest.newBuilder(http.resolve(rutaCobro)).GET().build(),HttpResponse.BodyHandlers.ofString());
+     assertThat(estadoCobro.statusCode()).describedAs(estadoCobro.body()).isEqualTo(200);
+     assertThat(sesion.send(HttpRequest.newBuilder(http.resolve(otraSucursal+"/"+id+"/pagos")).GET().build(),HttpResponse.BodyHandlers.ofString()).statusCode()).isEqualTo(404);
+     var pago=new PagoController.Recibir(UUID.randomUUID(),null,medio,listo.saldo(),"Mostrador "+id,null,true,"Transferencia acreditada en mostrador",true);
+     var request=HttpRequest.newBuilder(http.resolve(rutaCobro+"/recibir"))
+      .header("Content-Type","application/json").header("X-CSRF-TOKEN",csrf(http,sesion))
+      .POST(HttpRequest.BodyPublishers.ofString(JsonMapper.builder().build().writeValueAsString(pago))).build();
+     long cantidad=jdbc.queryForObject("SELECT count(*) FROM lamontana.pago",Long.class);
+     for(int repeticion=0;repeticion<2;repeticion++){
+      var resultado=sesion.send(request,HttpResponse.BodyHandlers.ofString());
+      assertThat(resultado.statusCode()).describedAs(resultado.body()).isEqualTo(200);
+      assertThat(JsonMapper.builder().build().readTree(resultado.body()).get("pendiente").asString()).isEqualTo("0.00");
+     }
+     assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.pago",Long.class)).isEqualTo(cantidad+1);
      var entregaInvitado=entrega.recibir(id,new EntregaController.Recibir(UUID.randomUUID(),listo.version(),null,null,null,true),ADMIN);
      assertThat(entregaInvitado.vista().entrega().receptor()).isEqualTo(pedido.nombreInvitado());
      assertThat(entregaInvitado.vista().saldo()).isEqualTo("0.00");
     }
    }
    assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE r.codigo<>'INVITADO_MOSTRADOR'",Long.class)).isEqualTo(usuarios);
+  } finally {try(var paths=Files.walk(files)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
+ }
+ @Test void invitadoDeWhatsAppPuedeElegirCityBellYLaSucursalComparteSuCodigo() throws Exception {
+  Path files=Files.createTempDirectory("lamontana-invitado-punto-");
+  try(var pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start();var av=new ClamavDePrueba();var app=new SpringApplicationBuilder(LaMontanaApplication.class).run(
+   "--server.port=0","--spring.profiles.active=pruebas","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=",
+   "--lamontana.archivos.directorio="+files,"--lamontana.pruebas.clave=MontanaPrueba2026!","--lamontana.archivos.antivirus.host=127.0.0.1","--lamontana.archivos.antivirus.port="+av.port())) {
+   var jdbc=app.getBean(JdbcTemplate.class);
+   var prep=app.getBean(PreparacionClienteService.class);
+   var upload=app.getBean(ArchivoPreparadoService.class);
+   var revision=app.getBean(RevisionPedidoService.class);
+   var produccion=app.getBean(ProduccionService.class);
+   var entrega=app.getBean(EntregaService.class);
+   UUID sucursal=jdbc.queryForObject("SELECT codigo_publico FROM lamontana.sucursal WHERE codigo='LAPLATA'",UUID.class);
+   UUID cityBell=jdbc.queryForObject("SELECT codigo_publico FROM lamontana.punto_entrega WHERE codigo='PUNTO-CITY-BELL'",UUID.class);
+   var p=prep.abrirInvitado(ADMIN,UUID.randomUUID(),"Matías por WhatsApp",sucursal);
+   var opciones=prep.opciones(p.codigoPublico(),ADMIN);
+   assertThat(opciones.modalidades()).contains(Modalidad.RETIRO_PUNTO_ENTREGA);
+   assertThat(opciones.puntos()).extracting(CotizacionService.Punto::codigoPublico).contains(cityBell);
+   assertThat(opciones.puntos()).allSatisfy(punto->assertThat(punto.sucursal()).isEqualTo(sucursal));
+   var combo=opciones.combinaciones().get(0);
+   byte[] pdf=pdf();
+   var carga=upload.crear(p.codigoPublico(),UUID.randomUUID(),"pedido-whatsapp.pdf",ADMIN);
+   var archivo=upload.recibir(p.codigoPublico(),carga.codigoPublico(),ADMIN,new ByteArrayInputStream(pdf),pdf.length);
+   var item=new EvaluadorPrecioItem.Item(combo.servicio(),combo.formato(),combo.papel(),combo.color(),2,1,false,List.of());
+   p=prep.presupuestar(p.codigoPublico(),new PreparacionClienteService.Presupuestar(UUID.randomUUID(),prep.consultar(p.codigoPublico(),ADMIN).version(),
+    opciones.configuracion(),opciones.revisionComercial(),List.of(new PreparacionClienteService.Entrada(archivo.codigoPublico(),item))),ADMIN);
+   var checkout=prep.cotizar(p.codigoPublico(),new PreparacionClienteService.Cotizar(UUID.randomUUID(),p.version(),
+    new PreparacionClienteService.Preferencias(Modalidad.RETIRO_PUNTO_ENTREGA,null,cityBell,null,MedioPago.TRANSFERENCIA)),ADMIN);
+   assertThat(checkout.revision().franja().origen()).isEqualTo(sucursal);
+   assertThat(checkout.revision().franja().destino()).isEqualTo(cityBell);
+   var pedido=prep.confirmar(p.codigoPublico(),new PreparacionClienteService.Confirmar(UUID.randomUUID(),checkout.preparacion().version(),
+    checkout.cotizacion().codigoPublico(),checkout.huella(),true,null),ADMIN);
+   assertThat(pedido.nombreInvitado()).isEqualTo("Matías por WhatsApp");
+   assertThat(pedido.reserva().modalidad()).isEqualTo(Modalidad.RETIRO_PUNTO_ENTREGA);
+   var aprobada=revision.decidir(pedido.codigoPublico(),new RevisionPedidoController.Decision(UUID.randomUUID(),pedido.version(),RevisionPedidoController.Accion.APROBAR,true,"",null),ADMIN);
+   var trabajo=produccion.consultar(pedido.codigoPublico(),ADMIN).items().get(0);
+   var iniciada=produccion.iniciar(pedido.codigoPublico(),new ProduccionController.Inicio(UUID.randomUUID(),aprobada.version(),trabajo.codigoPublico(),trabajo.impresoras().get(0).codigoPublico(),"",true),ADMIN);
+   produccion.finalizarCalidad(pedido.codigoPublico(),iniciada.items().get(0).trabajos().get(0).codigoPublico(),new ProduccionController.Inspeccion(
+    UUID.randomUUID(),iniciada.version(),ProduccionController.Resultado.APROBADO,new ProduccionController.Checklist(true,true,true,true,true),"",true),ADMIN);
+   var vista=entrega.consultar(pedido.codigoPublico(),ADMIN,true);
+   vista=entrega.mover(pedido.codigoPublico(),new EntregaController.Movimiento(UUID.randomUUID(),vista.version(),EntregaController.Accion.PREPARAR_ENVIO,null,true),ADMIN);
+   entrega.moverLote(new EntregaController.MovimientoLote(UUID.randomUUID(),EntregaController.Accion.SALIR_REPARTO,
+    List.of(new EntregaController.PedidoLote(pedido.codigoPublico(),vista.version())),entrega.repartidores(ADMIN).get(0).codigoPublico()),ADMIN);
+   vista=entrega.consultar(pedido.codigoPublico(),ADMIN,true);
+   assertThat(vista.codigo().texto()).matches("[A-HJ-NP-Z2-9]{8}");
+   var ficha=app.getBean(ar.com.lamontana.puntos.PuntoRetiroService.class).ficha(pedido.codigoPublico(),"punto.city-bell.retiro@prueba.local");
+   assertThat(ficha.pedido().cliente()).isEqualTo("Matías por WhatsApp");
+   assertThat(ficha.pedido().correo()).isNull();
+   assertThat(ficha.entrega().codigo().texto()).isNull();
   } finally {try(var paths=Files.walk(files)){for(var p:paths.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}
  }
  private HttpClient login(URI base,String correo) throws Exception {

@@ -4,7 +4,7 @@ import {money} from "@/lib/quote-types";
 import type {PaymentView} from "@/lib/payment-types";
 import {normalizeReceiptAmount,receiptSuggestion} from "@/lib/payment-receipt";
 
-export function PaymentReceiptDialog({data,medio,intento,locked,busy,uncertain,error,onConfirm,onClose,onRecover}:{data:PaymentView;medio:string;intento?:string;locked:boolean;busy:boolean;uncertain:boolean;error:string;onConfirm:(body:Record<string,unknown>)=>void;onClose:()=>void;onRecover:()=>void}){
+export function PaymentReceiptDialog({data,medio,intento,locked,busy,uncertain,error,onConfirm,onClose,onRecover,onMedioChange}:{data:PaymentView;medio:string;intento?:string;locked:boolean;busy:boolean;uncertain:boolean;error:string;onConfirm:(body:Record<string,unknown>)=>void;onClose:()=>void;onRecover:()=>void;onMedioChange?:(medio:string)=>void}){
  const dialog=useRef<HTMLDialogElement>(null),title=useId(),amount=useRef<HTMLInputElement>(null);
  const suggestion=receiptSuggestion(data,medio,intento);
  useEffect(()=>{const opener=document.activeElement;dialog.current?.showModal();return()=>{dialog.current?.close();if(opener instanceof HTMLElement&&opener.isConnected)opener.focus();};},[]);
@@ -21,7 +21,10 @@ export function PaymentReceiptDialog({data,medio,intento,locked,busy,uncertain,e
   <form className="client-form" onSubmit={submit}><h2 id={title}>{medio==="EFECTIVO"?"Confirmar efectivo recibido":"Confirmar transferencia recibida"}</h2>
    <p>COT-{data.numero} · {data.cliente}</p>
    {error&&<p role="alert" className="client-warning">{error}</p>}
-   <fieldset disabled={locked}><label>Importe recibido (ARS)<input ref={amount} name="importe" required autoFocus inputMode="decimal" maxLength={20} defaultValue={suggestion.importe.replace(".",",")} onChange={e=>e.currentTarget.setCustomValidity("")}/></label>
+   <fieldset disabled={locked}>
+    {onMedioChange&&<label>Medio de pago recibido<select value={medio} onChange={e=>onMedioChange(e.target.value)}>{data.mediosRecepcion.filter(m=>data.permisos.includes(m==='EFECTIVO'?'REGISTRAR_COBRO':'ACREDITAR_PAGO')).map(m=><option key={m} value={m}>{m==='EFECTIVO'?'Efectivo':'Transferencia'}</option>)}</select></label>}
+    {onMedioChange&&medio==="TRANSFERENCIA"&&<p>Verificá la acreditación en la cuenta de {data.sucursal} antes de confirmar.</p>}
+    <label>Importe recibido (ARS)<input ref={amount} name="importe" required autoFocus inputMode="decimal" maxLength={20} defaultValue={suggestion.importe.replace(".",",")} onChange={e=>e.currentTarget.setCustomValidity("")}/></label>
     <p className="client-muted">{suggestion.label}. Podés cambiarlo si recibiste otra cantidad.</p>
     <p className="payment-receipt-context">Saldo del trabajo: <strong>{money(data.pendiente)}</strong>. El pago se descontará hasta el importe permitido; cualquier excedente quedará registrado como dinero disponible.</p>
     <details><summary>Referencia, fecha u observaciones (opcional)</summary><label>{medio==="EFECTIVO"?"Número de recibo":"Referencia de la operación bancaria"}<input name="referencia" maxLength={160}/></label><label>Fecha y hora del movimiento<input name="fecha" type="datetime-local" onChange={e=>e.currentTarget.setCustomValidity("")}/></label><p className="client-muted">Si la dejás vacía, se registra la fecha y hora de la confirmación.</p><label>Observaciones<textarea name="motivo" maxLength={300}/></label></details>

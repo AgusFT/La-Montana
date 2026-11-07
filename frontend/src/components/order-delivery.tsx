@@ -64,7 +64,7 @@ export function OrderDelivery({order,internal,financial,onSaved,compact=false,wo
  const ready=data?.estadoPedido==="LISTO_PARA_ENTREGA",finished=!!data?.entrega,valid=!!data?.validacion&&Date.parse(data.validacion.validoHasta)>now;
  const experience=deliveryExperience(order,data?.estadoLogistico??"");
  const localPickup=experience.local;
- const guest=internal&&!!order.nombreInvitado;
+ const guest=internal&&!!order.nombreInvitado&&experience.local;
  const canValidate=ready&&experience.canReceive;
  const canGenerate=ready&&(!data.codigo||Date.parse(data.codigo.puedeRenovarEn)<=now);
  async function choose(a:Action){
@@ -139,6 +139,7 @@ export function OrderDelivery({order,internal,financial,onSaved,compact=false,wo
    </div>}
    {!ready&&!finished&&<p className="client-note">El pedido debe superar producción y calidad antes de habilitar la entrega.</p>}
    {internal&&ready&&<>
+    {internal&&order.nombreInvitado&&(experience.point||order.retiroConTraslado)&&data.codigo?.texto&&<section className="client-note"><h3>Código para el invitado</h3><p>Compartilo con {order.nombreInvitado} por el canal acordado para que pueda retirar en {order.reserva.nombre}.</p><div className="delivery-secret"><strong aria-label="Código de entrega del invitado">{data.codigo.texto}</strong></div></section>}
     <section className="delivery-destination"><span>{modeLabels[order.reserva.modalidad]}</span><h3>{order.reserva.nombre}</h3>{experience.home&&order.contacto&&<p>Recibe: <strong>{order.contacto.receptor}</strong> · <a href={`tel:${order.contacto.telefono}`}>{order.contacto.telefono}</a></p>}</section>
     {!data.puedeGestionar&&<p className="client-warning">Tu cuenta no tiene permiso para gestionar entregas.</p>}
     {experience.absent&&<div className="client-warning"><strong>La entrega sigue pendiente</strong><p>No se entregó el pedido ni se consumió el código. Coordiná el próximo intento con el cliente. Este registro no cambia la dirección ni la franja acordada.</p></div>}

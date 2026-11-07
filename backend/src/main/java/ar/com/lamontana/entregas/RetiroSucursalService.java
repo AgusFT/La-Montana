@@ -1,6 +1,9 @@
 package ar.com.lamontana.entregas;
 
 import ar.com.lamontana.organizacion.OrganizacionService;
+import ar.com.lamontana.pagos.PagoController;
+import ar.com.lamontana.pagos.PagoService;
+import ar.com.lamontana.pedidos.PedidoService;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -15,10 +18,23 @@ import org.springframework.web.server.ResponseStatusException;
 public class RetiroSucursalService {
     private final JdbcTemplate jdbc;
     private final OrganizacionService organizacion;
+    private final PedidoService pedidos;
+    private final PagoService pagos;
 
-    public RetiroSucursalService(JdbcTemplate jdbc, OrganizacionService organizacion) {
+    public RetiroSucursalService(JdbcTemplate jdbc, OrganizacionService organizacion,PedidoService pedidos,PagoService pagos) {
         this.jdbc = jdbc;
         this.organizacion = organizacion;
+        this.pedidos=pedidos;
+        this.pagos=pagos;
+    }
+
+    @Transactional public PagoService.Vista pagos(UUID sucursal,UUID pedido,String correo){
+        var p=pedidos.detalleRetiroSucursal(pedido,sucursal,correo);
+        return pagos.vistaRetiro(p.cotizacion(),correo,sucursal);
+    }
+    @Transactional public PagoService.Vista cobrar(UUID sucursal,UUID pedido,PagoController.Recibir in,String correo){
+        var p=pedidos.detalleRetiroSucursal(pedido,sucursal,correo);
+        return pagos.recibirRetiro(p.cotizacion(),in,correo,sucursal);
     }
 
     public enum Bandeja { PARA_RETIRAR, EN_CAMINO, ENTREGADOS }

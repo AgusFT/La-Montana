@@ -94,7 +94,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const correctionQuote=correctionRoute&&path[0]==="cliente"&&path.length===6&&uuidPattern.test(path[4])&&path[5]==="cotizaciones";
   const correctionMethods=correctionRoute?(path.length===4?(path[0]==="operacion"?["GET","POST"]:["GET"]):path[0]==="cliente"&&path.length===5&&path[4]==="respuesta"?["GET","POST"]:correctionQuote?["POST"]:null):null;
   const branchPickup=path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2]??"")&&path[3]==="retiros";
-  const branchPickupMethods=branchPickup?(path.length===4?["GET"]:uuidPattern.test(path[4]??"")?(path.length===5?["GET"]:path.length===6&&["llegada","entregar","cobrar-efectivo"].includes(path[5])?["POST"]:null):null):null;
+  const branchPickupMethods=branchPickup?(path.length===4?["GET"]:uuidPattern.test(path[4]??"")?(path.length===5?["GET"]:path.length===6&&path[5]==="pagos"?["GET"]:path.length===7&&path[5]==="pagos"&&path[6]==="recibir"?["POST"]:path.length===6&&["llegada","entregar","cobrar-efectivo"].includes(path[5])?["POST"]:null):null):null;
   const orderQueue=path.length===4&&path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2])&&path[3]==="pedidos"?["GET"]:null;
   const collectionResolution=path.length===5&&path[0]==="operacion"&&path[1]==="pedidos"&&uuidPattern.test(path[2])&&path[3]==="cobro"&&path[4]==="resolver"?["POST"]:null;
   const paymentRoute=["cliente","operacion"].includes(path[0])&&path[1]==="cotizaciones"&&uuidPattern.test(path[2]??"")&&path[3]==="pagos";

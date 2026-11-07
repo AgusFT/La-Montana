@@ -95,8 +95,12 @@ public class PreparacionClienteService {
         Set<UUID> autorizadas=d.operador()==null?null:sucursalesAutorizadas(correo);
         UUID origen=mostrador?d.sucursalMostrador():origenProductivo(pref,contexto,budget,autorizadas);
         if(!mostrador&&d.operador()!=null)organizacion.sucursalAutorizada(correo,origen);
-        if(mostrador&&(pref.modalidad()!=Modalidad.RETIRO_SUCURSAL||!origen.equals(pref.destinoRetiro())||pref.punto()!=null||pref.direccion()!=null))
-            throw error(HttpStatus.BAD_REQUEST,"El invitado retira el pedido en la sucursal que lo atiende.");
+        if(mostrador){
+            if(pref.modalidad()==Modalidad.ENVIO_DOMICILIO||pref.direccion()!=null)
+                throw error(HttpStatus.BAD_REQUEST,"Elegí retiro en sucursal o en punto de entrega para el invitado.");
+            if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL&&!origen.equals(pref.destinoRetiro()))
+                throw error(HttpStatus.BAD_REQUEST,"El retiro en sucursal corresponde a la sucursal que atiende.");
+        }
         if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()==null||pref.modalidad()!=Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()!=null)throw error(HttpStatus.BAD_REQUEST,"Elegí un destino de retiro sólo para esa modalidad.");
         if(d.preferencias()!=null&&store.mapper().readValue(d.preferencias(),Preferencias.class).equals(pref)&&d.cotizacion()!=null){var q=cotizaciones.detallePreparada(d.cotizacion(),d);if(q.estado().equals("VIGENTE")&&q.reemplazadaPor()==null&&Instant.now().isBefore(q.vigenteHasta())){store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(d,correo,q.codigoPublico());}}
         var entrada=entradas(d.items());var items=documentos(d,entrada,correo);

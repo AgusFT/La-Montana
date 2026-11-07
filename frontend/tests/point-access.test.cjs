@@ -18,3 +18,17 @@ test('la presentación del lote conserva sesión y sólo admite POST en un recor
   assert.equal(calls[0].options.headers.get('X-CSRF-TOKEN'),'csrf');
 });
 test('la cuenta del punto entra a su bandeja y primero cambia la contraseña inicial',()=>{const exports={};vm.runInNewContext(transpile(fs.readFileSync('src/lib/roles.ts','utf8')),{exports});assert.equal(exports.sessionHome({rol:'EMPLEADO',puntoRetiro:true,debeCambiarContrasena:false}),'/punto-retiro');assert.equal(exports.sessionHome({rol:'EMPLEADO',puntoRetiro:true,debeCambiarContrasena:true}),'/cuenta/seguridad');assert.equal(exports.sessionHome({rol:'EMPLEADO',puntoRetiro:false,debeCambiarContrasena:false}),'/operacion');});
+
+test('retiros permite consultar y registrar el cobro conservando la sucursal y la operación',async()=>{
+ const path=`operacion/sucursales/${id}/retiros/${id}/pagos`;
+ const {api,calls}=proxy();
+ assert.equal((await invoke(api,path)).status,200);
+ assert.equal(calls[0].url,'http://internal.test/api/'+path);
+ assert.equal((await invoke(api,path+'/recibir','POST')).status,200);
+ assert.equal(calls[1].options.headers.get('Cookie'),'SESSION=example');
+ assert.equal(calls[1].options.headers.get('X-CSRF-TOKEN'),'csrf');
+ assert.equal(calls[1].options.body,'{"operacion":"same-operation"}');
+ for(const [route,method] of [[path,'POST'],[path+'/recibir','GET'],[path+'/devolver','POST']]){
+  const {api,calls}=proxy();assert.notEqual((await invoke(api,route,method)).status,200);assert.equal(calls.length,0);
+ }
+});

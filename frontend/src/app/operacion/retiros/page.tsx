@@ -22,7 +22,7 @@ export default async function BranchPickupPage({searchParams}:{searchParams:Prom
   const selected=branches.find(branch=>branch.codigoPublico===sucursal)??branches.find(branch=>branch.casaMatrizVigente)??branches[0];
   return <AdminShell name={profile.nombre+' '+profile.apellido} administration={admin}
     userRole={admin?'Propietario':'Empleado'} active="retiros" title="Retiros en sucursal"
-    description="Buscá el pedido, registrá el cobro en efectivo si corresponde y entregalo desde el mostrador.">
+    description="Buscá el pedido, registrá el cobro si corresponde y entregalo desde el mostrador.">
     {!context?<p className="admin-warning" role="alert">No pudimos consultar tus sucursales.</p>
       :!context.permisos.includes('GESTIONAR_ENTREGAS')?<p className="admin-warning" role="alert">Necesitás el permiso Gestionar entregas.</p>
       :selected?<BranchPickupDesk branches={branches.map(branch=>({id:branch.codigoPublico,name:branch.nombre}))} initialBranch={selected.codigoPublico}/>

@@ -204,6 +204,14 @@ public class PagoService {
         var actual=condicionesFinales(q);if(actual!=null)maximo=maximo.min(topeMedios(q,medio,actual.pagoPrevioRequerido(),actual.senaRequerida(),actual.mediosAcreditacion()));
         return maximo.compareTo(pendiente)<0?"El anticipo pendiente requiere otro medio. Resolvelo desde cobros antes de entregar.":null;
     }
+    @Transactional public Vista vistaRetiro(UUID quote,String correo,UUID sucursal){
+        var a=actor(correo,true);var q=autorizar(quote,a,correo,sucursal);
+        return leer(q,a,correo,true);
+    }
+    @Transactional public Vista recibirRetiro(UUID quote,Recibir in,String correo,UUID sucursal){
+        exigir(sucursal!=null&&Boolean.TRUE.equals(in.aplicarAlPedido()),"El cobro debe aplicarse al pedido retirado.");
+        return recibir(quote,in,correo,sucursal,null,null);
+    }
     @Transactional public Vista recibir(UUID quote,Recibir in,String correo){
         return recibir(quote,in,correo,null,null,null);
     }
@@ -226,6 +234,8 @@ public class PagoService {
     private Vista recibir(UUID quote,Recibir in,String correo,UUID retiro,DestinoCobro destino,String punto){
         bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo,retiro);organizacion.exigirPermiso(correo,permiso(in.medio()));String hash=huella(quote,destino!=null?List.of(in,destino):Boolean.TRUE.equals(in.aplicarAlPedido())?in:new RecepcionAnterior(in.operacion(),in.intento(),in.medio(),in.importe(),in.referencia(),in.recibidoEn(),in.verificado(),in.motivo()));
         if(replay(in.operacion(),"RECIBIR",hash,a))return leer(q,a,correo,true);
+        if(retiro!=null&&!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pedido_actual WHERE id_cotizacion=? AND estado='LISTO_PARA_ENTREGA' AND lamontana.estado_logistico(id_pedido) IN ('LISTO_RETIRO','DISPONIBLE_PUNTO'))",Boolean.class,q.id())))
+            throw conflicto("El pedido todavía no está disponible para cobrar al retirar, o ya fue entregado.");
         exigir(in.verificado(),"Confirmá que verificaste el dinero efectivamente recibido.");BigDecimal importe=importe(in.importe());
         String referencia=in.referencia()==null||in.referencia().isBlank()?"Registro interno "+in.operacion():in.referencia().strip();
         String motivo=in.motivo()==null||in.motivo().isBlank()?"Recepción de "+dinero(importe)+" ARS por "+(in.medio()==MedioPago.EFECTIVO?"efectivo":"transferencia")+" confirmada por el responsable.":in.motivo().strip();
@@ -238,13 +248,14 @@ public class PagoService {
         if(in.intento()!=null)intento=intentoPendiente(q,in.intento());
         else if(destino!=null&&in.medio()==MedioPago.TRANSFERENCIA)
             intento=intentoDelCobro(q,importe,referencia);
-        String clave=clave(q,in.medio(),referencia);
+        String clave=retiro!=null&&in.medio()==MedioPago.EFECTIVO
+            ?in.medio().name()+":"+retiro+":"+huella(null,referenciaNormalizada(referencia)):clave(q,in.medio(),referencia);
         if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pago WHERE clave_referencia=?)",Boolean.class,clave))throw conflicto("Ese movimiento o recibo ya fue registrado. Consultá el pago existente.");
         String receptor=destino==null?null:destino==DestinoCobro.PUNTO_ENTREGA?punto:q.datos().sucursal().nombre();
         if(destino!=null)motivo="Cobro acreditado en "+receptor+". "+motivo;
         long e=evento(in.operacion(),q.id(),a,"RECIBIR",hash,motivo);UUID pago=UUID.randomUUID();
         if(intento!=null)jdbc.update("INSERT INTO lamontana.resolucion_intento_pago(id_intento_pago,id_evento,resultado) VALUES (?,?,'ACREDITADO')",intento,e);
-        jdbc.update("INSERT INTO lamontana.pago(codigo_publico,id_cotizacion,id_intento_pago,id_evento,medio,importe,referencia,clave_referencia,recibido_en,destino_cobro_punto,nombre_destino_cobro) VALUES (?,?,?,?,?,?,?,?,?,?,?)",pago,q.id(),intento,e,in.medio().name(),importe,referencia,clave,Timestamp.from(recibidoEn),destino==null?null:destino.name(),receptor);
+        jdbc.update("INSERT INTO lamontana.pago(codigo_publico,id_cotizacion,id_intento_pago,id_evento,medio,importe,referencia,clave_referencia,recibido_en,destino_cobro_punto,nombre_destino_cobro,id_sucursal_receptora) VALUES (?,?,?,?,?,?,?,?,?,?,?,(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?))",pago,q.id(),intento,e,in.medio().name(),importe,referencia,clave,Timestamp.from(recibidoEn),destino==null?null:destino.name(),receptor,in.medio()==MedioPago.EFECTIVO?retiro:null);
         cobro.movimiento(q.id(),in.operacion(),a.id(),"RECIBIR",motivo);
         // Una confirmación, dos hechos auditables en la misma transacción. Nunca consume
         // más que el saldo/medio permitido, ni mueve fondos de otros pagos del cliente.
@@ -367,7 +378,7 @@ public class PagoService {
             SELECT EXISTS(SELECT 1 FROM lamontana.pedido_actual p
             JOIN LATERAL (SELECT modalidad,destino_publico,estado FROM lamontana.reserva_entrega r
               WHERE r.id_pedido=p.id_pedido ORDER BY id_reserva_entrega DESC LIMIT 1) r ON true
-            WHERE p.id_cotizacion=? AND r.modalidad='RETIRO_SUCURSAL' AND r.destino_publico=? AND r.estado='ACTIVA')
+            WHERE p.id_cotizacion=? AND r.modalidad='RETIRO_SUCURSAL' AND r.destino_publico=? AND r.estado IN ('ACTIVA','CUMPLIDA'))
             """,Boolean.class,q.id(),retiro));
         if(!corresponde||!ar.com.lamontana.puntos.CuentaPuntoAcceso.cotizacion(jdbc,correo,quote))
             throw error(HttpStatus.FORBIDDEN,"El cobro no corresponde a un retiro activo de esta sucursal.");
