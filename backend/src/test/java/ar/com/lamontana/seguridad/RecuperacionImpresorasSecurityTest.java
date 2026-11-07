@@ -131,6 +131,32 @@ class RecuperacionImpresorasSecurityTest {
         }
     }
 
+    @Test void cobroDelRetiroPermiteLecturaInternaYRecepcionConCsrf()throws Exception{
+        String pedido="/api/operacion/sucursales/11111111-1111-1111-1111-111111111111/retiros/22222222-2222-2222-2222-222222222222";
+        for(String rol:new String[]{"ADMIN_ADMIN","EMPLEADO"}){
+            var sesion=sesion(rol);
+            comprobar("GET",pedido,sesion,null,200,true);
+            comprobar("GET",pedido+"/pagos",sesion,null,200,true);
+            comprobar("POST",pedido+"/pagos/recibir",sesion,token(sesion),200,true);
+            comprobar("POST",pedido+"/pagos/recibir",sesion,null,403,false);
+            comprobar("POST",pedido+"/entregar",sesion,token(sesion),200,true);
+        }
+        var cliente=sesion("CLIENTE");
+        comprobar("GET",pedido+"/pagos",cliente,null,403,false);
+        comprobar("POST",pedido+"/pagos/recibir",cliente,token(cliente),403,false);
+        var anonima=new MockHttpSession(context.getServletContext());
+        comprobar("GET",pedido+"/pagos",anonima,null,401,false);
+        comprobar("POST",pedido+"/pagos/recibir",anonima,token(anonima),401,false);
+    }
+
+    @Test void cobrosDelRetiroNoHabilitanMetodosNiRutasVecinas()throws Exception{
+        String pagos="/api/operacion/sucursales/11111111-1111-1111-1111-111111111111/retiros/22222222-2222-2222-2222-222222222222/pagos";
+        var sesion=sesion("EMPLEADO");var csrf=token(sesion);
+        for(String metodo:new String[]{"PUT","PATCH","DELETE","POST"})comprobar(metodo,pagos,sesion,csrf,403,false);
+        for(String metodo:new String[]{"GET","PUT","PATCH","DELETE"})comprobar(metodo,pagos+"/recibir",sesion,csrf,403,false);
+        for(String ruta:new String[]{pagos+"/aplicar",pagos+"/devolver",pagos+"/recibir-otro"})comprobar("POST",ruta,sesion,csrf,403,false);
+    }
+
     private MockHttpServletRequest request(String metodo,String ruta,MockHttpSession sesion){
         var request=new MockHttpServletRequest(context.getServletContext(),metodo,ruta);
         request.setServletPath(ruta);request.setSession(sesion);return request;
