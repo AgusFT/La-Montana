@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -23,11 +24,12 @@ import org.springframework.web.server.ResponseStatusException;
 public class RiderController {
     private final JdbcTemplate jdbc;
     private final EntregaService entregas;
-    public RiderController(JdbcTemplate jdbc,EntregaService entregas) { this.jdbc = jdbc; this.entregas=entregas; }
+    private final JornadaRiderService jornada;
+    public RiderController(JdbcTemplate jdbc,EntregaService entregas,JornadaRiderService jornada) { this.jdbc = jdbc; this.entregas=entregas; this.jornada=jornada; }
 
     public record Pedido(UUID codigoPublico,long numero,String modalidad,String destino,String cliente,
                          String receptor,String telefono,Instant desde,Instant hasta,int orden,
-                         long version,String estadoLogistico,Instant presentadoEn,UUID destinoPublico) {}
+                         long version,String estadoLogistico,Instant presentadoEn,UUID destinoPublico,Instant finalizadoEn) {}
     public record Recorrido(UUID codigoPublico,String estado,Instant asignadoEn,String asignadoPor,List<Pedido> pedidos) {}
     public record Resultado(boolean aceptado,String mensaje) {}
     public record Presentacion(@NotEmpty @Size(max=25) List<@NotNull @Valid PedidoLote> pedidos) {}
@@ -68,6 +70,10 @@ public class RiderController {
     }
 
     @GetMapping("/api/rider/recorridos")
+    public List<Recorrido> recorridos(@RequestParam(defaultValue="false") boolean jornada,Principal principal) {
+        return jornada?this.jornada.consultar(principal.getName()):recorridos(principal);
+    }
+
     public List<Recorrido> recorridos(Principal principal) {
         var routes=jdbc.query("""
                 SELECT rr.id_recorrido,rr.codigo_publico,rr.estado,rr.fecha_asignacion,rr.actor_asignador_nombre
@@ -105,7 +111,7 @@ public class RiderController {
                 LEFT JOIN lamontana.configuracion_definicion_punto d
                   ON d.id_punto_entrega=pt.id_punto_entrega AND d.id_configuracion_version=p.id_configuracion_version
                 WHERE rp.id_recorrido=? ORDER BY rp.orden
-                """,(rs,row)->new Pedido(rs.getObject(1,UUID.class),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7),rs.getTimestamp(8).toInstant(),rs.getTimestamp(9).toInstant(),rs.getInt(10),rs.getLong(11),rs.getString(12),rs.getTimestamp(13)==null?null:rs.getTimestamp(13).toInstant(),rs.getObject(14,UUID.class)),id);
+                """,(rs,row)->new Pedido(rs.getObject(1,UUID.class),rs.getLong(2),rs.getString(3),rs.getString(4),rs.getString(5),rs.getString(6),rs.getString(7),rs.getTimestamp(8).toInstant(),rs.getTimestamp(9).toInstant(),rs.getInt(10),rs.getLong(11),rs.getString(12),rs.getTimestamp(13)==null?null:rs.getTimestamp(13).toInstant(),rs.getObject(14,UUID.class),null),id);
         return new Recorrido((UUID)route[1],(String)route[2],(Instant)route[3],(String)route[4],orders);
     }
 }
