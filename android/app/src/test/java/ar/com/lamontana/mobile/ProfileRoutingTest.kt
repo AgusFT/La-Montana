@@ -12,8 +12,8 @@ class ProfileRoutingTest {
     }
 
     @Test
-    fun regularEmployeeDoesNotBecomeRiderAutomatically() {
-        assertEquals(MobileDestination.UNSUPPORTED, destinationFor(profile()))
+    fun employeeChecksBranchPermissionsInsteadOfBecomingRider() {
+        assertEquals(MobileDestination.BRANCH, destinationFor(profile()))
     }
 
     @Test
@@ -24,6 +24,18 @@ class ProfileRoutingTest {
     @Test
     fun initialPasswordMustBeChangedOnWeb() {
         assertEquals(MobileDestination.UNSUPPORTED, destinationFor(profile(changePassword = true, point = true)))
+    }
+
+    @Test fun administratorCanUseBranchDesk() {
+        assertEquals(MobileDestination.BRANCH, destinationFor(profile().copy(rol = "ADMIN_ADMIN")))
+    }
+
+    @Test fun customerDoesNotEnterInternalDesk() {
+        assertEquals(MobileDestination.UNSUPPORTED, destinationFor(profile().copy(rol = "CLIENTE")))
+    }
+
+    @Test fun pointKeepsItsOwnDeskEvenWithOtherFlags() {
+        assertEquals(MobileDestination.POINT, destinationFor(profile(point = true, rider = true)))
     }
 
     private fun profile(changePassword: Boolean = false, point: Boolean = false, rider: Boolean = false) = Profile(

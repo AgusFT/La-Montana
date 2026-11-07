@@ -3,6 +3,8 @@ package ar.com.lamontana.mobile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ar.com.lamontana.mobile.data.LaMontanaApi
+import ar.com.lamontana.mobile.data.ApiException
+import ar.com.lamontana.mobile.model.*
 import ar.com.lamontana.mobile.model.ActionResult
 import ar.com.lamontana.mobile.model.MobileDestination
 import ar.com.lamontana.mobile.model.OrderVersion
@@ -34,6 +36,14 @@ data class AppUiState(
     val pointQuery: String = "",
     val pointDetail: PointOrderDetail? = null,
     val riderRoutes: List<RiderRoute> = emptyList(),
+    val branchContext: BranchContext? = null,
+    val branchId: String? = null,
+    val branchSection: BranchSection = BranchSection.READY,
+    val branchPage: BranchPage = BranchPage(emptyList(), 0, 0),
+    val branchQuery: String = "",
+    val branchDetail: BranchOrderDetail? = null,
+    val branchCash: BranchCash? = null,
+    val branchUncertain: Boolean = false,
     val message: String? = null,
     val error: String? = null,
 )
@@ -42,6 +52,8 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     private val mutableState = MutableStateFlow(AppUiState())
     val state: StateFlow<AppUiState> = mutableState.asStateFlow()
     private var retry: Pair<Any, String>? = null
+    private data class PendingBranch(val command: BranchCommand, val branch: String, val order: BranchOrder)
+    private var pendingBranch: PendingBranch? = null
 
     fun login(user: String, password: String) {
         if (user.isBlank() || password.isBlank()) {
@@ -124,12 +136,119 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
         request({ api.riderAction(operation, order, action, code) }) { actionFinished(it, ::refreshRider) }
     }
 
+    fun refreshBranch() {
+        if (state.value.loading || state.value.branchUncertain) return
+        if (state.value.branchContext == null) {
+            request({ api.branchDesk.context() }) { context ->
+                if (!context.canDeliver || context.branches.isEmpty()) {
+                    mutableState.value = state.value.copy(destination = MobileDestination.UNSUPPORTED,
+                        error = "Tu cuenta necesita una sucursal habilitada y permiso de gestión de entregas para usar el mostrador móvil.")
+                } else {
+                    mutableState.value = state.value.copy(branchContext = context, branchId = context.cashBranch
+                        ?.takeIf { id -> context.branches.any { it.id == id } } ?: context.branches.first().id)
+                    loadBranchOrders(BranchSection.READY, "", 0)
+                }
+            }
+        } else {
+            val s = state.value
+            loadBranchOrders(s.branchSection, s.branchQuery, s.branchCash?.page?.takeIf { s.branchSection == BranchSection.CASH } ?: s.branchPage.page)
+        }
+    }
+
+    fun selectBranch(id: String) {
+        val s = state.value
+        if (s.loading || s.branchUncertain || s.branchContext?.branches?.none { it.id == id } != false) return
+        mutableState.value = s.copy(branchId = id, branchPage = BranchPage(emptyList(), 0, 0), branchCash = null,
+            branchDetail = null, branchQuery = "", message = null, error = null)
+        loadBranchOrders(BranchSection.READY, "", 0)
+    }
+
+    fun loadBranchOrders(section: BranchSection, text: String, page: Int) {
+        val s = state.value
+        val branch = s.branchId ?: return
+        val context = s.branchContext ?: return
+        if (s.loading || s.branchUncertain || !context.canDeliver || context.branches.none { it.id == branch }) return
+        if (section == BranchSection.CASH && !context.canSeeCash(branch, s.profile)) return
+        mutableState.value = s.copy(branchSection = section, branchQuery = text.take(160),
+            branchPage = BranchPage(emptyList(), 0, page), branchCash = null, branchDetail = null)
+        if (section == BranchSection.CASH) request({ api.branchDesk.cash(branch, page) }) {
+            mutableState.value = state.value.copy(branchCash = it)
+        } else request({
+            val result = api.branchDesk.orders(branch, section, text, page)
+            if (result.orders.isEmpty() && result.page > 0) api.branchDesk.orders(branch, section, text, 0) else result
+        }) { mutableState.value = state.value.copy(branchPage = it) }
+    }
+
+    fun openBranchOrder(order: BranchOrder) {
+        if (state.value.loading || state.value.branchUncertain) return
+        mutableState.value = state.value.copy(branchDetail = null, message = null)
+        readBranchDetail(order)
+    }
+
+    private fun readBranchDetail(order: BranchOrder, notice: String? = null) {
+        val s = state.value
+        val branch = s.branchId ?: return
+        val financial = s.branchContext?.permissions?.any { it in listOf("REGISTRAR_COBRO", "ACREDITAR_PAGO", "REGISTRAR_DEVOLUCION") } == true
+        request({ api.branchDesk.detail(branch, order, financial) }) {
+            mutableState.value = state.value.copy(branchDetail = it, error = notice)
+        }
+    }
+
+    fun closeBranchOrder() {
+        if (state.value.loading || state.value.branchUncertain) return
+        mutableState.value = state.value.copy(branchDetail = null, error = null)
+        refreshBranch()
+    }
+
+    fun branchAction(action: BranchAction, code: String, method: String, reference: String) {
+        val s = state.value
+        val detail = s.branchDetail ?: return
+        val branch = s.branchId ?: return
+        if (s.loading || s.branchUncertain || pendingBranch != null) return
+        try {
+            val command = api.branchDesk.command(branch, detail, action, UUID.randomUUID().toString(), code, method, reference)
+            pendingBranch = PendingBranch(command, branch, detail.order)
+            runBranchCommand()
+        } catch (e: IllegalArgumentException) {
+            mutableState.value = s.copy(error = e.message?.takeUnless { it == "Failed requirement." }
+                ?: "Actualizá el pedido y revisá el código, el saldo y el medio recibido.")
+        }
+    }
+
+    fun retryBranchOperation() { if (!state.value.loading) runBranchCommand() }
+
+    private fun runBranchCommand() {
+        val pending = pendingBranch ?: return
+        if (state.value.loading || state.value.branchId != pending.branch) return
+        mutableState.value = state.value.copy(loading = true, error = null)
+        viewModelScope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) { api.branchDesk.execute(pending.command) }
+                pendingBranch = null
+                mutableState.value = state.value.copy(loading = false, branchUncertain = false, branchDetail = null,
+                    message = result.message.takeIf { result.accepted }, error = result.message.takeUnless { result.accepted })
+                if (pending.command.action == BranchAction.RECEIPT || !result.accepted) {
+                    readBranchDetail(pending.order, result.message.takeUnless { result.accepted })
+                } else refreshBranch()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val uncertain = e !is ApiException || e.status >= 500 || e.status == 408
+                if (!uncertain) pendingBranch = null
+                mutableState.value = state.value.copy(loading = false, branchUncertain = uncertain,
+                    error = if (uncertain) "No pudimos confirmar la respuesta. Recuperá el mismo registro antes de continuar para evitar duplicarlo."
+                    else e.message ?: "No pudimos registrar el movimiento.")
+            }
+        }
+    }
+
     fun logout() {
-        if (state.value.loading) return
+        if (state.value.loading || state.value.branchUncertain) return
         mutableState.value = state.value.copy(loading = true)
         viewModelScope.launch {
             runCatching { withContext(Dispatchers.IO) { api.logout() } }
             retry = null
+            pendingBranch = null
             mutableState.value = AppUiState()
         }
     }
@@ -181,6 +300,10 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
                 mutableState.value = AppUiState(destination = MobileDestination.RIDER, profile = profile)
                 refreshRider()
             }
+            MobileDestination.BRANCH -> {
+                mutableState.value = AppUiState(destination = MobileDestination.BRANCH, profile = profile)
+                refreshBranch()
+            }
             MobileDestination.UNSUPPORTED -> mutableState.value = AppUiState(
                 destination = MobileDestination.UNSUPPORTED,
                 profile = profile,
@@ -189,11 +312,4 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
             MobileDestination.LOGIN -> mutableState.value = AppUiState()
         }
     }
-}
-
-internal fun destinationFor(profile: Profile): MobileDestination = when {
-    profile.debeCambiarContrasena -> MobileDestination.UNSUPPORTED
-    profile.puntoRetiro -> MobileDestination.POINT
-    profile.repartidor -> MobileDestination.RIDER
-    else -> MobileDestination.UNSUPPORTED
 }

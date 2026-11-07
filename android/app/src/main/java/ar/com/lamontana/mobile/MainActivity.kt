@@ -101,6 +101,11 @@ fun LaMontanaApp(vm: AppViewModel = viewModel()) {
             vm::closePointOrder, vm::receivePointOrders, vm::deliverPointOrder, vm::logout,
         )
         MobileDestination.RIDER -> RiderDesk(state, vm::refreshRider, vm::presentRiderOrders, vm::riderAction, vm::logout)
+        MobileDestination.BRANCH -> BranchDeskScreen(
+            state = state, onRefresh = vm::refreshBranch, onSelectBranch = vm::selectBranch,
+            onLoad = vm::loadBranchOrders, onOpen = vm::openBranchOrder, onClose = vm::closeBranchOrder,
+            onAction = vm::branchAction, onRetry = vm::retryBranchOperation, onLogout = vm::logout,
+        )
         MobileDestination.UNSUPPORTED -> PendingRoleScreen(
             title = "Acceso no disponible",
             message = state.error ?: "Esta cuenta no tiene una experiencia Android habilitada.",
@@ -557,7 +562,7 @@ internal fun logisticsLabel(value: String): String = when (value) {
     else -> value.replace('_', ' ').lowercase().replaceFirstChar(Char::uppercase)
 }
 
-private fun money(value: String): String = value.toBigDecimalOrNull()?.let { amount ->
+internal fun money(value: String): String = value.toBigDecimalOrNull()?.let { amount ->
     val parts = String.format(java.util.Locale.US, "%.2f", amount).split('.')
     "$ " + parts[0].reversed().chunked(3).joinToString(".").reversed() + "," + parts[1]
 } ?: "$ 0,00"

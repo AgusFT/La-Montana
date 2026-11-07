@@ -28,6 +28,7 @@ class ApiException(message: String, val status: Int) : Exception(message)
 
 class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')) {
     private val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+    val branchDesk = BranchDeskApi(read = { request(it) }, post = { path, body -> secureRequest(path, "POST", body) })
 
     init {
         CookieHandler.setDefault(cookies)

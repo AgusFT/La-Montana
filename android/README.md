@@ -5,7 +5,7 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 ## Estado v0.1
 
 - Login real contra `POST /api/auth/login` y consulta de `GET /api/auth/me`.
-- Enrutamiento por perfil: mostrador del punto, recorridos del rider o cuenta sin acceso a Android.
+- Enrutamiento por perfil: mostrador del punto, recorridos del rider o mostrador de sucursal para administradores y empleados autorizados.
 - Mostrador mobile con cabecera, contadores y menú **Por llegar / Para retirar / Entregados / Finanzas**.
 - Contexto real del punto mediante `GET /api/punto/contexto` y primeras bandejas reales mediante `POST /api/punto/pedidos/buscar` con sesión y CSRF.
 - Cliente HTTP con sesión por cookie y CSRF para registrar movimientos.
@@ -13,7 +13,12 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 - El rider consulta sus recorridos y selecciona los pedidos que dejó en cada punto. La presentación deja el lote pendiente de recepción.
 - En **Por llegar**, el punto confirma la recepción física de los pedidos presentados. Después aparecen en **Para retirar**.
 - La ficha del punto muestra el estado, los trabajos, la franja y el saldo. Permite entregar con código y, cuando el servidor lo habilita, cobrar efectivo y entregar en una sola operación.
-- Los movimientos de finanzas y el registro de transferencias se gestionan desde el mostrador web.
+- El mostrador de sucursal tiene **Para retirar / En camino / Entregados**, búsqueda por cliente o número y selector limitado a las sucursales autorizadas. Se habilita con `GESTIONAR_ENTREGAS`.
+- Desde la ficha permite confirmar la llegada, registrar el medio real del saldo (efectivo o transferencia), cobrar efectivo y entregar juntos cuando el servidor lo habilita, y entregar pedidos ya abonados. Todo usa los mismos servicios, permisos y auditoría que la web.
+- Las transferencias se confirman después de verificar la acreditación e indicar la referencia. Si coincide con un aviso pendiente del cliente por referencia e importe, se acredita ese aviso. No vuelve a cobrar dinero que ya está recibido sin aplicar.
+- El retiro de un invitado en la misma sucursal verifica nombre y número; un invitado con traslado y los clientes registrados presentan su código. Las confirmaciones de llegada y entrega conservan la versión del pedido.
+- **Caja** muestra el efectivo acumulado y los movimientos del día para el responsable de esa sucursal o el administrador. Los egresos, arqueos y comprobantes se administran desde la web.
+- Si se pierde una respuesta al cobrar o entregar, **Recuperar registro** conserva exactamente la misma operación y bloquea cambios hasta conocer el resultado.
 
 ## Abrir en Android Studio
 
