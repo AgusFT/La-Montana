@@ -36,7 +36,7 @@ class BranchDeskApi(private val read: (String) -> String, private val post: (Str
             cash?.textOrNull("importe"), cash?.optBoolean("puedeCerrar") == true,
             receipt?.textOrNull("fecha"), receipt?.textOrNull("responsable"))
         // Una cuenta de entrega sin permisos financieros puede entregar pedidos ya abonados.
-        val payment = if (!financial || delivery.status != "LISTO_PARA_ENTREGA" ||
+        val payment = if (!financial || delivery.balance.toBigDecimal().signum() == 0 || delivery.status != "LISTO_PARA_ENTREGA" ||
             delivery.logistics !in listOf("LISTO_RETIRO", "DISPONIBLE_PUNTO")) null else {
             val data = JSONObject(read("$path/pagos"))
             val permissions = data.getJSONArray("permisos").strings()

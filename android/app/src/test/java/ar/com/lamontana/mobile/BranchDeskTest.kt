@@ -151,6 +151,19 @@ class BranchDeskTest {
         assertThrows(IllegalArgumentException::class.java) { api().orders("../admin", BranchSection.READY, "", 0) }
     }
 
+    @Test fun paidPickupDoesNotDependOnAnAdditionalPaymentRequest() {
+        val paths = mutableListOf<String>()
+        val api = BranchDeskApi(read = { path ->
+            paths += path
+            check(!path.endsWith("/pagos")) { "Un pedido sin deuda no necesita consultar pagos para poder entregarlo." }
+            """{"version":4,"estadoPedido":"LISTO_PARA_ENTREGA","estadoLogistico":"LISTO_RETIRO","saldo":"0.00","puedeGestionar":true,"acciones":[],"bloqueosEntrega":[],"cliente":"Lucía Fernández","entrega":null,"cobroEfectivo":null}"""
+        }, post = { _, _ -> error("read only") })
+        val detail = api.detail(branch, row(), financial = true)
+        assertTrue(detail.canDeliver); assertNull(detail.payment)
+        assertEquals("Lucía Fernández", detail.order.customer)
+        assertEquals(listOf("$path/$orderId"), paths)
+    }
+
     @Test fun paymentDetailUsesActualOriginAndFiltersMethodsByPermissions() {
         val paths = mutableListOf<String>()
         val api = BranchDeskApi(read = { path -> paths += path
