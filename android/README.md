@@ -22,6 +22,10 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 - El retiro de un invitado en la misma sucursal verifica nombre y número; un invitado con traslado y los clientes registrados presentan su código. Las confirmaciones de llegada y entrega conservan la versión del pedido.
 - **Caja** muestra el efectivo acumulado y los movimientos del día para el responsable de esa sucursal o el administrador. Los egresos, arqueos y comprobantes se administran desde la web.
 - Si se pierde una respuesta al cobrar o entregar, **Recuperar registro** conserva exactamente la misma operación y bloquea cambios hasta conocer el resultado.
+- El administrador abre **Sucursales · Mostrador**, incluso si también es rider. El menú de la cabecera alterna entre esa vista, **Mis repartos**, **Impresoras** y **Pausas de atención**. Mis repartos conserva únicamente sus asignaciones y requiere que su usuario esté habilitado como rider.
+- En **Impresoras** puede buscar por equipo o sucursal, filtrar por ubicación y habilitar o deshabilitar equipos para trabajos nuevos. Se respetan el estado configurado, los equipos retirados, el papel registrado y las versiones del servidor.
+- En **Pausas de atención**, las pestañas **Sucursales / Puntos de entrega** impiden nuevas cotizaciones y confirmaciones en esas ubicaciones. Reanudar recupera su disponibilidad comercial; la pausa no desactiva la sucursal ni bloquea la producción, cobro o entrega de pedidos confirmados. Los cambios guardan responsable y fecha.
+- Las pausas de puntos y los controles de impresoras comparten los servicios de la web. La pausa temporal de sucursales requiere la migración `V62` del backend de `pruebas`; no reemplaza la baja lógica de una sucursal. Una respuesta perdida conserva el mismo comando y ofrece **Recuperar el mismo cambio**.
 
 ## Abrir en Android Studio
 

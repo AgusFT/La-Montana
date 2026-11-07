@@ -30,6 +30,10 @@ class ProfileRoutingTest {
         assertEquals(MobileDestination.BRANCH, destinationFor(profile().copy(rol = "ADMIN_ADMIN")))
     }
 
+    @Test fun administratorWithRiderFlagStillOpensAdministration() {
+        assertEquals(MobileDestination.BRANCH, destinationFor(profile(rider = true).copy(rol = "ADMIN_ADMIN")))
+    }
+
     @Test fun customerDoesNotEnterInternalDesk() {
         assertEquals(MobileDestination.UNSUPPORTED, destinationFor(profile().copy(rol = "CLIENTE")))
     }

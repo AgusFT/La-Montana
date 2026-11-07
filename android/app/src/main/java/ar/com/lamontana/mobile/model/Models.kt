@@ -71,4 +71,4 @@ enum class PointSection(val title: String) {
     ARRIVING("Por llegar"), READY("Para retirar"), DELIVERED("Entregados"), FINANCE("Finanzas")
 }
 
-enum class MobileDestination { LOGIN, POINT, RIDER, BRANCH, UNSUPPORTED }
+enum class MobileDestination { LOGIN, POINT, RIDER, BRANCH, PRINTERS, PAUSES, UNSUPPORTED }

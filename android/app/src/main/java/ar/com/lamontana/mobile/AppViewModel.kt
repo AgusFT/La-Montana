@@ -44,6 +44,11 @@ data class AppUiState(
     val branchDetail: BranchOrderDetail? = null,
     val branchCash: BranchCash? = null,
     val branchUncertain: Boolean = false,
+    val adminPrinters: AdminPrinterPanel? = null,
+    val adminBranches: List<AdminAvailability>? = null,
+    val adminPoints: List<AdminAvailability>? = null,
+    val adminUncertain: Boolean = false,
+    val adminConflict: Boolean = false,
     val message: String? = null,
     val error: String? = null,
 )
@@ -54,6 +59,80 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     private var retry: Pair<Any, String>? = null
     private data class PendingBranch(val command: BranchCommand, val branch: String, val order: BranchOrder)
     private var pendingBranch: PendingBranch? = null
+    private var pendingAdmin: AdminCommand? = null
+
+    fun selectAdminSection(section: AdminSection) {
+        val s = state.value
+        if (s.loading || s.branchUncertain || s.adminUncertain || s.profile?.canOpen(section) != true) return
+        mutableState.value = s.copy(destination = section.destination, branchDetail = null, pointDetail = null,
+            branchContext = if (section == AdminSection.BRANCHES) null else s.branchContext,
+            message = null, error = null)
+        when (section) {
+            AdminSection.BRANCHES -> refreshBranch()
+            AdminSection.RIDER -> refreshRider()
+            else -> refreshAdmin()
+        }
+    }
+
+    fun refreshAdmin() {
+        val s = state.value
+        if (s.profile?.isAdministrator != true || s.loading || s.adminUncertain) return
+        if (s.destination == MobileDestination.PRINTERS) {
+            mutableState.value = s.copy(adminPrinters = null)
+            request({ api.admin.printers() }) { mutableState.value = state.value.copy(adminPrinters = it, adminConflict = false) }
+        } else if (s.destination == MobileDestination.PAUSES) {
+            mutableState.value = s.copy(adminBranches = null, adminPoints = null)
+            request({ api.admin.branches() to api.admin.points() }) { (branches, points) ->
+                mutableState.value = state.value.copy(adminBranches = branches, adminPoints = points, adminConflict = false)
+            }
+        }
+    }
+
+    fun changePrinter(id: String, enable: Boolean) {
+        val s = state.value
+        if (s.destination != MobileDestination.PRINTERS || s.adminPrinters?.canManage != true) return
+        val printer = s.adminPrinters.printers.firstOrNull { it.id == id } ?: return
+        startAdmin { api.admin.printerCommand(printer, enable, UUID.randomUUID().toString()) }
+    }
+
+    fun changeAvailability(resource: AdminResource, id: String, pause: Boolean) {
+        val s = state.value
+        if (s.destination != MobileDestination.PAUSES) return
+        val items = when (resource) { AdminResource.BRANCH -> s.adminBranches; AdminResource.POINT -> s.adminPoints; else -> null }
+        val item = items?.firstOrNull { it.id == id } ?: return
+        startAdmin { api.admin.availabilityCommand(resource, item, pause, UUID.randomUUID().toString()) }
+    }
+
+    private fun startAdmin(command: () -> AdminCommand) {
+        val s = state.value
+        if (s.profile?.isAdministrator != true || s.loading || s.adminUncertain || s.adminConflict || s.branchUncertain) return
+        try { pendingAdmin = command(); runAdminCommand() }
+        catch (e: IllegalArgumentException) { mutableState.value = state.value.copy(error = "Actualizá el estado antes de elegir ese cambio.") }
+    }
+
+    fun retryAdminOperation() { if (!state.value.loading) runAdminCommand() }
+
+    private fun runAdminCommand() {
+        val command = pendingAdmin ?: return
+        if (state.value.profile?.isAdministrator != true || state.value.loading) return
+        mutableState.value = state.value.copy(loading = true, error = null, message = null)
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) { api.admin.execute(command) }
+                pendingAdmin = null
+                mutableState.value = state.value.copy(loading = false, adminUncertain = false,
+                    message = "Cambio confirmado en ${command.name}.")
+                refreshAdmin()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) {
+                val uncertain = e !is ApiException || e.status >= 500 || e.status == 408
+                if (!uncertain) pendingAdmin = null
+                mutableState.value = state.value.copy(loading = false, adminUncertain = uncertain, adminConflict = !uncertain,
+                    error = if (uncertain) "No pudimos confirmar la respuesta. Recuperá el mismo cambio antes de continuar."
+                    else e.message ?: "Actualizá el estado antes de volver a operar.")
+            }
+        }
+    }
 
     fun login(user: String, password: String) {
         if (user.isBlank() || password.isBlank()) {
@@ -137,14 +216,16 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     }
 
     fun refreshBranch() {
-        if (state.value.loading || state.value.branchUncertain) return
+        if (state.value.loading || state.value.branchUncertain || state.value.adminUncertain) return
         if (state.value.branchContext == null) {
             request({ api.branchDesk.context() }) { context ->
                 if (!context.canDeliver || context.branches.isEmpty()) {
-                    mutableState.value = state.value.copy(destination = MobileDestination.UNSUPPORTED,
+                    mutableState.value = state.value.copy(destination = if (state.value.profile?.isAdministrator == true) MobileDestination.BRANCH else MobileDestination.UNSUPPORTED,
+                        branchContext = context,
                         error = "Tu cuenta necesita una sucursal habilitada y permiso de gestión de entregas para usar el mostrador móvil.")
                 } else {
-                    mutableState.value = state.value.copy(branchContext = context, branchId = context.cashBranch
+                    mutableState.value = state.value.copy(branchContext = context, branchId = state.value.branchId
+                        ?.takeIf { id -> context.branches.any { it.id == id } } ?: context.cashBranch
                         ?.takeIf { id -> context.branches.any { it.id == id } } ?: context.branches.first().id)
                     loadBranchOrders(BranchSection.READY, "", 0)
                 }
@@ -243,12 +324,13 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     }
 
     fun logout() {
-        if (state.value.loading || state.value.branchUncertain) return
+        if (state.value.loading || state.value.branchUncertain || state.value.adminUncertain) return
         mutableState.value = state.value.copy(loading = true)
         viewModelScope.launch {
             runCatching { withContext(Dispatchers.IO) { api.logout() } }
             retry = null
             pendingBranch = null
+            pendingAdmin = null
             mutableState.value = AppUiState()
         }
     }
@@ -310,6 +392,7 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
                 error = if (profile.debeCambiarContrasena) "Cambiá la contraseña inicial desde la Web antes de usar Android." else null,
             )
             MobileDestination.LOGIN -> mutableState.value = AppUiState()
+            MobileDestination.PRINTERS, MobileDestination.PAUSES -> error("El acceso administrativo se abre desde el menú.")
         }
     }
 }

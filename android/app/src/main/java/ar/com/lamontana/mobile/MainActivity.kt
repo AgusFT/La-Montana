@@ -70,6 +70,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import ar.com.lamontana.mobile.model.MobileDestination
+import ar.com.lamontana.mobile.model.isAdministrator
+import androidx.compose.runtime.CompositionLocalProvider
 import ar.com.lamontana.mobile.model.PointContext
 import ar.com.lamontana.mobile.model.PointOrder
 import ar.com.lamontana.mobile.model.PointOrderDetail
@@ -94,6 +96,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LaMontanaApp(vm: AppViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val admin = state.profile?.takeIf { it.isAdministrator }?.let {
+        AdminNavigation(it, state.destination, state.loading || state.branchUncertain || state.adminUncertain, vm::selectAdminSection)
+    }
+    CompositionLocalProvider(LocalAdminNavigation provides admin) {
     when (state.destination) {
         MobileDestination.LOGIN -> LoginScreen(state.loading, state.error, vm::login)
         MobileDestination.POINT -> PointDeskScreen(
@@ -106,11 +112,14 @@ fun LaMontanaApp(vm: AppViewModel = viewModel()) {
             onLoad = vm::loadBranchOrders, onOpen = vm::openBranchOrder, onClose = vm::closeBranchOrder,
             onAction = vm::branchAction, onRetry = vm::retryBranchOperation, onLogout = vm::logout,
         )
+        MobileDestination.PRINTERS, MobileDestination.PAUSES -> AdminWorkspace(state, vm::refreshAdmin, vm::logout,
+            vm::changePrinter, vm::changeAvailability, vm::retryAdminOperation)
         MobileDestination.UNSUPPORTED -> PendingRoleScreen(
             title = "Acceso no disponible",
             message = state.error ?: "Esta cuenta no tiene una experiencia Android habilitada.",
             onLogout = vm::logout,
         )
+    }
     }
 }
 
@@ -472,7 +481,9 @@ internal fun MobileHeader(section: String, onRefresh: () -> Unit, onLogout: () -
     ) {
         Brand(true, compact = true)
         Spacer(Modifier.weight(1f))
-        Text(section, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        val admin = LocalAdminNavigation.current
+        if (admin == null) Text(section, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        else AdminMenu(admin)
         IconButton(enabled = !loading, onClick = onRefresh) { Icon(Icons.Default.Refresh, "Actualizar", tint = Color.White) }
         IconButton(enabled = !loading, onClick = onLogout) { Icon(Icons.Default.Logout, "Cerrar sesión", tint = Color.White) }
     }
