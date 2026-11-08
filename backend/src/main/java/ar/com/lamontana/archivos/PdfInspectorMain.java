@@ -31,6 +31,7 @@
 package ar.com.lamontana.archivos;
 
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
 import javax.imageio.ImageIO;
@@ -43,7 +44,7 @@ import org.apache.pdfbox.rendering.*;
 
 /** Entry point without Spring. The parent bounds memory, runtime and concurrent processes. */
 public final class PdfInspectorMain {
-    private static final Set<String> UNSAFE_KEYS=Set.of("JS","JavaScript","AA","EmbeddedFiles","EF","XFA","RichMediaContent","RichMediaSettings");
+    private static final Set<String> UNSAFE_KEYS=Set.of("JS","JavaScript","AA","XFA","RichMediaContent","RichMediaSettings");
     private static final Set<String> UNSAFE_ACTIONS=Set.of("JavaScript","Launch","SubmitForm","ImportData","GoToR","GoToE","Rendition","Movie","Sound");
     public static void main(String[] args) {
         int result=22;
@@ -78,6 +79,8 @@ public final class PdfInspectorMain {
     }
     private static void inspectObjects(PDDocument document)throws IOException,Rechazo{
         var seen=Collections.newSetFromMap(new IdentityHashMap<COSBase,Boolean>());var queue=new ArrayDeque<COSBase>();
+        var manifests=Collections.newSetFromMap(new IdentityHashMap<COSStream,Boolean>());
+        var embedded=Collections.newSetFromMap(new IdentityHashMap<COSStream,Boolean>());
         queue.add(document.getDocument().getTrailer());long decoded=0;byte[] buffer=new byte[8192];
         while(!queue.isEmpty()) {
             COSBase obj=queue.removeFirst();if(!seen.add(obj))continue;if(seen.size()>300000)throw new Rechazo(25);
@@ -85,15 +88,41 @@ public final class PdfInspectorMain {
             else if(obj instanceof COSArray array){for(COSBase v:array)if(v!=null)queue.add(v);}
             else if(obj instanceof COSDictionary dict){
                 for(COSName key:dict.keySet())if(UNSAFE_KEYS.contains(key.getName()))throw new Rechazo(23);
+                if(dict.containsKey(COSName.EF))allowContentCredentials(dict,manifests);
                 COSBase opening=dict.getDictionaryObject(COSName.OPEN_ACTION);
                 if(opening!=null && !(opening instanceof COSArray) && !(opening instanceof COSDictionary action && "GoTo".equals(action.getNameAsString(COSName.S))))throw new Rechazo(23);
-                if(UNSAFE_ACTIONS.contains(dict.getNameAsString(COSName.S,""))||"EmbeddedFile".equals(dict.getNameAsString(COSName.TYPE))||"FileAttachment".equals(dict.getNameAsString(COSName.SUBTYPE)))throw new Rechazo(23);
+                if(UNSAFE_ACTIONS.contains(dict.getNameAsString(COSName.S,""))||"FileAttachment".equals(dict.getNameAsString(COSName.SUBTYPE)))throw new Rechazo(23);
+                boolean attached="EmbeddedFile".equals(dict.getNameAsString(COSName.TYPE));
+                if(attached&&!(dict instanceof COSStream))throw new Rechazo(23);
                 if(dict instanceof COSStream stream){
                     if(stream.containsKey(COSName.F))throw new Rechazo(23);
-                    try(InputStream in=stream.createInputStream()){int n;while((n=in.read(buffer))!=-1){decoded+=n;if(decoded>128L*1024*1024)throw new Rechazo(25);}}
+                    try(InputStream in=stream.createInputStream()){
+                        long size=0,expected=0;
+                        if(attached){
+                            embedded.add(stream);
+                            if(!"application/c2pa".equals(stream.getNameAsString(COSName.SUBTYPE)))throw new Rechazo(23);
+                            byte[] header=in.readNBytes(38);size=header.length;
+                            // JUMBF superbox + C2PA description UUID, flags and label. These are
+                            // passive provenance bytes, never executed or treated as verified claims.
+                            byte[] description=HexFormat.of().parseHex("6a756d646332706100110010800000aa00389b71036332706100");
+                            if(header.length!=38||!Arrays.equals(Arrays.copyOfRange(header,4,8),new byte[]{'j','u','m','b'})||ByteBuffer.wrap(header,8,4).getInt()!=30||!Arrays.equals(Arrays.copyOfRange(header,12,38),description))throw new Rechazo(23);
+                            expected=Integer.toUnsignedLong(ByteBuffer.wrap(header,0,4).getInt());
+                        }
+                        int n;while((n=in.read(buffer))!=-1){size+=n;if(decoded+size>128L*1024*1024)throw new Rechazo(25);}
+                        decoded+=size;if(decoded>128L*1024*1024)throw new Rechazo(25);
+                        if(attached&&size!=expected)throw new Rechazo(23);
+                    }
                 }
                 for(COSBase v:dict.getValues())if(v!=null)queue.add(v);
             }
+        }
+        if(!manifests.containsAll(embedded))throw new Rechazo(23);
+    }
+    private static void allowContentCredentials(COSDictionary spec,Set<COSStream> manifests)throws Rechazo{
+        if(!"Filespec".equals(spec.getNameAsString(COSName.TYPE))||!"C2PA_Manifest".equals(spec.getNameAsString(COSName.getPDFName("AFRelationship")))||!(spec.getDictionaryObject(COSName.EF) instanceof COSDictionary files)||files.size()==0)throw new Rechazo(23);
+        for(COSName key:files.keySet()){
+            if(!Set.of("F","UF").contains(key.getName())||!(files.getDictionaryObject(key) instanceof COSStream stream)||!"EmbeddedFile".equals(stream.getNameAsString(COSName.TYPE))||!"application/c2pa".equals(stream.getNameAsString(COSName.SUBTYPE)))throw new Rechazo(23);
+            manifests.add(stream);
         }
     }
     private static final class Rechazo extends Exception {final int code;Rechazo(int code){this.code=code;}}

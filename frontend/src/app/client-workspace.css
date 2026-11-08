@@ -43,7 +43,7 @@
 .workspace-selected-file small{color:var(--ui-muted,#61748d);font-size:11px;margin-top:4px}
 .workspace-selected-file button{border:0;background:none;color:var(--ui-link,#224d80);font:inherit;text-decoration:underline;cursor:pointer;padding:0;flex-shrink:0}
 .workspace-selected-file button:disabled{cursor:wait;opacity:.5}
-.workspace-print-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
+.workspace-print-fields{border:0;padding:0;margin:0;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
 .workspace-print-fields>label{margin:0;display:flex;flex-direction:column;gap:6px}
 .client-compact-experience label{min-width:0}
 .client-compact-experience label:not(.client-check){font-size:13px}
