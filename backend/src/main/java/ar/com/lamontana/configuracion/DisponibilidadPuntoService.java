@@ -52,7 +52,8 @@ public class DisponibilidadPuntoService {
     private final ar.com.lamontana.organizacion.OrganizacionService organizacion;
     public DisponibilidadPuntoService(JdbcTemplate jdbc,ConfiguracionService configuracion,ar.com.lamontana.organizacion.OrganizacionService organizacion){this.jdbc=jdbc;this.configuracion=configuracion;this.organizacion=organizacion;}
     public record Disponibilidad(UUID punto,String estado,long version,Instant actualizadaEn,String actor){}
-    public record Punto(UUID codigoPublico,String codigo,String nombre,String direccion,String zonaHoraria,Disponibilidad disponibilidad){}
+    public record Punto(UUID codigoPublico,String codigo,String nombre,String direccion,String zonaHoraria,Disponibilidad disponibilidad,
+                        boolean disponibleParaPedidos,String motivo,List<DisponibilidadDestinos.Origen> sucursales){}
     public record Panel(String contexto,UUID borrador,List<Punto> puntos,long deshabilitados){}
     private record Comprobante(long punto,long actor,String huella){}
     private record Destino(UUID punto,DisponibilidadPuntoController.Cambiar comando){}
@@ -73,12 +74,19 @@ public class DisponibilidadPuntoService {
         var borradores=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='EN_PREPARACION'",(rs,row)->rs.getObject(1,UUID.class));
         boolean activa=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_version WHERE estado='ACTIVA')",Boolean.class));
         var puntos=jdbc.query("""
-                SELECT DISTINCT ON (p.id_punto_entrega) p.id_punto_entrega,p.codigo_publico,p.codigo,d.nombre,
+                SELECT DISTINCT ON (p.id_punto_entrega) p.id_punto_entrega,p.codigo_publico,p.codigo,d.nombre,c.codigo_publico AS configuracion,c.estado AS estado_configuracion,
                        d.calle||' '||d.numero||' · '||d.localidad||', '||d.provincia AS direccion,d.zona_horaria
                 FROM lamontana.punto_entrega p JOIN lamontana.configuracion_definicion_punto d USING(id_punto_entrega)
                 JOIN lamontana.configuracion_version c USING(id_configuracion_version)
                 WHERE c.estado IN ('ACTIVA','EN_PREPARACION','PROGRAMADA') ORDER BY p.id_punto_entrega,(c.estado='ACTIVA') DESC,c.numero_version DESC
-                """,(rs,row)->new Punto(rs.getObject("codigo_publico",UUID.class),rs.getString("codigo"),rs.getString("nombre"),rs.getString("direccion"),rs.getString("zona_horaria"),estado(rs.getLong("id_punto_entrega"),rs.getObject("codigo_publico",UUID.class))),new Object[0]).stream().sorted(Comparator.comparing(Punto::codigo)).toList();
+                """,(rs,row)->{
+                    UUID punto=rs.getObject("codigo_publico",UUID.class);
+                    var decision=estado(rs.getLong("id_punto_entrega"),punto);
+                    var origenes=new DisponibilidadDestinos(jdbc).origenes(rs.getObject("configuracion",UUID.class),punto);
+                    boolean disponible=activa&&rs.getString("estado_configuracion").equals("ACTIVA")&&decision.estado().equals("HABILITADO")&&origenes.stream().anyMatch(DisponibilidadDestinos.Origen::disponible);
+                    return new Punto(punto,rs.getString("codigo"),rs.getString("nombre"),rs.getString("direccion"),rs.getString("zona_horaria"),decision,
+                        disponible,disponible?null:DisponibilidadDestinos.FUERA_DE_SERVICIO,origenes);
+                },new Object[0]).stream().sorted(Comparator.comparing(Punto::codigo)).toList();
         return new Panel(activa?"CONFIGURACION_ACTIVA":"SIN_CONFIGURACION_ACTIVA",borradores.isEmpty()?null:borradores.get(0),puntos,puntos.stream().filter(p->p.disponibilidad().estado().equals("DESHABILITADO")).count());
     }
 
@@ -113,3 +121,4 @@ public class DisponibilidadPuntoService {
     }
     private ResponseStatusException conflicto(String message){return new ResponseStatusException(HttpStatus.CONFLICT,message);}
 }
+

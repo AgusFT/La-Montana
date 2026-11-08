@@ -46,7 +46,7 @@ public class PreparacionClienteService {
     @Transactional public CotizacionService.Opciones opciones(UUID codigo,String correo){
         var d=store.datos(codigo,correo,true);
         var opciones=cotizaciones.opcionesPreparada(d.sucursalMostrador());
-        if(d.operador()==null||d.sucursalMostrador()!=null||!opciones.disponible())return opciones;
+        if(d.operador()==null||d.sucursalMostrador()!=null)return opciones;
         var autorizadas=sucursalesAutorizadas(correo);
         var sucursales=opciones.sucursales().stream().filter(s->autorizadas.contains(s.codigoPublico())).toList();
         var combinaciones=opciones.combinaciones().stream().filter(o->autorizadas.contains(o.sucursal())).toList();
@@ -58,9 +58,14 @@ public class PreparacionClienteService {
             case ENVIO_DOMICILIO -> opciones.casaMatriz()!=null&&autorizadas.contains(opciones.casaMatriz().codigoPublico());
         }).toList();
         boolean disponible=!modalidades.isEmpty()&&!combinaciones.isEmpty();
+        var destinos=opciones.destinosEntrega().stream().map(destino->{
+            var origenes=destino.sucursales().stream().filter(s->autorizadas.contains(s.codigoPublico())).toList();
+            boolean utilizable=destino.disponible()&&(destino.modalidad()==Modalidad.RETIRO_SUCURSAL?autorizadas.contains(destino.codigoPublico()):origenes.stream().anyMatch(DisponibilidadDestinos.Origen::disponible));
+            return new DisponibilidadDestinos.Destino(destino.modalidad(),destino.codigoPublico(),destino.nombre(),destino.direccion(),utilizable,utilizable?null:DisponibilidadDestinos.FUERA_DE_SERVICIO,origenes);
+        }).filter(destino->destino.modalidad()==Modalidad.RETIRO_SUCURSAL?autorizadas.contains(destino.codigoPublico()):!destino.sucursales().isEmpty()).toList();
         return new CotizacionService.Opciones(disponible,disponible?opciones.mensaje():"Tu cuenta no tiene una sucursal habilitada para cotizar este pedido.",
             opciones.configuracion(),opciones.revisionComercial(),sucursales,combinaciones,opciones.formatos(),
-            opciones.papeles(),opciones.servicios(),modalidades,puntos,opciones.medios(),opciones.casaMatriz(),retiros);
+            opciones.papeles(),opciones.servicios(),modalidades,puntos,opciones.medios(),opciones.casaMatriz(),retiros,destinos);
     }
     private Set<UUID> sucursalesAutorizadas(String correo){
         var ids=new HashSet<UUID>();
@@ -102,7 +107,7 @@ public class PreparacionClienteService {
                 throw error(HttpStatus.BAD_REQUEST,"El retiro en sucursal corresponde a la sucursal que atiende.");
         }
         if(pref.modalidad()==Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()==null||pref.modalidad()!=Modalidad.RETIRO_SUCURSAL&&pref.destinoRetiro()!=null)throw error(HttpStatus.BAD_REQUEST,"Elegí un destino de retiro sólo para esa modalidad.");
-        if(d.preferencias()!=null&&store.mapper().readValue(d.preferencias(),Preferencias.class).equals(pref)&&d.cotizacion()!=null){var q=cotizaciones.detallePreparada(d.cotizacion(),d);if(q.estado().equals("VIGENTE")&&q.reemplazadaPor()==null&&Instant.now().isBefore(q.vigenteHasta())){store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(d,correo,q.codigoPublico());}}
+        if(d.preferencias()!=null&&store.mapper().readValue(d.preferencias(),Preferencias.class).equals(pref)&&d.cotizacion()!=null){var q=cotizaciones.detallePreparada(d.cotizacion(),d);if(q.oferta().sucursal().codigoPublico().equals(origen)&&contexto.sucursales().stream().anyMatch(s->s.codigoPublico().equals(origen))&&q.estado().equals("VIGENTE")&&q.reemplazadaPor()==null&&Instant.now().isBefore(q.vigenteHasta())){store.evento(d,in.operacion(),"COTIZAR",in,Map.of("cotizacion",q.codigoPublico()));return checkout(d,correo,q.codigoPublico());}}
         var entrada=entradas(d.items());var items=documentos(d,entrada,correo);
         var crear=new CotizacionController.Crear(derivada(in.operacion(),"cotizacion"),budget.configuracion(),budget.revisionComercial(),origen,items,pref.modalidad(),pref.punto(),pref.direccion(),pref.medioPago(),d.cotizacion(),mostrador?null:pref.destinoRetiro(),!mostrador);
         var q=cotizaciones.crearPreparada(crear,d);
@@ -143,3 +148,4 @@ public class PreparacionClienteService {
     }
     private UUID derivada(UUID operacion,String paso){return UUID.nameUUIDFromBytes((operacion+":"+paso).getBytes(StandardCharsets.UTF_8));}
 }
+

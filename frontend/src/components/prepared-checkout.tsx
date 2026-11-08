@@ -10,6 +10,7 @@ import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {isOptions,quoteRead,money,date,modeLabels,type QuoteOptions,type Mode,type Address} from '@/lib/quote-types';
 import {isCheckout,isPreparation,type Checkout,type Preparation,type Preferences} from '@/lib/prepared-work';
 import {isOrder} from '@/lib/order-types';
+import {deliveryLocations,deliveryModes,deliverySelectionAvailable,deliveryLocationLabel} from '@/lib/delivery-locations';
 
 const emptyAddress:Address={calle:'',numero:'',referencias:'',territorio:{codigoPostal:'',localidad:'',provincia:''}};
 export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolean}){
@@ -22,7 +23,7 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
  const pending=useRef<null|{kind:'quote'|'confirm';body:string}>(null),running=useRef(false),ready=useRef(false);
  const current=useRef<Preparation|null>(null);current.current=prep;
  const pref:Preferences|null=mode&&payment?{modalidad:mode,destinoRetiro:mode==='RETIRO_SUCURSAL'?destination||null:null,punto:mode==='RETIRO_PUNTO_ENTREGA'?point||null:null,direccion:mode==='ENVIO_DOMICILIO'?address:null,medioPago:payment}:null;
- const valid=!!pref&&(mode!=='RETIRO_SUCURSAL'||!!destination)&&(mode!=='RETIRO_PUNTO_ENTREGA'||!!point)&&(mode!=='ENVIO_DOMICILIO'||[address.calle,address.numero,...Object.values(address.territorio)].every(s=>s.trim().length>0));
+ const valid=deliverySelectionAvailable(options,mode,destination,point)&&!!pref&&(mode!=='RETIRO_SUCURSAL'||!!destination)&&(mode!=='RETIRO_PUNTO_ENTREGA'||!!point)&&(mode!=='ENVIO_DOMICILIO'||[address.calle,address.numero,...Object.values(address.territorio)].every(s=>s.trim().length>0));
  const prefKey=JSON.stringify(pref),locked=busy||uncertain||fileLocked;
  useNavigationGuard({blocked:locked});
  function received(data:Checkout){setView(data);setPrep(data.preparacion);}
@@ -31,15 +32,29 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
   if(p.pedido){router.replace(`${orders}/${p.pedido}`);return;}
   if(!p.presupuesto)return;
   const o=await quoteRead(internal?`${base}/opciones`:'/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
-  const data=await quoteRead(`${base}/resumen`,isCheckout);received(data);
   if(initial&&p.sucursalMostrador){
    if(o.modalidades.includes('RETIRO_SUCURSAL')){setMode('RETIRO_SUCURSAL');setDestination(p.sucursalMostrador);}
    else if(o.modalidades.includes('RETIRO_PUNTO_ENTREGA'))setMode('RETIRO_PUNTO_ENTREGA');
   }
-  if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad);setDestination(f.destinoRetiro??'');setPoint(f.punto??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);if(data.revision&&data.huella)setCalculated(JSON.stringify(f));}
-  ready.current=true;
+  if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad);setDestination(f.destinoRetiro??'');setPoint(f.punto??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);}
+  try{
+   const data=await quoteRead(`${base}/resumen`,isCheckout);received(data);
+   if(initial&&p.preferencias&&data.revision&&data.huella)setCalculated(JSON.stringify(p.preferencias));
+  }finally{ready.current=true;}
  }
  useEffect(()=>{void load(true).catch(e=>setError(e.message));},[id]);
+ useEffect(()=>{
+  let active=true;
+  const refresh=()=>{
+   if(running.current||fileLocked||uncertain)return;
+   void quoteRead(internal?`${base}/opciones`:'/api/cliente/cotizaciones/opciones',isOptions).then(o=>{
+    if(!active)return;setOptions(o);
+    const origin=view?.cotizacion?.oferta.sucursal.codigoPublico;
+    if(origin&&!o.sucursales.some(s=>s.codigoPublico===origin))setCalculated('');
+   }).catch(()=>{/* La confirmación vuelve a comprobar disponibilidad en el servidor. */});
+  };
+  window.addEventListener('focus',refresh);return()=>{active=false;window.removeEventListener('focus',refresh);};
+ },[id,internal,view?.cotizacion?.oferta.sucursal.codigoPublico,fileLocked,uncertain]);
  async function execute(command?:{kind:'quote'|'confirm';body:string}){
   if(running.current)return;if(command)pending.current=command;if(!pending.current)return;
   const c=pending.current;running.current=true;setBusy(true);setError('');
@@ -47,7 +62,9 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
    if(c.kind==='confirm'){if(!isOrder(result))throw new Error('No pudimos comprobar el pedido creado. Recuperá la misma operación.');pending.current=null;setUncertain(false);router.push(`${orders}/${result.codigoPublico}`);return;}
    if(!isCheckout(result))throw new Error('No pudimos comprobar el total guardado.');received(result);setCalculated(JSON.stringify(JSON.parse(c.body).preferencias));
    pending.current=null;setUncertain(false);setFailedKey('');
-  }catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar el resumen.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;if(c.kind==='quote')setFailedKey(JSON.stringify(JSON.parse(c.body).preferencias));setCalculated('');}}
+  }catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar el resumen.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;if(c.kind==='quote')setFailedKey(JSON.stringify(JSON.parse(c.body).preferencias));setCalculated('');
+   try{setOptions(await quoteRead(internal?`${base}/opciones`:'/api/cliente/cotizaciones/opciones',isOptions));}catch{/* La consulta se puede recuperar con Actualizar resumen. */}
+  }}
   finally{running.current=false;setBusy(false);}
  }
  useEffect(()=>{
@@ -61,13 +78,13 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
  const totalPrevio=Math.max(Number(summary?.condiciones.pagoPrevioRequerido??0),Number(confirmedTerms?.pagoPrevioRequerido??0));
  const sena=Math.max(Number(summary?.condiciones.senaRequerida??0),Number(confirmedTerms?.senaRequerida??0));
  const allReady=!!prep?.archivos.length&&prep.archivos.every(f=>f.activo&&!f.revocado&&f.estado==='VALIDO');
- const fresh=calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
+ const fresh=valid&&calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
  async function confirm(e:FormEvent){e.preventDefault();if(locked||!prep||!quote||!fresh||!allReady)return;
   await execute({kind:'confirm',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,cotizacion:quote.codigoPublico,huella:view?.huella,condicionesAceptadas:true,contacto:mode==='ENVIO_DOMICILIO'?contact:null})});
  }
  const budget=prep?.presupuesto;
- const destinations=options?.destinosRetiro??[];
- const points=Array.from(new Map([...(options?.puntos??[])].sort((a,b)=>a.prioridad-b.prioridad).map(p=>[p.codigoPublico,p])).values());
+ const destinations=deliveryLocations(options,'RETIRO_SUCURSAL');
+ const points=deliveryLocations(options,'RETIRO_PUNTO_ENTREGA');
  return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>{prep?.cliente&&<p className="client-note"><strong>Pedido para {prep.cliente.nombre}</strong> · {prep.cliente.invitado?"Invitado sin cuenta":prep.cliente.correo}</p>}
   {!prep&&!error&&<p role="status">Recuperando el resumen de tu trabajo…</p>}
   {busy&&<p role="status" className="client-note">Verificando y actualizando tu pedido…</p>}
@@ -82,13 +99,15 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
       <div className="workspace-budget-items" tabIndex={budget.items.length>2?0:undefined} aria-label="Detalle de los archivos presupuestados">{budget.items.map((item,n)=><article key={item.codigoPublico}><h3>PDF {n+1} · {item.documento.nombre}</h3><p>{item.trabajo.paginas} páginas · {item.trabajo.copias} copia(s) · {item.trabajo.dobleFaz?'Doble faz':'Simple faz'}</p><p>{item.formato} · {item.papel} · {item.trabajo.color==='COLOR'?'Color':'Blanco y negro'}</p><strong>{money(item.precio.subtotal)}</strong><details><summary>Servicios incluidos</summary><p>{item.precio.lineas.filter(l=>l.servicio!==item.trabajo.servicio).map(l=>l.nombre).join(' · ')||'Sin servicios adicionales'}</p></details></article>)}</div>
       {budget.items.length>2&&<p className="workspace-files-footer">Desplazate dentro del listado para consultar los {budget.items.length} archivos.</p>}
      </section>
-     <form id="client-delivery" className="workspace-preferences" onSubmit={e=>{e.preventDefault();if(pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
-      <fieldset disabled={locked||!options?.disponible}>
+     <form id="client-delivery" className="workspace-preferences" onSubmit={e=>{e.preventDefault();if(valid&&pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
+      <fieldset disabled={locked}>
        <section className="workspace-panel"><h2>Entrega</h2>
         {prep?.sucursalMostrador&&<p>Sucursal que atiende · <strong>{options?.sucursales.find(s=>s.codigoPublico===prep.sucursalMostrador)?.nombre}</strong></p>}
-        <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setMode(e.target.value as Mode);setDestination(e.target.value==='RETIRO_SUCURSAL'?prep?.sucursalMostrador??'':'');setPoint('');}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA'||points.length>0).map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
-        {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre}{s.codigoPublico===options?.casaMatriz?.codigoPublico?' · Casa matriz':''} · {s.direccion}</option>)}</select></label>}
-        {mode==='RETIRO_PUNTO_ENTREGA'&&<label>Punto de entrega<select aria-label="Punto de entrega" required value={point} onChange={e=>{setPoint(e.target.value);}}><option value="">Elegí un punto</option>{points.map(p=><option key={p.codigoPublico} value={p.codigoPublico}>{p.nombre} · {p.direccion}</option>)}</select></label>}
+        <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setMode(e.target.value as Mode);setDestination(e.target.value==='RETIRO_SUCURSAL'?prep?.sucursalMostrador??'':'');setPoint('');}}><option value="">Elegí una modalidad</option>{deliveryModes(options).map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
+        {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico} disabled={!s.disponible}>{deliveryLocationLabel(s)}</option>)}</select></label>}
+        {mode==='RETIRO_PUNTO_ENTREGA'&&<label>Punto de entrega<select aria-label="Punto de entrega" required value={point} onChange={e=>{setPoint(e.target.value);}}><option value="">Elegí un punto</option>{points.map(p=><option key={p.codigoPublico} value={p.codigoPublico} disabled={!p.disponible}>{deliveryLocationLabel(p)}</option>)}</select></label>}
+        {mode==='RETIRO_PUNTO_ENTREGA'&&point&&<p className="client-muted">{points.find(p=>p.codigoPublico===point)?.disponible?'Sucursal de origen: '+points.find(p=>p.codigoPublico===point)?.sucursales.filter(s=>s.disponible).map(s=>s.nombre).join(', '):'Momentáneamente fuera de servicio. Elegí otro punto o esperá a que se reanude su atención.'}</p>}
+        {mode==='RETIRO_SUCURSAL'&&destination&&!destinations.some(d=>d.codigoPublico===destination&&d.disponible)&&<p className="client-warning">Esta sucursal está momentáneamente fuera de servicio. Elegí otra ubicación.</p>}
         {mode==='ENVIO_DOMICILIO'&&<div className="workspace-address">{([['calle','Calle'],['numero','Número'],['referencias','Referencias (opcional)']] as const).map(([k,label])=><label key={k}>{label}<input required={k!=='referencias'} maxLength={k==='numero'?30:k==='calle'?140:300} value={address[k]} onChange={e=>{setAddress(a=>({...a,[k]:e.target.value}));}}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([k,label])=><label key={k}>{label}<input required maxLength={k==='codigoPostal'?24:120} value={address.territorio[k]} onChange={e=>{setAddress(a=>({...a,territorio:{...a.territorio,[k]:e.target.value}}));}}/></label>)}</div>}
         <p>{prep?.sucursalMostrador?'Los puntos disponibles tienen una ruta habilitada desde la sucursal que atiende.':mode==='RETIRO_SUCURSAL'?'El pedido se asigna inicialmente a la planta de esa sucursal.':'El sistema elige la sucursal compatible con mayor prioridad para ese destino.'}</p>
        </section>
@@ -126,3 +145,4 @@ export function PreparedCheckout({id,internal=false}:{id:string;internal?:boolea
   </>}
  </div>;
 }
+

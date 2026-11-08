@@ -55,7 +55,11 @@ public class OfertaOperativaService {
         var ids=new HashSet<UUID>();sucursales.forEach(s->ids.add(s.codigoPublico()));
         var b=activa.configuracion();var opciones=OpcionesImpresion.calcular(b,comercial,ids);
         var utilizables=sucursales.stream().filter(s->opciones.stream().anyMatch(o->o.sucursal().equals(s.codigoPublico()))).toList();
-        return new Contexto(b,comercial,utilizables,opciones,entrega.puntosCotizacion(b));
+        var disponibles=utilizables.stream().map(Sucursal::codigoPublico).collect(java.util.stream.Collectors.toSet());
+        return new Contexto(b,comercial,utilizables,opciones,entrega.puntosCotizacion(b).stream().filter(p->disponibles.contains(p.sucursal())).toList());
+    }
+    public List<DisponibilidadDestinos.Destino> destinos(Contexto contexto,UUID mostrador){
+        return new DisponibilidadDestinos(jdbc).catalogo(contexto.configuracion(),contexto.sucursales().stream().map(Sucursal::codigoPublico).collect(java.util.stream.Collectors.toSet()),mostrador);
     }
     public EvaluadorCalendario.Simulacion calcularEntrega(Contexto c,EntregaConfiguracionController.SimularEntrega in,int minutos){return calcularEntrega(c,in,minutos,false);}
     List<Sucursal> sucursalesDisponibles(){
@@ -65,3 +69,4 @@ public class OfertaOperativaService {
         return entrega.calcular(c.configuracion(),in,minutos,mostrador);
     }
 }
+

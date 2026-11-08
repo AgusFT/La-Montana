@@ -94,7 +94,10 @@ public class CotizacionService {
     public record Punto(UUID codigoPublico,UUID sucursal,int prioridad,String nombre,String direccion,String costo){}
     public record Opciones(boolean disponible,String mensaje,UUID configuracion,UUID revisionComercial,List<OfertaOperativaService.Sucursal> sucursales,
         List<RevisionConfiguracionService.Opcion> combinaciones,List<Nombre> formatos,List<Nombre> papeles,List<Nombre> servicios,
-        List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios,OfertaOperativaService.Sucursal casaMatriz,List<OfertaOperativaService.Sucursal> destinosRetiro){}
+        List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios,OfertaOperativaService.Sucursal casaMatriz,List<OfertaOperativaService.Sucursal> destinosRetiro,
+        List<DisponibilidadDestinos.Destino> destinosEntrega){
+        public Opciones(boolean disponible,String mensaje,UUID configuracion,UUID revisionComercial,List<OfertaOperativaService.Sucursal> sucursales,List<RevisionConfiguracionService.Opcion> combinaciones,List<Nombre> formatos,List<Nombre> papeles,List<Nombre> servicios,List<Modalidad> modalidades,List<Punto> puntos,List<MedioPago> medios,OfertaOperativaService.Sucursal casaMatriz,List<OfertaOperativaService.Sucursal> destinosRetiro){this(disponible,mensaje,configuracion,revisionComercial,sucursales,combinaciones,formatos,papeles,servicios,modalidades,puntos,medios,casaMatriz,destinosRetiro,List.of());}
+    }
     public record ItemCotizado(UUID codigoPublico,Documento documento,EvaluadorPrecioItem.Item trabajo,String formato,String papel,EvaluadorPrecioItem.Precio precio){}
     public record Condiciones(boolean revisionHumana,boolean cargaRequiereAcreditacion,String pagoPrevioRequerido,String senaRequerida,String saldo,
         String momento,List<MedioPago> mediosAcreditacion,List<String> instrucciones,PoliticaPagoArchivos politicaArchivos){}
@@ -115,7 +118,7 @@ public class CotizacionService {
     }
     Opciones opcionesPreparada(UUID mostrador){
         bloquear();catalogo.reconciliarProgramaciones();var c=operativa.leer();
-        if(c.configuracion()==null||c.catalogo().actual()==null||c.opciones().isEmpty())return new Opciones(false,"La imprenta está en preparación o no tiene opciones disponibles para cotizar.",null,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),null,List.of());
+        if(c.configuracion()==null||c.catalogo().actual()==null||c.opciones().isEmpty())return new Opciones(false,"La imprenta está en preparación o no tiene opciones disponibles para cotizar.",null,null,List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),List.of(),null,List.of(),operativa.destinos(c,mostrador));
         var b=c.configuracion();var formatos=new HashSet<UUID>();var papeles=new HashSet<UUID>();var servicios=new HashSet<UUID>();
         c.opciones().forEach(o->{formatos.add(o.formato());papeles.add(o.papel());servicios.add(o.servicio());servicios.addAll(o.terminaciones());});
         var puntos=c.puntos().stream().filter(p->mostrador==null||mostrador.equals(p.sucursal())).filter(p->c.sucursales().stream().anyMatch(s->s.codigoPublico().equals(p.sucursal()))).map(p->{var d=b.entrega().puntos().stream().filter(x->x.codigoPublico().equals(p.punto())).findFirst().orElseThrow();return new Punto(p.punto(),p.sucursal(),p.prioridad(),p.nombre(),d.calle()+" "+d.numero()+", "+d.localidad()+", "+d.provincia(),p.costo());}).toList();
@@ -135,7 +138,7 @@ public class CotizacionService {
         return new Opciones(!modalidades.isEmpty(),modalidades.isEmpty()&&mostrador!=null?"La sucursal necesita opciones de impresión y un destino de retiro habilitado.":"Los importes y las condiciones se calculan al cotizar. La cotización no reserva capacidad.",b.codigoPublico(),c.catalogo().actual().codigoPublico(),c.sucursales(),combinaciones,
             c.catalogo().formatos().stream().filter(f->formatos.contains(f.codigoPublico())).map(f->new Nombre(f.codigoPublico(),f.nombre())).toList(),
             c.catalogo().papeles().stream().filter(p->papeles.contains(p.codigoPublico())).map(p->new Nombre(p.codigoPublico(),p.nombre(),p.gramaje(),p.terminacion())).toList(),
-            c.catalogo().actual().servicios().stream().filter(s->servicios.contains(s.servicio())).map(s->new Nombre(s.servicio(),s.nombreVisible())).toList(),modalidades,puntos,b.pagos().medios(),c.sucursales().stream().filter(x->x.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElse(null),destinos);
+            c.catalogo().actual().servicios().stream().filter(s->servicios.contains(s.servicio())).map(s->new Nombre(s.servicio(),s.nombreVisible())).toList(),modalidades,puntos,b.pagos().medios(),c.sucursales().stream().filter(x->x.codigoPublico().equals(b.entrega().casaMatriz())).findFirst().orElse(null),destinos,operativa.destinos(c,mostrador));
     }
 
     @Transactional
@@ -280,3 +283,4 @@ public class CotizacionService {
     private void exigir(boolean valido,String mensaje){if(!valido)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,mensaje);}
     private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
 }
+

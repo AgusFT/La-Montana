@@ -15,6 +15,7 @@ class DisponibilidadSucursalServiceTest {
     static EmbeddedPostgres pg;
     JdbcTemplate jdbc;TransactionTemplate tx;DisponibilidadSucursalService service;
     UUID a=UUID.randomUUID(),b=UUID.randomUUID();
+    UUID config=UUID.randomUUID(),punto=UUID.randomUUID();
     @BeforeAll static void start()throws Exception { pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories","").start(); }
     @AfterAll static void stop()throws Exception { if(pg!=null)pg.close(); }
     @BeforeEach void setup()throws Exception {
@@ -96,4 +97,62 @@ class DisponibilidadSucursalServiceTest {
         }finally{pool.shutdownNow();}
         assertThat(events()).isEqualTo(1);
     }
+
+    private ConfiguracionService.Borrador red(boolean compartido) {
+        jdbc.execute("ALTER TABLE lamontana.sucursal ADD COLUMN zona_horaria text DEFAULT 'America/Argentina/Buenos_Aires'");
+        jdbc.execute("CREATE TABLE lamontana.configuracion_version(id_configuracion_version bigint PRIMARY KEY,codigo_publico uuid,numero_version bigint,estado text); CREATE TABLE lamontana.punto_entrega(id_punto_entrega bigint PRIMARY KEY,codigo_publico uuid,codigo text)");
+        jdbc.update("INSERT INTO lamontana.configuracion_version VALUES(1,?,4,'ACTIVA'); INSERT INTO lamontana.punto_entrega VALUES(1,?,'CITY-BELL')",config,punto);
+        jdbc.execute("CREATE TABLE lamontana.configuracion_punto_entrega(id_configuracion_punto_entrega bigint PRIMARY KEY,id_configuracion_version bigint,id_punto_entrega bigint,id_sucursal bigint,prioridad int,habilitado boolean)");
+        jdbc.execute("CREATE TABLE lamontana.franja_entrega(id_configuracion_punto_entrega bigint,habilitada boolean,capacidad_pedidos int)");
+        jdbc.execute("INSERT INTO lamontana.configuracion_punto_entrega VALUES(1,1,1,1,1,true); INSERT INTO lamontana.franja_entrega VALUES(1,true,16)");
+        if(compartido)jdbc.execute("INSERT INTO lamontana.configuracion_punto_entrega VALUES(2,1,1,2,2,true); INSERT INTO lamontana.franja_entrega VALUES(2,true,16)");
+        jdbc.execute("CREATE TABLE lamontana.disponibilidad_punto_entrega(id_punto_entrega bigint PRIMARY KEY,estado text,version bigint,id_actor bigint,fecha_actualizacion timestamptz); INSERT INTO lamontana.disponibilidad_punto_entrega VALUES(1,'HABILITADO',1,1,clock_timestamp())");
+        jdbc.execute("CREATE TABLE lamontana.configuracion_definicion_punto(id_configuracion_version bigint,id_punto_entrega bigint,nombre text,calle text,numero text,localidad text,provincia text,zona_horaria text); INSERT INTO lamontana.configuracion_definicion_punto VALUES(1,1,'City Bell','Centenario','1320','City Bell','Buenos Aires','America/Argentina/Buenos_Aires')");
+        var franja=new PuntoEntregaController.Franja(1,"14:00","18:00",16,true);
+        var rutas=new ArrayList<PuntoEntregaController.SucursalPunto>();rutas.add(new PuntoEntregaController.SucursalPunto(a,1,true,"100",List.of(franja)));
+        if(compartido)rutas.add(new PuntoEntregaController.SucursalPunto(b,2,true,"200",List.of(franja)));
+        var p=new PuntosRepositorio.Punto(punto,"CITY-BELL","City Bell","Centenario","1320","City Bell","Buenos Aires","1896",null,"America/Argentina/Buenos_Aires",rutas);
+        var entrega=new EntregaRepositorio.Entrega("2","1",List.of(EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL,EntregaConfiguracionController.Modalidad.RETIRO_PUNTO_ENTREGA),List.of(new EntregaRepositorio.Horario(a,"America/Argentina/Buenos_Aires",List.of(),List.of(franja)),new EntregaRepositorio.Horario(b,"America/Argentina/Buenos_Aires",List.of(),List.of(franja))),List.of(p),List.of(),a,true);
+        return new ConfiguracionService.Borrador(config,4,7,"ACTIVA",ConfiguracionController.Modelo.MANUAL,null,null,null,"Ale",null,null,null,null,null,entrega,null);
+    }
+    private Set<UUID> disponibles(){return new HashSet<>(new OfertaOperativaService(null,null,null,jdbc).sucursalesDisponibles().stream().map(OfertaOperativaService.Sucursal::codigoPublico).toList());}
+    @Test void exclusivePointAndBranchRemainVisibleButDisabledWhenSourceIsPaused() {
+        var c=red(false);send(a,change(0,true));var catalogo=new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null);
+        assertThat(catalogo).filteredOn(d->d.codigoPublico().equals(punto)||d.codigoPublico().equals(a)).hasSize(2).allMatch(d->!d.disponible()&&d.motivo().equals(DisponibilidadDestinos.FUERA_DE_SERVICIO));
+    }
+    @Test void sharedPointRemainsAvailableOnlyThroughOpenSource() {
+        var c=red(true);send(a,change(0,true));var p=new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null).stream().filter(d->d.codigoPublico().equals(punto)).findFirst().orElseThrow();
+        assertThat(p.disponible()).isTrue();assertThat(p.sucursales()).filteredOn(DisponibilidadDestinos.Origen::disponible).extracting(DisponibilidadDestinos.Origen::codigoPublico).containsExactly(b);
+        var privado=new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),a);assertThat(privado).allMatch(d->!d.disponible());
+    }
+    @Test void allSharedSourcesPausedDisablePointAndResumingOneRestoresIt() {
+        var c=red(true);send(a,change(0,true));send(b,change(0,true));
+        assertThat(new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null)).allMatch(d->!d.disponible());
+        send(b,change(1,false));assertThat(new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null)).filteredOn(d->d.codigoPublico().equals(punto)).allMatch(DisponibilidadDestinos.Destino::disponible);
+    }
+    @Test void explicitPointPauseSurvivesBranchResume() {
+        var c=red(true);jdbc.update("UPDATE lamontana.disponibilidad_punto_entrega SET estado='DESHABILITADO'");send(a,change(0,true));send(a,change(1,false));
+        assertThat(new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null)).filteredOn(d->d.codigoPublico().equals(punto)).allMatch(d->!d.disponible());
+    }
+    @Test void disabledRouteOrZeroCapacityCannotBecomeImplicitBackup() {
+        var c=red(true);send(a,change(0,true));jdbc.update("UPDATE lamontana.configuracion_punto_entrega SET habilitado=false WHERE id_sucursal=2");
+        assertThat(new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null)).filteredOn(d->d.codigoPublico().equals(punto)).allMatch(d->!d.disponible());
+        jdbc.update("UPDATE lamontana.configuracion_punto_entrega SET habilitado=true WHERE id_sucursal=2");jdbc.update("UPDATE lamontana.franja_entrega SET capacidad_pedidos=0 WHERE id_configuracion_punto_entrega=2");
+        assertThat(new DisponibilidadDestinos(jdbc).catalogo(c,disponibles(),null)).filteredOn(d->d.codigoPublico().equals(punto)).allMatch(d->!d.disponible());
+    }
+    @Test void quoteRoutesExcludePausedSourcesBeforeChoosingProductionOrigin() {
+        var c=red(true);var entregas=new EntregaConfiguracionService(jdbc,null,null,null);
+        assertThat(entregas.puntosCotizacion(c)).hasSize(2);send(a,change(0,true));
+        assertThat(entregas.puntosCotizacion(c)).extracting(EntregaConfiguracionService.PuntoDisponible::sucursal).containsExactly(b);
+        send(b,change(0,true));assertThat(entregas.puntosCotizacion(c)).isEmpty();
+    }
+    @Test void operationalPointPanelShowsInheritedPauseWithoutChangingManualDecisionOrVersion() {
+        red(false);var organizacion=org.mockito.Mockito.mock(ar.com.lamontana.organizacion.OrganizacionService.class);
+        var puntos=new DisponibilidadPuntoService(jdbc,new ConfiguracionService(jdbc,null,null),organizacion);
+        assertThat(puntos.listar("admin@prueba.local").puntos().get(0).disponibleParaPedidos()).isTrue();send(a,change(0,true));
+        var punto=puntos.listar("admin@prueba.local").puntos().get(0);
+        assertThat(punto.disponibleParaPedidos()).isFalse();assertThat(punto.disponibilidad().estado()).isEqualTo("HABILITADO");assertThat(punto.disponibilidad().version()).isEqualTo(1);
+        send(a,change(1,false));assertThat(puntos.listar("admin@prueba.local").puntos().get(0).disponibleParaPedidos()).isTrue();
+    }
 }
+

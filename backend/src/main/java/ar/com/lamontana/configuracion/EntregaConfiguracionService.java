@@ -177,7 +177,11 @@ public class EntregaConfiguracionService {
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());
         return calcular(b,input,minimoServiciosMinutos);
     }
-    List<PuntoDisponible> puntosCotizacion(ConfiguracionService.Borrador b){return opciones(b.entrega(),operativas(id(b.codigoPublico())));}
+    List<PuntoDisponible> puntosCotizacion(ConfiguracionService.Borrador b){
+        var pausadas=new HashSet<UUID>();
+        jdbc.query("SELECT s.codigo_publico FROM lamontana.disponibilidad_sucursal d JOIN lamontana.sucursal s USING(id_sucursal) WHERE d.estado='PAUSADA'",r->{pausadas.add(r.getObject(1,UUID.class));});
+        return opciones(b.entrega(),operativas(id(b.codigoPublico()))).stream().filter(p->!pausadas.contains(p.sucursal())).toList();
+    }
     EvaluadorCalendario.Simulacion calcular(ConfiguracionService.Borrador b,SimularEntrega input,int minimoServiciosMinutos){
         return calcular(b,input,minimoServiciosMinutos,false);
     }
@@ -266,3 +270,4 @@ public class EntregaConfiguracionService {
     private void exigir(boolean condicion,String mensaje){if(!condicion)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,mensaje);}
     private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
 }
+

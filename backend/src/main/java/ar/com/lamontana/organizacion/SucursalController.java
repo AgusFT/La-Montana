@@ -118,8 +118,10 @@ public class SucursalController {
     public record Sucursal(UUID codigoPublico, String codigo, String nombre, String calle, String numero,
                            String localidad, String provincia, String codigoPostal, String correo,
                            String telefono, String zonaHoraria, String estado, long version, List<HorarioAtencion.Dia> horarioAtencion,
-                           boolean propuestaMatriz, boolean casaMatrizVigente,String encargado,String accesoEncargado) {
+                           boolean propuestaMatriz, boolean casaMatrizVigente,String encargado,String accesoEncargado,boolean pausada) {
+        public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion,boolean propuestaMatriz,boolean casaMatrizVigente,String encargado,String accesoEncargado){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,propuestaMatriz,casaMatrizVigente,encargado,accesoEncargado,false);}
         public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,false,false,null,null);}
         public Sucursal(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,String correo,String telefono,String zonaHoraria,String estado,long version,List<Dia> horarioAtencion,boolean propuestaMatriz,boolean casaMatrizVigente){this(codigoPublico,codigo,nombre,calle,numero,localidad,provincia,codigoPostal,correo,telefono,zonaHoraria,estado,version,horarioAtencion,propuestaMatriz,casaMatrizVigente,null,null);}
     }
 }
+

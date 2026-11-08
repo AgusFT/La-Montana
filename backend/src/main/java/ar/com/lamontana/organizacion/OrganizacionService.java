@@ -337,8 +337,9 @@ public class OrganizacionService {
         return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id), repartidor,encargado);
     }
     private Sucursal sucursal(ResultSet rs, int row) throws SQLException {
+        boolean pausada=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.disponibilidad_sucursal WHERE id_sucursal=? AND estado='PAUSADA')",Boolean.class,rs.getLong("id_sucursal")));
         var responsable=jdbc.query("SELECT u.nombre||' '||u.apellido,coalesce(u.alias_acceso,u.correo) FROM lamontana.sucursal_responsable sr JOIN lamontana.usuario u USING(id_usuario) WHERE sr.id_sucursal=? AND u.estado='ACTIVO'",(r,n)->new String[]{r.getString(1),r.getString(2)},rs.getLong("id_sucursal")).stream().findFirst().orElse(null);
-        return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))),responsable==null?null:responsable[0],responsable==null?null:responsable[1]);
+        return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))),responsable==null?null:responsable[0],responsable==null?null:responsable[1],pausada);
     }
     private void auditar(String actor, String tipo, UUID codigo, long version) {
         jdbc.update("INSERT INTO lamontana.evento_organizacion(id_usuario_actor,tipo,codigo_publico_objeto,version) VALUES (?,?,?,?)", idUsuario(actor), tipo, codigo, version);
@@ -362,3 +363,4 @@ public class OrganizacionService {
         public Contexto(List<Sucursal> sucursales, List<String> permisos) { this(sucursales,permisos,null); }
     }
 }
+
