@@ -24,7 +24,9 @@ class AdminApi(private val read: (String) -> String, private val mutate: (String
     fun points(): List<AdminAvailability> = JSONObject(read(POINTS)).getJSONArray("puntos").rows().map { p ->
         val d = p.getJSONObject("disponibilidad")
         AdminAvailability(p.getString("codigoPublico"), p.getString("nombre"), p.getString("direccion"),
-            d.getString("estado"), d.getLong("version"), d.nullText("actor"), d.nullText("actualizadaEn"))
+            d.getString("estado"), d.getLong("version"), d.nullText("actor"), d.nullText("actualizadaEn"),
+            if (p.has("disponibleParaPedidos")) p.getBoolean("disponibleParaPedidos") else null, p.nullText("motivo"),
+            p.optJSONArray("sucursales")?.rows()?.map { AdminOrigin(it.getString("codigoPublico"), it.getString("nombre"), it.getBoolean("disponible")) }.orEmpty())
     }
 
     fun printerCommand(printer: AdminPrinter, enable: Boolean, operation: String): AdminCommand {
@@ -66,3 +68,4 @@ class AdminApi(private val read: (String) -> String, private val mutate: (String
         const val POINTS = "/api/admin/puntos-entrega/disponibilidad"
     }
 }
+

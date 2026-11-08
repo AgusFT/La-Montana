@@ -110,12 +110,14 @@ internal fun AdminWorkspace(state: AppUiState, onRefresh: () -> Unit, onLogout: 
                     AdminCard {
                         Text(item.name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Text(item.address, fontSize = 13.sp)
-                        Text(if (item.status == "SIN_DEFINIR") "Disponibilidad sin definir" else if (paused) "Pausada para pedidos nuevos" else "Recibe pedidos nuevos",
-                            color = if (paused || item.status == "SIN_DEFINIR") Color(0xFFA84300) else Green, fontWeight = FontWeight.Bold)
+                        Text(if (item.status == "SIN_DEFINIR") "Disponibilidad sin definir" else if (item.outOfService) "Momentáneamente fuera de servicio" else "Recibe pedidos nuevos",
+                            color = if (item.outOfService || item.status == "SIN_DEFINIR") Color(0xFFA84300) else Green, fontWeight = FontWeight.Bold)
+                        if (points && item.origins.isNotEmpty()) Text("Sucursales: " + item.origins.joinToString { it.name + if (it.available) " · disponible" else " · fuera de servicio" }, fontSize = 12.sp)
+                        if (points && item.status == "HABILITADO" && item.outOfService) Text("Para recibir pedidos, reanudá una sucursal de origen o configurá otra ruta habilitada.", fontSize = 12.sp)
                         AuditLine(item.actor, item.updatedAt)
                         val resource = if (points) AdminResource.POINT else AdminResource.BRANCH
                         Button(enabled = !cannotChange, onClick = { onAvailability(resource, item.id, if (item.status == "SIN_DEFINIR") false else !paused) }) {
-                            Text(if (paused) "Reanudar atención" else if (item.status == "SIN_DEFINIR") "Habilitar atención" else "Pausar pedidos nuevos")
+                            Text(if (points && paused) "Quitar pausa propia" else if (paused) "Reanudar atención" else if (item.status == "SIN_DEFINIR") "Habilitar atención" else if (points && item.outOfService) "Pausar también el punto" else "Pausar pedidos nuevos")
                         }
                     }
                 }
@@ -135,3 +137,4 @@ internal fun AdminWorkspace(state: AppUiState, onRefresh: () -> Unit, onLogout: 
     if (actor != null && date != null) Text("Último cambio: $actor · ${runCatching { java.time.Instant.parse(date).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")) }.getOrDefault(date)}",
         fontSize = 11.sp, color = Color(0xFF5D7187))
 }
+

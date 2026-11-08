@@ -26,6 +26,7 @@ Base nativa Android de la rama `android`. No registra ni administra usuarios: au
 - En **Impresoras** puede buscar por equipo o sucursal, filtrar por ubicación y habilitar o deshabilitar equipos para trabajos nuevos. Se respetan el estado configurado, los equipos retirados, el papel registrado y las versiones del servidor.
 - En **Pausas de atención**, las pestañas **Sucursales / Puntos de entrega** impiden nuevas cotizaciones y confirmaciones en esas ubicaciones. Reanudar recupera su disponibilidad comercial; la pausa no desactiva la sucursal ni bloquea la producción, cobro o entrega de pedidos confirmados. Los cambios guardan responsable y fecha.
 - Las pausas de puntos y los controles de impresoras comparten los servicios de la web. La pausa temporal de sucursales requiere la migración `V62` del backend de `pruebas`; no reemplaza la baja lógica de una sucursal. Una respuesta perdida conserva el mismo comando y ofrece **Recuperar el mismo cambio**.
+- La pausa de una sucursal deja fuera de servicio sus puntos exclusivos. Un punto compartido sigue disponible únicamente por los orígenes activos con una ruta habilitada y cupo configurado. El panel muestra esos orígenes; la pausa propia del punto se conserva al reanudar una sucursal. Las listas de pedidos nuevos mantienen las ubicaciones pausadas visibles como **Momentáneamente fuera de servicio**, sin permitir seleccionarlas.
 
 ## Abrir en Android Studio
 
@@ -52,3 +53,4 @@ El tráfico HTTP sin cifrar sólo está habilitado en `debug`; `release` exige H
 - Entregas, cobros y cambios de estado nunca mostrarán éxito sin confirmación del servidor.
 
 Referencia funcional: [`docs/mobile-android-alcance-y-flujos.md`](../docs/mobile-android-alcance-y-flujos.md).
+

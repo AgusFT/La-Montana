@@ -22,9 +22,14 @@ data class AdminPrinterPanel(val canManage: Boolean, val printers: List<AdminPri
 data class AdminAvailability(
     val id: String, val name: String, val address: String, val status: String,
     val version: Long, val actor: String?, val updatedAt: String?,
-)
+    val available: Boolean? = null, val reason: String? = null, val origins: List<AdminOrigin> = emptyList(),
+) {
+    val outOfService: Boolean get() = available == false || status in listOf("PAUSADA", "DESHABILITADO")
+}
+data class AdminOrigin(val id: String, val name: String, val available: Boolean)
 enum class AdminResource { PRINTER, BRANCH, POINT }
 data class AdminCommand(
     val resource: AdminResource, val id: String, val name: String,
     val path: String, val method: String, val body: String, val previousVersion: Long,
 )
+

@@ -80,4 +80,17 @@ class AdminApiTest {
         val b = api("""[{"codigoPublico":"$id","nombre":"La Plata","direccion":"Calle 7","estado":"PAUSADA","version":1,"actor":"Ale","actualizadaEn":"2026-11-07T18:00:00Z"}]""").branches().single()
         assertEquals("PAUSADA", b.status); assertEquals("Ale", b.actor)
     }
+    @Test fun inheritedPointPauseIsVisibleWithoutRewritingItsManualDecision() {
+        val p = api("""{"puntos":[{"codigoPublico":"$id","nombre":"City Bell","direccion":"Centenario","disponibilidad":{"estado":"HABILITADO","version":4,"actor":null,"actualizadaEn":null},"disponibleParaPedidos":false,"motivo":"Momentáneamente fuera de servicio","sucursales":[{"codigoPublico":"$id","nombre":"La Plata","disponible":false}]}]}""").points().single()
+        assertEquals("HABILITADO", p.status); assertEquals(4, p.version); assertTrue(p.outOfService)
+        assertEquals("La Plata", p.origins.single().name); assertFalse(p.origins.single().available)
+    }
+    @Test fun sharedPointRemainsAvailableThroughAnotherBranch() {
+        val p = location("HABILITADO").copy(available = true, origins = listOf(AdminOrigin(id, "Floresta", true)))
+        assertFalse(p.outOfService)
+    }
+    @Test fun manualPointPauseStillBlocksEvenWithAvailableBranch() {
+        assertTrue(location("DESHABILITADO").copy(available = false, origins = listOf(AdminOrigin(id, "Floresta", true))).outOfService)
+    }
 }
+
