@@ -12,6 +12,8 @@ Desde **Administración → Puntos de entrega** se pueden crear y editar puntos 
 
 Cada ficha muestra las sucursales asignadas y la disponibilidad efectiva. También se puede filtrar por sucursal. En **Sucursales**, cada ficha muestra sus puntos y enlaza a la edición de esa red.
 
+**Editar datos y sucursales** despliega el formulario dentro de la ficha elegida y lleva el foco a su título. **Cerrar edición**, cancelar y guardar devuelven el foco al botón del punto. Los avisos de guardado aparecen en esa ficha; los errores y reintentos permanecen junto al formulario. La búsqueda y el filtro quedan bloqueados durante la edición para no ocultar el punto abierto.
+
 Al crear o editar un punto, cada ruta ofrece **Tomar horarios de una sucursal**, incluso si ya tiene franjas. Se propone la sucursal asignada con prioridad 1 y se puede elegir otra de las asignadas. Indicá una vez el cupo por franja y copiá: se toman únicamente sus días abiertos y horarios de atención. **Copiar y reemplazar franjas** sustituye las franjas de esa ruta en el formulario; se pueden ajustar días, horas y cupos antes de guardar. Es una copia puntual, sin sincronización posterior ni cambios de prioridades, costos o zona horaria. Si la sucursal no tiene horarios, se informa y se conserva la edición manual.
 
 La pausa de una sucursal deja sus puntos exclusivos **Momentáneamente fuera de servicio**: siguen visibles y no se pueden seleccionar para pedidos nuevos. Un punto compartido puede seguir atendiendo por otra sucursal disponible con ruta habilitada. La pausa propia del punto se conserva al reabrir una sucursal.
