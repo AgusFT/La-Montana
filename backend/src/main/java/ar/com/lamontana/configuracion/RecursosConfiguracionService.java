@@ -71,16 +71,16 @@ public class RecursosConfiguracionService {
     private final CopiaParametrosConfiguracion copias;
     public RecursosConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,CopiaParametrosConfiguracion copias){this.jdbc=jdbc;this.configuracion=configuracion;this.copias=copias;}
 
-    /** Recupera sólo equipos en un borrador vacío; conserva el resto de sus decisiones. */
+    /** Completa equipos faltantes; conserva cada identidad y las decisiones del borrador. */
     @Transactional public ConfiguracionService.Borrador recuperarVigentes(UUID codigo,RecuperarImpresoras input,String correo){
         configuracion.bloquear();long actor=configuracion.propietario(correo);
         String huella=configuracion.huella(Map.of("accion","RECUPERAR_IMPRESORAS","borrador",codigo,"solicitud",input));
         var repetido=configuracion.reintento(input.operacion(),"GUARDAR_RECURSOS",codigo,actor,huella);if(repetido!=null)return repetido;
         var actual=editable(codigo,input.version());
-        if(!actual.recursos().impresoras().isEmpty())throw conflicto("Este borrador ya tiene impresoras. Se conservan sus equipos y cambios; no se reemplazan al recuperar.");
         var activa=configuracion.activa();
         if(activa==null||activa.configuracion().recursos().impresoras().isEmpty())throw conflicto("La configuración vigente no tiene impresoras para recuperar.");
-        var origen=activa.configuracion();copias.copiarImpresoras(id(origen.codigoPublico()),id(codigo));
+        var origen=activa.configuracion();int agregadas=copias.completarImpresoras(id(origen.codigoPublico()),id(codigo));
+        if(agregadas==0)throw conflicto("Todas las impresoras vigentes ya están incluidas en este borrador.");
         return terminar(codigo,actual,input.operacion(),"GUARDAR_RECURSOS",actor,huella,"RECURSOS_CONFIGURADOS",origen.codigoPublico(),"Impresoras recuperadas de V"+origen.numero()+"; se conservan sus identidades y el resto del borrador.");
     }
 
@@ -195,3 +195,4 @@ public class RecursosConfiguracionService {
     private ResponseStatusException invalido(String mensaje){return new ResponseStatusException(HttpStatus.BAD_REQUEST,mensaje);}
     private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
 }
+

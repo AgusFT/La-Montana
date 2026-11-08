@@ -64,6 +64,10 @@ public class PuntoEntregaService {
     private record Relacion(long sucursal,int prioridad,boolean habilitado,BigDecimal costo,List<Franja> franjas){}
     private record Sucursal(long id,boolean activa){}
     private record Destino(UUID punto,Object solicitud){}
+    public void validarRed(Definicion input){
+        validar(0,null,input);
+        exigir(input.sucursales().stream().anyMatch(r->r.habilitado()&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0)),"Asigná al menos una sucursal con una franja habilitada y cupo positivo.");
+    }
 
     @Transactional
     public ConfiguracionService.Borrador crear(UUID codigo,CrearPunto input,String correo) {
@@ -126,3 +130,4 @@ public class PuntoEntregaService {
     private void exigir(boolean condicion,String mensaje){if(!condicion)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,mensaje);}
     private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
 }
+

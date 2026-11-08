@@ -130,7 +130,7 @@ public class EntregaConfiguracionService {
     Validacion evaluarVigente(UUID codigo,String correo){return evaluarEstado(codigo,correo,"ACTIVA");}
     Validacion evaluarHistorica(UUID codigo,String correo){return evaluarEstado(codigo,correo,"HISTORICA");}
     private Validacion evaluarEstado(UUID codigo,String correo,String estado){
-        configuracion.propietario(correo);var b=configuracion.cargar(codigo);var e=b.entrega();var problemas=new ArrayList<Problema>();var avisos=new ArrayList<String>();
+        configuracion.propietario(correo);var original=configuracion.cargar(codigo);var b=estado.equals("HISTORICA")?original:new RedPuntosRepositorio(jdbc).aplicar(original);var e=b.entrega();var problemas=new ArrayList<Problema>();var avisos=new ArrayList<String>();
         if(!b.estado().equals(estado))problemas.add(new Problema("BORRADOR_NO_EDITABLE",null,"La configuración ya no está en preparación."));
         if(e.preparacionHoras()==null)problemas.add(new Problema("PREPARACION_PENDIENTE",null,"Definí el tiempo estimado de preparación."));
         if(e.modalidades().isEmpty())problemas.add(new Problema("SIN_MODALIDAD",null,"Elegí al menos una modalidad real de entrega."));
@@ -152,7 +152,7 @@ public class EntregaConfiguracionService {
             boolean preparado=e.puntos().stream().flatMap(p->p.sucursales().stream()).anyMatch(r->r.habilitado()&&origenes.contains(r.sucursal())&&r.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0));
             String motivo=!preparado?(e.puntos().isEmpty()?"Agregá un punto con origen, costo y franjas de cupo positivo.":"Falta una relación habilitada desde una sucursal operativa con una franja habilitada y cupo positivo.")
                 :opciones.isEmpty()?"Habilitá temporalmente al menos un punto utilizable desde Disponibilidad de puntos.":null;
-            if(motivo!=null){if(retiro||(envio&&cobertura))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" Las otras modalidades utilizables pueden seguir disponibles.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
+            if(motivo!=null){if(e.puntos().isEmpty()||retiro||(envio&&cobertura))avisos.add("No se ofrecerán puntos de entrega. "+motivo+" Las otras modalidades utilizables pueden seguir disponibles.");else problemas.add(new Problema(!preparado?"PUNTOS_PENDIENTES":"DISPONIBILIDAD_PUNTO_PENDIENTE",null,motivo));}
 
         }
         if(operativas.isEmpty())problemas.add(new Problema("SIN_SUCURSAL_OPERATIVA",null,"Creá al menos una sucursal activa si querés ofrecer atención o retiro en una ubicación física."));
@@ -175,7 +175,7 @@ public class EntregaConfiguracionService {
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
     public EvaluadorCalendario.Simulacion simular(UUID codigo,SimularEntrega input,String correo,int minimoServiciosMinutos) {
         configuracion.propietario(correo);var b=configuracion.cargar(codigo);editable(b,input.version());
-        return calcular(b,input,minimoServiciosMinutos);
+        return calcular(new RedPuntosRepositorio(jdbc).aplicar(b),input,minimoServiciosMinutos);
     }
     List<PuntoDisponible> puntosCotizacion(ConfiguracionService.Borrador b){
         var pausadas=new HashSet<UUID>();

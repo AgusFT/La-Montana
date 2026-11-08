@@ -170,6 +170,13 @@ class RecuperacionImpresorasSecurityTest {
         var request=new MockHttpServletRequest(context.getServletContext(),metodo,ruta);
         request.setServletPath(ruta);request.setSession(sesion);return request;
     }
+    @Test void redDePuntosExigeAdminCsrfYMetodosExactos()throws Exception{
+        String list="/api/admin/red-puntos",point=list+"/11111111-1111-1111-1111-111111111111";
+        var admin=sesion("ADMIN_ADMIN");comprobar("GET",list,admin,null,200,true);comprobar("POST",list,admin,token(admin),200,true);comprobar("PUT",point,admin,token(admin),200,true);
+        comprobar("POST",list,admin,null,403,false);comprobar("PUT",point,admin,null,403,false);
+        for(String rol:new String[]{"EMPLEADO","CLIENTE"}){var s=sesion(rol);comprobar("GET",list,s,null,403,false);comprobar("POST",list,s,token(s),403,false);comprobar("PUT",point,s,token(s),403,false);}
+        for(String method:new String[]{"DELETE","PATCH","POST"})comprobar(method,point,admin,token(admin),403,false);
+    }
 
     private String token(MockHttpSession sesion)throws Exception{
         var resultado=new AtomicReference<String>();
@@ -187,4 +194,5 @@ class RecuperacionImpresorasSecurityTest {
         assertThat(invocada.get()).isEqualTo(pasa);
     }
 }
+
 

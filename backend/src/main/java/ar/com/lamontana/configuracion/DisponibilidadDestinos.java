@@ -13,6 +13,13 @@ public final class DisponibilidadDestinos {
     public DisponibilidadDestinos(JdbcTemplate jdbc) { this.jdbc=jdbc; }
 
     public List<Origen> origenes(UUID configuracion,UUID punto) {
+        var gestionado=new RedPuntosRepositorio(jdbc).gestionado(punto);
+        if(gestionado!=null){
+            var sucursales=new HashMap<UUID,Origen>();
+            jdbc.query("SELECT s.codigo_publico,s.nombre,s.estado='ACTIVA' AND coalesce(d.estado,'ABIERTA')='ABIERTA' FROM lamontana.sucursal s LEFT JOIN lamontana.disponibilidad_sucursal d USING(id_sucursal)",r->{sucursales.put(r.getObject(1,UUID.class),new Origen(r.getObject(1,UUID.class),r.getString(2),r.getBoolean(3)));});
+            return gestionado.sucursales().stream().filter(s->s.habilitado()&&s.franjas().stream().anyMatch(f->f.habilitada()&&f.capacidadPedidos()>0))
+                .sorted(Comparator.comparingInt(PuntoEntregaController.SucursalPunto::prioridad)).map(s->sucursales.getOrDefault(s.sucursal(),new Origen(s.sucursal(),"Sucursal no disponible",false))).toList();
+        }
         return jdbc.query("""
             SELECT s.codigo_publico,s.nombre,
                    s.estado='ACTIVA' AND coalesce(d.estado,'ABIERTA')='ABIERTA' AS disponible

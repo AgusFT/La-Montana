@@ -87,7 +87,7 @@ public class RevisionConfiguracionService {
         return evaluar(codigo,correo,b.estado().equals("PROGRAMADA"),false,b.estado().equals("ACTIVA"));
     }
     private Revision evaluar(UUID codigo,String correo,boolean programada,boolean historica,boolean vigente){
-        configuracion.propietario(correo);var b=configuracion.cargar(codigo);var comercial=catalogo.leerEstado();var h=new ArrayList<Hallazgo>();
+        configuracion.propietario(correo);var snapshot=configuracion.cargar(codigo);var b=snapshot.estado().equals("HISTORICA")?snapshot:new RedPuntosRepositorio(jdbc).aplicar(snapshot);var comercial=catalogo.leerEstado();var h=new ArrayList<Hallazgo>();
         var sucursales=jdbc.query("SELECT codigo_publico,nombre,estado='ACTIVA' FROM lamontana.sucursal ORDER BY codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getBoolean(3)));
         if(!b.estado().equals(vigente?"ACTIVA":historica?"HISTORICA":programada?"PROGRAMADA":"EN_PREPARACION"))bloqueo(h,"BORRADOR_NO_EDITABLE","modelo",1,"Sólo una configuración en preparación puede revisarse para activar.",null);
         if(b.copia()!=null&&!programada&&!historica&&!vigente)for(int fase=2;fase<=5;fase++)if(!b.copia().fasesConfirmadas().contains(fase))bloqueo(h,"RECONFIRMAR_FASE_"+fase,switch(fase){case 2->"modelo";case 3->"pagos";case 4->"recursos";default->"horarios";},fase,"La copia requiere revisar y guardar nuevamente la fase "+fase+".",null);
@@ -97,6 +97,10 @@ public class RevisionConfiguracionService {
         if(b.recursos().metodoAsignacion()==null)bloqueo(h,"ASIGNACION_PENDIENTE","recursos",4,"Confirmá la asignación manual de trabajos.",null);
         var activas=new HashSet<UUID>();sucursales.stream().filter(Sucursal::activa).forEach(s->activas.add(s.codigoPublico()));
         for(var sucursal:sucursales.stream().filter(Sucursal::activa).toList())if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal_responsable sr JOIN lamontana.sucursal s USING(id_sucursal) JOIN lamontana.usuario u USING(id_usuario) WHERE s.codigo_publico=? AND u.estado='ACTIVO')",Boolean.class,sucursal.codigoPublico())))bloqueo(h,"SUCURSAL_SIN_ENCARGADO","recursos",4,sucursal.nombre()+" necesita un encargado activo asignado desde Administración → Empleados.",sucursal.codigoPublico());
+        if(b.estado().equals("EN_PREPARACION")||b.estado().equals("PROGRAMADA")){
+            var faltantes=jdbc.query("SELECT i.nombre FROM lamontana.configuracion_impresora i JOIN lamontana.configuracion_version v USING(id_configuracion_version) WHERE v.estado='ACTIVA' AND i.estado<>'RETIRADA' AND NOT EXISTS(SELECT 1 FROM lamontana.configuracion_impresora d JOIN lamontana.configuracion_version b USING(id_configuracion_version) WHERE b.codigo_publico=? AND d.id_impresora=i.id_impresora)",(r,n)->r.getString(1),codigo);
+            if(!faltantes.isEmpty())bloqueo(h,"IMPRESORAS_VIGENTES_FALTANTES","recursos",4,"Faltan "+faltantes.size()+" impresoras vigentes en el borrador: "+String.join(", ",faltantes)+". Incorporalas en Fase 4; después podés deshabilitar o retirar las que no se deban usar.",null);
+        }
         var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")).toList();
         boolean impresionVigente=comercial.actual()!=null&&comercial.actual().servicios().stream().anyMatch(s->s.habilitado()&&comercial.servicios().stream().anyMatch(m->m.codigoPublico().equals(s.servicio())&&m.tipo()==TipoServicio.IMPRESION));
         if(comercial.actual()!=null&&!impresionVigente)bloqueo(h,"COTIZACION_SERVICIOS_INDEPENDIENTES_PENDIENTE","recursos",4,"El catálogo puede ofrecer solo otros servicios, pero el flujo de pedidos actual requiere Impresión. Falta habilitar la cotización de trabajos independientes antes de activar este modelo operativo.",null);
@@ -145,3 +149,4 @@ public class RevisionConfiguracionService {
     }
     private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
 }
+

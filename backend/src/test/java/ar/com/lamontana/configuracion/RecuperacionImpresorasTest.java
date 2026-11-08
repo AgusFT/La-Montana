@@ -18,19 +18,20 @@ class RecuperacionImpresorasTest {
  private final String correo="propietario@example.test";
  private void preparar(){
   when(configuracion.propietario(correo)).thenReturn(7L);when(configuracion.huella(any())).thenReturn("huella");when(configuracion.cargar(destino)).thenReturn(draft);when(draft.estado()).thenReturn("EN_PREPARACION");when(draft.version()).thenReturn(3L);when(draft.modelo()).thenReturn(ConfiguracionController.Modelo.MANUAL);when(draft.recursos()).thenReturn(resources);when(resources.impresoras()).thenReturn(List.of());
-  var activa=mock(ConfiguracionService.Version.class);when(configuracion.activa()).thenReturn(activa);when(activa.configuracion()).thenReturn(source);when(source.codigoPublico()).thenReturn(origen);when(source.numero()).thenReturn(1L);when(source.recursos()).thenReturn(originals);when(originals.impresoras()).thenReturn(List.of(mock(RecursosRepositorio.Impresora.class)));
+  var activa=mock(ConfiguracionService.Version.class);when(configuracion.activa()).thenReturn(activa);when(activa.configuracion()).thenReturn(source);when(source.codigoPublico()).thenReturn(origen);when(source.numero()).thenReturn(1L);when(source.recursos()).thenReturn(originals);when(originals.impresoras()).thenReturn(List.of(mock(RecursosRepositorio.Impresora.class)));when(copias.completarImpresoras(1L,2L)).thenReturn(1);
  }
  @Test void recuperaSoloEquiposYRegistraLaEdicionSinCopiarPagosNiHorarios(){
   preparar();assertThat(service.recuperarVigentes(destino,input,correo)).isSameAs(draft);
-  verify(copias).copiarImpresoras(1L,2L);verify(copias,never()).copiar(anyLong(),anyLong());
+  verify(copias).completarImpresoras(1L,2L);verify(copias,never()).copiar(anyLong(),anyLong());
   verify(configuracion).registrar(eq(input.operacion()),eq("GUARDAR_RECURSOS"),eq(2L),eq(7L),eq("huella"),eq("RECURSOS_CONFIGURADOS"),eq(4L),eq(origen),contains("Impresoras recuperadas de V1"));
  }
- @Test void noReemplazaUnBorradorQueYaTieneEquipos(){
+ @Test void completaUnBorradorParcialConservandoSusEquipos(){
   preparar();when(resources.impresoras()).thenReturn(List.of(mock(RecursosRepositorio.Impresora.class)));
-  assertThatThrownBy(()->service.recuperarVigentes(destino,input,correo)).isInstanceOf(ResponseStatusException.class).hasMessageContaining("ya tiene impresoras");verifyNoInteractions(copias);
+  assertThat(service.recuperarVigentes(destino,input,correo)).isSameAs(draft);verify(copias).completarImpresoras(1L,2L);verify(copias,never()).copiarImpresoras(anyLong(),anyLong());
  }
  @Test void reintentoNoVuelveACopiarLosEquipos(){
   preparar();when(configuracion.reintento(input.operacion(),"GUARDAR_RECURSOS",destino,7L,"huella")).thenReturn(draft);
   assertThat(service.recuperarVigentes(destino,input,correo)).isSameAs(draft);verifyNoInteractions(copias);verify(configuracion,never()).activa();
  }
 }
+

@@ -79,7 +79,9 @@ public class SeguridadConfiguration {
                         .requestMatchers(HttpMethod.PUT, "/api/admin/catalogo/servicios/*/estado").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/admin/catalogo/servicios/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin/catalogo/programaciones/*/cancelar").hasRole("ADMIN_ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/admin/puntos-entrega/disponibilidad", "/api/admin/puntos-entrega/disponibilidad/*/historial").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/admin/red-puntos", "/api/admin/puntos-entrega/disponibilidad", "/api/admin/puntos-entrega/disponibilidad/*/historial").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/red-puntos").hasRole("ADMIN_ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/admin/red-puntos/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/admin/puntos-entrega/disponibilidad/*").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/operacion/impresoras", "/api/operacion/impresoras/*/historial", "/api/operacion/puntos-entrega/disponibilidad", "/api/operacion/puntos-entrega/disponibilidad/*/historial").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
                         .requestMatchers(HttpMethod.POST, "/api/operacion/impresoras/*").hasAnyRole("ADMIN_ADMIN", "EMPLEADO")
@@ -197,3 +199,4 @@ public class SeguridadConfiguration {
                 .build();
     }
 }
+

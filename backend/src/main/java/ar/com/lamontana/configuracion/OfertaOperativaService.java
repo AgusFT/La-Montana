@@ -47,13 +47,13 @@ public class OfertaOperativaService {
     public OfertaOperativaService(ConfiguracionService configuracion,CatalogoService catalogo,EntregaConfiguracionService entrega,JdbcTemplate jdbc){this.configuracion=configuracion;this.catalogo=catalogo;this.entrega=entrega;this.jdbc=jdbc;}
     public record Sucursal(UUID codigoPublico,String nombre,String direccion){}
     public record Contexto(ConfiguracionService.Borrador configuracion,CatalogoService.Estado catalogo,List<Sucursal> sucursales,List<RevisionConfiguracionService.Opcion> opciones,List<EntregaConfiguracionService.PuntoDisponible> puntos){}
-    public ConfiguracionService.Borrador configuracionActiva(){var activa=configuracion.activa();return activa==null?null:activa.configuracion();}
+    public ConfiguracionService.Borrador configuracionActiva(){var activa=configuracion.activa();return activa==null?null:new RedPuntosRepositorio(jdbc).aplicar(activa.configuracion());}
     public Contexto leer(){
         var activa=configuracion.activa();var comercial=catalogo.leerEstado();
         if(activa==null)return new Contexto(null,comercial,List.of(),List.of(),List.of());
         var sucursales=sucursalesDisponibles();
         var ids=new HashSet<UUID>();sucursales.forEach(s->ids.add(s.codigoPublico()));
-        var b=activa.configuracion();var opciones=OpcionesImpresion.calcular(b,comercial,ids);
+        var b=new RedPuntosRepositorio(jdbc).aplicar(activa.configuracion());var opciones=OpcionesImpresion.calcular(b,comercial,ids);
         var utilizables=sucursales.stream().filter(s->opciones.stream().anyMatch(o->o.sucursal().equals(s.codigoPublico()))).toList();
         var disponibles=utilizables.stream().map(Sucursal::codigoPublico).collect(java.util.stream.Collectors.toSet());
         return new Contexto(b,comercial,utilizables,opciones,entrega.puntosCotizacion(b).stream().filter(p->disponibles.contains(p.sucursal())).toList());

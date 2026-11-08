@@ -27,6 +27,7 @@ class DisponibilidadSucursalServiceTest {
         jdbc.update("INSERT INTO lamontana.sucursal VALUES(1,?,'A','La Plata','Calle 7','1280','La Plata','Buenos Aires','ACTIVA'),(2,?,'B','Medicina','Paraguay','2155','CABA','CABA','ACTIVA')",a,b);
         jdbc.execute("CREATE TABLE lamontana.pedido(id_pedido bigint,estado text); INSERT INTO lamontana.pedido VALUES(133,'LISTO_PARA_ENTREGA')");
         jdbc.execute(Files.readString(Path.of("src/main/resources/db/migration/V62__pausa_temporal_sucursal.sql")));
+        jdbc.execute("CREATE TABLE lamontana.version_red_punto(id_version_red_punto bigint PRIMARY KEY,definicion jsonb); CREATE TABLE lamontana.red_punto_actual(id_punto_entrega bigint PRIMARY KEY,id_version_red_punto bigint)");
         service=new DisponibilidadSucursalService(jdbc,new ConfiguracionService(jdbc,null,null));
     }
     DisponibilidadSucursalController.Cambiar change(long version,boolean paused) { return new DisponibilidadSucursalController.Cambiar(UUID.randomUUID(),version,paused?DisponibilidadSucursalController.Estado.PAUSADA:DisponibilidadSucursalController.Estado.ABIERTA); }

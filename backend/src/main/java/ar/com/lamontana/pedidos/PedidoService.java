@@ -113,13 +113,16 @@ public class PedidoService {
   NOT EXISTS (
    SELECT 1 FROM lamontana.reserva_entrega r
    WHERE r.id_pedido=p.id_pedido AND r.estado='ACTIVA' AND r.modalidad='RETIRO_PUNTO_ENTREGA'
-   AND NOT EXISTS (
+   AND NOT (
+    (r.id_version_red_punto IS NOT NULL AND EXISTS (SELECT 1 FROM lamontana.version_red_punto v JOIN lamontana.punto_entrega pt USING(id_punto_entrega),jsonb_array_elements(v.definicion->'sucursales') origen_red WHERE v.id_version_red_punto=r.id_version_red_punto AND pt.codigo_publico=r.destino_publico AND (origen_red->>'sucursal')::uuid=r.origen_publico AND (origen_red->>'habilitado')::boolean))
+    OR (r.id_version_red_punto IS NULL AND EXISTS (
     SELECT 1 FROM lamontana.configuracion_punto_entrega ruta
     JOIN lamontana.punto_entrega punto USING(id_punto_entrega)
     JOIN lamontana.sucursal origen ON origen.id_sucursal=ruta.id_sucursal
     WHERE ruta.id_configuracion_version=p.id_configuracion_version AND ruta.habilitado
       AND origen.id_sucursal=p.id_sucursal AND origen.codigo_publico=r.origen_publico
       AND punto.codigo_publico=r.destino_publico
+   ))
    )
   )
   """;
@@ -137,7 +140,7 @@ public class PedidoService {
   if(q.estado().equals("CONFIRMADA"))return new Revision(vinculado(q.codigoPublico()),q.version(),null,0,null,false,List.of(),null,null,List.of());
   if(!q.estado().equals("VIGENTE")||!clock.instant().isBefore(q.vigenteHasta()))throw conflicto("La cotización ya no está vigente. Conservá los pagos y solicitá una nueva oferta para continuar.");
   catalogo.reconciliarProgramaciones();var c=operativa.leer();var b=c.configuracion();
-  var o=q.oferta();var branch=o.sucursal().codigoPublico();
+  var o=q.oferta();if(!cotizaciones.puntoVigente(o))throw conflicto("Cambió la red del punto de entrega. Actualizá entrega y total antes de confirmar; los pagos registrados se conservan.");var branch=o.sucursal().codigoPublico();
   if(b==null||c.sucursales().stream().noneMatch(s->s.codigoPublico().equals(branch)))throw conflicto("La sucursal no está disponible para confirmar este trabajo.");
   if(o.origenGlobal()&&o.modalidad()==Modalidad.ENVIO_DOMICILIO&&!branch.equals(b.entrega().casaMatriz()))
    throw conflicto("Cambió la casa matriz. Actualizá entrega y condiciones antes de confirmar.");
@@ -218,7 +221,7 @@ public class PedidoService {
    ar.com.lamontana.archivos.RegistroEnvioPdf.registrar(jdbc,f.archivo(),propietario,in.operacion(),f.sha256());
    jdbc.update("INSERT INTO lamontana.pedido_item(id_pedido,id_cotizacion_item,id_archivo_almacenado,id_aceptacion_vista_previa) SELECT ?,ci.id_cotizacion_item,a.id_archivo_almacenado,v.id_aceptacion_vista_previa FROM lamontana.cotizacion_item ci,lamontana.archivo_almacenado a JOIN lamontana.aceptacion_vista_previa v USING(id_archivo_almacenado) WHERE ci.codigo_publico=? AND a.codigo_publico=?",id,f.item(),f.archivo());
   }
-  var f=revision.franja();jdbc.update("INSERT INTO lamontana.reserva_entrega(id_pedido,modalidad,destino_publico,origen_publico,nombre_destino,zona_horaria,fecha_local,apertura,cierre,franja_desde,franja_hasta,cupo_confirmado,costo) VALUES (?,?,?,?,?,?,?::date,?::time,?::time,?,?,?,?)",id,f.modalidad().name(),f.destino(),f.origen(),f.nombre(),f.zonaHoraria(),f.fecha().toString(),f.apertura(),f.cierre(),Timestamp.from(f.desde()),Timestamp.from(f.hasta()),f.cupoConfigurado(),new BigDecimal(f.costo()));
+  var f=revision.franja();jdbc.update("INSERT INTO lamontana.reserva_entrega(id_pedido,modalidad,destino_publico,origen_publico,nombre_destino,zona_horaria,fecha_local,apertura,cierre,franja_desde,franja_hasta,cupo_confirmado,costo,id_version_red_punto) VALUES (?,?,?,?,?,?,?::date,?::time,?::time,?,?,?,?,?)",id,f.modalidad().name(),f.destino(),f.origen(),f.nombre(),f.zonaHoraria(),f.fecha().toString(),f.apertura(),f.cierre(),Timestamp.from(f.desde()),Timestamp.from(f.hasta()),f.cupoConfigurado(),new BigDecimal(f.costo()),f.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA?new RedPuntosRepositorio(jdbc).idRevision(f.destino()):null);
   jdbc.update("INSERT INTO lamontana.historial_estado_pedido(id_pedido,id_actor,id_operacion,huella,estado_destino,motivo,fecha) VALUES (?,?,?,?,?,?,?)",id,a.id(),in.operacion(),command,estado,!anticipoCubierto?"Pedido creado con PDF privado validado; pendiente de acreditar y aplicar la condición económica antes de aprobar y producir.":revision.condiciones().revisionHumana()?(a.id()==propietario?"Pedido confirmado por el cliente; pendiente de revisión humana.":"Pedido creado desde la imprenta para el cliente; pendiente de revisión humana."):"Pedido confirmado; aprobado condicionalmente tras controles técnicos y económicos. Producción todavía no iniciada.",Timestamp.from(now));
   jdbc.update("UPDATE lamontana.cotizacion SET estado='CONFIRMADA',confirmada_en=?,id_configuracion_confirmacion=(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),version=version+1 WHERE codigo_publico=?",Timestamp.from(now),revision.configuracion(),quote);
   cobro.iniciar(id,revision.condiciones().actuales().politicaArchivos(),now);
@@ -417,3 +420,4 @@ public class PedidoService {
  private ResponseStatusException conflicto(String msg){return error(HttpStatus.CONFLICT,msg);}
  private ResponseStatusException error(HttpStatus status,String msg){return new ResponseStatusException(status,msg);}
 }
+

@@ -71,5 +71,14 @@ public class CopiaParametrosConfiguracion {
   copiar("configuracion_impresora","id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro,id_sucursal_ubicacion",origen,destino);
   copiar("configuracion_impresora_formato","id_impresora,id_formato",origen,destino);
  }
+ public int completarImpresoras(long origen,long destino){
+  var ids=jdbc.queryForList("SELECT o.id_impresora FROM lamontana.configuracion_impresora o WHERE o.id_configuracion_version=? AND o.estado<>'RETIRADA' AND NOT EXISTS(SELECT 1 FROM lamontana.configuracion_impresora d WHERE d.id_configuracion_version=? AND d.id_impresora=o.id_impresora)",Long.class,origen,destino);
+  for(long id:ids){
+   jdbc.update("INSERT INTO lamontana.configuracion_impresora(id_configuracion_version,id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro,id_sucursal_ubicacion) SELECT ?,id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,retirada_en,motivo_retiro,id_sucursal_ubicacion FROM lamontana.configuracion_impresora WHERE id_configuracion_version=? AND id_impresora=?",destino,origen,id);
+   jdbc.update("INSERT INTO lamontana.configuracion_impresora_formato(id_configuracion_version,id_impresora,id_formato) SELECT ?,id_impresora,id_formato FROM lamontana.configuracion_impresora_formato WHERE id_configuracion_version=? AND id_impresora=? ON CONFLICT DO NOTHING",destino,origen,id);
+  }
+  return ids.size();
+ }
  private void copiar(String tabla,String columnas,long origen,long destino){jdbc.update("INSERT INTO lamontana."+tabla+"(id_configuracion_version,"+columnas+") SELECT ?,"+columnas+" FROM lamontana."+tabla+" WHERE id_configuracion_version=?",destino,origen);}
 }
+

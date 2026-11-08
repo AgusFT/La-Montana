@@ -33,6 +33,8 @@ import { BranchForm } from "@/components/organization-forms";
 import { getSession } from "@/lib/identity-server";
 import { getBranches, getBranchLocations } from "@/lib/organization-server";
 import { timeZoneLabel } from "@/lib/organization-types";
+import {getPointNetwork} from "@/lib/point-network-server";
+import {sourcesForBranch} from "@/lib/point-network";
 import { BranchHours } from "@/components/branch-hours";
 import { BranchOnboarding } from "@/components/branch-onboarding";
 
@@ -44,7 +46,7 @@ export default async function BranchesPage() {
   if (session.state !== "authenticated") return null;
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
-  const [branches, locations] = await Promise.all([getBranches(), getBranchLocations()]);
+  const [branches, locations,network] = await Promise.all([getBranches(), getBranchLocations(),getPointNetwork()]);
   return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="sucursales" title="Sucursales" description="Definí la ubicación y los días y horarios de atención. La zona horaria se determina automáticamente. Luego reutilizá estos horarios en el configurador y completá las entregas y sus cupos.">
     <BranchOnboarding branches={branches} owner={session.profile.codigoPublico}/>
     <a className="secondary-link" href="/administracion">Volver a administración</a>
@@ -54,9 +56,11 @@ export default async function BranchesPage() {
         <p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p>
         <p>Hora local: {timeZoneLabel(branch.zonaHoraria)}</p><BranchHours days={branch.horarioAtencion} />
         {branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}
+        <div className="admin-info"><strong>Puntos de entrega asignados</strong><p>{network?sourcesForBranch(network,branch.codigoPublico).map(p=>p.definicion.nombre).join(" · ")||"Todavía no tiene puntos asignados.":"No pudimos consultar la red de puntos."}</p><a href={`/administracion/puntos-entrega?sucursal=${branch.codigoPublico}`}>Asignar o editar puntos →</a></div>
         <details className="edit-details"><summary>Editar datos y estado</summary><BranchForm key={`${branch.codigoPublico}-${branch.version}`} branch={branch} locations={locations} /></details>
       </article>)}
     </section>
     <BranchForm locations={locations} />
   </AdminShell>;
 }
+

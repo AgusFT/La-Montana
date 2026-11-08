@@ -159,7 +159,7 @@ public class CorreccionPedidoService {
   }
   if(pre.nuevaCotizacion()){
    jdbc.update("UPDATE lamontana.reserva_entrega SET estado='REEMPLAZADA' WHERE id_pedido=? AND estado='ACTIVA'",p.numero());var f=pre.finales().franja();
-   jdbc.update("INSERT INTO lamontana.reserva_entrega(id_pedido,modalidad,destino_publico,origen_publico,nombre_destino,zona_horaria,fecha_local,apertura,cierre,franja_desde,franja_hasta,cupo_confirmado,costo) VALUES (?,?,?,?,?,?,?::date,?::time,?::time,?,?,?,?)",p.numero(),f.modalidad().name(),f.destino(),f.origen(),f.nombre(),f.zonaHoraria(),f.fecha().toString(),f.apertura(),f.cierre(),Timestamp.from(f.desde()),Timestamp.from(f.hasta()),f.cupoConfigurado(),new BigDecimal(f.costo()));
+   jdbc.update("INSERT INTO lamontana.reserva_entrega(id_pedido,modalidad,destino_publico,origen_publico,nombre_destino,zona_horaria,fecha_local,apertura,cierre,franja_desde,franja_hasta,cupo_confirmado,costo,id_version_red_punto) VALUES (?,?,?,?,?,?,?::date,?::time,?::time,?,?,?,?,?)",p.numero(),f.modalidad().name(),f.destino(),f.origen(),f.nombre(),f.zonaHoraria(),f.fecha().toString(),f.apertura(),f.cierre(),Timestamp.from(f.desde()),Timestamp.from(f.hasta()),f.cupoConfigurado(),new BigDecimal(f.costo()),f.modalidad()==ar.com.lamontana.configuracion.EntregaConfiguracionController.Modalidad.RETIRO_PUNTO_ENTREGA?new ar.com.lamontana.configuracion.RedPuntosRepositorio(jdbc).idRevision(f.destino()):null);
    jdbc.update("UPDATE lamontana.cotizacion SET estado='CONFIRMADA',confirmada_en=?,id_configuracion_confirmacion=(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?),version=version+1 WHERE codigo_publico=?",Timestamp.from(now),config,pre.cotizacion());
   }
   // Los intentos no elegidos dejan de admitir contenido; los originales aceptados
@@ -188,3 +188,4 @@ public class CorreccionPedidoService {
  private ResponseStatusException conflicto(String msg){return error(HttpStatus.CONFLICT,msg);}
  private ResponseStatusException error(HttpStatus code,String msg){return new ResponseStatusException(code,msg);}
 }
+

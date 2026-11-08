@@ -12,7 +12,7 @@ const phaseTours:Record<number,{steps:TourStep[];completion:{title:string;descri
     {target:"config-tour-payments-actions",title:"Guardá las reglas",description:"Guardar conserva estas decisiones en el borrador. El próximo paso se habilita cuando los requisitos quedan completos; todavía no cambia la configuración activa."},
   ],completion:{title:"Pagos preparados",description:"Revisá las condiciones antes de continuar. La simulación es opcional y no registra cobros ni pedidos."}},
   4:{steps:[
-    {target:"config-tour-printers",title:"Revisá el parque de impresoras",description:"Acá ves todas las impresoras de la imprenta. Podés agregar, habilitar, deshabilitar y revisar sus capacidades. La ubicación interna es opcional y no limita los servicios ofrecidos."},
+    {target:"config-tour-printers",title:"Revisá el parque de impresoras",description:"Acá comparás todas las impresoras vigentes y las del borrador, agrupadas por sucursal. Incorporá los equipos faltantes sin perder tus cambios. Cada equipo necesita una sucursal productiva y limita las combinaciones que esa planta puede fabricar."},
     {target:"config-tour-assignment",title:"Confirmá la asignación manual",description:"El personal elige entre las impresoras compatibles de la sucursal productiva asignada. El administrador general puede derivar el trabajo a otra planta compatible."},
     {target:"config-tour-resources-actions",title:"Continuá cuando esté guardado",description:"Los cambios de recursos se guardan en el borrador. Revisá que haya equipos operativos y asignaciones compatibles antes de seguir."},
   ],completion:{title:"Recursos revisados",description:"Las flotas de cada sucursal y sus capacidades se volverán a comprobar en la revisión integral y al aplicar la configuración."}},
@@ -21,7 +21,7 @@ const phaseTours:Record<number,{steps:TourStep[];completion:{title:string;descri
     {target:"config-tour-schedule",title:"Revisá los calendarios de las plantas",description:"Cada sucursal productiva usa su propio calendario. Podés copiar el horario de su ficha y ajustarlo en el borrador. La preparación se calcula sobre la planta asignada al pedido y continúa en su próxima apertura."},
     {target:"config-tour-pickup",title:"Definí cuándo se retiran los pedidos",description:"Las franjas de retiro indican cuándo el cliente puede retirar un pedido listo en esta sucursal; no son otro horario de producción. Podés atender retiros fuera del horario de producción si hay personal para entregar pedidos listos. Por ejemplo: lunes producción de 09:00 a 18:00 y retiro de 18:00 a 20:00; miércoles sin producción y retiro de 11:00 a 13:00. Verás el aviso Producción cerrada · retiros habilitados. Estas franjas no suman horas de preparación. El cupo cuenta pedidos completos; la disponibilidad se confirma al crear el pedido."},
     {target:"config-tour-times",title:"Indicá los tiempos",description:"Cargá la preparación y el traslado estimados. Estas cifras ayudan a calcular fechas, pero no prometen tiempos de transportistas externos."},
-    {target:"config-tour-delivery",title:"Elegí las modalidades",description:"Habilitá las entregas que vas a ofrecer. Configurá puntos o zonas solo si elegiste esas modalidades."},
+    {target:"config-tour-delivery",title:"Elegí las modalidades",description:"Habilitá las entregas que vas a ofrecer. Los puntos se crean y asignan a sus sucursales desde Puntos de entrega, incluso después de la instalación. Las zonas domiciliarias se configuran en esta fase."},
     {target:"config-tour-delivery-validation",title:"Comprobá los mínimos",description:"Guardá la fase y consultá la validación. Las simulaciones son opcionales; para seguir sí deben estar completos los requisitos de horarios y entrega."},
   ],completion:{title:"Entrega preparada",description:"Al continuar se revisará el borrador completo con los recursos y la referencia comercial vigente."}},
   6:{steps:[
@@ -61,7 +61,7 @@ export function ConfigurationTour({phase,owner,firstSetup,ready,hasDraft,hasSche
     steps=[
       {target:"config-tour-printer-details",title:"Identificá la impresora y sus capacidades",description:"Ingresá el nombre y las capacidades reales de color, doble faz y cantidad de hojas. Si querés, indicá dónde está físicamente para ayudar al equipo interno. Esa ubicación no limita el catálogo ni decide dónde producir."},
       {target:"config-tour-printer-formats",title:"Seleccioná los formatos compatibles",description:"Marcá solamente los tamaños de papel que esta impresora admite. Necesitás al menos un formato. Seleccionar todos no certifica la compatibilidad física del equipo."},
-      {target:"config-tour-printer-actions",title:"Guardá y volvé a la lista",description:"Guardar impresora conserva sus datos en el borrador. Después confirmá la asignación manual global. Volver a la lista no guarda los cambios del formulario."},
+      {target:"config-tour-printer-actions",title:"Guardá y volvé a la lista",description:"Guardar impresora conserva sus datos en el borrador. Después confirmá la asignación manual por sucursal. Volver a la lista no guarda los cambios del formulario."},
     ];
     completion={title:"Impresora preparada para guardar",description:"La guía no guarda ni activa el equipo. Revisá el formulario y usá Guardar impresora cuando sus datos estén completos."};
   }else{
@@ -72,3 +72,4 @@ export function ConfigurationTour({phase,owner,firstSetup,ready,hasDraft,hasSche
   const revision=phase===5?"v4":phase===3?"v2":"v1";
   return <GuidedTour key={`${owner}:${phase}${context}`} steps={steps} completion={completion} storageKey={`lamontana:configuration-tour:phase-${phase}${context}:${revision}:${owner}`} autoStart={firstSetup&&ready&&phase<=7} helpLabel={`Guía de la fase ${phase}${context?" · formulario de impresora":""}`}/>;
 }
+

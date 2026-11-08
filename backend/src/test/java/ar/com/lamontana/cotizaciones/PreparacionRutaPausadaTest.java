@@ -29,7 +29,7 @@ class PreparacionRutaPausadaTest {
         anterior=mock(CotizacionService.Detalle.class);oferta=mock(CotizacionService.Oferta.class);when(anterior.oferta()).thenReturn(oferta);
         when(anterior.estado()).thenReturn("VIGENTE");when(anterior.vigenteHasta()).thenReturn(Instant.now().plusSeconds(3600));when(anterior.codigoPublico()).thenReturn(quote);
         when(oferta.sucursal()).thenReturn(new OfertaOperativaService.Sucursal(laPlata,"La Plata","Calle 7"));
-        when(cotizaciones.detallePreparada(quote,datos)).thenReturn(anterior);
+        when(cotizaciones.detallePreparada(quote,datos)).thenReturn(anterior);when(cotizaciones.puntoVigente(any())).thenReturn(true);
         when(operativa.leer()).thenReturn(new OfertaOperativaService.Contexto(null,null,List.of(new OfertaOperativaService.Sucursal(floresta,"Floresta","Rivadavia")),List.of(),List.of(new EntregaConfiguracionService.PuntoDisponible(punto,floresta,2,"City Bell","America/Argentina/Buenos_Aires","200",1))));
         service=new PreparacionClienteService(store,mock(ArchivoPreparadoService.class),cotizaciones,operativa,pedidos,null,null);
     }

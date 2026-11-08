@@ -87,7 +87,14 @@ public class DisponibilidadPuntoService {
                     return new Punto(punto,rs.getString("codigo"),rs.getString("nombre"),rs.getString("direccion"),rs.getString("zona_horaria"),decision,
                         disponible,disponible?null:DisponibilidadDestinos.FUERA_DE_SERVICIO,origenes);
                 },new Object[0]).stream().sorted(Comparator.comparing(Punto::codigo)).toList();
-        return new Panel(activa?"CONFIGURACION_ACTIVA":"SIN_CONFIGURACION_ACTIVA",borradores.isEmpty()?null:borradores.get(0),puntos,puntos.stream().filter(p->p.disponibilidad().estado().equals("DESHABILITADO")).count());
+        var red=new RedPuntosRepositorio(jdbc);var unidos=new TreeMap<String,Punto>();puntos.forEach(p->unidos.put(p.codigo(),p));
+        for(var p:red.registrados()){
+            long id=jdbc.queryForObject("SELECT id_punto_entrega FROM lamontana.punto_entrega WHERE codigo_publico=?",Long.class,p.codigoPublico());
+            var decision=estado(id,p.codigoPublico());var origenes=new DisponibilidadDestinos(jdbc).origenes(null,p.codigoPublico());
+            boolean disponible=activa&&decision.estado().equals("HABILITADO")&&origenes.stream().anyMatch(DisponibilidadDestinos.Origen::disponible);
+            unidos.put(p.codigo(),new Punto(p.codigoPublico(),p.codigo(),p.nombre(),p.calle()+" "+p.numero()+", "+p.localidad()+", "+p.provincia(),p.zonaHoraria(),decision,disponible,disponible?null:DisponibilidadDestinos.FUERA_DE_SERVICIO,origenes));
+        }
+        var lista=List.copyOf(unidos.values());return new Panel(activa?"CONFIGURACION_ACTIVA":"SIN_CONFIGURACION_ACTIVA",borradores.isEmpty()?null:borradores.get(0),lista,lista.stream().filter(p->p.disponibilidad().estado().equals("DESHABILITADO")).count());
     }
 
     @Transactional
@@ -104,7 +111,7 @@ public class DisponibilidadPuntoService {
             return estado(id,codigo); // Recupera el estado actual sin volver a aplicar un comando anterior.
         }
         boolean pertenece=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_definicion_punto d JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE d.id_punto_entrega=? AND c.estado IN ('ACTIVA','EN_PREPARACION','PROGRAMADA'))",Boolean.class,id));
-        if(!pertenece)throw conflicto("El punto ya no pertenece a la configuración activa ni al borrador actual. Actualizá el panel antes de continuar.");
+        if(!pertenece&&new RedPuntosRepositorio(jdbc).revision(codigo)==null)throw conflicto("El punto ya no pertenece a la red ni a la preparación actual. Actualizá el panel antes de continuar.");
         var actual=estado(id,codigo);if(actual.version()!=input.version())throw conflicto("La disponibilidad cambió. Actualizá el estado y elegí nuevamente la acción.");
         if(actual.estado().equals(input.estado().name()))throw conflicto("El punto ya tiene ese estado. No se registró otro cambio.");
         jdbc.update("""

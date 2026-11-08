@@ -41,6 +41,7 @@ const allowed: Record<string, readonly string[]> = {
   "admin/sucursales/ubicaciones": ["GET"], "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/papeles-predefinidos": ["POST"], "admin/catalogo/papeles-predefinidos/habilitar-todos": ["POST"], "admin/catalogo/papeles-personalizados": ["POST"], "admin/catalogo/papeles-habilitados": ["PUT"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
   "admin/puntos-entrega/disponibilidad": ["GET"],
+  "admin/red-puntos": ["GET","POST"],
   "admin/configuracion": ["GET"], "admin/configuracion/borradores": ["POST"],
   "punto/contexto":["GET"],"punto/finanzas":["GET"],"punto/pedidos/buscar":["POST"],"punto/recibir":["POST"],"admin/puntos-entrega/cuentas":["GET"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
@@ -128,7 +129,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const cashReceipt=cashRoute&&path.length===7&&path[4]==="egresos"&&uuidPattern.test(path[5])&&path[6]==="comprobante";
   const cashMethods=cashRoute&&(path.length===4||cashReceipt)?["GET"]:
     cashExpense||cashRoute&&path.length===5&&path[4]==="arqueos"?["POST"]:null;
-  const methods = cashMethods ?? branchPickupMethods ?? riderAction ?? accountPoint ?? counterOrder ?? dailyPrinter ?? dailyPoint ?? preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
+  const pointNetwork=path.length===3&&path[0]==="admin"&&path[1]==="red-puntos"&&uuidPattern.test(path[2])?["PUT"]:null;
+  const methods = pointNetwork ?? cashMethods ?? branchPickupMethods ?? riderAction ?? accountPoint ?? counterOrder ?? dailyPrinter ?? dailyPoint ?? preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
@@ -177,7 +179,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       // fetch agrega Content-Type: text/plain si recibe una cadena, incluso vacía.
       body = (await request.text()) || undefined;
     }
-    const maxBytes = cashExpense?2_810_000:route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
+    const maxBytes = cashExpense?2_810_000:route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointNetwork || route==="admin/red-puntos" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
     if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
     const query = cashRoute&&path.length===4 || branchPickupMethods || route==="punto/finanzas" || route==="admin/pedidos" || websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {
@@ -228,3 +230,4 @@ export const POST = proxy;
 
 export const PUT = proxy;
 export const DELETE = proxy;
+

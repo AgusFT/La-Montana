@@ -95,10 +95,10 @@ public class RiderController {
         long id=(Long)route[0];
         var orders=jdbc.query("""
                 SELECT p.codigo_publico,p.id_pedido,r.modalidad,
-                       COALESCE(NULLIF(concat_ws(' · ',r.nombre_destino,
+                       CASE WHEN strpos(r.nombre_destino,' · ')>0 THEN r.nombre_destino ELSE COALESCE(NULLIF(concat_ws(' · ',r.nombre_destino,
                            CASE WHEN d.id_punto_entrega IS NOT NULL
                                 THEN concat_ws(', ',concat_ws(' ',d.calle,d.numero),d.localidad,d.provincia)
-                           END),''),r.nombre_destino),
+                           END),''),r.nombre_destino) END,
                        concat_ws(' ',c.nombre,c.apellido),coalesce(p.receptor,concat_ws(' ',c.nombre,c.apellido)),p.telefono,
                        r.franja_desde,r.franja_hasta,rp.orden,p.version,
                        lamontana.estado_logistico(p.id_pedido),rp.presentado_en,r.destino_publico
@@ -115,3 +115,4 @@ public class RiderController {
         return new Recorrido((UUID)route[1],(String)route[2],(Instant)route[3],(String)route[4],orders);
     }
 }
+
