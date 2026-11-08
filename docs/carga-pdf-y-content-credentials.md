@@ -11,3 +11,9 @@ La preparación indica claramente si el archivo fue rechazado o no pudo analizar
 Después de actualizar el sistema, los intentos que ya quedaron rechazados deben quitarse y cargarse nuevamente para ejecutar el nuevo análisis.
 
 Validación: inspector aislado con documentos sintéticos aceptados y rechazados; análisis de un PDF de diez páginas exportado por LibreOffice con Content Credentials; pruebas de renderizado del formulario y de la oferta de impresión.
+
+## Imágenes JPEG2000
+
+El backend incluye `jai-imageio-core` y `jai-imageio-jpeg2000` 1.4.0 para decodificar las imágenes `JPXDecode` en el análisis y las vistas previas. PDFBox requiere este proveedor adicional: [dependencias oficiales](https://pdfbox.apache.org/3.0/dependencies.html). La dependencia se empaqueta en el JAR que también utiliza el proceso aislado; se conservan sus límites de memoria y tiempo, el análisis de seguridad y el archivo original.
+
+Se verificó el PDF adjunto de 34 páginas y una vista previa con imágenes. Una prueba de regresión genera un PDF con imagen JPEG2000, ejecuta el inspector aislado y comprueba que la vista previa contiene sus píxeles.

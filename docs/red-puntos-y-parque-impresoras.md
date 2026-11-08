@@ -12,6 +12,8 @@ Desde **Administración → Puntos de entrega** se pueden crear y editar puntos 
 
 Cada ficha muestra las sucursales asignadas y la disponibilidad efectiva. También se puede filtrar por sucursal. En **Sucursales**, cada ficha muestra sus puntos y enlaza a la edición de esa red.
 
+Al crear o editar un punto, cada ruta ofrece **Tomar horarios de una sucursal**, incluso si ya tiene franjas. Se propone la sucursal asignada con prioridad 1 y se puede elegir otra de las asignadas. Indicá una vez el cupo por franja y copiá: se toman únicamente sus días abiertos y horarios de atención. **Copiar y reemplazar franjas** sustituye las franjas de esa ruta en el formulario; se pueden ajustar días, horas y cupos antes de guardar. Es una copia puntual, sin sincronización posterior ni cambios de prioridades, costos o zona horaria. Si la sucursal no tiene horarios, se informa y se conserva la edición manual.
+
 La pausa de una sucursal deja sus puntos exclusivos **Momentáneamente fuera de servicio**: siguen visibles y no se pueden seleccionar para pedidos nuevos. Un punto compartido puede seguir atendiendo por otra sucursal disponible con ruta habilitada. La pausa propia del punto se conserva al reabrir una sucursal.
 
 Las ediciones guardan revisiones inmutables. Las cotizaciones pendientes deben actualizar sus condiciones si cambió el punto. Los pedidos confirmados conservan la dirección, el origen, el costo y la revisión de la red que reservaron. Reasignar un punto no impide completar pedidos que ya estaban confirmados. El rider presenta los pedidos y el responsable del punto confirma su llegada antes del retiro.

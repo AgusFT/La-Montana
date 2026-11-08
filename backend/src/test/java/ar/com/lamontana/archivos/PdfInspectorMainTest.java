@@ -7,6 +7,10 @@ import java.nio.file.*;
 import java.util.HexFormat;
 import org.apache.pdfbox.cos.*;
 import org.apache.pdfbox.pdmodel.*;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -43,6 +47,20 @@ class PdfInspectorMainTest {
         assertEquals("CONTENIDO_ACTIVO",error.codigo);
     }
     @Test void acceptsOrdinaryPdf()throws Exception{assertEquals(1,inspect(doc->{}));}
+    @Test void acceptsJpeg2000AndRendersItsActualPixelsInTheIsolatedProcess()throws Exception{
+        var image=new BufferedImage(32,32,BufferedImage.TYPE_INT_RGB);
+        for(int y=0;y<32;y++)for(int x=0;x<32;x++)image.setRGB(x,y,0xff0000);
+        var encoded=new ByteArrayOutputStream();assertTrue(ImageIO.write(image,"JPEG2000",encoded),"JPEG2000 ImageIO provider must be packaged");
+        assertEquals(1,inspect(doc->{
+            doc.getPage(0).setMediaBox(new org.apache.pdfbox.pdmodel.common.PDRectangle(96,96));
+            var picture=new PDImageXObject(doc,new ByteArrayInputStream(encoded.toByteArray()),COSName.JPX_DECODE,32,32,8,PDDeviceRGB.INSTANCE);
+            try(var content=new PDPageContentStream(doc,doc.getPage(0))){content.drawImage(picture,0,0,96,96);}
+        }));
+        Path preview=directory.resolve("preview.png");new InspectorPdf("").preview(directory.resolve("input.pdf"),preview,0);
+        var rendered=ImageIO.read(preview.toFile());assertNotNull(rendered);
+        int rgb=rendered.getRGB(rendered.getWidth()/2,rendered.getHeight()/2);
+        assertTrue(((rgb>>16)&255)>80&&(rgb&255)<40&&((rgb>>8)&255)<40,"Image must render red rather than an empty page: "+Integer.toHexString(rgb));
+    }
     @Test void acceptsPassiveContentCredentialsInNamesAndAssociatedFiles()throws Exception{assertEquals(1,inspect(this::credentials));}
     @Test void acceptsLocalOpeningDestinationAndWebLinks()throws Exception{
         assertEquals(1,inspect(doc->{

@@ -47,6 +47,9 @@
   <dependencies>
     <dependency><groupId>com.twelvemonkeys.imageio</groupId><artifactId>imageio-webp</artifactId><version>3.14.0</version></dependency>
     <dependency><groupId>org.apache.pdfbox</groupId><artifactId>pdfbox</artifactId><version>3.0.8</version></dependency>
+    <!-- PDFBox delegates JPEG2000 (JPXDecode) images to this ImageIO provider. -->
+    <dependency><groupId>com.github.jai-imageio</groupId><artifactId>jai-imageio-core</artifactId><version>1.4.0</version></dependency>
+    <dependency><groupId>com.github.jai-imageio</groupId><artifactId>jai-imageio-jpeg2000</artifactId><version>1.4.0</version></dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-mail</artifactId>
