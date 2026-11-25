@@ -1,0 +1,76 @@
+//#region ENCABEZADO · SesionVigenteFilter.java
+/*
+ * ========================================================================
+ * ARCHIVO: SesionVigenteFilter.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba en cada solicitud autenticada que el usuario, rol y versión de acceso continúen
+ * vigentes. Invalida sesiones revocadas y restringe operaciones cuando se exige cambiar la
+ * contraseña.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] SesionVigenteFilter(JdbcTemplate jdbc)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [protected] void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+ *   FilterChain chain) throws ServletException, IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - SesionVigenteFilter (clase).
+ * ========================================================================
+ */
+//#endregion
+
+package ar.com.lamontana.seguridad;
+
+import ar.com.lamontana.identidad.UsuarioSesion;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/** Las cookies persistentes no conservan acceso a una cuenta desactivada. */
+public class SesionVigenteFilter extends OncePerRequestFilter {
+    private final JdbcTemplate jdbc;
+    public SesionVigenteFilter(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof AnonymousAuthenticationToken)) {
+            boolean vigente = authentication.getPrincipal() instanceof UsuarioSesion usuario && Boolean.TRUE.equals(jdbc.queryForObject("""
+                    SELECT EXISTS(SELECT 1 FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
+                                  WHERE u.correo=? AND u.estado='ACTIVO' AND r.activo AND u.version_acceso=? AND (NOT u.es_soporte OR lamontana.soporte_habilitado(u.id_usuario)))
+                    """, Boolean.class, authentication.getName(), usuario.versionAcceso()));
+            if (!vigente) {
+                SecurityContextHolder.clearContext();
+                var session = request.getSession(false);
+                if (session != null) session.invalidate();
+                response.setStatus(401);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"mensaje\":\"Tu acceso cambió. Volvé a iniciar sesión.\"}");
+                return;
+            }
+            boolean cambiar = Boolean.TRUE.equals(jdbc.queryForObject("SELECT debe_cambiar_contrasena FROM lamontana.usuario WHERE correo=?", Boolean.class, authentication.getName()));
+            if (cambiar && !java.util.Set.of("/api/auth/me", "/api/auth/csrf", "/api/auth/contrasena", "/api/auth/correo/solicitar", "/api/auth/correo/confirmar", "/api/auth/logout").contains(request.getServletPath())) {
+                response.setStatus(403);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"mensaje\":\"Cambiá la contraseña inicial desde Seguridad de tu cuenta antes de continuar.\"}");
+                return;
+            }
+        }
+        try {chain.doFilter(request, response);} finally {
+            if(authentication!=null&&authentication.isAuthenticated()&&!(authentication instanceof AnonymousAuthenticationToken))
+                jdbc.update("INSERT INTO lamontana.evento_soporte(id_usuario,tipo,recurso,resultado) SELECT id_usuario,'SOLICITUD_APP',?,? FROM lamontana.usuario WHERE correo=? AND es_soporte",request.getMethod()+" "+request.getServletPath().substring(0,Math.min(280,request.getServletPath().length())),response.getStatus(),authentication.getName());
+        }
+    }
+}

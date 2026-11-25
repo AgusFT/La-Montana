@@ -1,0 +1,61 @@
+//#region ENCABEZADO · LimiteAccesoFilter.java
+/*
+ * ========================================================================
+ * ARCHIVO: LimiteAccesoFilter.java
+ * ========================================================================
+ * FUNCIÓN
+ * Limita la frecuencia de solicitudes de acceso mediante una ventana temporal y devuelve HTTP 429
+ * con tiempo de espera cuando se supera el límite.
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [private, synchronized] boolean admitir()
+ * - [protected] boolean shouldNotFilter(HttpServletRequest request)
+ * - [protected] void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain
+ *   chain) throws ServletException, IOException
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - LimiteAccesoFilter (clase).
+ * ========================================================================
+ */
+//#endregion
+
+package ar.com.lamontana.seguridad;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/** Límite global del acceso inicial local; no almacena ni registra credenciales. */
+final class LimiteAccesoFilter extends OncePerRequestFilter {
+    private long inicio = System.nanoTime();
+    private int intentos;
+    private synchronized boolean admitir() {
+        long ahora = System.nanoTime();
+        if (ahora - inicio >= 60_000_000_000L) { inicio = ahora; intentos = 0; }
+        return ++intentos <= 30;
+    }
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        return !"POST".equals(request.getMethod()) ||
+                !("/api/auth/login".equals(request.getServletPath()) || "/api/auth/registro".equals(request.getServletPath()) || "/api/setup/propietario".equals(request.getServletPath()) || request.getServletPath().startsWith("/api/auth/recuperacion/") || request.getServletPath().startsWith("/api/auth/correo/") || "/api/auth/contrasena".equals(request.getServletPath())
+                        || request.getServletPath().matches("/api/admin/configuracion/borradores/[^/]+/(cancelacion|activacion|programacion|programacion/cancelacion|programacion/activacion)/(solicitar|confirmar)"));
+    }
+    @Override
+    protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain) throws ServletException, IOException {
+        if (!admitir()) {
+            res.setStatus(429);
+            res.setHeader("Retry-After", "60");
+            res.setContentType("application/json;charset=UTF-8");
+            res.getWriter().write("{\"mensaje\":\"Demasiados intentos. Esperá un minuto y volvé a intentar.\"}");
+            return;
+        }
+        chain.doFilter(req, res);
+    }
+}

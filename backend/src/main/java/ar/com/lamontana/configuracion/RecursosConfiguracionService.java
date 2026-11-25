@@ -1,0 +1,197 @@
+//#region ENCABEZADO · RecursosConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: RecursosConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Valida y guarda el parque global de producción: impresoras, capacidades, formatos, ubicación
+ * interna opcional y método manual. Registra transiciones y preserva las versiones operativas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RecursosConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion, CopiaParametrosConfiguracion copias)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * - [public] Borrador recuperarVigentes(UUID codigo, RecuperarImpresoras input, String correo): recupera equipos sin reemplazar otras decisiones.
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] ConfiguracionService.Borrador guardar(UUID codigo, GuardarRecursos input, String
+ *   correo)
+ * - [public] ConfiguracionService.Borrador crear(UUID codigo, CrearImpresora input, String correo)
+ * - [public] ConfiguracionService.Borrador editar(UUID codigo, UUID impresora, EditarImpresora
+ *   input, String correo)
+ * - [public] ConfiguracionService.Borrador estado(UUID codigo, UUID impresora, CambiarEstado
+ *   input, String correo)
+ * - [public] ConfiguracionService.Borrador retirar(UUID codigo, UUID impresora, RetirarImpresora
+ *   input, String correo)
+ * - [private] ConfiguracionService.Borrador editable(UUID codigo, Long version)
+ * - [private] ConfiguracionService.Borrador terminar(UUID codigo, ConfiguracionService.Borrador
+ *   actual, UUID operacion, String tipo, long actor, String huella, String evento, UUID recurso,
+ *   String motivo)
+ * - [private] long id(UUID codigo)
+ * - [private] void registrarTransicion(long config, long version, String anterior, String nuevo)
+ * - [private] Long ubicacion(UUID codigo)
+ * - [private] long referencia(String tabla, UUID codigo)
+ * - [private] List<Long> formatos(List<UUID> codigos)
+ * - [private] String nombre(long config, Long excluir, String nombre)
+ * - [private] void capacidades(Boolean color, Boolean duplex, Integer hojas)
+ * - [private] String motivo(String valor)
+ * - [private] Impresora impresora(long config, UUID codigo)
+ * - [private] void deshabilitada(Impresora impresora)
+ * - [private] void guardarFormatos(long config, long impresora, List<Long> formatos)
+ * - [private] ResponseStatusException invalido(String mensaje)
+ *   Construye un error HTTP controlado.
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RecursosConfiguracionService (clase).
+ * - RecursosConfiguracionService.Impresora (record).
+ * - RecursosConfiguracionService.Destino (record).
+ * ========================================================================
+ */
+//#endregion
+
+package ar.com.lamontana.configuracion;
+
+import static ar.com.lamontana.configuracion.RecursosConfiguracionController.*;
+import java.util.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class RecursosConfiguracionService {
+    private final JdbcTemplate jdbc;
+    private final ConfiguracionService configuracion;
+    private final CopiaParametrosConfiguracion copias;
+    public RecursosConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,CopiaParametrosConfiguracion copias){this.jdbc=jdbc;this.configuracion=configuracion;this.copias=copias;}
+
+    /** Recupera sólo equipos en un borrador vacío; conserva el resto de sus decisiones. */
+    @Transactional public ConfiguracionService.Borrador recuperarVigentes(UUID codigo,RecuperarImpresoras input,String correo){
+        configuracion.bloquear();long actor=configuracion.propietario(correo);
+        String huella=configuracion.huella(Map.of("accion","RECUPERAR_IMPRESORAS","borrador",codigo,"solicitud",input));
+        var repetido=configuracion.reintento(input.operacion(),"GUARDAR_RECURSOS",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());
+        if(!actual.recursos().impresoras().isEmpty())throw conflicto("Este borrador ya tiene impresoras. Se conservan sus equipos y cambios; no se reemplazan al recuperar.");
+        var activa=configuracion.activa();
+        if(activa==null||activa.configuracion().recursos().impresoras().isEmpty())throw conflicto("La configuración vigente no tiene impresoras para recuperar.");
+        var origen=activa.configuracion();copias.copiarImpresoras(id(origen.codigoPublico()),id(codigo));
+        return terminar(codigo,actual,input.operacion(),"GUARDAR_RECURSOS",actor,huella,"RECURSOS_CONFIGURADOS",origen.codigoPublico(),"Impresoras recuperadas de V"+origen.numero()+"; se conservan sus identidades y el resto del borrador.");
+    }
+
+    @Transactional
+    public ConfiguracionService.Borrador guardar(UUID codigo,GuardarRecursos input,String correo) {
+        configuracion.bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(input);
+        var repetido=configuracion.reintento(input.operacion(),"GUARDAR_RECURSOS",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());long id=id(codigo);
+        if(input.metodoAsignacion()!=MetodoAsignacion.MANUAL)throw invalido("Elegí la asignación manual disponible en esta versión.");
+        jdbc.update("INSERT INTO lamontana.configuracion_recursos(id_configuracion_version,metodo_asignacion) VALUES (?,'MANUAL') ON CONFLICT(id_configuracion_version) DO UPDATE SET metodo_asignacion=excluded.metodo_asignacion",id);
+        // Desde V40 el catálogo es global. Se retiran del borrador las asociaciones heredadas para
+        // que una sucursal no habilite ni limite servicios comerciales.
+        jdbc.update("DELETE FROM lamontana.sucursal_servicio WHERE id_configuracion_version=?",id);
+        return terminar(codigo,actual,input.operacion(),"GUARDAR_RECURSOS",actor,huella,"RECURSOS_CONFIGURADOS",null,null);
+    }
+
+    @Transactional
+    public ConfiguracionService.Borrador crear(UUID codigo,CrearImpresora input,String correo) {
+        configuracion.bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(input);
+        var repetido=configuracion.reintento(input.operacion(),"ALTA_IMPRESORA",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());long id=id(codigo);Long ubicacion=ubicacion(input.sucursal());
+        String nombre=nombre(id,null,input.nombre());
+        var formatos=formatos(input.formatos());capacidades(input.admiteColor(),input.admiteDobleFaz(),input.capacidadHojas());
+        if(input.estado()==null)throw invalido("Elegí explícitamente el estado previsto de la impresora.");
+        UUID impresora=UUID.randomUUID();
+        long recurso=jdbc.queryForObject("INSERT INTO lamontana.impresora(codigo_publico,id_sucursal,id_usuario_creador) VALUES (?,NULL,?) RETURNING id_impresora",Long.class,impresora,actor);
+        jdbc.update("INSERT INTO lamontana.configuracion_impresora(id_configuracion_version,id_impresora,nombre,admite_color,admite_doble_faz,capacidad_maxima_hojas,estado,id_sucursal_ubicacion) VALUES (?,?,?,?,?,?,?,?)",id,recurso,nombre,input.admiteColor(),input.admiteDobleFaz(),input.capacidadHojas(),input.estado().name(),ubicacion);
+        guardarFormatos(id,recurso,formatos);
+        var resultado=terminar(codigo,actual,input.operacion(),"ALTA_IMPRESORA",actor,huella,"IMPRESORA_CREADA",impresora,null);
+        registrarTransicion(id,actual.version()+1,null,input.estado().name());return resultado;
+    }
+
+    @Transactional
+    public ConfiguracionService.Borrador editar(UUID codigo,UUID impresora,EditarImpresora input,String correo) {
+        configuracion.bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(new Destino(impresora,input));
+        var repetido=configuracion.reintento(input.operacion(),"EDITAR_IMPRESORA",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());long id=id(codigo);var recurso=impresora(id,impresora);deshabilitada(recurso);
+        String nombre=nombre(id,recurso.id(),input.nombre());Long ubicacion=ubicacion(input.sucursal());
+        var formatos=formatos(input.formatos());capacidades(input.admiteColor(),input.admiteDobleFaz(),input.capacidadHojas());
+        jdbc.update("UPDATE lamontana.configuracion_impresora SET nombre=?,admite_color=?,admite_doble_faz=?,capacidad_maxima_hojas=?,id_sucursal_ubicacion=? WHERE id_configuracion_version=? AND id_impresora=?",nombre,input.admiteColor(),input.admiteDobleFaz(),input.capacidadHojas(),ubicacion,id,recurso.id());
+        guardarFormatos(id,recurso.id(),formatos);
+        return terminar(codigo,actual,input.operacion(),"EDITAR_IMPRESORA",actor,huella,"IMPRESORA_EDITADA",impresora,null);
+    }
+
+    @Transactional
+    public ConfiguracionService.Borrador estado(UUID codigo,UUID impresora,CambiarEstado input,String correo) {
+        configuracion.bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(new Destino(impresora,input));
+        var repetido=configuracion.reintento(input.operacion(),"ESTADO_IMPRESORA",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());long id=id(codigo);var recurso=impresora(id,impresora);String motivo=motivo(input.motivo());
+        if(input.estado()==null)throw invalido("Elegí un estado previsto para la impresora.");
+        if(recurso.estado().equals("RETIRADA"))throw conflicto("La impresora fue retirada de esta configuración.");
+        if(recurso.estado().equals(input.estado().name()))throw conflicto("La impresora ya tiene ese estado previsto.");
+        jdbc.update("UPDATE lamontana.configuracion_impresora SET estado=? WHERE id_configuracion_version=? AND id_impresora=?",input.estado().name(),id,recurso.id());
+        var resultado=terminar(codigo,actual,input.operacion(),"ESTADO_IMPRESORA",actor,huella,"IMPRESORA_ESTADO_CAMBIADO",impresora,motivo);
+        registrarTransicion(id,actual.version()+1,recurso.estado(),input.estado().name());return resultado;
+    }
+
+    @Transactional
+    public ConfiguracionService.Borrador retirar(UUID codigo,UUID impresora,RetirarImpresora input,String correo) {
+        configuracion.bloquear();long actor=configuracion.propietario(correo);String huella=configuracion.huella(new Destino(impresora,input));
+        var repetido=configuracion.reintento(input.operacion(),"RETIRAR_IMPRESORA",codigo,actor,huella);if(repetido!=null)return repetido;
+        var actual=editable(codigo,input.version());long id=id(codigo);var recurso=impresora(id,impresora);deshabilitada(recurso);String motivo=motivo(input.motivo());
+        jdbc.update("UPDATE lamontana.configuracion_impresora SET estado='RETIRADA',retirada_en=clock_timestamp(),motivo_retiro=? WHERE id_configuracion_version=? AND id_impresora=?",motivo,id,recurso.id());
+        var resultado=terminar(codigo,actual,input.operacion(),"RETIRAR_IMPRESORA",actor,huella,"IMPRESORA_RETIRADA",impresora,motivo);
+        registrarTransicion(id,actual.version()+1,recurso.estado(),"RETIRADA");return resultado;
+    }
+
+    private ConfiguracionService.Borrador editable(UUID codigo,Long version) {
+        var actual=configuracion.cargar(codigo);
+        if(!actual.estado().equals("EN_PREPARACION"))throw conflicto("Sólo se pueden editar los recursos de una configuración en preparación.");
+        if(version==null||actual.version()!=version)throw conflicto("El borrador cambió. Consultá su versión actual antes de guardar.");
+        if(actual.modelo()==null)throw conflicto("Elegí el modelo de revisión antes de configurar los recursos.");
+        return actual;
+    }
+    private ConfiguracionService.Borrador terminar(UUID codigo,ConfiguracionService.Borrador actual,UUID operacion,String tipo,long actor,String huella,String evento,UUID recurso,String motivo) {
+        long id=jdbc.queryForObject("UPDATE lamontana.configuracion_version SET version=version+1,fecha_actualizacion=clock_timestamp() WHERE codigo_publico=? RETURNING id_configuracion_version",Long.class,codigo);
+        configuracion.registrar(operacion,tipo,id,actor,huella,evento,actual.version()+1,recurso,motivo);
+        jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_revocacion=clock_timestamp() WHERE id_configuracion_version=? AND fecha_consumo IS NULL AND fecha_revocacion IS NULL",id);
+        return configuracion.cargar(codigo);
+    }
+    private long id(UUID codigo){return jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?",Long.class,codigo);}
+    private void registrarTransicion(long config,long version,String anterior,String nuevo){jdbc.update("UPDATE lamontana.evento_configuracion SET estado_anterior=?,estado_nuevo=? WHERE id_configuracion_version=? AND version=? AND tipo IN ('IMPRESORA_CREADA','IMPRESORA_ESTADO_CAMBIADO','IMPRESORA_RETIRADA')",anterior,nuevo,config,version);}
+    private Long ubicacion(UUID codigo) {
+        if(codigo==null)return null;
+        var filas=jdbc.query("SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=? FOR SHARE",(rs,row)->rs.getLong(1),codigo);
+        if(filas.isEmpty())throw invalido("La ubicación interna seleccionada no existe.");return filas.get(0);
+    }
+    private long referencia(String tabla,UUID codigo) {
+        // Sólo se invoca con nombres internos constantes; los UUID se parametrizan.
+        var ids=jdbc.query("SELECT id_"+tabla+" FROM lamontana."+tabla+" WHERE codigo_publico=?",(rs,row)->rs.getLong(1),codigo);
+        if(ids.isEmpty())throw invalido("El "+tabla+" seleccionado no existe en el catálogo.");return ids.get(0);
+    }
+    private List<Long> formatos(List<UUID> codigos) {
+        if(codigos==null||codigos.isEmpty()||codigos.size()>300||new HashSet<>(codigos).size()!=codigos.size())throw invalido("Elegí formatos válidos sin repetirlos.");
+        return codigos.stream().map(codigo->referencia("formato",codigo)).toList();
+    }
+    private String nombre(long config,Long excluir,String nombre) {
+        if(nombre==null||nombre.isBlank()||nombre.length()>120)throw invalido("El nombre debe contener entre 1 y 120 caracteres.");String limpio=nombre.strip();
+        int duplicados=jdbc.queryForObject("SELECT count(*) FROM lamontana.configuracion_impresora c WHERE c.id_configuracion_version=? AND c.estado<>'RETIRADA' AND lower(c.nombre)=lower(?) AND c.id_impresora<>?",Integer.class,config,limpio,excluir==null?-1:excluir);
+        if(duplicados>0)throw conflicto("Ya hay una impresora con ese nombre en la imprenta.");return limpio;
+    }
+    private void capacidades(Boolean color,Boolean duplex,Integer hojas){if(color==null||duplex==null||hojas==null||hojas<=0)throw invalido("Declarar color, doble faz y capacidad positiva es obligatorio.");}
+    private String motivo(String valor){if(valor==null||valor.isBlank()||valor.length()>500)throw invalido("El motivo debe contener entre 1 y 500 caracteres.");return valor.strip();}
+    private Impresora impresora(long config,UUID codigo) {
+        var filas=jdbc.query("SELECT i.id_impresora,c.estado FROM lamontana.configuracion_impresora c JOIN lamontana.impresora i USING(id_impresora) WHERE c.id_configuracion_version=? AND i.codigo_publico=?",(rs,row)->new Impresora(rs.getLong(1),rs.getString(2)),config,codigo);
+        if(filas.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"La impresora no pertenece a este borrador.");return filas.get(0);
+    }
+    private void deshabilitada(Impresora impresora){if(!impresora.estado().equals("DESHABILITADA"))throw conflicto("Primero deshabilitá la impresora; sólo entonces se puede editar o retirar.");}
+    private void guardarFormatos(long config,long impresora,List<Long> formatos){jdbc.update("DELETE FROM lamontana.configuracion_impresora_formato WHERE id_configuracion_version=? AND id_impresora=?",config,impresora);for(long formato:formatos)jdbc.update("INSERT INTO lamontana.configuracion_impresora_formato(id_configuracion_version,id_impresora,id_formato) VALUES (?,?,?)",config,impresora,formato);}
+    private record Impresora(long id,String estado){}
+    private record Destino(UUID impresora,Object solicitud){}
+    private ResponseStatusException invalido(String mensaje){return new ResponseStatusException(HttpStatus.BAD_REQUEST,mensaje);}
+    private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
+}

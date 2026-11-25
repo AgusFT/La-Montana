@@ -1,0 +1,106 @@
+# region ENCABEZADO · application.yaml
+# ========================================================================
+# ARCHIVO: application.yaml
+# ========================================================================
+# FUNCIÓN
+# Configura la ejecución del backend mediante propiedades de Spring y variables de entorno: base
+# de datos, correo, sesiones, salud y almacenamiento.
+#
+# ------------------------------------------------------------------------
+# CONTENIDO DECLARADO
+# - spring: correo, sesiones JDBC, datasource, Flyway, JPA y Jackson.
+# - server: puerto, tiempos de espera, errores y cookies.
+# - management: exposición y comprobaciones de salud.
+# - lamontana: remitente, instalación, PDF, antivirus e imágenes web.
+#
+# MÉTODOS / FUNCIONES: no declara; archivo de configuración.
+# ========================================================================
+# endregion
+
+spring:
+  application:
+    name: lamontana
+  jackson:
+    deserialization:
+      accept-float-as-int: false
+  mail:
+    host: ${SMTP_HOST:127.0.0.1}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": ${SMTP_AUTH:false}
+      "[mail.smtp.starttls.enable]": ${SMTP_STARTTLS:false}
+      "[mail.smtp.starttls.required]": ${SMTP_STARTTLS:false}
+      "[mail.smtp.ssl.enable]": ${SMTP_SSL:false}
+      "[mail.smtp.ssl.checkserveridentity]": true
+      "[mail.smtp.connectiontimeout]": 3000
+      "[mail.smtp.timeout]": 3000
+      "[mail.smtp.writetimeout]": 3000
+  session:
+    timeout: 30m
+    jdbc:
+      initialize-schema: never
+      table-name: lamontana.sesion_http
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      connection-timeout: 5000
+  flyway:
+    default-schema: lamontana
+    schemas: lamontana
+    clean-disabled: true
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: lamontana
+        jdbc:
+          time_zone: UTC
+server:
+  port: 8080
+  tomcat:
+    connection-timeout: 20s
+  error:
+    include-message: never
+    include-stacktrace: never
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${SESSION_COOKIE_SECURE:false}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+lamontana:
+  correo:
+    remitente: ${SMTP_FROM:noreply@lamontana.local}
+  instalacion:
+    token: ${SETUP_TOKEN:}
+    modo: ${LAMONTANA_MODO:DESARROLLO}
+  archivos:
+    directorio: ${FILES_DIR:./var/archivos}
+    inspector-jar: ${PDF_INSPECTOR_JAR:}
+    antivirus:
+      host: ${CLAMAV_HOST:127.0.0.1}
+      port: ${CLAMAV_PORT:3310}
+
+  web:
+    entrada: ${WEB_SOURCE_DIR:./datos/imagenes-web/entrada}
+    ruta-host: ${WEB_SOURCE_HOST:}
+    biblioteca: ${WEB_LIBRARY_DIR:./var/imagenes-web}

@@ -1,0 +1,144 @@
+//#region ENCABEZADO · RevisionConfiguracionService.java
+/*
+ * ========================================================================
+ * ARCHIVO: RevisionConfiguracionService.java
+ * ========================================================================
+ * FUNCIÓN
+ * Cruza configuración operativa, catálogo, recursos, reglas financieras y entrega para producir
+ * hallazgos y simular un recorrido completo sin crear pedidos ni reservas.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [public] RevisionConfiguracionService(JdbcTemplate jdbc, ConfiguracionService configuracion,
+ *   CatalogoService catalogo, EntregaConfiguracionService entrega, PagosConfiguracionService
+ *   pagos, EvaluadorFinanciero finanzas, EvaluadorPrecioItem precios)
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [public] Revision revisar(UUID codigo, String correo)
+ * - [public] Revision revisarProgramada(UUID codigo, String correo)
+ * - [paquete] Revision evaluar(UUID codigo, String correo, boolean programada)
+ * - [paquete] Revision evaluarHistorica(UUID codigo, String correo)
+ * - [private] Revision evaluar(UUID codigo, String correo, boolean programada, boolean historica)
+ * - [public] Revision revisarPreparacion(UUID codigo, String correo)
+ * - [private] Revision evaluar(UUID codigo, String correo, boolean programada, boolean historica,
+ *   boolean vigente)
+ * - [private] void bloqueo(List<Hallazgo> h, String codigo, String area, int fase, String mensaje,
+ *   UUID sucursal)
+ * - [public] Simulacion simular(UUID codigo, Ejemplo input, String correo)
+ * - [private] ResponseStatusException conflicto(String mensaje)
+ *   Construye un error HTTP controlado.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - RevisionConfiguracionService (clase).
+ * - RevisionConfiguracionService.Hallazgo (record).
+ * - RevisionConfiguracionService.Sucursal (record).
+ * - RevisionConfiguracionService.Opcion (record).
+ * - RevisionConfiguracionService.Revision (record).
+ * - RevisionConfiguracionService.Referencia (record).
+ * - RevisionConfiguracionService.Impresora (record).
+ * - RevisionConfiguracionService.Simulacion (record).
+ * ========================================================================
+ */
+//#endregion
+
+package ar.com.lamontana.configuracion;
+
+import ar.com.lamontana.catalogo.*;
+import static ar.com.lamontana.catalogo.CatalogoController.*;
+import static ar.com.lamontana.configuracion.RevisionConfiguracionController.*;
+import java.math.BigDecimal;
+import java.util.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class RevisionConfiguracionService {
+    private final JdbcTemplate jdbc;private final ConfiguracionService configuracion;private final CatalogoService catalogo;
+    private final EntregaConfiguracionService entrega;private final PagosConfiguracionService pagos;private final EvaluadorFinanciero finanzas;private final EvaluadorPrecioItem precios;
+    public RevisionConfiguracionService(JdbcTemplate jdbc,ConfiguracionService configuracion,CatalogoService catalogo,EntregaConfiguracionService entrega,PagosConfiguracionService pagos,EvaluadorFinanciero finanzas,EvaluadorPrecioItem precios){this.jdbc=jdbc;this.configuracion=configuracion;this.catalogo=catalogo;this.entrega=entrega;this.pagos=pagos;this.finanzas=finanzas;this.precios=precios;}
+    public record Hallazgo(String nivel,String codigo,String area,int fase,String mensaje,UUID sucursal){}
+    public record Sucursal(UUID codigoPublico,String nombre,boolean activa){}
+    public record Opcion(UUID sucursal,UUID servicio,UUID formato,UUID papel,ModoColor color,boolean dobleFaz,List<UUID> terminaciones){}
+    public record Revision(ConfiguracionService.Borrador borrador,CatalogoService.Estado catalogo,List<Sucursal> sucursales,boolean fase5Valida,List<Hallazgo> hallazgos,long bloqueos,long advertencias,List<Opcion> opciones,List<EntregaConfiguracionService.PuntoDisponible> puntosDisponibles,String huella){}
+    private record Referencia(ConfiguracionService.Borrador borrador,CatalogoService.Estado catalogo,List<Sucursal> sucursales,List<Hallazgo> hallazgos,List<EntregaConfiguracionService.PuntoDisponible> puntos){}
+    public record Impresora(UUID codigoPublico,String nombre){}
+    public record Simulacion(long version,UUID revisionComercial,EvaluadorPrecioItem.Precio precio,String costoEntrega,String total,
+        EvaluadorFinanciero.Simulacion finanzas,EvaluadorCalendario.Simulacion entrega,List<Impresora> impresoras,List<String> recorrido,List<String> observaciones){}
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Revision revisar(UUID codigo,String correo){
+        return evaluar(codigo,correo,false);
+    }
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Revision revisarProgramada(UUID codigo,String correo){return evaluar(codigo,correo,true);}
+    Revision evaluar(UUID codigo,String correo,boolean programada){return evaluar(codigo,correo,programada,false);}
+    Revision evaluarHistorica(UUID codigo,String correo){return evaluar(codigo,correo,false,true);}
+    private Revision evaluar(UUID codigo,String correo,boolean programada,boolean historica){return evaluar(codigo,correo,programada,historica,false);}
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Revision revisarPreparacion(UUID codigo,String correo){
+        var b=configuracion.cargar(codigo);
+        return evaluar(codigo,correo,b.estado().equals("PROGRAMADA"),false,b.estado().equals("ACTIVA"));
+    }
+    private Revision evaluar(UUID codigo,String correo,boolean programada,boolean historica,boolean vigente){
+        configuracion.propietario(correo);var b=configuracion.cargar(codigo);var comercial=catalogo.leerEstado();var h=new ArrayList<Hallazgo>();
+        var sucursales=jdbc.query("SELECT codigo_publico,nombre,estado='ACTIVA' FROM lamontana.sucursal ORDER BY codigo",(r,n)->new Sucursal(r.getObject(1,UUID.class),r.getString(2),r.getBoolean(3)));
+        if(!b.estado().equals(vigente?"ACTIVA":historica?"HISTORICA":programada?"PROGRAMADA":"EN_PREPARACION"))bloqueo(h,"BORRADOR_NO_EDITABLE","modelo",1,"Sólo una configuración en preparación puede revisarse para activar.",null);
+        if(b.copia()!=null&&!programada&&!historica&&!vigente)for(int fase=2;fase<=5;fase++)if(!b.copia().fasesConfirmadas().contains(fase))bloqueo(h,"RECONFIRMAR_FASE_"+fase,switch(fase){case 2->"modelo";case 3->"pagos";case 4->"recursos";default->"horarios";},fase,"La copia requiere revisar y guardar nuevamente la fase "+fase+".",null);
+        if(b.modelo()==null)bloqueo(h,"MODELO_PENDIENTE","modelo",2,"Elegí el modelo operativo y su condición para definir el recorrido de aprobación.",null);
+        if(b.pagos()==null)bloqueo(h,"PAGOS_PENDIENTES","pagos",3,"Completá medios, vigencia y parámetros financieros antes de cotizar.",null);
+        else if(b.modelo()!=null)try{pagos.comprobar(b);}catch(ResponseStatusException ex){bloqueo(h,"PAGOS_INCOMPATIBLES","pagos",3,ex.getReason(),null);}
+        if(b.recursos().metodoAsignacion()==null)bloqueo(h,"ASIGNACION_PENDIENTE","recursos",4,"Confirmá la asignación manual de trabajos.",null);
+        var activas=new HashSet<UUID>();sucursales.stream().filter(Sucursal::activa).forEach(s->activas.add(s.codigoPublico()));
+        var impresoras=b.recursos().impresoras().stream().filter(p->p.estado().equals("OPERATIVA")).toList();
+        boolean impresionVigente=comercial.actual()!=null&&comercial.actual().servicios().stream().anyMatch(s->s.habilitado()&&comercial.servicios().stream().anyMatch(m->m.codigoPublico().equals(s.servicio())&&m.tipo()==TipoServicio.IMPRESION));
+        if(comercial.actual()!=null&&!impresionVigente)bloqueo(h,"COTIZACION_SERVICIOS_INDEPENDIENTES_PENDIENTE","recursos",4,"El catálogo puede ofrecer solo otros servicios, pero el flujo de pedidos actual requiere Impresión. Falta habilitar la cotización de trabajos independientes antes de activar este modelo operativo.",null);
+        if(impresoras.isEmpty()&&impresionVigente)bloqueo(h,"SIN_IMPRESORA_OPERATIVA","recursos",4,"Declarar al menos una impresora Operativa para la imprenta es obligatorio para ofrecer Impresión. Su ubicación interna es opcional y no necesita conexión CUPS.",null);
+        var entregaActual=vigente?entrega.evaluarVigente(codigo,correo):historica?entrega.evaluarHistorica(codigo,correo):entrega.evaluar(codigo,correo,programada);
+        for(var p:entregaActual.problemas())bloqueo(h,p.codigo(),p.codigo().startsWith("MATRIZ")||p.codigo().startsWith("HORARIO")||p.codigo().contains("OPERATIVO")||p.codigo().contains("PREPARACION")||p.codigo().contains("TRASLADO")?"horarios":"entrega",5,p.mensaje(),p.sucursal());
+        for(String aviso:entregaActual.avisos())h.add(new Hallazgo("ADVERTENCIA","ENTREGA_AVISO","entrega",5,aviso,null));
+        var opciones=OpcionesImpresion.calcular(b,comercial,activas);var revision=comercial.actual();
+        if(revision==null)bloqueo(h,"CATALOGO_PENDIENTE","catalogo",0,"Activá una revisión comercial válida. Una revisión programada para el futuro todavía no sirve para cotizar.",null);
+        if(revision!=null){
+            long sinCapacidad=revision.tarifas().stream().filter(Tarifa::habilitada).filter(t->impresoras.stream().noneMatch(p->OpcionesImpresion.compatible(p,t.formato(),t.color(),false))).count();
+            if(sinCapacidad>0)h.add(new Hallazgo("ADVERTENCIA","TARIFAS_SIN_CAPACIDAD","catalogo",0,sinCapacidad+" tarifas habilitadas no tienen una impresora global compatible; esas combinaciones no se ofrecerán.",null));
+        }
+        if(comercial.programada()!=null)h.add(new Hallazgo("ADVERTENCIA","CATALOGO_PROGRAMADO","catalogo",0,"Existe una revisión comercial programada. Este resumen usa la vigente; los precios se volverán a comprobar al activar y al cotizar.",null));
+        h.add(new Hallazgo("INFORMACION","REFERENCIAS_INDEPENDIENTES","catalogo",0,"La revisión comercial es independiente del motor. Las cotizaciones y pedidos conservarán sus precios capturados; esta revisión no crea ni modifica pedidos.",null));
+        h.add(new Hallazgo("INFORMACION","OPERACION_MANUAL","recursos",4,"La producción requiere asignación y registro manual. CUPS, pasarelas de pago y oferta de pedidos siguen En construcción.",null));
+        return new Revision(b,comercial,List.copyOf(sucursales),entregaActual.valida(),List.copyOf(h),h.stream().filter(x->x.nivel().equals("BLOQUEO")).count(),h.stream().filter(x->x.nivel().equals("ADVERTENCIA")).count(),opciones,entregaActual.puntosDisponibles(),configuracion.huella(new Referencia(b,comercial,sucursales,h,entregaActual.puntosDisponibles())));
+    }
+    private void bloqueo(List<Hallazgo> h,String codigo,String area,int fase,String mensaje,UUID sucursal){h.add(new Hallazgo("BLOQUEO",codigo,area,fase,mensaje,sucursal));}
+
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Simulacion simular(UUID codigo,Ejemplo input,String correo){
+        var r=revisar(codigo,correo);var b=r.borrador();
+        if(b.version()!=input.version())throw conflicto("El borrador cambió. Actualizá la revisión antes de simular.");
+        if(r.catalogo().actual()==null||!r.catalogo().actual().codigoPublico().equals(input.revisionComercial()))throw conflicto("La referencia comercial cambió. Actualizá la revisión y volvé a elegir el ejemplo.");
+        if(r.bloqueos()>0)throw conflicto("Corregí los bloqueos de la revisión integral antes de simular el recorrido completo.");
+        var item=input.item();var opcion=r.opciones().stream().filter(o->o.sucursal().equals(input.sucursal())&&o.servicio().equals(item.servicio())&&o.formato().equals(item.formato())&&o.papel().equals(item.papel())&&o.color()==item.color()&&(!item.dobleFaz()||o.dobleFaz())&&o.terminaciones().containsAll(item.terminaciones())).findFirst();
+        if(opcion.isEmpty())throw conflicto("El ejemplo no tiene servicio, tarifa y capacidad global compatibles con el destino elegido.");
+        var precio=precios.calcular(r.catalogo(),item);
+        var temporal=entrega.simular(codigo,new EntregaConfiguracionController.SimularEntrega(input.version(),input.sucursal(),input.modalidad(),input.recibidoEn(),input.punto(),input.territorio()),correo,precio.minimoPreparacionMinutos());
+        String costo=temporal.destinoPunto()!=null?temporal.destinoPunto().costo():temporal.destinoZona()!=null?temporal.destinoZona().costo():"0.00";
+        BigDecimal total=new BigDecimal(precio.subtotal()).add(new BigDecimal(costo));precios.limite(total);
+        var economica=finanzas.evaluar(b.modelo(),b.criterio(),b.pagos(),b.version(),total,precio.carillas());
+        var impresoras=b.recursos().impresoras().stream().filter(p->OpcionesImpresion.compatible(p,item.formato(),item.color(),item.dobleFaz())).map(p->new Impresora(p.codigoPublico(),p.nombre())).toList();
+        var recorrido=new ArrayList<String>();recorrido.add("Cotización de ejemplo con la revisión comercial "+r.catalogo().actual().numero()+": ARS "+total.toPlainString()+". Vigencia configurada: "+b.pagos().vigenciaCotizacionMinutos()+" minutos.");
+        recorrido.addAll(economica.instrucciones());recorrido.add("Archivo: carga y almacenamiento privado antes del pago, inspección y cotización; la autorización para producir depende del anticipo acreditado y las demás reglas.");
+        if(economica.revisionHumana())recorrido.add("Revisión humana: aprobar o pedir correcciones. Si la seña se exige después de aprobar, producción espera su acreditación.");
+        recorrido.add("Reloj del ejemplo: supone ya resueltos los requisitos anteriores; preparación comienza según la apertura del origen. El mínimo de los servicios seleccionados también se respeta.");
+        recorrido.add("Asignación manual a una impresora compatible; registrar producción, control de calidad y eventual reimpresión. Ningún trabajo se envía a CUPS.");
+        recorrido.add(switch(input.modalidad()){case RETIRO_SUCURSAL->"Calidad aprobada → Listo para entregar en local; no pasa por En viaje.";case RETIRO_PUNTO_ENTREGA->"Calidad aprobada → En viaje al punto → llegada/listo para retirar → entrega efectiva al cliente.";case ENVIO_DOMICILIO->"Calidad aprobada → En viaje al domicilio → entrega efectiva al cliente.";});
+        recorrido.add("Antes de entregar se verifican el saldo y el código. La entrega efectiva y el cierre financiero se registran por separado.");
+        var notas=new ArrayList<>(temporal.advertencias());notas.add("El ejemplo usa datos declarados de un PDF homogéneo; no valida ni carga un archivo, ni crea cotización, pedido, reserva o pago.");notas.add("Los mínimos de preparación de servicios no se suman: se respeta el mayor y el tiempo global. Los avances reales pueden adelantar o demorar el recorrido.");
+        return new Simulacion(b.version(),r.catalogo().actual().codigoPublico(),precio,costo,total.toPlainString(),economica,temporal,impresoras,List.copyOf(recorrido),List.copyOf(notas));
+    }
+    private ResponseStatusException conflicto(String mensaje){return new ResponseStatusException(HttpStatus.CONFLICT,mensaje);}
+}

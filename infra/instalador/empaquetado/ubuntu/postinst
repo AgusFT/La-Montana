@@ -1,0 +1,12 @@
+#!/bin/sh
+set -e
+case "$1" in
+ configure)
+DESKTOP_COMMANDS_INSTALL
+  # La apertura es auxiliar: nunca convierte un paquete configurado en fallido.
+  /bin/bash /opt/lamontana-instalador/lib/app/apertura-ubuntu.sh programar || printf '%s\n' 'La Montaña: abrí LaMontanaInstalador desde el menú de aplicaciones.'
+  ;;
+ abort-upgrade|abort-remove|abort-deconfigure) ;;
+ *) exit 1;;
+esac
+exit 0

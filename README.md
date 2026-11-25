@@ -1,0 +1,418 @@
+# La Montaña · piloto v0.1
+
+Aplicación local con Spring Boot, Next.js y PostgreSQL para una imprenta con varias sucursales. El administrador configura el sistema desde cero; los clientes particulares cotizan PDF y el personal completa revisión, producción manual, calidad, entrega y cierre. No hay cuentas, sucursales, precios, reglas comerciales ni pedidos de muestra precargados. La implementación de Supabase quedó sustituida y permanece solamente en el historial Git.
+
+## Estado actual · demo v0.1 y plan v6 completos
+
+**Certificación histórica de la revisión 6 (23/09/2026):** la demo cumplió los once criterios originales y los nueve agregados en esa revisión. Su suite completa aprobó 165 pruebas; backend y frontend compilan, incluido el tipado. La aceptación conserva la evidencia original de modelos manual/condicionales, permisos, D1/D2 y las tres modalidades de entrega, y agrega regresión de pedidos, pruebas del sitio, instalación vacía, migración, persistencia y presentación responsive.
+
+El configurador operativo conserva el menú general en escritorio y móvil e incluye ayudas en cada fase. Un borrador guarda el avance sin activar reglas: la activación se autoriza en el paso 7. Al salir de un formulario con cambios sin guardar se puede seguir editando o descartarlos; las solicitudes y autorizaciones pendientes se resuelven o revocan desde el formulario. El navegador de fases mantiene visible el paso seleccionado en pantallas angostas.
+
+El panel `/` explica el orden de instalación y permanece accesible con sesión. `/web` es la página pública local: antes de publicar muestra una estructura sin contenido comercial. Antes del propietario, login y registro explican el requisito; después, los clientes pueden registrarse sin activar pedidos. El dashboard muestra el mapa de preparación sólo durante la primera instalación, hasta activar correctamente una configuración. La instalación inicial avanza en orden obligatorio: sucursal → papeles → servicio base → tarifas y servicios publicados → modelo → pagos → impresoras y asignación → horarios y entrega → revisión y activación. El menú, las URL de las pantallas y las fases internas impiden adelantar pasos incompletos, usando requisitos guardados y validados por el servidor. Los pasos anteriores siguen disponibles para corregirlos. Web, empleados y simulaciones son opcionales; las simulaciones se presentan plegadas. Las reglas de las API de escritura se conservan: este recorrido es una restricción de navegación e interacción del frontend. Un borrador o una primera activación programada todavía mantienen el recorrido visible. Después de activar, el mapa desaparece aunque queden complementos pendientes o se preparen nuevas configuraciones; el configurador sigue disponible desde el menú. El estado se consulta al ingresar, volver a la pestaña o restaurar la página, sin mostrar el mapa antes de conocerlo. El configurador web permite importar imágenes de una carpeta local, guardar identidad/fichas/secciones, revisar en privado y publicar expresamente. Los formularios remotos permanecen deshabilitados con «implementacion en desarrollo».
+
+Este README describe el uso de la app y el desarrollo con fuentes. La documentación del instalador y su validación está en `main`, en `marco-del-proyecto/instalador-autohospedado.md`. Los checkpoints históricos se conservan en Git y en el plan local de coordinación.
+
+## Instalación con el asistente
+
+La entrada principal es el paquete nativo de `infra/instalador`: `.deb` para Ubuntu 26.04 y `.exe` para Windows 11 x64. Contiene runtime Java privado, dependencias comprimidas e imágenes de la versión. La disponibilidad de cada plataforma depende de su matriz de pruebas documentada en `main`; Standard tiene su validación pendiente por decisión del usuario.
+
+1. Instalar el paquete nativo y abrir **LaMontanaInstalador**. Se abre Firefox o Chrome; si faltan, se ofrece Firefox incluido.
+2. Verificar dependencias. Usar la copia incluida, una descarga oficial o completar la instalación manual y volver a verificar. En Windows se prepara WSL2 y la distribución propia `LaMontana-Ubuntu` con Docker Engine.
+3. Elegir una carpeta exclusiva de instalación y **Modo Desarrollo**, con acceso solo desde esta PC por defecto. LAN requiere elegir expresamente una IP local.
+4. Elegir un puerto libre y crear las credenciales del propietario. El alta de SOPORTE es opcional y también está disponible después desde **Asistencia de YG Soluciones**. Cada contraseña la define el usuario. Abrir la dirección que muestra el asistente cuando los servicios estén saludables.
+5. Para mantenimiento, seleccionar esa carpeta y el directorio local de respaldos. **Actualizar** usa la versión incluida; **Reparar** exige la misma versión. Siempre se detiene la app y se verifica una copia bruta antes de modificarla. La copia todavía no dispone de un procedimiento de restauración implementado.
+
+Standard necesita una base nueva, dominio/HTTPS, SMTP real y las verificaciones que explica el asistente. No transforma datos de prueba en producción. Su aceptación de extremo a extremo queda pendiente: no se presenta como producción validada.
+
+El asistente distingue instalaciones creadas por él mediante `instalacion.properties`. Si detecta recursos del Compose anterior sin ese manifiesto, los informa y conserva; requiere revisión presencial, sin adoptar una versión o unos datos que no puede identificar con certeza.
+
+`infra/iniciar-local.sh` abre el lanzador instalado o explica cómo instalarlo. No vuelve a construir contenedores implícitamente.
+
+### Desarrollo con el código fuente
+
+Esta alternativa explícita conserva el Compose del repositorio para editar y reconstruir la app. Requiere Docker/Compose ya accesibles e Internet para la primera construcción. No ofrece las garantías de mantenimiento del asistente.
+
+Desde la raíz del checkout `desarrollo`:
+
+```bash
+./infra/iniciar-desde-fuentes.sh
+```
+
+El script prepara `.env`, credenciales técnicas y la carpeta `datos/imagenes-web/entrada`, y ejecuta `docker compose up --build --detach --wait`. No publicar `.env`. El técnico no necesita usar esta vía para instalar los paquetes nativos.
+
+| Servicio del Compose de fuentes | Dirección predeterminada |
+|---|---|
+| Aplicación | http://localhost:3000 |
+| Backend / salud | http://localhost:8080/actuator/health/readiness |
+| Mailpit | http://localhost:8025 |
+| PostgreSQL | localhost:5432 |
+
+Los puertos del asistente se calculan y muestran por instalación; esta tabla solo corresponde al Compose de fuentes. Para este último, ver `.env.example` (`FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT`, `MAILPIT_PORT`). No cambiar `DB_PASSWORD` después de inicializar PostgreSQL sin un procedimiento de cambio de contraseña.
+
+```bash
+docker compose ps
+docker compose logs --tail=100 backend frontend
+docker compose stop
+docker compose up --detach --wait
+```
+
+Los volúmenes conservan base, archivos, correo, firmas e imágenes web. No usar `docker compose down --volumes` para detener la app: elimina datos. ClamAV y los otros servicios necesitan memoria suficiente; el tamaño del instalador no representa el consumo de ejecución.
+
+## Primera instalación y acceso
+
+El asistente crea al propietario durante la instalación y permite dar de alta la cuenta de soporte. El Compose de fuentes conserva su alta manual:
+
+1. Abrir `.env` localmente y copiar `SETUP_TOKEN` al formulario `/instalacion`. Ingresar nombre, apellido, correo y contraseña propios, de 12 a 128 caracteres. No hay un administrador predeterminado. Un token manual debe tener al menos 32 caracteres.
+2. Entrar por `/acceso`. La primera alta se cierra definitivamente; reiniciar o conservar el token no permite crear otro propietario.
+3. Verificar el correo desde Seguridad de la cuenta. Mailpit recibe los códigos de verificación, recuperación y autorización; no se envían mensajes a proveedores externos.
+4. Crear sucursales y empleados. Cada empleado recibe una contraseña inicial elegida por el administrador, debe cambiarla al ingresar y sólo ve sus sucursales activas asignadas. Elegir expresamente sus permisos de revisión, producción, calidad, entrega, cierre y finanzas.
+5. Crear catálogo y completar las fases del configurador. Mientras no haya configuración activa utilizable, el cliente puede acceder a su cuenta pero no cotizar un trabajo ofrecible.
+
+El registro público `/registro` crea únicamente particulares. No inicia sesión ni verifica el correo automáticamente. `/recuperar` y `/cuenta/seguridad` permiten recuperar acceso, verificar correo y cambiar contraseña. Desactivar una cuenta o cambiar su correo revoca sus sesiones; las asignaciones y permisos se revalidan en cada operación.
+
+## Casa matriz por versión · V41
+
+Cada configuración nueva debe seleccionar y confirmar una única sucursal activa como **casa matriz** en Fase 5. Los borradores heredan la selección anterior, pero requieren confirmarla nuevamente. Su calendario es la referencia de preparación de toda la imprenta; las otras sucursales pueden atender solo retiros, sin producción. Retirar en matriz no suma traslado; otra sucursal, punto o domicilio sí. Los recursos y servicios permanecen globales.
+
+La ficha de sucursal permite **proponer** una matriz sin reemplazar la vigente. La revisión impide activar o programar sin una selección válida y confirmada. No se puede desactivar la matriz vigente o programada sin resolver primero su reemplazo. Las versiones legadas no reciben una elección arbitraria ni cambian los pedidos confirmados. El timeline registra salida/llegada reales para retiros externos, sin esperar al estimado ni confundir llegada con entrega física.
+
+Detalle funcional, compatibilidad, límites del cliente y pruebas: [Casa matriz y retiro versionado](docs/casa-matriz-y-retiro-versionado.md). La reorganización completa del formulario inicial del cliente sigue pendiente; esta entrega no la presenta como terminada.
+
+## Configuración, catálogo y sucursales
+
+**Servicios y precios** abre primero **Catálogo base**. Habilitá papeles habituales con tamaño incluido: A4, A3, A5, A6, Carta, Oficio/Folio (8½ × 13) y Legal (8½ × 14), en papel común blanco sin estucar de 75, 80 o 90 g/m². Las opciones están precargadas localmente, pero ninguna se habilita sola en una instalación nueva. Los papeles se muestran agrupados por tamaño: una tarjeta A4, A3, etc., con sus medidas una sola vez, el contador de variantes habilitadas y casillas independientes para 75, 80 y 90 g/m². Activar o desactivar un gramaje conserva los demás. **Mis papeles registrados** también se agrupa por tamaño y permite desplegar los materiales y gramajes guardados. **Agregar todos los papeles** habilita todas las variantes en una sola acción, sin duplicar las ya registradas. Después se pueden deshabilitar individualmente. La operación es atómica y puede reintentarse; no modifica papeles personalizados ni publica precios. Seleccioná el gramaje que figura en la resma y comprobá que tu equipo admita ese papel. Para otros materiales o medidas, usá **Agregar papel personalizado** e ingresá código, nombre, ancho, alto, gramaje y terminación; el sistema guarda juntos el papel y su tamaño. Los íconos dentro de Código explican su uso y formato por mouse, teclado y toque, tanto en papel personalizado como en servicio.
+
+Después agregá servicios y continuá a **Tarifas y servicios**. En **Agregar servicio**, Nombre permite escribir libremente o elegir entre Impresión, anillado, plastificado, encuadernación, corte y refilado, plegado y abrochado. Elegir una sugerencia completa nombre, código legible y tipo; todos siguen editables antes de guardar. Los servicios predefinidos ya agregados dejan de aparecer como sugerencia; sus códigos y nombres no pueden duplicarse mediante sufijos. Escribir o editar el nombre no reemplaza los otros campos. Seleccionar una sugerencia no crea el servicio ni publica precios. Las tarifas seleccionan hojas y variantes por tarjetas; las compatibilidades de terminaciones eligen el papel con su tamaño en un selector con búsqueda. Cambiar entre pestañas conserva los formularios abiertos. Habilitar/deshabilitar en el catálogo base controla qué papeles se pueden usar en nuevas configuraciones; no cambia por sí solo los precios vigentes, las configuraciones programadas ni los pedidos. Para retirar un papel ofrecido, deshabilitá sus tarifas y guardá una nueva configuración comercial. La migración V37 conserva las combinaciones anteriores y sus identificadores.
+
+**Tarifas** separa Tarifas de impresión, Tarifas de servicios y la revisión de Servicios ofrecidos antes de la publicación. Impresión no es obligatoria en el Catálogo base; B/N y Color son variantes de su tarifa. Al agregar una tarifa, primero elegí color o blanco y negro. Debajo aparecen tarjetas de las hojas habilitadas, agrupadas por tamaño, con sus variantes de gramaje/material. Podés seleccionar todas, tocar el encabezado de una tarjeta para elegir todas sus variantes o marcar sólo algunas. El buscador filtra desde dos caracteres (`A4 80`); seleccionar todas abarca las disponibles aunque haya un filtro. Una combinación de papel y color sólo pertenece a una tarifa: las usadas en otra se indican y no se sobrescriben. El lápiz junto al nombre permite renombrar la tarifa; el nombre y la selección se conservan al guardar y recargar.
+
+Todos los importes finales se muestran en **ARS (pesos argentinos)**. Simple faz es el precio de una hoja impresa en una cara. Para **doble faz por hoja con sus dos caras impresas** elegí:
+
+- **Ingresar precio final:** independiente de simple faz, incluso si es menor.
+- **Sumar un importe:** simple faz + un monto fijo en ARS.
+- **Sumar un porcentaje:** simple faz + el porcentaje indicado; escribir `10` significa sumar 10 %.
+
+La pantalla muestra siempre ambos resultados. Las modalidades relativas se recalculan al editar simple faz. Se admiten coma o punto decimal, hasta dos decimales, sin separadores de miles, símbolos ni valores negativos. El precio doble faz se redondea a centavos por hoja antes de multiplicar. Si el documento tiene páginas impares, la última hoja se cobra a simple faz **por cada copia**, sin juntar páginas entre ejemplares. Ejemplo: simple ARS 30 y doble ARS 40; tres páginas cuestan ARS 70 por copia y ARS 140 por dos copias, antes de terminaciones.
+
+Las tarifas anteriores conservan su cálculo por carilla y se identifican como tales. **Cambiar al cobro por hoja** propone el importe equivalente de dos caras; revisar el resultado antes de guardar, porque la hoja impar pasa a simple faz. La migración V38 agrega campos sin reescribir importes, historial ni comprobantes. Editar sólo el nombre, un servicio o la selección no convierte implícitamente una tarifa anterior.
+
+Los íconos de información explican tarifas, servicios, importes, preparación, unidades, compatibilidades y guardado; funcionan con mouse, teclado y toque. Los servicios de impresión toman su precio de las tarifas y no agregan un segundo cargo. El nombre de un servicio no restringe el color: los modos disponibles dependen de las tarifas habilitadas. Las terminaciones suman su precio por copia completa del documento, hoja física, carilla o un cargo fijo por ítem (documento), según la base elegida. Sus compatibilidades de papel son opcionales cuando el trabajo no depende de una hoja. Una prestación independiente no necesita una tarifa de impresión. La preparación se ingresa en minutos; el ítem usa el máximo entre los servicios, no la suma.
+
+**Modelo comercial desde V39.** Catálogo base define la identidad de los trabajos: una sola Impresión y los adicionales independientes. Los servicios predefinidos no se duplican; un servicio sin referencias puede quitarse físicamente durante la primera instalación y uno con referencias se desactiva, conservando las versiones anteriores. Desactivar el maestro impide ofrecerlo en una configuración nueva, pero no modifica la vigente. Tarifas de impresión muestran cobertura de cada papel y gramaje para B/N y Color; las combinaciones sin precio no se ofrecen. Tarifas de servicios muestran cuántos trabajos se habilitan, su forma de cobro, importe, preparación y compatibilidades. Servicios ofrecidos resume nombres y habilitación sin tarifar dos veces. Las guías de Catálogo base, Tarifas de impresión y Tarifas de servicios tienen progreso independiente; aplicar al borrador no publica. La primera publicación es inmediata si no se programa.
+
+**Límite operativo actual:** se puede guardar una configuración comercial compuesta solo por otros servicios, pero el flujo de cotización y pedido del cliente todavía presupone un PDF para Impresión. La revisión de configuración operativa muestra un bloqueo explícito para ese caso y no permite activar un negocio que aparentaría aceptar pedidos sin poder cotizarlos. Queda pendiente un contrato de cotización para trabajos independientes antes de levantar ese bloqueo. Las configuraciones e importes históricos no se reescriben.
+
+El motor operativo tiene una guía visual independiente por fase, comenzando en la fase 1. Señala los controles reales con un recorrido contextual y se puede reabrir con `?`; durante la primera instalación aparece una vez por fase para el administrador. En la fase 1 adapta el texto a la versión activa, al borrador y a una activación programada. Omitir o cerrar una guía no guarda, valida ni salta fases. El avance de las guías es local a cada administrador y separado de las guías de Catálogo y Tarifas.
+
+Antes de aplicar, completá el motivo y elegí vigencia inmediata o programación. La programación conserva hora UTC con explicación de su equivalencia argentina. Editar o quitar tarjetas no publica cambios hasta confirmar. El borrador se conserva entre pestañas, pero recargar o salir sin guardar lo descarta. Se conservan los controles de concurrencia, reintento del mismo envío y bloqueo ante una programación pendiente. Las configuraciones consultadas muestran importes ARS y detalle de cada papel en tarjetas adaptables.
+
+Dimensiones de referencia: [documentación oficial Brother](https://support.brother.com/g/s/id/htmldoc/mfc/cv_mfc3940dw/chne/html/GUID-746E196D-FA75-481C-9A1D-3C471CD90A96_1.html). Las opciones de gramaje son elecciones iniciales de la demo; no certifican compatibilidad universal de impresoras.
+
+El catálogo mantiene servicios de impresión y terminaciones, tarifas por papel/color, compatibilidades y bases de cobro. Las tarifas nuevas cobran por hoja simple o doble; las anteriores mantienen su cálculo por carilla hasta conversión explícita. Impresión toma la tarifa sin sumar un precio base duplicado. Las terminaciones pueden cobrarse por copia, hoja, carilla o importe fijo por ítem. Los importes ARS se calculan con decimales exactos y hasta dos decimales; no se admiten precios negativos ni duplicados.
+
+Los precios son globales y sus configuraciones comerciales son independientes de las versiones operativas. Se puede publicar de inmediato o programar una fecha UTC, consultar el historial y cancelar una programación con motivo. Hay como máximo una programación comercial pendiente; el servidor reconcilia las fechas al consultar y periódicamente, también después de reiniciar. No se reescribe una configuración anterior.
+
+El dashboard administrativo muestra recuentos y listas reales por sucursal para revisión, correcciones, aprobados, producción y entregas pendientes. Los enlaces abren la bandeja con el filtro correspondiente. Una consulta fallida muestra datos no disponibles, nunca un cero inventado. El marco visual es común con empleados, pero sus menús y accesos siguen limitados por rol/sucursal. Los informes de facturación agregada, alertas automáticas y actividad global del mock no se simulan.
+
+El configurador presenta ocho fases: configuración actual, modelo, pagos, recursos, horarios/entregas, revisión y simulación, activación y versiones/historial. Permite guardar borradores incompletos, pero bloquea la activación mientras falten datos o existan incompatibilidades.
+
+| Modelo | Comportamiento configurable |
+|---|---|
+| Manual | Revisión y aprobación humanas; seña opcional según carillas/importe. La seña aplicable debe estar acreditada y aplicada antes de aprobar/producir, no antes de cargar. |
+| Pago total previo | PDF privado y pedido antes del pago; total acreditado y aplicado por transferencia antes de aprobar/producir. |
+| Seña previa | PDF privado y pedido antes del pago; seña acreditada y aplicada antes de aprobar/producir. Efectivo opcional para el saldo. |
+| Aprobación según monto | Hasta el umbral inclusive no se exige seña por esa regla. Por encima aplica la seña configurada, sin revisión humana automática. Saldo antes de entregar. |
+
+**Regla vigente · 27/10/2026:** el PDF se recibe/valida privado y el pedido puede crearse antes de acreditar. Fase 3 separa plazo comercial (minutos/horas/días), recordatorio opcional y conservación certificada de 24/48/72 h desde el vencimiento. Informar pago, presentar comprobante o una intervención pendiente suspenden la purga en backend. Casos tardíos/rechazados y cancelaciones con dinero requieren resolución administrativa; borrar contenido nunca borra historia. Ver [contrato de pagos y archivos](docs/pagos-archivos-y-retencion.md) y [RN/RF/HU/CU y wireflows](docs/trazabilidad-pagos-archivos.md). Reemplaza las leyendas anteriores de pago antes de subir PDF.
+
+Medios generales, instrucciones de transferencia, vigencia de cotización, umbrales, porcentajes y montos se ingresan expresamente. No existe la antigua regla fija de 200 carillas/30%. La seña fija se limita al total; porcentajes se redondean a centavos con HALF_UP, sin inventar un cargo mínimo si el resultado es cero.
+
+Las impresoras y capacidades pertenecen globalmente a la imprenta. Cada equipo puede indicar una sucursal como **ubicación interna opcional**, incluso si esa sucursal está desactivada, pero esa referencia no habilita ni limita servicios, papeles, tarifas, cotizaciones o asignaciones. Una impresora puede quedar sin ubicación. El cliente no elige el lugar de producción; el equipo interno decide dónde realizar cada trabajo. Declarar un recurso no afirma conexión física ni existencia de papel. CUPS y telemetría quedan fuera del piloto. El campo **Código** de las sucursales incluye un ícono de información que explica su uso interno, la unicidad y el formato recomendado (por ejemplo, `CABA-01`). La ayuda se abre al pasar el mouse, con foco de teclado o al tocar el ícono; se puede cerrar con Escape o al salir. El código admite hasta 40 letras sin tildes, números, guiones y guiones bajos, se guarda en mayúsculas y queda fijo al crear la sucursal.
+
+Al crear o editar una sucursal se elige provincia/localidad de Argentina y se marcan los días de atención con Desde/Hasta. La zona horaria se detecta automáticamente y se muestra como GMT; el identificador IANA se conserva internamente. Cada día admite un intervalo continuo, sin cruzar medianoche. **Aplicar al resto de días habilitados** copia Desde/Hasta de ese día a los demás días abiertos y reemplaza sus horarios; los cerrados permanecen sin horas. Requiere un horario de origen válido y al menos otro día abierto. Después se puede editar cada día por separado y guardar la sucursal. Los días no marcados quedan cerrados y debe haber al menos un día abierto.
+
+El horario habitual se guarda en la ficha de la sucursal. Al agregar su calendario en la fase 5 se copian esos horarios; un calendario existente dispone de **Usar horario guardado de la sucursal** con confirmación de reemplazo. Las franjas de retiro se conservan y son independientes del horario de producción. Pueden atender pedidos listos fuera de ese horario si hay personal para entregar; se muestra un aviso para revisarlo. Guardar la ficha no cambia versiones activas ni pedidos: los cambios operativos requieren guardar/revisar/activar el borrador. Las sucursales anteriores recuperan el horario activo completo cuando existe; en otro caso se indica pendiente, sin inventar horarios.
+
+Los calendarios operativos definen los siete días y horas de atención; preparación y traslado consumen ventanas operativas de la sucursal de origen. Los ejemplos explican el cálculo, sin crear pedidos ni garantizar tiempos reales de transporte.
+
+- **Retiro local:** franjas dentro del calendario, con cupos explícitos de pedidos completos. No hay viaje.
+- **Puntos de entrega:** identidad estable, dirección y zona horaria; cada relación con un origen tiene costo y franjas/cupos propios. Su disponibilidad temporal se decide por separado, sin crear otra versión. Deshabilitarlo no cancela compromisos existentes; nuevas ofertas, confirmaciones y reprogramaciones revalidan su disponibilidad.
+- **Domicilio:** zonas y cobertura territorial globales, costo y franjas/cupos configurados. La capacidad compartida entre sucursales se reserva bajo la misma identidad de zona.
+
+Cupo cero no significa ilimitado. Las franjas no pueden superponerse; consultar una fecha o simular no reserva. Confirmar reserva atómicamente y reprogramar tras aceptación sustituye la reserva. Los pedidos cancelados/liberados o cumplidos no ocupan capacidad activa.
+
+## Activación, versiones y recuperación
+
+Sólo el borrador es editable. Se revisan los parámetros y condiciones actuales, se reconocen advertencias y se elige activación inmediata o programación. Activar, programar, adelantar, cancelar un borrador/programación o revertir exige las credenciales/autorizaciones propias de cada recorrido: contraseña y código de correo vinculado al propósito y contenido revisados. Cambiar contenido o condiciones relevantes obliga a revisar de nuevo.
+
+La publicación conserva la versión anterior como histórica y registra responsable, motivo, fechas previstas/efectivas e intentos. Una falla no publica contenido parcial. Una programación persiste y se recupera al reiniciar; la fecha efectiva puede ser posterior si el servicio estaba detenido. Un intento manual fallido no se ejecuta otra vez al repetir su comando: se recupera el resultado y un intento nuevo requiere autorización nueva.
+
+El historial permite filtros, paginación, detalle y comparación. **Usar como base** copia una activa/histórica a un borrador con las mismas identidades de recursos; exige volver a guardar/revisar las fases. No copia precios, disponibilidad temporal ni autorizaciones. No se permite abrir otro borrador mientras exista preparación/programación/activación incompatible.
+
+**Reversión manual** publica una nueva versión con el contenido de la predecesora efectiva, validado contra las condiciones actuales. Conserva la historia y los precios comerciales actuales; no restaura una copia de la base ni modifica pedidos/pagos. Si hay una programación, su cancelación debe reconocerse y se confirma junto con la reversión. Un fallo conserva la activa y la programación anteriores.
+
+## Página web local e imágenes
+
+Abrí **Configurador de página web** desde el menú del propietario. El recorrido es identidad → funcionamiento local/carpeta → biblioteca → fichas → contenido/vista previa → revisión/publicación. Se puede guardar un borrador incompleto y retomarlo; guardar e importar nunca publican. La vista previa requiere sesión de propietario. **Publicar página web** exige revisar y confirmar el contenido; registra autor, fecha y versión sin cambiar precios, pedidos ni configuración operativa. Un conflicto de pestañas conserva los campos y permite consultar la versión guardada antes de decidir cómo continuar.
+
+El Compose de fuentes prepara `datos/imagenes-web/entrada/` dentro del proyecto, fuera de Git. El asistente utiliza la carpeta `entrada/` del directorio de instalación seleccionado. Copiá ahí tus JPEG, PNG o WebP y elegí **Actualizar carpeta**. El panel muestra su ruta absoluta y permite entrar en subcarpetas. **Importar a biblioteca** conserva una copia; **Importar y usar** además prepara su asociación a logotipo, portada o ficha. Completá los textos alternativos, guardá y publicá expresamente cuando esté listo. Las fichas son presentación de productos/servicios; no agregan carrito ni un circuito de compra nuevo.
+
+Cada imagen admite hasta 10 MiB y 25 millones de píxeles. Se valida el contenido real, se decodifica y se generan PNG sin metadatos y miniaturas de hasta 480 px. WebP utiliza el lector local TwelveMonkeys ImageIO 3.14.0. La entrada se monta de sólo lectura; se rechazan rutas fuera de ella, enlaces simbólicos, archivos especiales y contenido inválido. Los errores se muestran por archivo y no eliminan importaciones anteriores. Los PDF de clientes siguen separados y privados.
+
+Reimportar el mismo contenido reutiliza la copia. Reemplazar un original genera otro recurso; renombrarlo o quitarlo no rompe la copia importada. Quitar una asociación sólo cambia el borrador: las copias se conservan para las versiones que las referencian. No hay una acción de borrado de biblioteca en esta demo. La publicación verifica la integridad de sus imágenes y conserva el sitio anterior si falla. Una respuesta incierta permite repetir la misma operación sin duplicar importaciones o publicaciones.
+
+Para otra carpeta, definir `WEB_SOURCE_DIR=/ruta/absoluta` en `.env` o en el entorno y ejecutar otra vez `infra/iniciar-desde-fuentes.sh` para recrear el montaje. Debe tener permisos ordinarios de lectura y acceso para el usuario del contenedor; no usar `chmod 777`. El formulario sólo elige subcarpetas de esa entrada, no monta otras carpetas del host. La biblioteca se conserva en `imagenes_web_data` y no depende de la carpeta original.
+
+La landing está en `http://localhost:3000/web` o `http://127.0.0.1:3000/web`, ajustando el puerto si corresponde. Usá el mismo host durante cada sesión porque las cookies de localhost y 127.0.0.1 son distintas. No requiere IP pública, CDN, fuentes remotas ni Internet durante el uso local de la web ya instalada. Los formularios de dominio/proxy/servidor remoto son informativos, grises y deshabilitados con «implementacion en desarrollo»; no guardan credenciales ni ejecutan despliegues.
+
+## Recorrido del cliente y PDF
+
+**Actualización implementada · 27/10/2026:** el recorrido nuevo separa presupuesto global, origen productivo interno y destino de entrega. No se pide una sucursal productiva ni se elige una arbitraria. El backend deriva la casa matriz confirmada de la configuración activa. Ver [contrato, componentes, migración y pruebas](docs/cliente-tres-etapas.md).
+
+La fase 4 conserva el parque global de impresoras y la ubicación interna opcional. El catálogo comercial no depende del destino de retiro. Una sucursal puede recibir un pedido sin tener impresoras. La asignación sigue siendo interna y manual.
+
+### Cliente · tres etapas
+
+**Presentación compacta:** la preparación muestra archivos, opciones y adicionales en paneles, con un único editor para el PDF seleccionado. La confirmación reúne trabajo, entrega y pago, con total y acción final al costado en escritorio. El visor se abre en una ventana propia y conserva la aceptación obligatoria de todas las páginas. En móvil los módulos se reordenan. Ver [criterios y verificación de la mejora UX/UI](docs/cliente-paneles-compactos.md).
+
+1. **Prepará tu trabajo** (`/cliente/cotizaciones/nueva`): hasta 20 PDF privados de 10 MiB cada uno. El servidor inspecciona y cuenta las páginas antes de presupuestar. Cada PDF tiene servicio, tamaño, papel/gramaje, impresión, simple/doble faz y copias inicialmente en 1. Los servicios adicionales compatibles se presentan aparte. Se calcula el subtotal en backend, sin entrega ni pago.
+2. **Revisá y confirmá** (`/cliente/preparaciones/{id}`): una sola pantalla con trabajo, subtotal, destino, medio de pago, total actualizado, estimación y condiciones. El servidor recalcula al cambiar entrega/pago. Se revisan/aceptan todas las páginas y se acepta expresamente el resumen definitivo. Crear pedido acepta la oferta y confirma atómicamente con versión, huella y operación idempotente; no equivale a aprobar ni imprimir.
+3. **Seguí tu pedido** (`/cliente/pedidos/{id}`): número persistido, timeline, trabajo, archivos autorizados, importes acreditados/aplicados, saldo, destino y acciones permitidas. Los pagos se informan desde el pedido. Una transferencia informada no acredita dinero.
+
+La preparación se guarda por cliente en el servidor, incluyendo PDF inspeccionados y presupuesto. Recargar no obliga a volver a cargar esos PDF. Las selecciones todavía no presupuestadas permanecen en la pantalla y no se presentan como guardadas. Quitar un PDF invalida el presupuesto; para reemplazarlo se quita y se carga el nuevo. Las respuestas inciertas se recuperan con la misma operación antes de habilitar otras escrituras.
+
+La confirmación comprueba integridad, privacidad, reglas actuales y cupo. Congela oferta y condiciones, y cierra la preparación. Los pedidos ya aceptados no se reescriben al cambiar tarifas, motor o casa matriz. La revisión/aprobación y la acreditación del anticipo aplicable siguen bloqueando producción. La versión vieja de cotización y sus contratos permanecen para ofertas anteriores y correcciones controladas; no son el recorrido nuevo.
+
+Las guías reutilizan `GuidedTour`: opcionales, independientes por etapa, spotlight, auto-scroll, cierre y botón `?` para reabrir desde el principio. Omitirlas no omite validaciones. Los mocks MC-CLI-002 a 006 guían la composición, no sus datos ni reglas antiguas.
+
+### Seguimiento visual del cliente
+
+**Detalle compacto:** el paso 3 reúne número y estado en la cabecera, presenta trabajo, saldo real y destino en paneles, y permite desplegar el recorrido completo, el historial y las opciones. La lista de PDF queda acotada y las secciones conservan los formularios al alternar. Ver [alcance y verificación del detalle compacto](docs/cliente-detalle-compacto.md).
+
+El inicio y el detalle comparten un timeline del pedido. Se combinan el estado general y el estado logístico devueltos por el servidor, usando la modalidad y las condiciones guardadas del pedido. La revisión humana aparece cuando fue requerida o registrada; una aprobación directa no simula esa revisión. Una configuración nueva del motor no reconstruye el recorrido de pedidos anteriores.
+
+El retiro en casa matriz (y el retiro local legado) no incluye viaje. El retiro en otra sucursal sí agrega preparación de envío, viaje y llegada real al destino, usando la versión confirmada del pedido. Los envíos distinguen preparación, preparado para salir y en viaje; los puntos de entrega agregan disponible en el punto. Entregado y Cerrado son etapas distintas. Producción y calidad se muestran juntas porque el estado global actual no publica una etapa de calidad independiente. Una corrección vuelve a mostrar la intervención pendiente, sin conservar la aprobación como completada. Cancelado/Rechazado detienen el recorrido y conservan sólo los hitos registrados.
+
+Las fechas provienen de hechos guardados. No se inventan fechas de movimientos logísticos ni porcentajes o plazos para etapas futuras. El detalle recupera las tarjetas de trabajo, archivos, información, pago y destino; el historial de eventos queda desplegable en Resumen e historia. **Actualizar seguimiento** en el inicio y **Actualizar pedido** en el detalle consultan nuevamente el backend. Un estado desconocido o incompatible muestra seguimiento no disponible, sin inferir una entrega.
+
+## Pagos manuales, comprobantes y D2
+
+Informar una transferencia no acredita dinero. El interno con permiso verifica la recepción real, registra referencia, importe, fecha y motivo, y después aplica expresamente el importe a una cotización aceptada. Registrar efectivo requiere su permiso específico. Referencias de transferencia son únicas en la instalación y recibos de efectivo por sucursal. No se genera una transacción bancaria ni se puede aplicar dos veces el mismo dinero.
+
+El panel distingue recibido, aplicado, disponible, pendiente y devuelto. Sólo los medios admitidos pueden cubrir cada requisito; un pago sin aplicar no cubre aprobación ni producción; la carga privada no requiere pago previo. Las cotizaciones antecesoras conservan el historial financiero.
+
+**Pago tardío, D2:** el pago permanece aunque venza la oferta. El cliente solicita y acepta una sucesora; un interno autorizado puede aplicar allí el dinero anterior, mostrando diferencias. No se crea un pedido automáticamente ni se cobra nuevamente lo recibido. Sólo se admite la misma oferta o su cadena de sucesoras del mismo particular, no una billetera genérica. La aplicación entre sucursales exige acceso a origen y destino.
+
+Si el cliente abandona o existe excedente, el personal con permiso registra una devolución efectivamente realizada, con constancia y motivo. No se borra el pago ni se simula una devolución bancaria. Una devolución puede reducir cobertura y bloquear un inicio/reimpresión posterior, conservando los hechos físicos ya registrados.
+
+Los comprobantes son PDF privados de hasta 10 MiB, con inspección, versiones, vista previa y descarga. Pueden acompañar transferencias informadas antes de acreditar; un interno autorizado puede adjuntar recibos de efectivo. No sustituyen el PDF de trabajo, no acreditan por sí solos y no son obligatorios para registrar dinero realmente verificado. No se admiten fotos en este piloto.
+
+## Dashboard administrativo global
+
+El propietario consulta todos los pedidos de la imprenta, sin selector de sucursal. Las bandejas y los enlaces «Ver todos» usan la consulta global y muestran el destino real de entrega, no una sucursal productiva elegida por el cliente. Operación y cobros abre `/administracion/pedidos`; el detalle vuelve a esa bandeja. Los permisos de empleados no se amplían y no se reescriben pedidos históricos. Ver [contrato y pruebas del dashboard global](docs/dashboard-administrativo-global.md).
+
+## Operación, correcciones y producción
+
+Abrir **Operación → sucursal → pedido**. El detalle se organiza en secciones: resumen/historia, revisión, correcciones, producción/calidad, entrega/cierre, reprogramación, PDF y pagos según rol/permisos. Al entrar se muestra la etapa del pedido; los enlaces con fragmento conservan la sección tras recargar. Cambiar de sección conserva borradores en memoria. Recargar vuelve al estado persistido y no conserva cambios sin guardar. Desde calidad el PDF abre en otra pestaña para no perder el formulario.
+
+El personal revisa datos y PDF, registra notas privadas, aprueba, pide correcciones o rechaza. Las notas internas no se entregan al cliente. En control manual la revisión humana precede a la aprobación; el anticipo configurado debe acreditarse y aplicarse antes de aprobar/producir. Superar el umbral de monto no impone revisión humana automática. Cliente o personal autorizado pueden cancelar antes de producción según las acciones disponibles; se libera cupo y se conservan dinero/historia, sin devolución automática.
+
+La solicitud de corrección tiene mensaje para el cliente y motivo privado. El cliente responde con nuevas versiones de PDF aceptadas, contacto corregido o cotización sucesora para cambios materiales. Se conserva el pedido y su recorrido. Una nueva oferta requiere aceptación, revalidación de cupo y aplicación explícita del dinero cuando corresponda; no cambia silenciosamente el precio original.
+
+1. **Iniciar producción manual:** exige aprobación, PDF confirmado íntegro y anticipo acreditado y aplicado. Elegir impresora declarada compatible o recurso manual fuera del inventario con justificación.
+2. **Registrar fin/error/cancelación del trabajo:** son hechos explícitos. Un error permite otro intento enlazado; cancelar un trabajo no cancela automáticamente el pedido ni devuelve dinero.
+3. **Controlar calidad:** impresión completa, calidad, alineación, orden y terminaciones. Aprobar exige los cinco controles, observación y confirmación; no vienen marcados. Reimpresión conserva la inspección fallida y enlaza el intento siguiente sin cambiar el precio.
+4. **Completar todos los ítems:** retiro en matriz queda Listo para entregar; otra sucursal, punto o domicilio requieren completar su despacho. Superar calidad no registra viaje ni entrega.
+
+Las operaciones exigen permisos independientes y asignación actual a la sucursal. Versiones, bloqueos y comandos idempotentes evitan trabajos/decisiones duplicados. Un empleado puede producir, controlar calidad y entregar sin permisos para modificar finanzas.
+
+## Entrega, reprogramación y cierre
+
+| Modalidad | Recorrido logístico |
+|---|---|
+| Retiro en sucursal | Listo para entregar → recepción física. Nunca En viaje. |
+| Punto de entrega | Preparar envío → salida/En viaje → llegada al punto → recepción física. |
+| Domicilio | Preparar envío → salida/En viaje → recepción física. |
+
+El cliente genera el código cuando va a recibir el pedido. Se muestra sólo en esa vista y no se almacena como texto en la base ni en almacenamiento persistente del navegador. Vence en 30 minutos, admite cinco intentos incorrectos y puede renovarse después de 30 segundos, revocando el anterior. Recargar pierde el texto y permite generar otro; recuperar una emisión incierta no vuelve a revelar el secreto.
+
+El interno valida el código presentado. La validación dura como máximo diez minutos, vinculada a actor, reserva y versión. **Confirmar entrega física** exige esa validación, recorrido/calidad completos, saldo y anticipos cubiertos, receptor, motivo y confirmación expresa. El código no cobra ni entrega por sí solo. La constancia cumple la reserva y deja el pedido Entregado.
+
+**Cerrar pedido** es una acción separada con permiso propio. Exige entrega, dinero conciliado, excedentes devueltos e informes pendientes resueltos. Conserva responsable e importes; no crea cobros ficticios. El circuito ordinario no libera dinero aplicado de un pedido cerrado. Un cobro realmente recibido tarde sí puede registrarse y devolverse como disponible; la corrección administrativa del cierre permanece En construcción.
+
+**Reprogramar:** un interno autorizado propone fecha/franja configurada, mensaje y motivo. El cliente acepta/rechaza y el interno puede retirar una propuesta pendiente. Hasta aceptar se conserva la reserva anterior y no se ocupa otro cupo. La aceptación revalida versión activa, destino, disponibilidad y capacidad; cambia la reserva atómicamente, revoca código/validación y conserva historia, precio, pagos y PDF. No reinicia un traslado ya ocurrido. Sólo cambia fecha/franja; modificar trabajo/destino corresponde a corrección material. No se acepta mientras esté en corrección, cancelado, rechazado, entregado o cerrado. Una propuesta obsoleta puede rechazarse o retirarse.
+
+## Alcance excluido y referencia visual
+
+CUPS/agentes, telemetría y automatización de impresoras, pasarelas/conciliación bancaria automática, aplicación mobile, seriales/licencias, reclamos posteriores, empresas/cuenta corriente y conversión DOCX/ODT están **En construcción**. No se simulan mapas, mensajes externos ni movimientos físicos. Producción manual, D2 y correcciones operativas sí son parte funcional de v0.1.
+
+Referencias: DER v3.2 y mocks/flujos de `main` en `3983058e`, más los contratos/mocks de producto configurable en `56f89d40`. Las decisiones posteriores del usuario prevalecen. Se mantienen navegación lateral azul, cabeceras, tarjetas y acciones de Alejandro; el asistente conserva sus fases. El estado vacío reemplaza los datos de ejemplo. Los formularios agregan sucursal, capacidades y cupos necesarios para la operación real. Tablas se desplazan internamente y paneles se apilan en pantallas angostas.
+
+El PDF usa un visor privado compartido; las etapas del pedido se navegan por secciones. El código secreto sólo aparece al cliente, adaptando el ejemplo que lo mostraba al administrador. No hay mock específico del diálogo de reprogramación en main; sigue el contrato del DER §7.6. MC-ADM-001 guió el dashboard con tarjetas de recuentos, cuatro paneles de pedidos y columna de acciones/disponibilidad; se adapta a sucursales y estados efectivos, sin copiar indicadores de facturación o alertas ficticios. MC-ADM-007 guía los tres paneles de calidad, ahora legibles también para empleados. La marca se reconstruyó como SVG compartido desde la silueta, nieve y sol/arco de los mocks; las fuentes consultadas no incluían un logo independiente. El paisaje se adapta a vector decorativo local, sin imágenes remotas. MC-CLI-001 guía acceso/registro/recuperación: cabecera y pie azul, tarjeta central, acción naranja y alta en tostado, conservando etiquetas visibles y errores accesibles. MC-CLI-002 guía el inicio cliente: pedido activo más reciente, seguimiento, últimos cinco pedidos, recuentos reales y entrega del pedido actual. Los pedidos entregados pendientes de cierre cuentan en curso. La cotización conserva su ruta propia. MC-CLI-003/004/005/006 mantienen carga, opciones, resumen azul y seguimiento; la separación de aceptar oferta, acreditar, inspeccionar PDF y confirmar responde a las decisiones D1/D2. No se incluyen WhatsApp, contacto externo, débito, revisión universal, promesas de tiempo ni indicadores inventados de los ejemplos.
+
+## Desarrollo, datos y pruebas
+
+- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. El esquema se modifica mediante migraciones V1–V38; Hibernate sólo valida.
+- `frontend/`: Next.js 16.3.5, React 19.3.0, TypeScript, pnpm 11.19.0 y Node 22/24. App Router, proxy de rutas permitidas y salida standalone.
+- `infra/`, Dockerfiles y `compose.yaml`: servicios, puertos de loopback, salud y volúmenes. Backend/frontend ejecutan como usuarios sin privilegios.
+
+```bash
+mvn -f backend/pom.xml verify
+cd frontend
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
+```
+
+Las pruebas utilizan PostgreSQL real aislado mediante una dependencia de test; no necesitan Docker ni usan H2 o la base de la demo. Requieren un usuario normal y un sistema compatible con esos binarios; las primeras descargas necesitan Internet. El inspector PDF es real; los tests automatizados de backend usan un servidor controlado del protocolo antivirus para respuestas limpias/rechazadas/incompletas. Los recorridos de navegador también se comprobaron con ClamAV real y firmas oficiales, incluido rechazo de EICAR en entregas anteriores.
+
+Para desarrollo sin contenedores se necesitan PostgreSQL, SMTP local y ClamAV con firmas actualizadas. Configurar `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SETUP_TOKEN`, `FILES_DIR`, `SMTP_HOST`/`SMTP_PORT` y `CLAMAV_HOST`/`CLAMAV_PORT`. Para imágenes web, `WEB_SOURCE_DIR` es la entrada real del proceso, `WEB_SOURCE_HOST` su descripción visible y `WEB_LIBRARY_DIR` el almacenamiento persistente de copias. En Docker esas rutas internas las establece Compose. Empaquetar el backend y definir `PDF_INSPECTOR_JAR` como ruta absoluta al mismo jar al arrancar con `java -jar`. El frontend usa `BACKEND_INTERNAL_URL` y `pnpm dev`. No deshabilitar el antivirus para habilitar cargas. El piloto presupone una sola instancia del backend.
+
+Las contraseñas usan PBKDF2 con sal; sesiones JDBC persistentes, cookie HttpOnly/SameSite=Lax y 30 minutos de inactividad. Las mutaciones requieren CSRF, autorización vigente y controles de versión/operación; ningún secreto se guarda en almacenamiento del navegador. Los códigos de correo y entrega tienen límites de intentos/reenvío. El proxy no publica el token de instalación ni directorios privados. Archivos tienen controles de integridad; la inspección se ejecuta en proceso separado con memoria/tiempo limitados. El piloto es local; sus cookies HTTP y correo capturado no constituyen un despliegue público.
+
+Adaptaciones principales del DER: revisiones comerciales separadas; sesiones JDBC; disponibilidad de puntos fuera del snapshot; anticipos y aplicaciones a cotizaciones para D2; archivos/aceptaciones versionados; pedido con tres referencias de configuración/precio y PDF confirmado; trabajos/inspecciones ligados a la versión efectiva corregida; logística separada de estado general; reservas históricas y reprogramación aceptada. El módulo web agrega borrador, biblioteca, publicaciones inmutables, referencias y comprobantes idempotentes separados de la operación. Historial, pagos y contenidos publicados no se reescriben retroactivamente.
+
+**Certificación de la revisión 6, 23/09/2026:** Maven verify aprobó 165 pruebas en 22 clases, sin fallos/errores/omisiones; build Docker de frontend y TypeScript correctos. Diez pruebas específicas cubren permisos de la web, versiones/reintentos/concurrencia, publicación, JPEG/PNG/WebP, límites, enlaces/rutas, integridad y reinicio. Los recorridos con ClamAV real completaron un pedido nuevo con corrección D1, recepción/aplicación de dinero, producción, calidad, código, entrega y cierre, conservando sitio y configuración operativa.
+
+La instalación aislada nueva inició los cinco servicios y migró desde cero a V35. Se comprobaron los accesos antes/después del propietario y la primera publicación sin activar pedidos. La instalación normal se actualizó desde V33 sin cambiar sus datos anteriores ni incorporar contenido de pruebas. En certificación, recrear contenedores conservó las huellas de 91 tablas de negocio y 38 archivos, incluidos imágenes web y PDF privados. Las tablas de sesiones/eventos se verificaron por acceso persistente, porque las pruebas de login modifican sus registros. Se recuperaron borrador, publicación, imágenes, pedidos históricos y sesiones.
+
+La landing funcionó en localhost y 127.0.0.1 sin solicitudes externas, con los contenedores en redes internas sin ruta de salida. La prueba usó imágenes/dependencias/firmas ya instaladas; no afirma que la primera descarga funcione sin Internet. Las evidencias originales de modelos manual/seña/pago previo, D2, permisos por sucursal, reimpresión y logística siguen identificadas por su fecha y versión en el plan; no se presentan como recorridos íntegramente repetidos en v6.
+
+## Recorrido manual del piloto
+
+1. Iniciar con el comando de arriba y crear el propietario desde `/instalacion`. Completar correo, dos sucursales, empleados y permisos expresos; usar Mailpit para los códigos.
+2. Ingresar el catálogo y las tarifas propias. Completar fases2–6 con recursos manuales y calendarios/franjas/cupos para las tres modalidades. Simular, revisar advertencias y activar con contraseña/código.
+3. Registrar un particular y cargar PDF en Crear pedido. Configurar impresión y adicionales; revisar el presupuesto sin elegir destino ni pago. En el resumen único elegir entrega/pago, revisar páginas, aceptar condiciones y crear el pedido incluso sin anticipo. Después acreditar/aplicar desde el usuario autorizado para habilitar aprobación/producción. El control manual conserva su revisión humana.
+4. Recargar durante la preparación y comprobar que se recuperan PDF y presupuesto. Después de crear, consultar el número real, condición económica y timeline desde Inicio o Mis pedidos.
+5. Entrar con un empleado de la sucursal responsable, revisar y aprobar. Si corresponde, pedir corrección y esperar PDF/respuesta/revisión nuevos. Registrar y aplicar el anticipo necesario desde un usuario con permiso financiero.
+6. Registrar inicio/fin manuales; inspeccionar los cinco controles de calidad. Una reimpresión conserva el intento anterior. El resultado listo todavía no constituye una entrega.
+7. Completar el recorrido de retiro, punto o domicilio. Conciliar el saldo, generar el código desde el cliente, validarlo desde el interno y registrar entrega física. Cerrar por separado después de resolver excedentes y movimientos pendientes.
+8. Abrir Configurador de página web, completar los seis pasos, importar/asociar imágenes y guardar. Revisar en escritorio/móvil y publicar. Comprobar `/web` sin sesión; editar un borrador posterior no debe cambiar la publicación actual.
+9. Detener e iniciar con los mismos volúmenes; comprobar acceso, configuración, pedido, historia y PDF. Para explorar D2, conservar una oferta vencida con dinero y aceptar una sucesora antes de aplicar ese dinero; registrar devolución si el cliente abandona.
+
+Los datos sintéticos pertenecen exclusivamente a proyectos aislados de certificación, detenidos al cerrar la verificación y con sus volúmenes conservados. El arranque normal de `lamontana` comienza sin usuarios ni operaciones de ejemplo. No ejecutar `down --volumes` para reiniciar.
+
+Revisión responsive final: 53 vistas/estados generales más los seis pasos del configurador web y la landing, en 320, 360, 390, 600, 768, 820, 1024 y 1440 px (480 comprobaciones). Sin desbordes de página ni errores JavaScript inesperados. Se comprobaron navegación de ida/vuelta, cambios sin guardar, autorizaciones pendientes, tablas/galerías por teclado, menú por toque y diálogos a 320×568, 390×700 y 844×390. Las tablas y las vistas previas grandes mantienen desplazamiento interno; los campos de una línea permiten desplazar texto largo. Se revisaron capturas y se corrigieron menú oculto, espacios de formularios, etiquetas accesibles, fechas que causaban diferencias de renderizado y selección visible de fases. Son pruebas en Chromium con emulación de tamaños/toque; no certifican dispositivos físicos ni Safari/Firefox.
+
+
+### Revisión posterior: sucursales y hora local (23/09/2026)
+
+La demo contempla Argentina: 23 provincias y CABA, con catálogo local basado en [IANA tzdb](https://data.iana.org/time-zones/tzdb/zone1970.tab), sin geocodificación ni conexión externa. El servidor resuelve la zona a partir de la provincia, suficiente para las localidades argentinas cubiertas; no toma como autoridad una zona horaria enviada desde el formulario. Los alias CABA, Capital Federal y nombres sin acentos se reconocen. Para compatibilidad con integraciones v6, la API anterior sin horario de alta puede conservar su zona IANA explícita; el formulario nuevo exige provincia reconocida y horario completo.
+
+V36 agrega `sucursal_horario_atencion` y sólo copia los calendarios activos completos existentes, sin modificar sucursales, borradores ni versiones publicadas. Pruebas de esta revisión: 9 pruebas backend de organización, calendarios, detección y migración V35→V36; compilación/tipado de frontend; alta/edición por navegador, validaciones, recarga y copia explícita al borrador; 14 comprobaciones responsive entre 320 y 1440 px. Las cifras de certificación v6 anteriores corresponden a esa entrega, no a una repetición íntegra en esta revisión.
+
+
+### Revisión posterior: catálogo base guiado (23/09/2026)
+
+Plan revisión 9. Pestañas reales en orden Catálogo base, Tarifas y servicios, Historial; formularios conservados al cambiar de pestaña. Selección local de 21 opciones de papel común con tamaño y gramaje incluidos; alta personalizada atómica y selección del papel completo en tarifas y compatibilidades. Los códigos tienen ayuda accesible. V37 conserva los pares existentes sin alterar revisiones publicadas ni pedidos; deshabilitar una selección afecta a las próximas revisiones.
+
+Verificación: 12 pruebas backend en cinco clases (catálogo, programación, migraciones y cálculo); build de producción y tipado frontend; 11 casos funcionales y 16 comprobaciones responsive del catálogo entre 320 y 1440 px, sin errores JavaScript. Regresión adicional de la ayuda de sucursales: 11 interacciones y cuatro anchos. Chromium con emulación de tamaño/toque. Instalación normal migrada a V37, cinco servicios saludables y huellas de nueve tablas anteriores conservadas; sin datos de prueba incorporados.
+
+
+### Revisión posterior: agregar todos los papeles (23/09/2026)
+
+Plan revisión 10. El botón **Agregar todos los papeles** permite habilitar de una vez todos los tamaños y sus variantes de gramaje precargadas. Muestra progreso, bloquea envíos mientras guarda y queda deshabilitado cuando todos están habilitados. Conserva el control individual, los papeles personalizados y las revisiones comerciales. No requiere migración de base.
+
+Verificación: tres pruebas de integración de catálogo en dos clases, incluyendo permisos/CSRF, rollback ante fallo intermedio, reintentos sin duplicados y persistencia. Build/tipado frontend correctos; siete casos de navegador y cuatro anchos (320/390/768/1440), sin errores JavaScript. Pruebas en entorno aislado.
+
+
+### Refinamiento visual: papeles agrupados por tamaño (23/09/2026)
+
+Cada papel precargado tiene una sola tarjeta por tamaño, con sus dimensiones, contador de variantes habilitadas y casillas independientes por gramaje. Los siete tamaños reúnen las 21 variantes, sin filtro global de gramaje ni tarjetas repetidas. Mis papeles registrados se agrupa por dimensiones y despliega materiales, códigos y gramajes; dos materiales del mismo gramaje siguen siendo variantes independientes. Agregar todos los papeles conserva su funcionamiento y cuenta variantes con claridad.
+
+Cambio exclusivo de frontend y documentación: se conservan identificadores, APIs y esquema V37. Cada casilla usa el par tamaño/material original; no modifica otras variantes ni publica precios. Verificación: build/tipado de producción, nueve casos de navegador (incluidos error, recarga, teclado y toque) y ocho comprobaciones responsive en 320/390/768/1440 px. Cero errores JavaScript; capturas móvil y escritorio revisadas. Pruebas sólo en entorno aislado.
+
+
+### Refinamiento UX: sugerencias de servicios (23/09/2026)
+
+Agregar servicio ofrece un Nombre de escritura libre con ocho sugerencias locales. Elegir una completa nombre, código legible y tipo; todos siguen editables antes de guardar. Los códigos ya usados reciben el siguiente sufijo numérico disponible. Editar el nombre conserva el código y tipo manuales; seleccionar otra sugerencia conserva la descripción. No hay altas automáticas ni cambios en tarifas o revisiones comerciales.
+
+Verificación: build/tipado de producción, 8 casos funcionales de navegador y 4 comprobaciones responsive en 320/390/768/1440 px. Incluye selección por teclado/toque, búsqueda sin tildes, edición libre, conflicto real de código con corrección, guardado/persistencia y limpieza del formulario, conservación del borrador entre pestañas y de precios/papeles. Cero errores JavaScript; capturas móvil y escritorio revisadas. Regresión del campo Código en sucursales: 11 interacciones y cuatro anchos. Frontend y documentación únicamente, sin cambios de API ni esquema V37. Pruebas con datos sintéticos en instancia aislada.
+
+
+### Refinamiento UX: editor de tarifas y servicios (23/09/2026)
+
+Editor reorganizado en tarjetas a ancho completo, tres pasos, campos alineados y buscadores por tamaño, gramaje, nombre y código. Las revisiones consultadas también usan tarjetas. Precios y recargos visibles en ARS, entrada decimal con coma/punto validada, ejemplos simple/doble faz y ayudas por hover, teclado y toque. Se explican las cuatro unidades de terminación, compatibilidades, preparación y efecto del guardado. No se agregó una regla de descuentos ni se alteró el cálculo comercial.
+
+Validación: build de producción y TypeScript, nueve casos funcionales de navegador y trece comprobaciones de presentación; pasada visual posterior de doce comprobaciones a 320/390/768/1440 px y alineación de inputs. Sin desplazamiento horizontal en tarjetas, buscadores o ayudas; cero errores JavaScript. Guardado y recarga reales conservan importes; conflicto concurrente permite comparar y conservar valores; respuesta perdida reutiliza la operación sin duplicar; programación bloquea campos y conserva la vigencia previa. Pruebas en instancia aislada, sin datos sintéticos en la instalación normal. Backend y esquema V37 sin cambios; no se repitieron suites backend.
+
+
+### Terminología de configuraciones comerciales (23/09/2026)
+
+La interfaz llama **configuración comercial** al conjunto guardado de tarifas y servicios. Encabezados, acciones, historial, programación, confirmaciones, ayudas y referencias del configurador usan este nombre. Cada configuración conserva su número y vigencia; la configuración operativa sigue siendo independiente. «Revisión» se mantiene cuando significa comprobar datos o revisar un pedido. El cambio es de presentación: se conservan las rutas, contratos, identificadores, historial y datos existentes.
+
+
+### Tarifas agrupadas y precios finales por hoja (23/09/2026)
+
+Plan revisión 11. Selección por color y tarjetas de hojas/variantes, selección total, nombres editables con lápiz y tres formas de definir doble faz: precio final, adicional fijo o porcentaje sobre simple faz. Cotizaciones por pares de páginas, con la última hoja impar a simple faz en cada copia. El desglose explica las hojas y conserva un único servicio de impresión por ítem. V38 conserva los datos anteriores y su cálculo por carilla hasta conversión explícita.
+
+Verificación: 16 pruebas backend pertinentes de catálogo, programación, migración, precios y cotizaciones reales; once casos monetarios frontend y controles de agrupación/duplicados. Build y tipos correctos. Diez casos funcionales de navegador y doce comprobaciones de presentación a 320/390/768/1440 px, teclado y toque emulados, sin errores JavaScript ni desbordamientos del formulario. Demo local migrada a V38, cinco servicios saludables y huellas conservadas en doce tablas de negocio.
+
+
+### Ajustes de configuración · revisión 12
+
+- En pagos se elige explícitamente usar o no seña. El modelo por monto mantiene el umbral económico, sin revisión humana automática (corrección del 27/10/2026), y permite efectivo sin transferencia cuando no exige anticipo. Si se desactiva «Seña previa», se avisa y al guardar cambia atómicamente a control manual; pago total previo mantiene su requisito.
+- Los importes financieros muestran $ / ARS y usan formato argentino: `1.500,50` o `1500,50`, con punto para miles y coma para centavos. Se transforman a decimales exactos para el backend. Los porcentajes indican `%` y las cantidades de carillas conservan su unidad.
+- El alta/edición de impresoras permite seleccionar todos los formatos o quitar la selección, además de marcar cada uno. La asignación automática sigue deshabilitada con un distintivo amarillo «En construcción».
+- En fase 5, el selector muestra tanto sucursales pendientes como calendarios agregados. Cambiar de sucursal conserva los datos que se están editando. Los botones de puntos y zonas guardan primero los cambios pendientes y navegan sólo después de confirmar el guardado; los reintentos conservan operación y destino sin duplicar cambios. Los errores mantienen el formulario.
+- El calendario se adapta al ancho disponible con fichas por día cuando no cabe la tabla. Guardar permite continuar el borrador: la activación sigue siendo explícita. No se modifica ninguna configuración existente al actualizar la aplicación ni se agregan migraciones.
+
+Verificación de revisión 12: nueve pruebas backend de pagos, entrega y activación/cotización; 18 casos de formato monetario; diez escenarios de navegador y trece comprobaciones de presentación a 320/390/768/1440 px. Flujo por toque móvil, dos sucursales, puntos, zonas, retiro, guardado fallido y reintento idempotente comprobados. Sin errores JavaScript; build y tipos correctos. Instalación normal con cinco servicios saludables y huellas conservadas en dieciséis tablas; sin migraciones nuevas.
+
+
+### Selección completa de compatibilidades de servicios
+
+En Tarifas y servicios, cada terminación (por ejemplo, anillado) ofrece **Agregar todos los papeles**. Incluye todas las variantes habilitadas de Catálogo base en un solo clic, conserva las selecciones existentes y evita duplicados o filas vacías. Después se puede quitar o cambiar cualquier papel individualmente. El cambio afecta sólo al servicio elegido y se aplica al guardar la configuración comercial. Se conserva el máximo de 300 compatibilidades; los papeles elegidos deben estar habilitados en el Catálogo base. La tarifa de impresión sólo es obligatoria cuando se ofrece Impresión.
+
+
+### Menú de escritorio y confirmación de tarifas
+
+El menú lateral de escritorio ocupa el alto de la ventana y ajusta espacios a la altura disponible. Las opciones de navegación permanecen accesibles sin desplazamiento vertical interno; en ventanas de poca altura se compacta la marca y se omite el aviso decorativo de funciones futuras. La navegación móvil conserva su disposición horizontal.
+
+Las tarifas guardadas se presentan cerradas, con resumen de tamaños, variantes, importes y estado vigente/programado. **Editar tarifa** abre el formulario; **Aplicar tarifa al borrador** valida y cierra esa edición. Las modificaciones quedan identificadas como **Aplicado al borrador · sin publicar** hasta confirmar **Guardar nueva configuración**, que publica el conjunto de tarifas y servicios o lo programa. Cancelar restaura la tarifa previa; no se puede publicar mientras haya una tarifa abierta sin confirmar. Salir con cambios pendientes muestra la advertencia de navegación.
+
+Verificación: build de producción y tipos correctos; ocho escenarios de navegador (edición, validación, cancelación, aplicación, publicación, regreso, recarga y reintento sin duplicados). Ocho tamaños de escritorio entre 761×480 y 1920×1080, incluida altura de 400 px, con todos los enlaces visibles y sin scroll propio del menú. Resúmenes y editor comprobados a 320/390/768/1440 px, sin desbordamiento horizontal ni errores JavaScript. Pruebas con datos sintéticos sólo en instancia aislada; backend, contratos y migraciones sin cambios.
+
+
+### Confirmación individual de servicios
+
+Cada servicio ofrecido tiene su propio botón **Guardar servicio al borrador**. Valida nombre, precio, unidad, preparación y compatibilidades; cierra su formulario y permite agregar otro. Los servicios preparados aparecen como resúmenes con estado Aplicado al borrador · sin publicar; los ya publicados se muestran vigentes o programados. **Editar servicio** vuelve a abrirlo y **Cancelar edición de servicio** restaura los valores anteriores (o descarta el alta todavía sin confirmar). La selección completa de papeles permanece disponible.
+
+Se pueden preparar varias tarifas y servicios antes de **Guardar nueva configuración**, que publica o programa el conjunto. No se puede publicar con un servicio o tarifa abierto sin confirmar. El borrador se conserva entre pestañas y salir con cambios muestra una advertencia; no persiste si se abandona o recarga sin guardar la configuración.
+
+Verificación: build de producción y tipos correctos; siete escenarios de navegador con tres servicios confirmados antes de una única publicación. Validación, cancelación, edición, selección completa de papeles, conservación entre pestañas, advertencia al salir, recarga y reintento sin duplicados comprobados. Ocho revisiones de presentación del editor y los resúmenes a 320/390/768/1440 px, sin desbordamientos ni errores JavaScript. Pruebas sólo en instancia aislada; backend, API y migraciones sin cambios.
+
+
+### Apariencia clara y oscura
+
+El menú administrativo y operativo incluye sol y luna debajo del aviso de funciones en construcción. **Claro** conserva la apariencia original y es el valor predeterminado, independientemente del tema del sistema operativo. **Oscuro** usa fondos gris azulados y un menú azul petróleo diferenciado; adapta texto, formularios, tablas, botones, avisos, ayudas y estados. No modifica distribuciones, precios ni configuraciones de negocio.
+
+La elección se recuerda en este navegador y se sincroniza entre sus pestañas; se aplica al abrir la página para evitar un destello claro. Si el navegador bloquea el almacenamiento, los botones siguen funcionando para la página actual. En ventanas bajas el aviso decorativo puede ocultarse, pero los controles permanecen accesibles sin scroll propio del menú. La página pública de la imprenta conserva su identidad y colores.
+
+Verificación: build de producción y tipos correctos; siete escenarios de navegador, catorce comprobaciones responsive (incluidos ocho tamaños de escritorio con nueve enlaces y dos controles visibles) y revisión de contraste de textos/controles activos en 19 vistas y estados. Teclado, persistencia, sincronización entre pestañas, almacenamiento bloqueado y conservación de formularios comprobados. Cero errores JavaScript y cero mutaciones de configuración. Capturas inspeccionadas; pruebas sólo en instancia aislada.
+
+
+### Primera instalación guiada y confirmaciones
+
+Cada fase y subfase informa qué falta antes de habilitar la siguiente. El catálogo exige una sucursal activa, papeles habilitados y al menos un servicio base. Para ofrecer Impresión se confirma al menos una tarifa habilitada; para ofrecer solo otros trabajos, se confirma su precio sin crear tarifas de impresión. Después se guarda la configuración completa. Una configuración comercial programada no habilita la operación hasta estar vigente.
+
+Recursos requiere una impresora operativa compatible y asignación/servicios guardados. Horarios y entrega requiere los mínimos validados y destinos utilizables para las modalidades elegidas. Se puede volver a pasos ya realizados; al cambiar un requisito se vuelven a comprobar los posteriores. El avance no se guarda en preferencias del navegador: se obtiene de los datos actuales de la imprenta. Después de la primera activación se recupera la navegación habitual.
+
+Los avisos de guardado tienen icono, borde y fondo verdes, anuncian el resultado y permanecen visibles. Las tarifas y servicios confirmados sólo en el formulario se distinguen en amarillo, aclarando que aún hay que guardar la configuración completa. Una respuesta fallida o incierta no muestra éxito.
+
+### Corrección contextual de las guías de Fases 4 y 5
+
+La ayuda de Fase 4 distingue la lista de recursos del formulario de alta/edición de impresora. En el formulario resalta capacidades, formatos compatibles y guardado; al volver a la lista explica impresoras, asignación y servicios. Cada contexto conserva su propio estado de guía. Si un destino no está disponible, la tarjeta se centra sin reutilizar la posición de un bloque anterior.
+
+La guía de Fase 5 separa el calendario operativo de las franjas de retiro en sucursal. El calendario parte de la ficha de la sucursal y gobierna el cómputo de preparación; fuera de horario, el cálculo continúa en la próxima apertura. No bloquea por sí mismo la recepción de pedidos. Las franjas permiten retirar pedidos listos con cupo por pedido completo verificado al confirmar. Son independientes de la producción: pueden configurarse después del cierre o en días sin producción, siempre con personal para entregar. Se informa **Producción cerrada · retiros habilitados**, sin bloquear la configuración por ese motivo. La preparación y el traslado estimado mantienen el cálculo vigente dentro del horario operativo; las franjas de retiro no agregan horas de producción.
+
+
+### Fase 5 · Retiros independientes de la producción (02/10/2026)
+
+Esta decisión reemplaza la restricción anterior que obligaba a ubicar todos los retiros dentro del horario operativo. El calendario de producción determina cuándo se cuentan las horas de preparación. Las franjas de retiro determinan cuándo se entregan pedidos ya listos; pueden funcionar con producción cerrada, incluso en un día sin producción. El administrador debe asegurar que haya personal para entregar.
+
+- Si se ofrece **Retiro en sucursal**, sigue siendo obligatoria al menos una franja habilitada con cupo positivo por sucursal operativa. No es obligatorio que coincida con producción.
+- El formulario, la guía y la validación guardada advierten sobre retiros fuera de producción. Es un aviso, no un bloqueo de Fase 5. La revisión integral conserva sus controles de reconocimiento de advertencias.
+- La estimación termina la preparación usando horas de producción y después busca una franja de retiro disponible, sin esperar innecesariamente otra apertura de producción. La confirmación del pedido sigue verificando y reservando cupo; cotizar o simular no reserva plazas.
+- Ejemplo: producción lunes 09:00–18:00, retiro 18:00–20:00. Un trabajo que termina a las 18:00 puede retirarse esa tarde. Si la próxima franja es el miércoles 11:00–13:00 y ese día no se produce, el pedido listo puede retirarse el miércoles. Un pedido nuevo recibido el miércoles espera a la próxima apertura para comenzar su preparación.
+- Se conservan las validaciones de horas, franjas sin superposición, capacidad positiva y calendario de producción completo. No cambian los pedidos ya aceptados ni sus condiciones guardadas.

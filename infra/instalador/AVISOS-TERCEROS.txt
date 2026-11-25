@@ -1,0 +1,32 @@
+La Montaña — herramientas de instalación de YG Soluciones
+
+Distribución local de prueba. Sin firma de editor ni publicación autorizada.
+El paquete nativo instala el asistente; el asistente prepara la app por separado.
+
+Componentes independientes:
+- Eclipse Temurin / OpenJDK 17: GPLv2 con Classpath Exception. El runtime
+  conserva su directorio legal. Fuente y binarios de la versión:
+  https://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.20.1%2B1
+  https://github.com/openjdk/jdk17u
+- Firefox 157.0.1: Mozilla Public License 2.0 y licencias de terceros incluidas.
+  Binario oficial sin modificar y código fuente de la misma versión:
+  https://archive.mozilla.org/pub/firefox/releases/157.0.1/
+- Ubuntu 26.04 y paquetes Debian: cada .deb contiene sus avisos en
+  usr/share/doc/<paquete>/copyright. Fuentes: https://archive.ubuntu.com/ubuntu/
+- Docker Engine, CLI, Compose, Buildx y containerd: licencias y código de cada
+  versión en https://github.com/moby/moby, https://github.com/docker/cli,
+  https://github.com/docker/compose, https://github.com/docker/buildx y
+  https://github.com/containerd/containerd. No se incluye Docker Desktop.
+- WSL 3.0.3: https://github.com/microsoft/WSL/releases/tag/3.0.3 y LICENSE
+  del repositorio. La instalación está sujeta a los términos del componente.
+- PostgreSQL: https://www.postgresql.org/about/licence/
+- Caddy: https://github.com/caddyserver/caddy/blob/master/LICENSE
+- Mailpit: https://github.com/axllent/mailpit/blob/develop/LICENSE
+- ClamAV y firmas oficiales: https://www.clamav.net/documents/copyright
+
+Los inventarios release.properties, versiones.properties y
+ docker-descargas.properties fijan archivos, versiones, tamaños y SHA-256.
+Un SHA-256 no autentica por sí solo al editor. No confundir este paquete de
+prueba con una publicación firmada. Antes de redistribuir públicamente, YG
+Soluciones debe adjuntar los textos y fuentes/ofertas exigidos por las licencias
+exactas de todos los componentes, además de conservar los avisos incluidos.

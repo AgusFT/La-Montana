@@ -1,0 +1,1761 @@
+//#region ENCABEZADO · ActivacionConfiguracionIntegrationTest.java
+/*
+ * ========================================================================
+ * ARCHIVO: ActivacionConfiguracionIntegrationTest.java
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba recorridos integrados con PostgreSQL y HTTP: activación y programación de
+ * configuraciones, copias y reversión, cotizaciones, PDF, pagos, pedidos, correcciones,
+ * producción, entrega y reprogramación; incluye concurrencia, fallos y reinicios.
+ *
+ * ------------------------------------------------------------------------
+ * CONSTRUCTORES DECLARADOS
+ * - [paquete] CapturaSmtp :: CapturaSmtp() throws IOException
+ *
+ * ------------------------------------------------------------------------
+ * MÉTODOS DECLARADOS
+ * - void activarSinSenaMantieneRevisionHumanaSobreUmbralEnCotizacion() throws Exception
+ * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
+ * automáticamente no se enumeran.
+ * - [paquete] void iniciar() throws Exception
+ *   Preparación antes de cada prueba.
+ * - [paquete] void cerrar() throws Exception
+ *   Limpieza después de cada prueba.
+ * - [private] void arrancar()
+ * - [private] void arrancar(boolean automatico)
+ * - [private] String reprogramacion(JsonNode p, boolean interno)
+ * - [private] JsonNode reprogramacionVista(JsonNode p) throws Exception
+ * - [private] JsonNode franjasReprogramacion(JsonNode p, java.time.LocalDate fecha) throws
+ *   Exception
+ * - [private] Map<String, Object> propuestaReprogramacion(JsonNode p, java.time.LocalDate fecha)
+ *   throws Exception
+ * - [private] Map<String, Object> respuestaReprogramacion(JsonNode p, JsonNode v, boolean aceptar)
+ * - [private] String prepararTresEntregas() throws Exception
+ * - [private] JsonNode pedidoModalidad(HttpClient c, String mode, String point) throws Exception
+ * - [paquete] void reprogramacionTresModalidadesConservaLogisticaDineroYRevocaCodigo() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void reprogramacionCupoConcurrenteRollbackYRetiro() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reprogramacionPermisosVentanaCaducidadYCancelacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reprogramacionRevalidaConfiguracionYPuntoSinCambiarPrecio() throws Exception
+ *   Caso de prueba.
+ * - [private] String entregaRuta(JsonNode p, boolean interno)
+ * - [private] JsonNode entregaVista(JsonNode p) throws Exception
+ * - [private] Map<String, Object> entregaComando(JsonNode p)
+ * - [private] JsonNode dejarListo(JsonNode p, boolean pagar) throws Exception
+ * - [private] Map<String, Object> validarEntrega(JsonNode p, String codigo)
+ * - [private] Map<String, Object> confirmarEntrega(JsonNode v)
+ * - [private] String emitirEntrega(HttpClient c, JsonNode p) throws Exception
+ * - [private] void relojEntrega(Instant ahora) throws Exception
+ * - [paquete] void entregasTresModalidadesCodigoCierreYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void entregasPermisosCodigoBloqueoVencimientoYVersion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void entregasSaldoExcedenteConciliacionCarreraRollbackYCierreInmutable() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] String produccion(JsonNode p)
+ * - [private] JsonNode pedidoActual(JsonNode p) throws Exception
+ * - [private] JsonNode produccionVista(JsonNode p) throws Exception
+ * - [private] JsonNode aprobarProduccion(JsonNode p) throws Exception
+ * - [private] void cubrirProduccion(JsonNode p) throws Exception
+ * - [private] Map<String, Object> iniciarProduccion(JsonNode p)
+ * - [private] Map<String, Object> estadoTrabajo(JsonNode v, String accion)
+ * - [private] Map<String, Object> inspeccionTrabajo(JsonNode v, String resultado, boolean
+ *   completo)
+ * - [private] String ultimoTrabajo(JsonNode v)
+ * - [private] JsonNode registrarProduccion(String path, Object in) throws Exception
+ * - [paquete] void produccionD1DineroCalidadReimpresionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void produccionPermisosCsrfCarreraRollbackYCancellationTrabajo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void produccionPdfCorregidoIntegridadDineroYRecuperacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void produccionVariosItemsUltimaCalidadYPermisosAdministrables() throws Exception
+ *   Caso de prueba.
+ * - [private] String correcciones(JsonNode p, boolean interno)
+ * - [private] Map<String, Object> solicitarCorreccion(JsonNode p)
+ * - [private] JsonNode solicitudCorreccion(HttpClient c, JsonNode p) throws Exception
+ * - [private] JsonNode prepararRespuesta(HttpClient c, JsonNode p) throws Exception
+ * - [private] Map<String, Object> responderCorreccion(JsonNode pre)
+ * - [private] JsonNode pdfCorregido(HttpClient c, JsonNode p, byte[] bytes) throws Exception
+ * - [private] JsonNode cotizarCorreccion(HttpClient c, JsonNode p, JsonNode req, Map<String,
+ *   Object> input) throws Exception
+ * - [paquete] void correccionesPdfVersionesPrivacidadReinicioYRevision() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesMaterialesDineroCupoUnicoYCancelacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesPermisosCsrfVersionRollbackYCarrera() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesPagoPrevioVencimientoDiferenciaYReplay() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void correccionesRespuestaRollbackIntegridadNuevaSolicitudYCargaVieja() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] JsonNode pedidoRevision(HttpClient c) throws Exception
+ * - [private] String gestionPedido(JsonNode p)
+ * - [private] String cancelarPedido(JsonNode p)
+ * - [private] Map<String, Object> decisionPedido(JsonNode p, String accion)
+ * - [private] Map<String, Object> cancelacionPedido(JsonNode p)
+ * - [private] void permisoPedidos(String correo)
+ * - [paquete] void revisionPedidoPermisoAdministrableYCancelacionAutomatica() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoD1PrivacidadAprobacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoPermisosRevocadosCsrfYVersion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoCancelacionConservaDineroYLiberaCupo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoCarreraDecisionRollbackEInvariantes() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void revisionPedidoIntegridadPdfYSucursalDesactivada() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosNuevaConfiguracionConservaCupoYPdfSinReescribirPrecio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosVariantesPurasRevalidanDineroAntesDeConfirmar(String criterion) throws
+ *   Exception
+ * - [paquete] void pedidosVencimientoYBloqueoDeSucursalNoCreanReservas() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosPuntoReservaPorOrigenYRevalidaDisponibilidad() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosFinanzasConservanMediosAceptadosAlCambiarConfiguracion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] String confirmacionPedido(String quote)
+ * - [private] JsonNode revisarPedido(HttpClient c, JsonNode q) throws Exception
+ * - [private] Map<String, Object> confirmarPedido(JsonNode rev)
+ * - [private] JsonNode pdfAceptado(HttpClient c, JsonNode q, byte[] pdf) throws Exception
+ * - [paquete] void pedidosD1ConfirmacionUnicaPrecioCongeladoPdfDineroYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosCupoConcurrenteRespuestaPerdidaRevalidacionYRollback() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosPermisosRevocacionPdfCambiadoIntegridadYCsrf() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pedidosZonaComparteCupoEntreSucursalesYExigeContacto() throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> franjaRetiro(int dia, String desde, String hasta, int cupo,
+ *   boolean habilitada)
+ * - [private] Map<String, Object> retiroSolicitud(List<? extends Map<String, Object>> franjas)
+ * - [paquete] void retiroVacioLimitesHorarioPermisosYActivacionNoInventanCupos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void retiroFranjasExplicitasSimulacionYCotizacionPersistenSinReservar() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void retiroCopiaComparacionRollbackYVersionCerradaConservanFranjas() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void retiroGuardadoConcurrenteYFalloParcialReviertenCalendariosYCupos() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosImportesReferenciasYRestriccionSqlNoPierdenPrecision() throws Exception
+ *   Caso de prueba.
+ * - [private] String comprobantes(String quote, boolean interno)
+ * - [private] Map<String, Object> iniciarComprobante(String intento, String pago)
+ * - [private] String informarPago(HttpClient c, String quote) throws Exception
+ * - [private] HttpRequest requestPdf(HttpClient c, String path, byte[] bytes) throws Exception
+ * - [private] JsonNode enviarComprobante(HttpClient c, String path, byte[] bytes) throws Exception
+ * - [private] JsonNode listaComprobantes(HttpClient c, String path) throws Exception
+ * - [paquete] void comprobantesAntesDeAcreditarNoCreanDineroYNacenConFinalidadPrivada() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comprobantesVersionesRechazosAntivirusYFallosConservanEvidenciaYDinero() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comprobantesPermisosPropositoYRevocacionAislanContenidoFinanciero() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void comprobantesConcurrenciaLimiteIntegridadYRecuperacionNoPublicanParciales()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [private] String pagos(String quote, boolean interno)
+ * - [private] JsonNode pagosVista(HttpClient c, String quote, boolean interno) throws Exception
+ * - [private] JsonNode ofertaAceptada(HttpClient c, Map<String, Object> input) throws Exception
+ * - [private] Map<String, Object> recibirPago(String medio, String cantidad, String referencia)
+ * - [private] Map<String, Object> aplicarPago(JsonNode p, String importe)
+ * - [private] Map<String, Object> devolverPago(JsonNode p, String importe, String referencia)
+ * - [private] void permisoEmpleado(String correo, String permiso)
+ * - [paquete] void pagosIntentoNoEsDineroRecepcionIdempotenteYAuditoriaInmutable() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosTardiosD2ReasignanSoloOfertaAceptadaConDiferenciaYDevolucion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosConcurrenciaFalloParcialYSaldoNoSeConsumenDosVeces() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosPermisosSucursalRevocadosClienteAjenoYDescarteNoCreanDinero() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void pagosSoloDineroAplicadoDesbloqueaPdfYDevolucionRevocaGate(String criterion)
+ *   throws Exception
+ * - [private] JsonNode revision() throws Exception
+ * - [private] Set<String> codigos(JsonNode r)
+ * - [private] void preparar() throws Exception
+ * - [private] Map<String, Object> territorio()
+ * - [private] Map<String, Object> oferta(String id, String base, String precio, int minutos,
+ *   boolean habilitada)
+ * - [private] void publicar(Instant fecha, String precio, boolean term, boolean color) throws
+ *   Exception
+ * - [private] Map<String, Object> ejemplo(String modalidad)
+ * - [private] JsonNode simular(Map<String, Object> e) throws Exception
+ * - [private] void configurarSegundo() throws Exception
+ * - [private] Map<String, Object> decision() throws Exception
+ * - [private] Map<String, Object> solicitud() throws Exception
+ * - [private] String rutaActivar()
+ * - [private] String solicitar(Map<String, Object> s) throws Exception
+ * - [private] Map<String, Object> confirmacion(Map<String, Object> s, String token)
+ * - [private] JsonNode activar() throws Exception
+ * - [private] void cooldown()
+ * - [private] JsonNode copiarBase(String origen, UUID operacion) throws Exception
+ * - [private] void adoptarCopia(JsonNode copia)
+ * - [private] void guardarFaseCopia(int fase) throws Exception
+ * - [private] Map<String, Object> confirmarCopiaSolicitud() throws Exception
+ * - [private] void confirmarCopia(Map<String, Object> in) throws Exception
+ * - [paquete] void baseCopiaIntegraIdentidadesOrigenYBarridoSinDuplicarNiReactivar() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void baseReconfirmacionObligatoriaInvalidacionYActivacionSegura() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void baseRollbackDeCopiaConcurrenciaBarridoDinamicoYPermisos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void baseProgramadaConservaConfirmacionYHistoricaPuedeOriginarOtraCopia() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [private] JsonNode revisionRollback() throws Exception
+ * - [private] void segundaActivaRollback() throws Exception
+ * - [private] JsonNode dosActivasRollback() throws Exception
+ * - [private] Map<String, Object> solicitudRollback() throws Exception
+ * - [private] Map<String, Object> autorizarRollback() throws Exception
+ * - [private] JsonNode confirmarRollback(Map<String, Object> c) throws Exception
+ * - [private] JsonNode programadaRollback() throws Exception
+ * - [paquete] void rollbackSinPredecesoraBorradorPermisosCsrfYRevocacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackNuevaVersionCancelaProgramacionConservaPredecesoraYReplay() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackFalloDespuesDeCopiarYPublicarRevierteTodoMenosIntento() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackRevalidaCondicionesActualesSinReintentoPropio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackInterrumpidoSeRecuperaSinRepetirCopiaNiCancelar() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void rollbackConcurrenciaConWorkerYConfirmacionesUnicas() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosPdfPrivadosVistaPreviaVersionesAceptacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosDiscrepanciaExigeNuevaOfertaSinCambiarPrecioOriginal() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosRechazanContenidoCifradoActivoMalwareYAntivirusIncompleto() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosPermisosSucursalCsrfCarreraYRecuperacionDeFallo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosLimitesIntegridadYVencimientoNoHabilitanPreview() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void archivosPagoPrevioYSeñaBloqueanCargaSinDineroReal(String criterion) throws
+ *   Exception
+ * - [private] HttpClient empleadoArchivos(String name, String branch) throws Exception
+ * - [private] String archivos(String quote)
+ * - [private] Map<String, Object> inicioArchivo(JsonNode q)
+ * - [private] Map<String, Object> ofertaPdf(byte[] pdf, int pages) throws Exception
+ * - [private] JsonNode cargarPdf(HttpClient c, String q, String f, byte[] bytes) throws Exception
+ * - [private] HttpResponse<byte[]> binario(HttpClient c, String path) throws Exception
+ * - [private] byte[] pdf(int pages, boolean encrypted, boolean active, int mark) throws Exception
+ * - [private] HttpClient particularCotizacion(String sufijo) throws Exception
+ * - [private] Map<String, Object> ofertaCliente()
+ * - [private] JsonNode cotizar(HttpClient c, Map<String, Object> in) throws Exception
+ * - [private] JsonNode cotizacion(HttpClient c, String id) throws Exception
+ * - [private] Map<String, Object> decisionCotizacion(JsonNode q)
+ * - [paquete] void cotizacionesDisponibilidadPermisosYValidacionesNoExponenAdministracion() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesPorHojaGuardanUnServicioYCongelanElDesglose() throws Exception
+ *   Verifica cotizaciones reales por hoja, detalle congelado y persistencia.
+ * - [paquete] void cotizacionesMultiplesCalculoAutoritativoPrecioCongeladoAceptacionYReinicio()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesAislamientoReemplazoVencimientoYTransicionTerminal() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesConcurrenciaRespuestaPerdidaYReemplazoNoDejanParciales() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesEntregaDomicilioYCambioOperativoNoReescribeOferta() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void cotizacionesFalloParcialRevierteReemplazoYPaginacionCompleta() throws Exception
+ *   Caso de prueba.
+ * - [private] JsonNode historial(String ruta) throws Exception
+ * - [paquete] void historialDetalleComparacionAuditoriaCompletaSinMutacionesYReinicio() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void historialProgramaConReferenciaAutorYCancelacionSinFalsaVigencia() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void historialFiltrosPaginacionPermisosYValidacion() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void primeraActivacionConcurrenteRecuperacionInmutabilidadYReinicio() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void reemplazoAtomicoFalloDurableConservaActivaBorradorYResultado() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void cambioComercialAdvertenciasRevocacionEdicionEIntentos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void smtpFallidoCodigoVencidoPermisosYCsrf() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionExigePropietarioCsrfYCredenciales() throws Exception
+ *   Caso de prueba.
+ * - [private] String rutaProgramar()
+ * - [private] Map<String, Object> solicitudProgramacion() throws Exception
+ * - [private] Map<String, Object> programar() throws Exception
+ * - [private] int intentosObjetivo()
+ * - [private] void vencerProgramacion()
+ * - [private] void ejecutar(boolean recuperacion)
+ * - [private] void vencerReintento()
+ * - [paquete] void programacionSeguraInmutableCancelacionYReinicio() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionAutomaticaAtomicaFallosDiezMinutosYConcurrencia() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void primeraProgramacionRevalidaCondicionesActualesYSinRespaldo() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void recuperaInicioDurableSinPublicacionYNoDuplicaExito() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void programacionNoReutilizaAutorizacionDeAccesoRevocada() throws Exception
+ *   Caso de prueba.
+ * - [private] Map<String, Object> solicitudAdelanto() throws Exception
+ * - [private] Map<String, Object> autorizarAdelanto() throws Exception
+ * - [paquete] void adelantoManualAntesDeFechaConcurrenteConservaProgramacionYActor() throws
+ *   Exception
+ *   Caso de prueba.
+ * - [paquete] void falloManualProgramadoConservaResultadoYReintentaADiezMinutos() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void interrupcionDespuesDeInicioEsDurableBloqueaEdicionYSeRecuperaSinReejecutar()
+ *   throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reintentoDeAdelantoPuedeVencerAntesDeLaFechaOriginal() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void reciboDeActivacionAnteriorNoInventaIntentoHistorico() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void falloInmediatoNoAdelantaProgramacionCreadaDespues() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void automaticoQueGanaLaExclusionImpidePublicacionManualDuplicada() throws Exception
+ *   Caso de prueba.
+ * - [paquete] void manualQueGanaLaExclusionNoEsInterrumpidoPorElWorker() throws Exception
+ *   Caso de prueba.
+ * - [private] void servicios(List<String> sucursales) throws Exception
+ * - [private] Map<String, Object> dia(int dia, Boolean habilitado, String apertura, String cierre)
+ * - [private] List<Map<String, Object>> semana(String apertura, String cierre)
+ * - [private] List<Map<String, Object>> soloDomingo(String apertura, String cierre)
+ * - [private] Map<String, Object> horario(String sucursal, List<? extends Map<String, Object>>
+ *   dias)
+ * - [private] Map<String, Object> entrega(String preparacion, String traslado, List<String>
+ *   modalidades, List<? extends Map<String, Object>> horarios)
+ * - [private] void guardar(String preparacion, String traslado, List<String> modalidades, List<?
+ *   extends Map<String, Object>> horarios) throws Exception
+ * - [private] Map<String, Object> simulacion(String sucursal, String modalidad, String recibido)
+ * - [private] JsonNode simular(String sucursal, String modalidad, String recibido) throws
+ *   Exception
+ * - [private] JsonNode validacion() throws Exception
+ * - [private] void assertProblemas(String[] esperados) throws Exception
+ * - [private] void assertInstante(JsonNode respuesta, String campo, String esperado)
+ * - [private] String sucursal(String codigo) throws Exception
+ * - [private] Map<String, Object> comando()
+ * - [private] String base()
+ * - [private] String ruta()
+ * - [private] int contar(String tabla)
+ * - [private] JsonNode estado() throws Exception
+ * - [private] void aceptar(HttpResponse<String> r)
+ * - [private] HttpClient cliente()
+ * - [private] URI uri(String path)
+ * - [private] HttpResponse<String> get(HttpClient c, String path) throws Exception
+ * - [private] String csrf(HttpClient c) throws Exception
+ * - [private] HttpRequest request(HttpClient c, String metodo, String path, Object data) throws
+ *   Exception
+ * - [private] HttpResponse<String> put(HttpClient c, String path, Object data) throws Exception
+ * - [private] HttpResponse<String> post(HttpClient c, String path, Object data) throws Exception
+ * - [private] void login(HttpClient c, String correo) throws Exception
+ * - [private] void status(HttpResponse<String> r, int codigo)
+ * - [paquete] CapturaSmtp :: int port()
+ * - [paquete] CapturaSmtp :: int pendientes()
+ * - [paquete] CapturaSmtp :: Mensaje recibir() throws Exception
+ * - [private] CapturaSmtp :: void aceptar()
+ * - [private] CapturaSmtp :: void responder(BufferedWriter escritor, String respuesta) throws
+ *   IOException
+ * - [public] CapturaSmtp :: void close() throws Exception
+ * - [paquete] Mensaje :: String token()
+ * - [public] Mensaje :: String toString()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - ActivacionConfiguracionIntegrationTest (clase).
+ * - ActivacionConfiguracionIntegrationTest.<anónima> (clase).
+ * - ActivacionConfiguracionIntegrationTest.<anónima> (clase).
+ * - ActivacionConfiguracionIntegrationTest.<anónima> (clase).
+ * - ActivacionConfiguracionIntegrationTest.CapturaSmtp (clase).
+ * - ActivacionConfiguracionIntegrationTest.Mensaje (record).
+ * ========================================================================
+ */
+//#endregion
+
+package ar.com.lamontana;
+
+import static org.assertj.core.api.Assertions.*;
+import ar.com.lamontana.configuracion.*;
+import ar.com.lamontana.identidad.IdentidadController;
+import ar.com.lamontana.identidad.IdentidadService;
+import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import java.net.*;
+import java.io.*;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import java.util.concurrent.*;
+import java.util.regex.Pattern;
+import java.net.http.*;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.*;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+class ActivacionConfiguracionIntegrationTest {
+    private static final JsonMapper JSON=JsonMapper.builder().build();
+    private static final String EMAIL="entrega@example.test",CLAVE="ConfiguracionEntrega123!",TOKEN="token-local-entrega-configuracion-exclusivo-test";
+    private EmbeddedPostgres pg;
+    private CapturaSmtp smtp;
+    private ClamavDePrueba antivirus;
+    private ConfigurableApplicationContext app;
+    private JdbcTemplate jdbc;
+    private Path archivos;
+    private HttpClient admin;
+    private int port;
+    private String id,a,b,servicio,formato,papel,terminacion,comercial;
+    private JsonNode borrador;
+    @BeforeEach void iniciar()throws Exception {
+        archivos=Files.createTempDirectory("lamontana-entrega-");smtp=new CapturaSmtp();antivirus=new ClamavDePrueba();if(System.getProperty("lamontana.test.jdbc-url")==null)pg=EmbeddedPostgres.builder().start();prepararEsquemaDeEnsayo();arrancar();
+        app.getBean(IdentidadService.class).crearPropietario(new IdentidadController.AltaPropietario(TOKEN,"Admin","Entrega",EMAIL,CLAVE));admin=cliente();login(admin,EMAIL);
+        var creado=post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID().toString()));status(creado,200);borrador=JSON.readTree(creado.body());id=borrador.get("codigoPublico").asString();
+        a=sucursal("A");b=sucursal("B");status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","IMP","nombre","Impresión","tipo","IMPRESION")),201);servicio=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.servicio WHERE codigo='IMP'",String.class);
+        var modelo=comando();modelo.put("modelo","MANUAL");aceptar(put(admin,base()+"/modelo",modelo));servicios(List.of(a));
+    }
+    @AfterEach void cerrar()throws Exception{if(app!=null)app.close();if(pg!=null)pg.close();if(smtp!=null)smtp.close();if(antivirus!=null)antivirus.close();if(archivos!=null){try(var tree=Files.walk(archivos)){for(var p:tree.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);}}}
+    private void prepararEsquemaDeEnsayo()throws Exception{
+        if(!Boolean.getBoolean("lamontana.test.schema-prepared"))return;
+        if(System.getProperty("lamontana.test.jdbc-url")==null)throw new IllegalArgumentException("El esquema preparado requiere una base local de ensayo explícita.");
+        try(var c=java.sql.DriverManager.getConnection(testDatabaseUrl(),"postgres","");var stmt=c.createStatement()){
+            // Sólo el servidor efímero QA crea esta marca; no limpiar una base cualquiera.
+            var marca=stmt.executeQuery("SELECT token FROM public.lamontana_qa_efimera");marca.next();
+            if(!"solo-ensayo-pagos-v42".equals(marca.getString(1)))throw new IllegalArgumentException("La base no es el ensayo efímero.");
+            stmt.execute("DROP SCHEMA lamontana CASCADE");stmt.execute("CREATE SCHEMA lamontana");
+            try(var files=Files.list(Path.of("src/main/resources/db/migration"))){
+                for(var file:files.filter(p->p.getFileName().toString().matches("V[0-9]+__.*[.]sql")).sorted(java.util.Comparator.comparingInt(p->Integer.parseInt(p.getFileName().toString().split("__")[0].substring(1)))).toList())stmt.execute(Files.readString(file));
+            }
+        }
+    }
+    private String testDatabaseUrl(){String external=System.getProperty("lamontana.test.jdbc-url");if(external!=null&&!external.matches("jdbc:postgresql://127[.]0[.]0[.]1:[0-9]+/postgres([?].*)?"))throw new IllegalArgumentException("La prueba externa sólo admite la base aislada local postgres.");return external==null?pg.getJdbcUrl("postgres","postgres"):external;}
+    private void arrancar(){arrancar(false);}
+    private void arrancar(boolean automatico){app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--lamontana.configuracion.ejecucion-automatica="+automatico,"--spring.datasource.url="+testDatabaseUrl(),"--spring.flyway.enabled="+!Boolean.getBoolean("lamontana.test.schema-prepared"),"--spring.datasource.hikari.maximum-pool-size=3","--spring.datasource.hikari.minimum-idle=1","--lamontana.archivos.conservacion-inicio-ms=3600000","--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.archivos.antivirus.port="+antivirus.port(),"--lamontana.instalacion.token="+TOKEN,"--spring.mail.host=127.0.0.1","--spring.mail.port="+smtp.port());port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
+
+
+    private String reprogramacion(JsonNode p,boolean interno){return "/api/"+(interno?"operacion":"cliente")+"/pedidos/"+p.get("codigoPublico").asString()+"/reprogramacion";}
+    private JsonNode reprogramacionVista(JsonNode p)throws Exception{var r=get(admin,reprogramacion(p,true));status(r,200);return JSON.readTree(r.body());}
+    private JsonNode franjasReprogramacion(JsonNode p,java.time.LocalDate fecha)throws Exception{var r=get(admin,reprogramacion(p,true)+"/franjas?fecha="+fecha);status(r,200);return JSON.readTree(r.body());}
+    private Map<String,Object> propuestaReprogramacion(JsonNode p,java.time.LocalDate fecha)throws Exception{var d=franjasReprogramacion(p,fecha);var f=d.get("franjas").get(0);return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"configuracion",d.get("configuracion").asString(),"fecha",fecha.toString(),"desde",f.get("desde").asString(),"hasta",f.get("hasta").asString(),"motivo","INTERNO PRIVADO: demora operativa","mensajeCliente","Te proponemos esta nueva fecha manteniendo el precio.","confirmado",true));}
+    private Map<String,Object> respuestaReprogramacion(JsonNode p,JsonNode v,boolean aceptar){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"propuesta",v.get("pendiente").get("codigoPublico").asString(),"aceptada",aceptar,"motivo",aceptar?"Acepto recibir el pedido en la nueva franja":"Prefiero mantener la fecha anterior","confirmado",true));}
+    private String prepararTresEntregas()throws Exception{
+        preparar();guardar("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO","RETIRO_PUNTO_ENTREGA"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));var pointInput=comando();pointInput.putAll(Map.of("codigo","REPROG","nombre","Punto reprogramable","calle","Calle","numero","20","localidad","Ciudad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(a,b).stream().map(sucursal->Map.of("sucursal",sucursal,"costo","5.00","habilitado",true,"franjas",List.of(franjaRetiro(1,"09:00","18:00",4,true)))).toList()));aceptar(post(admin,ruta()+"/puntos",pointInput));String point=borrador.get("entrega").get("puntos").get(0).get("codigoPublico").asString();activar();status(put(admin,"/api/admin/puntos-entrega/disponibilidad/"+point,Map.of("operacion",UUID.randomUUID(),"version",0,"estado","HABILITADO")),200);return point;
+    }
+    private JsonNode pedidoModalidad(HttpClient c,String modalidad,String punto)throws Exception{
+        return confirmarPreparacion(c,modalidad,punto,"EFECTIVO");
+    }
+    private JsonNode confirmarPreparacion(HttpClient c,String modalidad,String punto,String medio)throws Exception{
+        var preparacion=prepararCliente(c,true,5);
+        var resumen=cotizarCliente(c,preparacion,modalidad,modalidad.equals("RETIRO_PUNTO_ENTREGA")?punto:a,medio);
+        var confirmacion=confirmarCliente(resumen);
+        if(modalidad.equals("ENVIO_DOMICILIO")) {
+            confirmacion.put("contacto",Map.of("receptor","Persona receptora","telefono","2604000000"));
+        }
+        var respuesta=post(c,preparaciones(preparacion)+"/confirmar",confirmacion);
+        status(respuesta,200);
+        return JSON.readTree(respuesta.body());
+    }
+    @Test void reprogramacionTresModalidadesConservaLogisticaDineroYRevocaCodigo()throws Exception{
+        String point=prepararTresEntregas();var c=particularCotizacion("reprogramar-tres");
+        for(String modo:List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO")){
+            var p=dejarListo(pedidoModalidad(c,modo,point),true);String path=reprogramacion(p,true),client=reprogramacion(p,false);String entrega=entregaRuta(p,true);
+            if(!modo.equals("RETIRO_SUCURSAL"))for(String accion:modo.equals("RETIRO_PUNTO_ENTREGA")?List.of("PREPARAR_ENVIO","SALIR_REPARTO","LLEGAR_PUNTO"):List.of("PREPARAR_ENVIO","SALIR_REPARTO")){var move=entregaComando(entregaVista(p));move.put("accion",accion);registrarProduccion(entrega+"/movimientos",move);}p=pedidoActual(p);
+            String original=JSON.writeValueAsString(p.get("reserva")),logistica=p.get("estadoLogistico").asString(),quote=p.get("cotizacion").asString();long pagos=contar("pago"),movimientos=contar("movimiento_entrega");String codigo=emitirEntrega(c,p);var validation=registrarProduccion(entrega+"/validar",validarEntrega(p,codigo));var oldDelivery=confirmarEntrega(validation.get("vista"));
+            var fecha=java.time.LocalDate.parse(p.get("reserva").get("fecha").asString()).plusDays(7);var input=propuestaReprogramacion(p,fecha);var v=registrarProduccion(path,input);status(post(admin,path,input),200);assertThat(JSON.writeValueAsString(pedidoActual(p).get("reserva"))).isEqualTo(original);assertThat(get(c,client).body()).doesNotContain("INTERNO PRIVADO");
+            var decline=respuestaReprogramacion(p,v,false);status(post(c,client+"/responder",decline),200);status(post(c,client+"/responder",decline),200);assertThat(pedidoActual(p).get("version")).isEqualTo(p.get("version"));
+            input=propuestaReprogramacion(p,fecha);v=registrarProduccion(path,input);var response=respuestaReprogramacion(p,v,true);var r=post(c,client+"/responder",response);status(r,200);status(post(c,client+"/responder",response),200);var newer=pedidoActual(p);assertThat(newer.get("estado")).isEqualTo(p.get("estado"));assertThat(newer.get("estadoLogistico").asString()).isEqualTo(logistica);assertThat(newer.get("reserva").get("fecha").asString()).isEqualTo(fecha.toString());assertThat(newer.get("version").asLong()).isEqualTo(p.get("version").asLong()+1);assertThat(newer.get("oferta")).isEqualTo(p.get("oferta"));assertThat(newer.get("archivos")).isEqualTo(p.get("archivos"));assertThat(contar("pago")).isEqualTo(pagos);assertThat(contar("movimiento_entrega")).isEqualTo(movimientos);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo(p.get("oferta").get("total").asString());
+            assertThat(entregaVista(p).get("codigo").get("estado").asString()).isEqualTo("REVOCADO");status(post(admin,entrega+"/confirmar",oldDelivery),409);status(post(admin,entrega+"/validar",validarEntrega(newer,codigo)),409);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.reserva_entrega WHERE id_pedido=? AND estado='ACTIVA'",Integer.class,p.get("numero").asLong())).isEqualTo(1);
+            app.close();arrancar();status(post(c,client+"/responder",response),200);assertThat(reprogramacionVista(p).get("historial").size()).isEqualTo(2);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.resolucion_reprogramacion")).isInstanceOf(DataAccessException.class);
+            relojEntrega(Instant.now().plusSeconds(31));String nuevoCodigo=emitirEntrega(c,newer);var validaNueva=registrarProduccion(entrega+"/validar",validarEntrega(newer,nuevoCodigo));var entregado=registrarProduccion(entrega+"/confirmar",confirmarEntrega(validaNueva.get("vista")));assertThat(entregado.get("estadoPedido").asString()).isEqualTo("ENTREGADO");var cerrado=registrarProduccion(entrega+"/cerrar",entregaComando(entregado));assertThat(cerrado.get("estadoPedido").asString()).isEqualTo("CERRADO");var invalidaCerrado=new HashMap<>(input);invalidaCerrado.put("operacion",UUID.randomUUID());invalidaCerrado.put("version",cerrado.get("version").asLong());status(post(admin,path,invalidaCerrado),409);org.springframework.test.util.ReflectionTestUtils.setField((Object)org.springframework.test.util.AopTestUtils.getTargetObject(app.getBean(ar.com.lamontana.entregas.EntregaService.class)),"clock",java.time.Clock.systemUTC());
+        }
+        assertThat(jdbc.queryForObject("""
+                SELECT count(*) FROM lamontana.historial_estado_pedido h
+                JOIN lamontana.pedido p USING (id_pedido)
+                WHERE h.accion='REPROGRAMAR' AND h.actor_tipo='CLIENTE' AND h.id_actor=p.id_usuario_creador
+                """,Integer.class)).isEqualTo(3);
+        assertThat(contar("resolucion_reprogramacion")).isEqualTo(6);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.reserva_entrega WHERE estado='REPROGRAMADA'",Integer.class)).isEqualTo(3);
+    }
+    @Test void reprogramacionCupoConcurrenteRollbackYRetiro()throws Exception{
+        preparar();var slots=new ArrayList<Map<String,Object>>();for(int d=1;d<=5;d++)slots.add(franjaRetiro(d,"09:00","18:00",1,true));aceptar(put(admin,ruta(),retiroSolicitud(slots)));activar();var c=particularCotizacion("reprogramar-cupo");var p1=pedidoRevision(c);var p2=pedidoRevision(c);var date=java.time.LocalDate.parse(p1.get("reserva").get("fecha").asString()).plusDays(7);var v1=registrarProduccion(reprogramacion(p1,true),propuestaReprogramacion(p1,date));var v2=registrarProduccion(reprogramacion(p2,true),propuestaReprogramacion(p2,date));assertThat(contar("reserva_entrega")).isEqualTo(2);
+        var in1=respuestaReprogramacion(p1,v1,true);var in2=respuestaReprogramacion(p2,v2,true);var x=c.sendAsync(request(c,"POST",reprogramacion(p1,false)+"/responder",in1),HttpResponse.BodyHandlers.ofString());var y=c.sendAsync(request(c,"POST",reprogramacion(p2,false)+"/responder",in2),HttpResponse.BodyHandlers.ofString());var rx=x.get();var ry=y.get();assertThat(List.of(rx.statusCode(),ry.statusCode())).containsExactlyInAnyOrder(200,409);var loser=rx.statusCode()==409?p1:p2;assertThat(pedidoActual(loser).get("reserva")).isEqualTo(loser.get("reserva"));var pending=reprogramacionVista(loser);var withdraw=respuestaReprogramacion(loser,pending,false);withdraw.remove("aceptada");status(post(admin,reprogramacion(loser,true)+"/retirar",withdraw),200);status(post(admin,reprogramacion(loser,true)+"/retirar",withdraw),200);assertThat(reprogramacionVista(loser).get("pendiente").isNull()).isTrue();
+        var antesDelFallo=pedidoActual(loser);var next=registrarProduccion(reprogramacion(loser,true),propuestaReprogramacion(loser,date.plusDays(7)));var reply=respuestaReprogramacion(loser,next,true);jdbc.execute("CREATE FUNCTION lamontana.fallar_reprogramacion_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo parcial de prueba'; END $$");jdbc.execute("CREATE TRIGGER fallo_reprogramacion_test BEFORE INSERT ON lamontana.resolucion_reprogramacion FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_reprogramacion_test()");status(post(c,reprogramacion(loser,false)+"/responder",reply),500);assertThat(pedidoActual(loser)).isEqualTo(antesDelFallo);assertThat(reprogramacionVista(loser).get("pendiente").get("estado").asString()).isEqualTo("PENDIENTE");jdbc.execute("DROP TRIGGER fallo_reprogramacion_test ON lamontana.resolucion_reprogramacion");status(post(c,reprogramacion(loser,false)+"/responder",reply),200);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.reserva_entrega WHERE estado='ACTIVA'",Integer.class)).isEqualTo(2);
+    }
+    @Test void reprogramacionPermisosVentanaCaducidadYCancelacion()throws Exception{
+        preparar();activar();var c=particularCotizacion("reprogramar-scope");var otro=particularCotizacion("reprogramar-ajeno");var p=pedidoRevision(c);var ea=empleadoArchivos("reprog-a",a);var eb=empleadoArchivos("reprog-b",b);permisoEmpleado("reprog-b@example.test","GESTIONAR_ENTREGAS");String path=reprogramacion(p,true),client=reprogramacion(p,false);var fecha=java.time.LocalDate.parse(p.get("reserva").get("fecha").asString()).plusDays(7);var in=propuestaReprogramacion(p,fecha);status(post(ea,path,in),403);status(post(eb,path,in),403);status(get(eb,path),403);status(post(c,path,in),403);status(get(otro,client),404);status(get(ea,path+"/franjas?fecha="+fecha),403);permisoEmpleado("reprog-a@example.test","GESTIONAR_ENTREGAS");
+        var raw=HttpRequest.newBuilder(uri(path)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(admin.send(raw,HttpResponse.BodyHandlers.ofString()),403);var bad=new HashMap<>(in);bad.put("desde",Instant.parse((String)in.get("desde")).plusSeconds(60).toString());status(post(ea,path,bad),409);bad=new HashMap<>(in);bad.put("fecha",fecha.minusYears(6).toString());status(post(ea,path,bad),400);bad=new HashMap<>(in);bad.put("confirmado",false);status(post(ea,path,bad),400);
+        var r=post(ea,path,in);status(r,200);var v=JSON.readTree(r.body());var reply=respuestaReprogramacion(p,v,true);var sinDecision=new HashMap<>(reply);sinDecision.remove("aceptada");status(post(c,client+"/responder",sinDecision),400);assertThat(reprogramacionVista(p).get("pendiente").get("estado").asString()).isEqualTo("PENDIENTE");status(post(otro,client+"/responder",reply),404);status(post(admin,client+"/responder",reply),403);bad=new HashMap<>(in);bad.put("operacion",UUID.randomUUID());status(post(ea,path,bad),409);
+        var service=org.springframework.test.util.AopTestUtils.getTargetObject(app.getBean(ar.com.lamontana.entregas.ReprogramacionService.class));org.springframework.test.util.ReflectionTestUtils.setField(service,"clock",java.time.Clock.fixed(Instant.parse((String)in.get("hasta")),java.time.ZoneOffset.UTC));assertThat(reprogramacionVista(p).get("pendiente").get("vigente").asBoolean()).isFalse();status(post(c,client+"/responder",reply),409);org.springframework.test.util.ReflectionTestUtils.setField(service,"clock",java.time.Clock.systemUTC());
+        jdbc.update("DELETE FROM lamontana.usuario_permiso WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo=?) AND id_permiso=(SELECT id_permiso FROM lamontana.permiso WHERE codigo='GESTIONAR_ENTREGAS')","reprog-a@example.test");status(post(ea,path,in),403);
+        status(post(c,cancelarPedido(p),cancelacionPedido(p)),200);var after=pedidoActual(p);assertThat(reprogramacionVista(p).get("pendiente").get("vigente").asBoolean()).isFalse();reply.put("version",after.get("version").asLong());status(post(c,client+"/responder",reply),409);reply.put("aceptada",false);status(post(c,client+"/responder",reply),200);assertThat(pedidoActual(p).get("estado").asString()).isEqualTo("CANCELADO");assertThat(contar("reserva_entrega")).isEqualTo(1);
+    }
+
+    @Test void reprogramacionRevalidaConfiguracionYPuntoSinCambiarPrecio()throws Exception{
+        String punto=prepararTresEntregas();var c=particularCotizacion("reprog-version");var p=pedidoModalidad(c,"RETIRO_PUNTO_ENTREGA",punto);var antes=pedidoActual(p);var fecha=java.time.LocalDate.parse(p.get("reserva").get("fecha").asString()).plusDays(7);var proposal=registrarProduccion(reprogramacion(p,true),propuestaReprogramacion(p,fecha));var response=respuestaReprogramacion(p,proposal,true);
+        status(put(admin,"/api/admin/puntos-entrega/disponibilidad/"+punto,Map.of("operacion",UUID.randomUUID(),"version",1,"estado","DESHABILITADO")),200);status(post(c,reprogramacion(p,false)+"/responder",response),409);assertThat(pedidoActual(p)).isEqualTo(antes);status(put(admin,"/api/admin/puntos-entrega/disponibilidad/"+punto,Map.of("operacion",UUID.randomUUID(),"version",2,"estado","HABILITADO")),200);
+        String anterior=id;adoptarCopia(copiarBase(anterior,UUID.randomUUID()));for(int fase:List.of(2,3,4,5))guardarFaseCopia(fase);confirmarCopia(confirmarCopiaSolicitud());cooldown();activar();assertThat(reprogramacionVista(p).get("pendiente").get("vigente").asBoolean()).isFalse();status(post(c,reprogramacion(p,false)+"/responder",response),409);assertThat(pedidoActual(p)).isEqualTo(antes);
+        var retiro=respuestaReprogramacion(p,proposal,false);retiro.remove("aceptada");status(post(admin,reprogramacion(p,true)+"/retirar",retiro),200);var nueva=registrarProduccion(reprogramacion(p,true),propuestaReprogramacion(p,fecha));status(post(c,reprogramacion(p,false)+"/responder",respuestaReprogramacion(p,nueva,true)),200);var actual=pedidoActual(p);assertThat(actual.get("oferta")).isEqualTo(p.get("oferta"));assertThat(actual.get("cotizacion")).isEqualTo(p.get("cotizacion"));assertThat(actual.get("reserva").get("fecha").asString()).isEqualTo(fecha.toString());assertThat(jdbc.queryForObject("SELECT c.codigo_publico::text FROM lamontana.reserva_entrega r JOIN lamontana.configuracion_version c ON c.id_configuracion_version=r.id_configuracion_reprogramacion WHERE r.estado='ACTIVA'",String.class)).isEqualTo(id);
+    }
+
+    private String entregaRuta(JsonNode p,boolean interno){return "/api/"+(interno?"operacion":"cliente")+"/pedidos/"+p.get("codigoPublico").asString()+"/entrega";}
+    private JsonNode entregaVista(JsonNode p)throws Exception{var r=get(admin,entregaRuta(p,true));status(r,200);return JSON.readTree(r.body());}
+    private Map<String,Object> entregaComando(JsonNode p){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"motivo","LOGISTICA PRIVADA: registro presencial","confirmado",true));}
+    private JsonNode dejarListo(JsonNode p,boolean pagar)throws Exception{if(pagar)cubrirProduccion(p);
+        p=pedidoActual(p);
+        assertThat(p.get("estado").asString()).isEqualTo("APROBADO");
+        var v=registrarProduccion(produccion(p)+"/iniciar",iniciarProduccion(p));String job=ultimoTrabajo(v);v=registrarProduccion(produccion(p)+"/trabajos/"+job+"/estado",estadoTrabajo(v,"COMPLETAR"));registrarProduccion(produccion(p)+"/trabajos/"+job+"/calidad",inspeccionTrabajo(v,"APROBADO",true));return pedidoActual(p);}
+    private Map<String,Object> validarEntrega(JsonNode p,String codigo){return Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"codigo",codigo);}
+    private Map<String,Object> confirmarEntrega(JsonNode v){var in=entregaComando(v);in.put("validacion",v.get("validacion").get("codigoPublico").asString());in.put("receptor","Cliente receptor");return in;}
+    private String emitirEntrega(HttpClient c,JsonNode p)throws Exception{var r=post(c,entregaRuta(p,false)+"/codigo",Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong()));status(r,200);return JSON.readTree(r.body()).get("codigo").asString();}
+    private void relojEntrega(Instant ahora)throws Exception{var service=app.getBean(ar.com.lamontana.entregas.EntregaService.class);var target=org.springframework.test.util.AopTestUtils.getTargetObject(service);var field=ar.com.lamontana.entregas.EntregaService.class.getDeclaredField("clock");field.setAccessible(true);field.set(target,java.time.Clock.fixed(ahora,java.time.ZoneOffset.UTC));}
+
+    @Test void entregasTresModalidadesCodigoCierreYReinicio()throws Exception{
+        preparar();guardar("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO","RETIRO_PUNTO_ENTREGA"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));
+        var pointInput=comando();pointInput.putAll(Map.of("codigo","PUNTO","nombre","Punto de prueba","calle","Calle","numero","20","localidad","Ciudad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(a,b).stream().map(sucursal->Map.of("sucursal",sucursal,"costo","5.00","habilitado",true,"franjas",List.of(franjaRetiro(1,"09:00","18:00",2,true)))).toList()));aceptar(post(admin,ruta()+"/puntos",pointInput));String point=borrador.get("entrega").get("puntos").get(0).get("codigoPublico").asString();activar();status(put(admin,"/api/admin/puntos-entrega/disponibilidad/"+point,Map.of("operacion",UUID.randomUUID(),"version",0,"estado","HABILITADO")),200);
+        var c=particularCotizacion("entregas-tres");JsonNode ultimo=null;Object cierreFinal=null;
+        for(String mode:List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO")){
+            var p=pedidoModalidad(c,mode,point);
+            String path=entregaRuta(p,true);
+            status(post(c,entregaRuta(p,false)+"/codigo",Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong())),409);p=dejarListo(p,true);String code=emitirEntrega(c,p);assertThat(code).matches("[A-HJ-NP-Z2-9]{8}");assertThat(jdbc.queryForObject("SELECT codigo_hash FROM lamontana.codigo_entrega WHERE id_pedido=?",String.class,p.get("numero").asLong())).doesNotContain(code);
+            var v=entregaVista(p);assertThat(v.toString()).doesNotContain(code);var move=entregaComando(v);move.put("accion","SALIR_REPARTO");status(post(admin,path+"/movimientos",move),409);status(post(admin,path+"/cerrar",entregaComando(v)),409);
+            if(mode.equals("RETIRO_SUCURSAL")){assertThat(v.get("estadoLogistico").asString()).isEqualTo("LISTO_RETIRO");move.put("accion","PREPARAR_ENVIO");status(post(admin,path+"/movimientos",move),409);}
+            else{
+                status(post(admin,path+"/validar",validarEntrega(v,code)),409);
+                for(String action:mode.equals("RETIRO_PUNTO_ENTREGA")?List.of("PREPARAR_ENVIO","SALIR_REPARTO","LLEGAR_PUNTO"):List.of("PREPARAR_ENVIO","SALIR_REPARTO")){
+                    move=entregaComando(v);move.put("accion",action);v=registrarProduccion(path+"/movimientos",move);status(post(admin,path+"/movimientos",move),200);
+                    if(action.equals("SALIR_REPARTO")){assertThat(v.get("estadoLogistico").asString()).isEqualTo("EN_VIAJE");assertThat(pedidoActual(p).get("estado").asString()).isEqualTo("LISTO_PARA_ENTREGA");if(mode.equals("RETIRO_PUNTO_ENTREGA"))status(post(admin,path+"/validar",validarEntrega(v,code)),409);}
+                }
+            }
+            var valid=registrarProduccion(path+"/validar",validarEntrega(v,code));assertThat(valid.get("aceptado").asBoolean()).isTrue();v=valid.get("vista");assertThat(v.get("bloqueosEntrega").size()).isZero();var handover=confirmarEntrega(v);v=registrarProduccion(path+"/confirmar",handover);status(post(admin,path+"/confirmar",handover),200);assertThat(v.get("estadoPedido").asString()).isEqualTo("ENTREGADO");assertThat(v.get("cierre").isNull()).isTrue();assertThat(pedidoActual(p).get("estadoReserva").asString()).isEqualTo("CUMPLIDA");
+            var close=entregaComando(v);v=registrarProduccion(path+"/cerrar",close);status(post(admin,path+"/cerrar",close),200);assertThat(v.get("estadoPedido").asString()).isEqualTo("CERRADO");assertThat(get(c,entregaRuta(p,false)).body()).doesNotContain("PRIVADA",code);status(post(c,cancelarPedido(p),cancelacionPedido(pedidoActual(p))),409);ultimo=p;cierreFinal=close;
+        }
+        assertThat(contar("entrega")).isEqualTo(3);assertThat(contar("cierre_pedido")).isEqualTo(3);assertThat(contar("movimiento_entrega")).isEqualTo(5);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.entrega")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("UPDATE lamontana.cierre_pedido SET aplicado=0")).isInstanceOf(DataAccessException.class);
+        app.close();arrancar();status(post(admin,entregaRuta(ultimo,true)+"/cerrar",cierreFinal),200);assertThat(entregaVista(ultimo).get("estadoPedido").asString()).isEqualTo("CERRADO");assertThat(JSON.readTree(get(c,"/api/cliente/pedidos?estado=CERRADO").body()).get("total").asInt()).isEqualTo(3);
+    }
+
+    @Test void entregasPermisosCodigoBloqueoVencimientoYVersion()throws Exception{
+        preparar();activar();var c=particularCotizacion("entrega-scope");var otro=particularCotizacion("entrega-ajeno");var p=dejarListo(pedidoRevision(c),true);String path=entregaRuta(p,true);var ea=empleadoArchivos("entrega-a",a);var eb=empleadoArchivos("entrega-b",b);permisoEmpleado("entrega-b@example.test","GESTIONAR_ENTREGAS");
+        String code=emitirEntrega(c,p);var in=validarEntrega(p,code);status(post(ea,path+"/validar",in),403);status(post(eb,path+"/validar",in),403);status(get(eb,path),403);status(get(c,path),403);status(get(otro,entregaRuta(p,false)),404);status(post(otro,entregaRuta(p,false)+"/codigo",Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong())),404);
+        var raw=HttpRequest.newBuilder(uri(path+"/validar")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(admin.send(raw,HttpResponse.BodyHandlers.ofString()),403);
+        permisoEmpleado("entrega-a@example.test","GESTIONAR_ENTREGAS");String incorrect=code.equals("AAAAAAAA")?"BBBBBBBB":"AAAAAAAA";
+        for(int i=0;i<5;i++){var wrong=validarEntrega(p,incorrect);var r=post(ea,path+"/validar",wrong);status(r,200);assertThat(JSON.readTree(r.body()).get("aceptado").asBoolean()).isFalse();status(post(ea,path+"/validar",wrong),200);assertThat(entregaVista(p).get("codigo").get("intentosRestantes").asInt()).isEqualTo(4-i);}
+        var denied=registrarProduccion(path+"/validar",in);assertThat(denied.get("aceptado").asBoolean()).isFalse();assertThat(entregaVista(p).get("codigo").get("estado").asString()).isEqualTo("BLOQUEADO");
+        Instant emitted=Instant.parse(entregaVista(p).get("codigo").get("emitidoEn").asString());relojEntrega(emitted.plusSeconds(31));code=emitirEntrega(c,p);assertThat(contar("codigo_entrega")).isEqualTo(2);assertThat(contar("validacion_codigo_entrega")).isEqualTo(6);
+        var valid=registrarProduccion(path+"/validar",validarEntrega(p,code)).get("vista");var handover=confirmarEntrega(valid);status(post(ea,path+"/confirmar",handover),409);var stale=new HashMap<>(handover);stale.put("version",p.get("version").asLong()-1);status(post(admin,path+"/confirmar",stale),409);
+        relojEntrega(emitted.plusSeconds(632));status(post(admin,path+"/confirmar",handover),409);valid=registrarProduccion(path+"/validar",validarEntrega(p,code)).get("vista");assertThat(valid.get("validacion").isNull()).isFalse();relojEntrega(emitted.plusSeconds(1832));assertThat(registrarProduccion(path+"/validar",validarEntrega(p,code)).get("aceptado").asBoolean()).isFalse();
+        var emit=Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong());var issued=post(c,entregaRuta(p,false)+"/codigo",emit);status(issued,200);code=JSON.readTree(issued.body()).get("codigo").asString();var replay=post(c,entregaRuta(p,false)+"/codigo",emit);status(replay,200);assertThat(JSON.readTree(replay.body()).get("codigo").isNull()).isTrue();
+        var vr=post(ea,path+"/validar",validarEntrega(p,code));status(vr,200);handover=confirmarEntrega(JSON.readTree(vr.body()).get("vista"));jdbc.update("DELETE FROM lamontana.usuario_permiso WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='entrega-a@example.test') AND id_permiso=(SELECT id_permiso FROM lamontana.permiso WHERE codigo='GESTIONAR_ENTREGAS')");status(post(ea,path+"/confirmar",handover),403);assertThat(contar("entrega")).isZero();
+    }
+
+    @Test void entregasSaldoExcedenteConciliacionCarreraRollbackYCierreInmutable()throws Exception{
+        preparar();activar();var c=particularCotizacion("entrega-dinero");var p=pedidoRevision(c);String q=p.get("cotizacion").asString(),path=entregaRuta(p,true),total=p.get("oferta").get("total").asString();String half=new java.math.BigDecimal(total).divide(new java.math.BigDecimal("2")).toPlainString();
+        status(post(admin,pagos(q,true)+"/recibir",recibirPago("TRANSFERENCIA",half,"ENT-ANTICIPO")),200);var payment=pagosVista(admin,q,true).get("pagos").get(0);status(post(admin,pagos(q,true)+"/aplicar",aplicarPago(payment,half)),200);p=dejarListo(p,false);String code=emitirEntrega(c,p);var v=registrarProduccion(path+"/validar",validarEntrega(p,code)).get("vista");var handover=confirmarEntrega(v);status(post(admin,path+"/confirmar",handover),409);
+        status(post(admin,pagos(q,true)+"/recibir",recibirPago("TRANSFERENCIA",new java.math.BigDecimal(total).toPlainString(),"ENT-SALDO")),200);payment=pagosVista(admin,q,true).get("pagos").get(1);status(post(admin,pagos(q,true)+"/aplicar",aplicarPago(payment,half)),200);
+        jdbc.execute("CREATE FUNCTION lamontana.fallar_entrega_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo parcial de prueba'; END $$");jdbc.execute("CREATE TRIGGER fallo_entrega_test BEFORE INSERT ON lamontana.entrega FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_entrega_test()");status(post(admin,path+"/confirmar",handover),500);assertThat(contar("entrega")).isZero();assertThat(pedidoActual(p).get("estadoReserva").asString()).isEqualTo("ACTIVA");assertThat(entregaVista(p).get("codigo").get("estado").asString()).isEqualTo("ACTIVO");jdbc.execute("DROP TRIGGER fallo_entrega_test ON lamontana.entrega");
+        var second=new HashMap<>(handover);second.put("operacion",UUID.randomUUID());var x=admin.sendAsync(request(admin,"POST",path+"/confirmar",handover),HttpResponse.BodyHandlers.ofString());var y=admin.sendAsync(request(admin,"POST",path+"/confirmar",second),HttpResponse.BodyHandlers.ofString());assertThat(List.of(x.get().statusCode(),y.get().statusCode())).containsExactlyInAnyOrder(200,409);assertThat(contar("entrega")).isEqualTo(1);v=entregaVista(p);status(post(admin,path+"/cerrar",entregaComando(v)),409);
+        payment=pagosVista(admin,q,true).get("pagos").get(1);status(post(admin,pagos(q,true)+"/devolver",devolverPago(payment,half,"DEV-EXCEDENTE")),200);var info=Map.of("operacion",UUID.randomUUID(),"importe","1.00","referencia","Informe duplicado por revisar","motivo","Verificar transferencia");status(post(c,pagos(q,false)+"/informar",info),200);status(post(admin,path+"/cerrar",entregaComando(v)),409);var attempt=pagosVista(c,q,false).get("intentos").get(0);status(post(c,pagos(q,false)+"/descartar",Map.of("operacion",UUID.randomUUID(),"intento",attempt.get("codigoPublico").asString(),"motivo","Informe duplicado, no fue otra transferencia")),200);
+        var close=entregaComando(v);registrarProduccion(path+"/cerrar",close);status(post(c,pagos(q,false)+"/informar",info),200);var newInfo=new HashMap<>(info);newInfo.put("operacion",UUID.randomUUID());status(post(c,pagos(q,false)+"/informar",newInfo),409);payment=pagosVista(admin,q,true).get("pagos").get(0);assertThat(payment.get("puedeDevolver").asBoolean()).isFalse();status(post(admin,pagos(q,true)+"/devolver",devolverPago(payment,"1.00","DEV-CERRADO")),409);
+        status(post(admin,pagos(q,true)+"/recibir",recibirPago("TRANSFERENCIA","1.00","COBRO-TARDIO-CERRADO")),200);payment=pagosVista(admin,q,true).get("pagos").get(2);status(post(admin,pagos(q,true)+"/aplicar",aplicarPago(payment,"1.00")),409);status(post(admin,pagos(q,true)+"/devolver",devolverPago(payment,"1.00","DEV-TARDIO-CERRADO")),200);assertThat(entregaVista(p).get("estadoPedido").asString()).isEqualTo("CERRADO");assertThat(pagosVista(c,q,false).get("aplicado").asString()).isEqualTo(total);
+    }
+
+    private String produccion(JsonNode p){return "/api/operacion/pedidos/"+p.get("codigoPublico").asString()+"/produccion";}
+    private JsonNode pedidoActual(JsonNode p)throws Exception{var r=get(admin,"/api/operacion/pedidos/"+p.get("codigoPublico").asString());status(r,200);return JSON.readTree(r.body());}
+    private JsonNode produccionVista(JsonNode p)throws Exception{var r=get(admin,produccion(p));status(r,200);return JSON.readTree(r.body());}
+    private JsonNode aprobarProduccion(JsonNode p)throws Exception{var r=post(admin,gestionPedido(p),decisionPedido(p,"REVISAR"));status(r,200);p=JSON.readTree(r.body());r=post(admin,gestionPedido(p),decisionPedido(p,"APROBAR"));status(r,200);return JSON.readTree(r.body());}
+    private void cubrirProduccion(JsonNode p)throws Exception{String q=p.get("cotizacion").asString(),total=p.get("oferta").get("total").asString();status(post(admin,pagos(q,true)+"/recibir",recibirPago("TRANSFERENCIA",total,"PROD-"+UUID.randomUUID())),200);var pay=pagosVista(admin,q,true).get("pagos").get(0);status(post(admin,pagos(q,true)+"/aplicar",aplicarPago(pay,total)),200);}
+    private Map<String,Object> iniciarProduccion(JsonNode p){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"item",p.get("archivos").get(0).get("item").asString(),"motivo","RECURSO INTERNO PRIVADO: impresora manual de taller","confirmacionManual",true));}
+    private Map<String,Object> estadoTrabajo(JsonNode v,String accion){return Map.of("operacion",UUID.randomUUID(),"version",v.get("version").asLong(),"accion",accion,"motivo","REGISTRO FISICO PRIVADO del operador","confirmacionManual",true);}
+    private Map<String,Object> inspeccionTrabajo(JsonNode v,String resultado,boolean completo){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",v.get("version").asLong(),"resultado",resultado,"checklist",Map.of("impresionCompleta",completo,"calidadCorrecta",true,"alineacionCorrecta",true,"ordenCorrecto",true,"terminacionesCorrectas",true),"observaciones","OBSERVACION PRIVADA de inspección física","confirmacionManual",true));}
+    private String ultimoTrabajo(JsonNode v){var t=v.get("items").get(0).get("trabajos");return t.get(t.size()-1).get("codigoPublico").asString();}
+    private JsonNode registrarProduccion(String path,Object in)throws Exception{var r=post(admin,path,in);status(r,200);return JSON.readTree(r.body());}
+
+    @Test void produccionD1DineroCalidadReimpresionYReinicio()throws Exception{
+        preparar();activar();var c=particularCotizacion("produccion-d1");var p=pedidoRevision(c);String path=produccion(p);
+        assertThat(p.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(p.get("condiciones").get("revisionHumana").asBoolean()).isFalse();var inicio=iniciarProduccion(p);status(post(admin,path+"/iniciar",inicio),409);
+        assertThat(produccionVista(p).get("items").get(0).get("puedeIniciar").asBoolean()).isFalse();String quote=p.get("cotizacion").asString();String total=p.get("oferta").get("total").asString();
+        status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA",total,"PRODUCCION-D1")),200);status(post(admin,path+"/iniciar",inicio),409);var pay=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(pay,total)),200);
+        p=pedidoActual(p);assertThat(p.get("estado").asString()).isEqualTo("APROBADO");inicio=iniciarProduccion(p);
+        var v=registrarProduccion(path+"/iniciar",inicio);String job=ultimoTrabajo(v);assertThat(v.get("estado").asString()).isEqualTo("EN_PRODUCCION");status(post(admin,path+"/iniciar",inicio),200);assertThat(contar("trabajo_impresion")).isEqualTo(1);
+        p=pedidoActual(p);status(post(c,cancelarPedido(p),cancelacionPedido(p)),409);status(post(admin,path+"/iniciar",iniciarProduccion(p)),409);status(post(admin,path+"/trabajos/"+job+"/calidad",inspeccionTrabajo(v,"APROBADO",true)),409);
+        v=registrarProduccion(path+"/trabajos/"+job+"/estado",estadoTrabajo(v,"COMPLETAR"));status(post(admin,path+"/trabajos/"+job+"/calidad",inspeccionTrabajo(v,"APROBADO",false)),400);
+        var inspeccion=inspeccionTrabajo(v,"REIMPRESION_REQUERIDA",false);v=registrarProduccion(path+"/trabajos/"+job+"/calidad",inspeccion);status(post(admin,path+"/trabajos/"+job+"/calidad",inspeccion),200);assertThat(v.get("estado").asString()).isEqualTo("EN_PRODUCCION");
+        p=pedidoActual(p);v=registrarProduccion(path+"/iniciar",iniciarProduccion(p));String repeated=ultimoTrabajo(v);assertThat(v.get("items").get(0).get("trabajos").get(1).get("origen").asString()).isEqualTo(job);assertThat(v.get("items").get(0).get("trabajos").get(1).get("tipo").asString()).isEqualTo("REIMPRESION_CALIDAD");
+        v=registrarProduccion(path+"/trabajos/"+repeated+"/estado",estadoTrabajo(v,"COMPLETAR"));var finalDecision=inspeccionTrabajo(v,"APROBADO",true);v=registrarProduccion(path+"/trabajos/"+repeated+"/calidad",finalDecision);assertThat(v.get("estado").asString()).isEqualTo("LISTO_PARA_ENTREGA");
+        p=pedidoActual(p);assertThat(p.get("estadoReserva").asString()).isEqualTo("ACTIVA");assertThat(p.get("historial").toString()).contains("listo para entregar").doesNotContain("PRIVADO","PRIVADA","En viaje");assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo(total);assertThat(contar("trabajo_impresion")).isEqualTo(2);assertThat(contar("control_calidad")).isEqualTo(2);
+        status(post(admin,path+"/iniciar",iniciarProduccion(p)),409);assertThatThrownBy(()->jdbc.update("UPDATE lamontana.control_calidad SET resultado='INCIDENCIA'")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.trabajo_impresion")).isInstanceOf(DataAccessException.class);
+        var saved=v;app.close();arrancar();assertThat(produccionVista(p)).isEqualTo(saved);status(post(admin,path+"/trabajos/"+repeated+"/calidad",finalDecision),200);assertThat(contar("historial_trabajo_impresion")).isEqualTo(6);
+        assertThat(JSON.readTree(get(admin,"/api/operacion/sucursales/"+a+"/pedidos?estado=LISTO_PARA_ENTREGA").body()).get("total").asInt()).isEqualTo(1);
+    }
+    @Test void produccionPermisosCsrfCarreraRollbackYCancellationTrabajo()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("produccion-permisos");var p=aprobarProduccion(pedidoRevision(c));cubrirProduccion(p);var ea=empleadoArchivos("produccion-a",a);var eb=empleadoArchivos("produccion-b",b);permisoEmpleado("produccion-b@example.test","GESTIONAR_PRODUCCION");String path=produccion(p);var in=iniciarProduccion(p);
+        status(post(ea,path+"/iniciar",in),403);status(post(eb,path+"/iniciar",in),403);status(get(eb,path),403);status(get(c,path),403);status(post(c,path+"/iniciar",in),403);
+        var raw=HttpRequest.newBuilder(uri(path+"/iniciar")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(admin.send(raw,HttpResponse.BodyHandlers.ofString()),403);permisoEmpleado("produccion-a@example.test","GESTIONAR_PRODUCCION");
+        jdbc.execute("CREATE FUNCTION lamontana.fallo_produccion_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de auditoría'; END $$");jdbc.execute("CREATE TRIGGER fallo_produccion_test BEFORE INSERT ON lamontana.historial_trabajo_impresion FOR EACH ROW EXECUTE FUNCTION lamontana.fallo_produccion_test()");status(post(ea,path+"/iniciar",in),500);assertThat(contar("trabajo_impresion")).isZero();assertThat(pedidoActual(p).get("estado").asString()).isEqualTo("APROBADO");jdbc.execute("DROP TRIGGER fallo_produccion_test ON lamontana.historial_trabajo_impresion");
+        var pool=Executors.newFixedThreadPool(2);var other=new HashMap<>(in);other.put("operacion",UUID.randomUUID());try{var f1=pool.submit(()->post(ea,path+"/iniciar",in));var f2=pool.submit(()->post(admin,path+"/iniciar",other));assertThat(List.of(f1.get().statusCode(),f2.get().statusCode())).containsExactlyInAnyOrder(200,409);}finally{pool.shutdownNow();}
+        assertThat(contar("trabajo_impresion")).isEqualTo(1);var v=produccionVista(p);String job=ultimoTrabajo(v);var cancel=estadoTrabajo(v,"CANCELAR");var r=post(ea,path+"/trabajos/"+job+"/estado",cancel);status(r,200);v=JSON.readTree(r.body());assertThat(v.get("estado").asString()).isEqualTo("EN_PRODUCCION");assertThat(pedidoActual(p).get("estadoReserva").asString()).isEqualTo("ACTIVA");
+        jdbc.update("UPDATE lamontana.usuario_permiso SET fecha_revocacion=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='produccion-a@example.test')");status(post(ea,path+"/trabajos/"+job+"/estado",cancel),403);
+        p=pedidoActual(p);v=registrarProduccion(path+"/iniciar",iniciarProduccion(p));job=ultimoTrabajo(v);v=registrarProduccion(path+"/trabajos/"+job+"/estado",estadoTrabajo(v,"ERROR"));p=pedidoActual(p);v=registrarProduccion(path+"/iniciar",iniciarProduccion(p));job=ultimoTrabajo(v);v=registrarProduccion(path+"/trabajos/"+job+"/estado",estadoTrabajo(v,"COMPLETAR"));
+        var quality=inspeccionTrabajo(v,"APROBADO",true);status(post(ea,path+"/trabajos/"+job+"/calidad",quality),403);permisoEmpleado("produccion-a@example.test","CONTROLAR_CALIDAD");r=post(ea,path+"/trabajos/"+job+"/calidad",quality);status(r,200);assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("LISTO_PARA_ENTREGA");assertThat(contar("trabajo_impresion")).isEqualTo(3);assertThat(contar("control_calidad")).isEqualTo(1);
+    }
+
+    @Test void produccionPdfCorregidoIntegridadDineroYRecuperacion()throws Exception{
+        prepararManualConSena();activar();var c=particularCotizacion("produccion-corregido");var p=pedidoRevision(c);var original=p.get("archivos").get(0);var r=post(admin,correcciones(p,true),solicitarCorreccion(p));status(r,200);p=JSON.readTree(r.body());var corrected=pdfCorregido(c,p,pdf(5,false,false,1));var pre=prepararRespuesta(c,p);r=post(c,correcciones(p,false)+"/respuesta",responderCorreccion(pre));status(r,200);p=JSON.readTree(r.body());cubrirProduccion(p);p=aprobarProduccion(pedidoActual(p));String path=produccion(p);
+        var first=iniciarProduccion(p);first.put("impresora",borrador.get("recursos").get("impresoras").get(0).get("codigoPublico").asString());status(post(admin,path+"/iniciar",first),409);first.remove("impresora");
+        var storage=app.getBean(ar.com.lamontana.archivos.ArchivosPrivados.class);var actual=storage.original(UUID.fromString(corrected.get("codigoPublico").asString()),corrected.get("sha256").asString(),corrected.get("bytes").asLong());var bytes=Files.readAllBytes(actual);Files.write(actual,new byte[]{0});status(post(admin,path+"/iniciar",first),409);assertThat(contar("trabajo_impresion")).isZero();Files.write(actual,bytes);
+        var originalPath=storage.original(UUID.fromString(original.get("archivo").asString()),original.get("sha256").asString(),original.get("bytes").asLong());var oldBytes=Files.readAllBytes(originalPath);Files.write(originalPath,new byte[]{0});var v=registrarProduccion(path+"/iniciar",first);Files.write(originalPath,oldBytes);String job=ultimoTrabajo(v);assertThat(v.get("items").get(0).get("trabajos").get(0).get("archivo")).isEqualTo(corrected.get("codigoPublico"));
+        String quote=p.get("cotizacion").asString();var pay=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,pagos(quote,true)+"/devolver",devolverPago(pay,p.get("oferta").get("total").asString(),"PROD-DEVOLUCION")),200);
+        v=registrarProduccion(path+"/trabajos/"+job+"/estado",estadoTrabajo(v,"COMPLETAR"));v=registrarProduccion(path+"/trabajos/"+job+"/calidad",inspeccionTrabajo(v,"INCIDENCIA",false));p=pedidoActual(p);status(post(admin,path+"/iniciar",iniciarProduccion(p)),409);assertThat(contar("trabajo_impresion")).isEqualTo(1);
+        String total=p.get("oferta").get("total").asString();var received=post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA",total,"PROD-RECUPERADO"));status(received,200);var pays=JSON.readTree(received.body()).get("pagos");JsonNode fresh=null;for(var pp:pays)if(pp.get("devuelto").asString().equals("0.00"))fresh=pp;status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(fresh,total)),200);
+        var retry=iniciarProduccion(p);v=registrarProduccion(path+"/iniciar",retry);status(post(admin,path+"/iniciar",retry),200);var changed=new HashMap<>(retry);changed.put("motivo","Otro dato");status(post(admin,path+"/iniciar",changed),409);assertThat(v.get("items").get(0).get("trabajos").size()).isEqualTo(2);
+    }
+    @Test void produccionVariosItemsUltimaCalidadYPermisosAdministrables()throws Exception{
+        prepararManualSinAnticipo();activar();var permissions=List.of("GESTIONAR_PEDIDOS","GESTIONAR_PRODUCCION","CONTROLAR_CALIDAD","ACREDITAR_PAGO","REGISTRAR_COBRO","REGISTRAR_DEVOLUCION");status(post(admin,"/api/admin/empleados",Map.of("nombre","Operador","apellido","Completo","correo","produccion-completo@example.test","contrasena",CLAVE,"sucursales",List.of(a),"permisos",permissions)),201);
+        var c=particularCotizacion("produccion-multi");
+        var preparacion=prepararCliente(c,true,5,5);
+        var checkout=cotizarCliente(c,preparacion,"RETIRO_SUCURSAL",a,"EFECTIVO");
+        var orden=post(c,preparaciones(preparacion)+"/confirmar",confirmarCliente(checkout));status(orden,200);
+        var p=aprobarProduccion(JSON.readTree(orden.body()));cubrirProduccion(p);String path=produccion(p);var v=registrarProduccion(path+"/iniciar",iniciarProduccion(p));String j1=ultimoTrabajo(v);v=registrarProduccion(path+"/trabajos/"+j1+"/estado",estadoTrabajo(v,"COMPLETAR"));v=registrarProduccion(path+"/trabajos/"+j1+"/calidad",inspeccionTrabajo(v,"APROBADO",true));assertThat(v.get("estado").asString()).isEqualTo("EN_PRODUCCION");
+        p=pedidoActual(p);assertThatThrownBy(()->jdbc.update("UPDATE lamontana.pedido SET estado='LISTO_PARA_ENTREGA',version=version+1")).isInstanceOf(DataAccessException.class);var input=iniciarProduccion(p);input.put("item",p.get("archivos").get(1).get("item").asString());v=registrarProduccion(path+"/iniciar",input);String j2=v.get("items").get(1).get("trabajos").get(0).get("codigoPublico").asString();v=registrarProduccion(path+"/trabajos/"+j2+"/estado",estadoTrabajo(v,"COMPLETAR"));var inspect=inspeccionTrabajo(v,"APROBADO",true);
+        jdbc.execute("CREATE FUNCTION lamontana.fallo_calidad_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo parcial'; END $$");jdbc.execute("CREATE TRIGGER fallo_calidad_test BEFORE INSERT ON lamontana.historial_trabajo_impresion FOR EACH ROW EXECUTE FUNCTION lamontana.fallo_calidad_test()");status(post(admin,path+"/trabajos/"+j2+"/calidad",inspect),500);assertThat(contar("control_calidad")).isEqualTo(1);assertThat(pedidoActual(p).get("estado").asString()).isEqualTo("EN_PRODUCCION");jdbc.execute("DROP TRIGGER fallo_calidad_test ON lamontana.historial_trabajo_impresion");
+        v=registrarProduccion(path+"/trabajos/"+j2+"/calidad",inspect);assertThat(v.get("estado").asString()).isEqualTo("LISTO_PARA_ENTREGA");assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("reserva_entrega")).isEqualTo(1);assertThat(contar("control_calidad")).isEqualTo(2);
+    }
+
+    private String correcciones(JsonNode p,boolean interno){return "/api/"+(interno?"operacion":"cliente")+"/pedidos/"+p.get("codigoPublico").asString()+"/correcciones";}
+    private Map<String,Object> solicitarCorreccion(JsonNode p){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"tipo","ARCHIVO","motivo","MOTIVO PRIVADO de imprenta","mensajeCliente","Por favor corregí el contenido señalado","items",List.of(p.get("archivos").get(0).get("item").asString())));}
+    private JsonNode solicitudCorreccion(HttpClient c,JsonNode p)throws Exception{var r=get(c,correcciones(p,false));status(r,200);return JSON.readTree(r.body()).get("solicitudes").get(0);}
+    private JsonNode prepararRespuesta(HttpClient c,JsonNode p)throws Exception{var r=get(c,correcciones(p,false)+"/respuesta");status(r,200);return JSON.readTree(r.body());}
+    private Map<String,Object> responderCorreccion(JsonNode pre){var in=confirmarPedido(pre);in.put("solicitud",pre.get("solicitud").asString());in.put("mensaje","Revisé el contenido y envío la corrección solicitada");return in;}
+    private JsonNode pdfCorregido(HttpClient c,JsonNode p,byte[] bytes)throws Exception{
+        String quote=p.get("cotizacion").asString();var view=JSON.readTree(get(c,archivos(quote)).body());var in=Map.of("operacion",UUID.randomUUID(),"version",view.get("version").asLong(),"correccion",view.get("correccion").asString(),"item",p.get("archivos").get(0).get("item").asString());var r=post(c,archivos(quote),in);status(r,200);String file=JSON.readTree(r.body()).get("codigoPublico").asString();var f=cargarPdf(c,quote,file,bytes);if(f.get("estado").asString().equals("VALIDO"))status(post(c,archivos(quote)+"/"+file+"/aceptar",Map.of("operacion",UUID.randomUUID(),"sha256",f.get("sha256").asString())),200);return f;
+    }
+    private JsonNode cotizarCorreccion(HttpClient c,JsonNode p,JsonNode req,Map<String,Object> input)throws Exception{var r=post(c,correcciones(p,false)+"/"+req.get("codigoPublico").asString()+"/cotizaciones",input);status(r,200);return JSON.readTree(r.body());}
+    @Test void correccionesPdfVersionesPrivacidadReinicioYRevision()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("corregir-pdf");var p=pedidoRevision(c);var original=p;String quote=p.get("cotizacion").asString();var revisada=post(admin,gestionPedido(p),decisionPedido(p,"REVISAR"));status(revisada,200);p=JSON.readTree(revisada.body());var solicitud=solicitarCorreccion(p);var r=post(admin,correcciones(p,true),solicitud);status(r,200);p=JSON.readTree(r.body());assertThat(p.get("estado").asString()).isEqualTo("CORRECCION_SOLICITADA");status(post(admin,correcciones(p,true),solicitud),200);
+        assertThat(get(c,correcciones(p,false)).body()).doesNotContain("MOTIVO PRIVADO");assertThat(get(admin,correcciones(p,true)).body()).contains("MOTIVO PRIVADO");status(post(admin,gestionPedido(p),decisionPedido(p,"APROBAR")),409);assertThat(prepararRespuesta(c,p).get("habilitada").asBoolean()).isFalse();
+        var f=pdfCorregido(c,p,pdf(5,false,false,1));assertThat(f.get("estado").asString()).isEqualTo("VALIDO");assertThat(JSON.readTree(get(c,"/api/cliente/pedidos/"+p.get("codigoPublico").asString()).body()).get("archivos")).isEqualTo(original.get("archivos"));
+        var pre=prepararRespuesta(c,p);assertThat(pre.get("habilitada").asBoolean()).isTrue();var in=responderCorreccion(pre);r=post(c,correcciones(p,false)+"/respuesta",in);status(r,200);p=JSON.readTree(r.body());assertThat(p.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(p.get("archivos").get(0).get("archivo").asString()).isEqualTo(f.get("codigoPublico").asString());assertThat(p.get("oferta")).isEqualTo(original.get("oferta"));assertThat(contar("reserva_entrega")).isEqualTo(1);assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("respuesta_correccion")).isEqualTo(1);
+        status(post(c,correcciones(p,false)+"/respuesta",in),200);status(post(admin,gestionPedido(p),decisionPedido(p,"APROBAR")),409);r=post(admin,gestionPedido(p),decisionPedido(p,"REVISAR"));status(r,200);p=JSON.readTree(r.body());r=post(admin,gestionPedido(p),decisionPedido(p,"APROBAR"));status(r,200);p=JSON.readTree(r.body());assertThat(solicitudCorreccion(c,p).get("estado").asString()).isEqualTo("CERRADA");assertThat(contar("pago")).isZero();
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.respuesta_correccion SET mensaje='reescritura'")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.solicitud_correccion_item")).isInstanceOf(DataAccessException.class);
+        String detalle="/api/cliente/pedidos/"+p.get("codigoPublico").asString();
+        var vistaCliente=get(c,detalle);status(vistaCliente,200);
+        app.close();arrancar();status(post(c,correcciones(p,false)+"/respuesta",in),200);
+        var despues=get(c,detalle);status(despues,200);
+        assertThat(JSON.readTree(despues.body())).isEqualTo(JSON.readTree(vistaCliente.body()));
+        assertThat(contar("archivo_trabajo")).isEqualTo(2);assertThat(cotizacion(c,quote).get("estado").asString()).isEqualTo("CONFIRMADA");
+    }
+    @Test void correccionesMaterialesDineroCupoUnicoYCancelacion()throws Exception{
+        prepararManualSinAnticipo();var slots=new ArrayList<Map<String,Object>>();for(int d=1;d<=5;d++)slots.add(franjaRetiro(d,"09:00","18:00",1,true));aceptar(put(admin,ruta(),retiroSolicitud(slots)));activar();var c=particularCotizacion("corregir-material");var p=pedidoRevision(c);var original=p;String quote=p.get("cotizacion").asString();status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","10.00","CORRECCION-REC")),200);var payment=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(payment,"10.00")),200);
+        var r=post(admin,correcciones(p,true),solicitarCorreccion(p));status(r,200);p=JSON.readTree(r.body());var req=solicitudCorreccion(c,p);byte[] bytes=pdf(6,false,false,1);var mismatch=pdfCorregido(c,p,bytes);assertThat(mismatch.get("estado").asString()).isEqualTo("REQUIERE_COTIZACION");var input=ofertaPdf(bytes,6);input.put("reemplaza",quote);status(post(c,"/api/cliente/cotizaciones",input),409);var q=cotizarCorreccion(c,p,req,input);String next=q.get("codigoPublico").asString();payment=pagosVista(admin,next,true).get("pagos").get(0);status(post(admin,pagos(next,true)+"/aplicar",aplicarPago(payment,"10.00")),409);
+        status(post(c,"/api/cliente/cotizaciones/"+next+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,next);pdfAceptado(c,q,bytes);var pre=prepararRespuesta(c,p);assertThat(pre.get("habilitada").asBoolean()).isTrue();assertThat(pre.get("finales").get("franja").get("fecha")).isEqualTo(original.get("reserva").get("fecha"));assertThat(pre.get("diferencia").asString()).isNotEqualTo("0.00");assertThat(revisarPedido(c,q).get("pedido")).isEqualTo(p.get("codigoPublico"));status(post(c,confirmacionPedido(next),confirmarPedido(pre.get("finales"))),409);
+        payment=pagosVista(admin,next,true).get("pagos").get(0);assertThat(payment.get("puedeAplicar").asBoolean()).isTrue();status(post(admin,pagos(next,true)+"/aplicar",aplicarPago(payment,"10.00")),200);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("0.00");assertThat(pagosVista(c,quote,false).get("cotizacionSustituida").asBoolean()).isTrue();pre=prepararRespuesta(c,p);var in=responderCorreccion(pre);r=post(c,correcciones(p,false)+"/respuesta",in);status(r,200);p=JSON.readTree(r.body());assertThat(p.get("cotizacion").asString()).isEqualTo(next);assertThat(p.get("oferta")).isEqualTo(q.get("oferta"));assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("reserva_entrega")).isEqualTo(2);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.reserva_entrega WHERE estado='ACTIVA'",Integer.class)).isEqualTo(1);assertThat(pagosVista(c,next,false).get("aplicado").asString()).isEqualTo("10.00");
+        status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","2.00","CORRECCION-TARDIO")),200);payment=pagosVista(admin,next,true).get("pagos").get(1);status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(payment,"2.00")),409);status(post(admin,pagos(next,true)+"/aplicar",aplicarPago(payment,"2.00")),200);status(post(c,cancelarPedido(p),cancelacionPedido(p)),200);assertThat(pagosVista(c,next,false).get("pedidoFinalizado").asBoolean()).isTrue();assertThat(pagosVista(c,quote,false).get("pedidoFinalizado").asBoolean()).isTrue();payment=pagosVista(admin,next,true).get("pagos").get(0);status(post(admin,pagos(next,true)+"/devolver",devolverPago(payment,"10.00","CORRECCION-DEV")),200);assertThat(contar("reembolso")).isEqualTo(1);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.reserva_entrega WHERE estado='ACTIVA'",Integer.class)).isZero();
+    }
+    @Test void correccionesPermisosCsrfVersionRollbackYCarrera()throws Exception{
+        preparar();activar();var c=particularCotizacion("corregir-scope");var otro=particularCotizacion("corregir-ajeno");var ea=empleadoArchivos("corregir-a",a);var eb=empleadoArchivos("corregir-b",b);permisoPedidos("corregir-b@example.test");var p=pedidoRevision(c);var in=solicitarCorreccion(p);String path=correcciones(p,true);
+        status(post(ea,path,in),403);status(post(eb,path,in),403);status(get(otro,correcciones(p,false)),404);status(post(c,path,in),403);var sin=HttpRequest.newBuilder(uri(path)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(admin.send(sin,HttpResponse.BodyHandlers.ofString()),403);permisoPedidos("corregir-a@example.test");
+        jdbc.execute("CREATE FUNCTION lamontana.fallo_correccion_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de historia'; END $$");jdbc.execute("CREATE TRIGGER fallo_correccion_test BEFORE INSERT ON lamontana.historial_estado_pedido FOR EACH ROW EXECUTE FUNCTION lamontana.fallo_correccion_test()");status(post(ea,path,in),500);assertThat(contar("solicitud_correccion")).isZero();jdbc.execute("DROP TRIGGER fallo_correccion_test ON lamontana.historial_estado_pedido");
+        var request=request(ea,"POST",path,in);var x=ea.sendAsync(request,HttpResponse.BodyHandlers.ofString());var y=ea.sendAsync(request,HttpResponse.BodyHandlers.ofString());var r=x.get();status(r,200);status(y.get(),200);p=JSON.readTree(r.body());assertThat(contar("solicitud_correccion")).isEqualTo(1);var stale=solicitarCorreccion(p);stale.put("version",1);status(post(ea,path,stale),409);jdbc.update("UPDATE lamontana.usuario_permiso SET fecha_revocacion=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='corregir-a@example.test')");status(post(ea,path,in),403);
+        pdfCorregido(c,p,pdf(5,false,false,1));var pre=prepararRespuesta(c,p);var response=responderCorreccion(pre);var cancel=cancelacionPedido(p);x=c.sendAsync(request(c,"POST",correcciones(p,false)+"/respuesta",response),HttpResponse.BodyHandlers.ofString());y=c.sendAsync(request(c,"POST",cancelarPedido(p),cancel),HttpResponse.BodyHandlers.ofString());assertThat(List.of(x.get().statusCode(),y.get().statusCode())).containsExactlyInAnyOrder(200,409);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.reserva_entrega WHERE estado='ACTIVA'",Integer.class)).isEqualTo(contar("respuesta_correccion")==1?1:0);
+    }
+
+    @Test void correccionesPagoPrevioVencimientoDiferenciaYReplay()throws Exception{
+        prepararManualSinAnticipo();activar();String originalConfig=id;var c=particularCotizacion("corregir-puro");var p=pedidoRevision(c);String quote=p.get("cotizacion").asString();status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","100.00","CORRECCION-PURO")),200);var pay=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(pay,"20.00")),200);var r=post(admin,correcciones(p,true),solicitarCorreccion(p));status(r,200);p=JSON.readTree(r.body());var req=solicitudCorreccion(c,p);
+        adoptarCopia(copiarBase(originalConfig,UUID.randomUUID()));var modelo=comando();modelo.putAll(Map.of("modelo","CONDICIONAL","criterio","PAGO_PREVIO"));aceptar(put(admin,base()+"/modelo",modelo));var cfg=comando();cfg.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("TRANSFERENCIA"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",false)));aceptar(put(admin,base()+"/pagos",cfg));guardarFaseCopia(4);guardarFaseCopia(5);confirmarCopia(confirmarCopiaSolicitud());cooldown();activar();
+        byte[] bytes=pdf(6,false,false,1);var input=ofertaPdf(bytes,6);input.put("reemplaza",quote);input.put("medioPago","TRANSFERENCIA");var q=cotizarCorreccion(c,p,req,input);String next=q.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+next+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,next);assertThat(JSON.readTree(get(c,archivos(next)).body()).get("carga").get("habilitada").asBoolean()).isTrue();pdfAceptado(c,q,bytes);
+        pay=pagosVista(admin,next,true).get("pagos").get(0);String total=q.get("oferta").get("total").asString();var appInput=aplicarPago(pay,total);status(post(admin,pagos(next,true)+"/aplicar",appInput),200);status(post(admin,pagos(next,true)+"/aplicar",appInput),200);assertThat(contar("pago")).isEqualTo(1);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("0.00");var pre=prepararRespuesta(c,p);assertThat(pre.get("habilitada").asBoolean()).isTrue();
+        var future=java.time.Clock.offset(java.time.Clock.systemUTC(),Duration.ofHours(2));for(Class<?> type:List.of(ar.com.lamontana.cotizaciones.CotizacionService.class,ar.com.lamontana.pagos.PagoService.class,ar.com.lamontana.pedidos.PedidoService.class,ar.com.lamontana.pedidos.CorreccionPedidoService.class))org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(type),"clock",future);status(get(c,correcciones(p,false)+"/respuesta"),409);input=ofertaPdf(bytes,6);input.put("reemplaza",next);input.put("medioPago","TRANSFERENCIA");var newer=cotizarCorreccion(c,p,req,input);String last=newer.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+last+"/aceptar",decisionCotizacion(newer)),200);newer=cotizacion(c,last);
+        pay=pagosVista(admin,last,true).get("pagos").get(0);status(post(admin,pagos(last,true)+"/aplicar",aplicarPago(pay,total)),200);pdfAceptado(c,newer,bytes);pre=prepararRespuesta(c,p);var in=responderCorreccion(pre);r=post(c,correcciones(p,false)+"/respuesta",in);status(r,200);p=JSON.readTree(r.body());assertThat(p.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(p.get("condiciones").get("revisionHumana").asBoolean()).isTrue();pay=pagosVista(admin,last,true).get("pagos").get(0);String excess=new java.math.BigDecimal("100.00").subtract(new java.math.BigDecimal(total)).toPlainString();assertThat(pay.get("disponible").asString()).isEqualTo(excess);status(post(admin,pagos(last,true)+"/devolver",devolverPago(pay,excess,"CORRECCION-EXCESO")),200);assertThat(pagosVista(c,last,false).get("pendiente").asString()).isEqualTo("0.00");assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("pago")).isEqualTo(1);
+    }
+    @Test void correccionesRespuestaRollbackIntegridadNuevaSolicitudYCargaVieja()throws Exception{
+        preparar();activar();var c=particularCotizacion("corregir-ciclos");var p=pedidoRevision(c);var r=post(admin,correcciones(p,true),solicitarCorreccion(p));status(r,200);p=JSON.readTree(r.body());var f=pdfCorregido(c,p,pdf(5,false,false,1));var pre=prepararRespuesta(c,p);var in=responderCorreccion(pre);var files=app.getBean(ar.com.lamontana.archivos.ArchivosPrivados.class);var path=files.original(UUID.fromString(f.get("codigoPublico").asString()),f.get("sha256").asString(),f.get("bytes").asLong());byte[] original=Files.readAllBytes(path);Files.write(path,new byte[]{0});status(post(c,correcciones(p,false)+"/respuesta",in),409);Files.write(path,original);
+        var filesView=JSON.readTree(get(c,archivos(p.get("cotizacion").asString())).body());var pendingInput=new HashMap<String,Object>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"correccion",filesView.get("correccion").asString(),"item",p.get("archivos").get(0).get("item").asString()));var pendingUpload=post(c,archivos(p.get("cotizacion").asString()),pendingInput);status(pendingUpload,200);String abandoned=JSON.readTree(pendingUpload.body()).get("codigoPublico").asString();status(post(c,archivos(p.get("cotizacion").asString()),pendingInput),200);var invalidReplay=new HashMap<>(pendingInput);invalidReplay.put("correccion",UUID.randomUUID());status(post(c,archivos(p.get("cotizacion").asString()),invalidReplay),409);
+
+        jdbc.execute("CREATE FUNCTION lamontana.fallo_respuesta_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.accion='RESPONDER_CORRECCION' THEN RAISE EXCEPTION 'fallo parcial'; END IF; RETURN NEW; END $$");jdbc.execute("CREATE TRIGGER fallo_respuesta_test BEFORE INSERT ON lamontana.historial_estado_pedido FOR EACH ROW EXECUTE FUNCTION lamontana.fallo_respuesta_test()");status(post(c,correcciones(p,false)+"/respuesta",in),500);assertThat(contar("respuesta_correccion")).isZero();assertThat(solicitudCorreccion(c,p).get("estado").asString()).isEqualTo("PENDIENTE");jdbc.execute("DROP TRIGGER fallo_respuesta_test ON lamontana.historial_estado_pedido");r=post(c,correcciones(p,false)+"/respuesta",in);status(r,200);p=JSON.readTree(r.body());
+        r=post(admin,correcciones(p,true),solicitarCorreccion(p));status(r,200);p=JSON.readTree(r.body());assertThat(contar("solicitud_correccion")).isEqualTo(2);assertThat(JSON.readTree(get(c,archivos(p.get("cotizacion").asString())+"/"+abandoned).body()).get("estado").asString()).isEqualTo("FALLIDO");assertThat(prepararRespuesta(c,p).get("habilitada").asBoolean()).isFalse();status(post(c,archivos(p.get("cotizacion").asString())+"/"+f.get("codigoPublico").asString()+"/aceptar",Map.of("operacion",UUID.randomUUID(),"sha256",f.get("sha256").asString())),409);pdfCorregido(c,p,pdf(5,false,false,0));r=post(c,correcciones(p,false)+"/respuesta",responderCorreccion(prepararRespuesta(c,p)));status(r,200);p=JSON.readTree(r.body());assertThat(contar("respuesta_correccion")).isEqualTo(2);assertThat(contar("pedido_item")).isEqualTo(1);assertThat(contar("reserva_entrega")).isEqualTo(1);
+    }
+
+    @Test void pagosArchivosV42CargaPreviaRecuperacionYPurga()throws Exception{
+        preparar();
+        var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio","PAGO_PREVIO"));aceptar(put(admin,base()+"/modelo",m));
+        var policy=new HashMap<String,Object>();policy.putAll(Map.of("medios",List.of("TRANSFERENCIA"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",false,"politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72)));
+        var cfg=comando();cfg.put("pagos",policy);
+        for(var invalida:List.of(Map.of("plazoMinutos",60,"recordatorioMinutos",60,"retencionHoras",72),Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",25),Map.of("plazoMinutos",43201,"retencionHoras",72))){
+            var bad=new HashMap<String,Object>(policy);bad.put("politicaArchivos",invalida);var comandoInvalido=comando();comandoInvalido.put("pagos",bad);status(put(admin,base()+"/pagos",comandoInvalido),400);
+        }
+        aceptar(put(admin,base()+"/pagos",cfg));
+        var equipo=comando();equipo.putAll(Map.of("nombre","Global sin ubicación","formatos",List.of(formato),"admiteColor",false,"admiteDobleFaz",true,"capacidadHojas",500,"estado","OPERATIVA"));
+        aceptar(post(admin,base()+"/impresoras",equipo));String global=borrador.get("recursos").get("impresoras").get(2).get("codigoPublico").asString();activar();
+        var c=particularCotizacion("pagos-v42");
+        var primero=pedidoPagoV42(c);String q1=primero.get("cotizacion").asString();
+        assertThat(primero.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");
+        assertThat(primero.get("condiciones").get("revisionHumana").asBoolean()).isFalse();
+        assertThat(primero.get("cobro").get("estado").asString()).isEqualTo("PENDIENTE_PAGO");
+        String file1=primero.get("archivos").get(0).get("archivo").asString();
+        assertThat(Files.exists(archivos.resolve("pdf").resolve(file1).resolve("original.pdf"))).isTrue();
+        status(get(c,archivos(q1)+"/"+file1+"/original"),200);
+        status(post(admin,produccion(primero)+"/iniciar",iniciarProduccion(primero)),409);
+        cubrirProduccion(primero);var actualizado=JSON.readTree(get(c,"/api/cliente/pedidos/"+primero.get("codigoPublico").asString()).body());
+        assertThat(actualizado.get("estado").asString()).isEqualTo("APROBADO");
+        var imprimir=iniciarProduccion(actualizado);imprimir.put("impresora",global);
+        status(post(admin,produccion(actualizado)+"/iniciar",imprimir),200); // Equipo global sin sucursal, autorización económica y SQL reales.
+
+        var tardio=pedidoPagoV42(c);String q2=tardio.get("cotizacion").asString(),oid=tardio.get("codigoPublico").asString();
+        jdbc.update("UPDATE lamontana.cobro_pedido SET fecha_limite=statement_timestamp()-interval '20 minutes',retener_hasta=statement_timestamp()-interval '20 minutes'+retencion_horas*interval '1 hour' WHERE id_pedido=?",tardio.get("numero").asLong());
+        String intento=informarPago(c,q2);
+        String evidencia=comprobantes(q2,false);var ini=post(c,evidencia,iniciarComprobante(intento,null));status(ini,200);
+        String comprobante=JSON.readTree(ini.body()).get("codigoPublico").asString();
+        assertThat(enviarComprobante(c,evidencia+"/"+comprobante+"/contenido",pdf(1,false,false,0)).get("estado").asString()).isEqualTo("VALIDO");
+        assertThat(pagosVista(c,q2,false).get("plazoPago").get("purgaSuspendida").asBoolean()).isTrue();
+        assertThat(pagosVista(c,q2,false).get("plazoPago").get("estado").asString()).isEqualTo("PAGO_INFORMADO_FUERA_TERMINO");
+        jdbc.update("UPDATE lamontana.cobro_pedido SET fecha_limite=statement_timestamp()-interval '100 hours',retener_hasta=statement_timestamp()-interval '100 hours'+retencion_horas*interval '1 hour' WHERE id_pedido=?",tardio.get("numero").asLong());
+        var worker=app.getBean(ar.com.lamontana.pagos.ConservacionArchivosScheduler.class);worker.ejecutar();
+        String file2=tardio.get("archivos").get(0).get("archivo").asString();assertThat(Files.exists(archivos.resolve("pdf").resolve(file2).resolve("original.pdf"))).isTrue();
+        var rechazo=Map.of("operacion",UUID.randomUUID(),"intento",intento,"motivo","Informe no acreditado; mantener la revisión manual");
+        status(post(admin,pagos(q2,true)+"/descartar",rechazo),200);worker.ejecutar();
+        assertThat(Files.exists(archivos.resolve("pdf").resolve(file2).resolve("original.pdf"))).isTrue();
+        var v=pagosVista(admin,q2,true).get("plazoPago");
+        String resolver="/api/operacion/pedidos/"+oid+"/cobro/resolver";
+        var decision=new HashMap<String,Object>(Map.of("operacion",UUID.randomUUID(),"version",v.get("version").asLong(),"accion","ACEPTAR_CONTINUAR","motivo","Se revisa el caso tardío"));
+        status(post(c,resolver,decision),403);status(post(admin,resolver,decision),409);
+        cubrirProduccion(tardio);v=pagosVista(admin,q2,true).get("plazoPago");decision.put("operacion",UUID.randomUUID());decision.put("version",v.get("version").asLong());
+        var resuelto=post(admin,resolver,decision);status(resuelto,200);status(post(admin,resolver,decision),200);
+        assertThat(JSON.readTree(get(c,"/api/cliente/pedidos/"+oid).body()).get("estado").asString()).isEqualTo("APROBADO");
+        assertThat(Files.exists(archivos.resolve("pdf").resolve(file2).resolve("original.pdf"))).isTrue();
+
+        var vencido=pedidoPagoV42(c);String q3=vencido.get("cotizacion").asString(),file3=vencido.get("archivos").get(0).get("archivo").asString();
+        jdbc.update("UPDATE lamontana.cobro_pedido SET fecha_limite=statement_timestamp()-interval '100 hours',retener_hasta=statement_timestamp()-interval '100 hours'+retencion_horas*interval '1 hour' WHERE id_pedido=?",vencido.get("numero").asLong());
+        worker.ejecutar();assertThat(Files.exists(archivos.resolve("pdf").resolve(file3))).isFalse();
+        status(get(c,archivos(q3)+"/"+file3+"/original"),410);
+        assertThat(JSON.readTree(get(c,"/api/cliente/pedidos/"+vencido.get("codigoPublico").asString()).body()).get("estado").asString()).isEqualTo("CANCELADO");
+        long eliminaciones=jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_cobro_pedido WHERE tipo='CONTENIDO_ELIMINADO'",Long.class);
+        worker.ejecutar();assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_cobro_pedido WHERE tipo='CONTENIDO_ELIMINADO'",Long.class)).isEqualTo(eliminaciones);
+
+        var cancelado=pedidoPagoV42(c);String q4=cancelado.get("cotizacion").asString(),file4=cancelado.get("archivos").get(0).get("archivo").asString();cubrirProduccion(cancelado);
+        cancelado=JSON.readTree(get(c,"/api/cliente/pedidos/"+cancelado.get("codigoPublico").asString()).body());
+        status(post(c,cancelarPedido(cancelado),cancelacionPedido(cancelado)),200);worker.ejecutar();
+        assertThat(Files.exists(archivos.resolve("pdf").resolve(file4).resolve("original.pdf"))).isTrue();status(get(c,archivos(q4)+"/"+file4+"/original"),410);
+        assertThat(pagosVista(admin,q4,true).get("plazoPago").get("estado").asString()).isEqualTo("RESOLUCION_FINANCIERA_PENDIENTE");
+
+        var dinero=pagosVista(admin,q4,true).get("pagos").get(0);
+        status(post(admin,pagos(q4,true)+"/devolver",devolverPago(dinero,cancelado.get("oferta").get("total").asString(),"DEV-V42-CANCELADO")),200);
+        worker.ejecutar();assertThat(Files.exists(archivos.resolve("pdf").resolve(file4))).isTrue(); // Falta cierre explícito.
+        var cv=pagosVista(admin,q4,true).get("plazoPago");
+        status(post(admin,"/api/operacion/pedidos/"+cancelado.get("codigoPublico").asString()+"/cobro/resolver",
+            Map.of("operacion",UUID.randomUUID(),"version",cv.get("version").asLong(),"accion","FINALIZAR_CANCELACION","motivo","Devolución realizada y verificada")),200);
+        worker.ejecutar();assertThat(Files.exists(archivos.resolve("pdf").resolve(file4))).isFalse();
+
+        var aviso=pedidoPagoV42(c);
+        jdbc.update("UPDATE lamontana.cobro_pedido SET fecha_limite=statement_timestamp()+interval '10 minutes',retener_hasta=statement_timestamp()+interval '10 minutes'+retencion_horas*interval '1 hour' WHERE id_pedido=?",aviso.get("numero").asLong());
+        worker.ejecutar();worker.ejecutar();assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.aviso_cobro_pedido WHERE id_pedido=?",Long.class,aviso.get("numero").asLong())).isEqualTo(1);
+        var av=pagosVista(admin,aviso.get("cotizacion").asString(),true).get("plazoPago");
+        Instant nueva=Instant.now().plusSeconds(7200);
+        status(post(admin,"/api/operacion/pedidos/"+aviso.get("codigoPublico").asString()+"/cobro/resolver",Map.of("operacion",UUID.randomUUID(),"version",av.get("version").asLong(),"accion","EXTENDER_PLAZO","nuevoLimite",nueva.toString(),"motivo","Plazo acordado con el cliente")),200);
+        var extendido=pagosVista(c,aviso.get("cotizacion").asString(),false).get("plazoPago");
+        assertThat(Instant.parse(extendido.get("retenerHasta").asString())).isEqualTo(Instant.parse(extendido.get("limite").asString()).plusSeconds(72*3600));
+        assertThat(contar("pedido")).isEqualTo(5); // La purga nunca borra la historia.
+    }
+
+    private void prepararManualConSena()throws Exception{
+        preparar();var m=comando();m.put("modelo","MANUAL");aceptar(put(admin,base()+"/modelo",m));
+        var pagos=comando();pagos.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("EFECTIVO","TRANSFERENCIA"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SIEMPRE","tipoSena","PORCENTAJE","valorSena","25")));aceptar(put(admin,base()+"/pagos",pagos));
+    }
+
+    @Test void pagoManualV42ExigeSenaYRevisionSinAprobarSoloPorCobrar()throws Exception{
+        prepararManualConSena();activar();
+        var c=particularCotizacion("pago-manual-v42");var p=pedidoPagoV42(c);
+        assertThat(p.get("condiciones").get("revisionHumana").asBoolean()).isTrue();
+        status(post(admin,gestionPedido(p),decisionPedido(p,"APROBAR")),409);
+        var r=post(admin,gestionPedido(p),decisionPedido(p,"REVISAR"));status(r,200);p=JSON.readTree(r.body());
+        status(post(admin,gestionPedido(p),decisionPedido(p,"APROBAR")),409);
+        cubrirProduccion(p);p=pedidoActual(p);assertThat(p.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");
+        r=post(admin,gestionPedido(p),decisionPedido(p,"APROBAR"));status(r,200);
+        assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("APROBADO");
+    }
+
+    private JsonNode pedidoPagoV42(HttpClient c)throws Exception{
+        return confirmarPreparacion(c,"RETIRO_SUCURSAL",null,"TRANSFERENCIA");
+    }
+    private void prepararManualSinAnticipo()throws Exception{
+        preparar();var m=comando();m.put("modelo","MANUAL");aceptar(put(admin,base()+"/modelo",m));
+        var p=comando();p.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("EFECTIVO","TRANSFERENCIA"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",false)));aceptar(put(admin,base()+"/pagos",p));
+    }
+    private JsonNode pedidoRevision(HttpClient c)throws Exception{
+        return confirmarPreparacion(c,"RETIRO_SUCURSAL",null,"EFECTIVO");
+    }
+    private String gestionPedido(JsonNode p){return "/api/operacion/pedidos/"+p.get("codigoPublico").asString()+"/gestion";}
+    private String cancelarPedido(JsonNode p){return "/api/cliente/pedidos/"+p.get("codigoPublico").asString()+"/cancelar";}
+    private Map<String,Object> decisionPedido(JsonNode p,String accion){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"accion",accion,"archivosYDatosRevisados",true,"motivo","DETALLE INTERNO PRIVADO de la decisión","mensajeCliente","Mensaje público de la imprenta"));}
+    private Map<String,Object> cancelacionPedido(JsonNode p){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"motivo","Ya no necesito el trabajo"));}
+    private void permisoPedidos(String correo){jdbc.update("INSERT INTO lamontana.usuario_permiso(id_usuario,id_permiso,id_usuario_otorgante) SELECT u.id_usuario,p.id_permiso,(SELECT id_usuario FROM lamontana.usuario WHERE correo=?) FROM lamontana.usuario u,lamontana.permiso p WHERE u.correo=? AND p.codigo='GESTIONAR_PEDIDOS'",EMAIL,correo);}
+
+    @Test void revisionPedidoPermisoAdministrableYCancelacionAutomatica()throws Exception{
+        preparar();var pagos=comando();pagos.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("EFECTIVO","TRANSFERENCIA"),"instruccionesTransferencia","Cuenta local elegida","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SUPERAR_UMBRAL_APROBACION","tipoSena","PORCENTAJE","valorSena","25","umbralAprobacion","10000")));aceptar(put(admin,base()+"/pagos",pagos));activar();
+        var permisos=List.of("GESTIONAR_PEDIDOS","ACREDITAR_PAGO","REGISTRAR_COBRO","REGISTRAR_DEVOLUCION");var empleado=new HashMap<String,Object>(Map.of("nombre","Usuario","apellido","Operación","correo","revision-total@example.test","contrasena",CLAVE,"sucursales",List.of(a),"permisos",permisos));var alta=post(admin,"/api/admin/empleados",empleado);status(alta,201);String idEmpleado=JSON.readTree(alta.body()).get("codigoPublico").asString();empleado.remove("contrasena");empleado.put("version",0);empleado.put("estado","ACTIVO");status(put(admin,"/api/admin/empleados/"+idEmpleado,empleado),200);
+        var c=particularCotizacion("revision-auto");var p=pedidoRevision(c);assertThat(p.get("estado").asString()).isEqualTo("APROBADO");var r=post(c,cancelarPedido(p),cancelacionPedido(p));status(r,200);var finalizado=JSON.readTree(r.body());assertThat(finalizado.get("estado").asString()).isEqualTo("CANCELADO");assertThat(finalizado.get("aprobadaEn")).isEqualTo(p.get("aprobadaEn"));assertThat(finalizado.get("estadoReserva").asString()).isEqualTo("LIBERADA");
+    }
+    @Test void revisionPedidoD1PrivacidadAprobacionYReinicio()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("revision-d1");var p=pedidoRevision(c);var ea=empleadoArchivos("revision-a",a);permisoPedidos("revision-a@example.test");String path=gestionPedido(p),quote=p.get("cotizacion").asString();
+        status(post(ea,path,decisionPedido(p,"APROBAR")),409);
+        String notes=path.replace("/gestion","/observaciones");var note=Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"importancia","CRITICA","texto","NOTA CONFIDENCIAL de operación");status(post(ea,notes,note),200);status(post(ea,notes,note),200);assertThat(contar("observacion_interna")).isEqualTo(1);
+        var in=decisionPedido(p,"REVISAR");var r=post(ea,path,in);status(r,200);p=JSON.readTree(r.body());assertThat(p.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(p.get("version").asLong()).isEqualTo(2);status(post(ea,path,in),200);
+        in=decisionPedido(p,"APROBAR");r=post(ea,path,in);status(r,200);p=JSON.readTree(r.body());assertThat(p.get("estado").asString()).isEqualTo("APROBADO");assertThat(p.get("version").asLong()).isEqualTo(3);assertThat(p.get("aprobadaEn").isNull()).isFalse();assertThat(p.get("estadoReserva").asString()).isEqualTo("ACTIVA");
+        var visible=get(c,"/api/cliente/pedidos/"+p.get("codigoPublico").asString());status(visible,200);assertThat(visible.body()).doesNotContain("DETALLE INTERNO","CONFIDENCIAL","observaciones","revisor");assertThat(get(ea,path).body()).contains("DETALLE INTERNO","CONFIDENCIAL","Empleado PDF");
+        assertThat(contar("pago")).isZero();assertThat(contar("historial_estado_pedido")).isEqualTo(3);assertThat(pagosVista(c,quote,false).get("anticipoActual").asString()).isEqualTo("0.00");assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("0.00");
+        status(post(ea,path,decisionPedido(p,"RECHAZAR")),409);assertThat(JSON.readTree(get(ea,"/api/operacion/sucursales/"+a+"/pedidos?estado=APROBADO").body()).get("total").asLong()).isEqualTo(1);assertThat(JSON.readTree(get(c,"/api/cliente/pedidos?estado=PENDIENTE_REVISION").body()).get("total").asLong()).isZero();
+        app.close();arrancar();status(post(ea,path,in),200);assertThat(contar("historial_estado_pedido")).isEqualTo(3);assertThat(JSON.readTree(get(c,"/api/cliente/pedidos/"+p.get("codigoPublico").asString()).body())).isEqualTo(p);
+    }
+    @Test void revisionPedidoPermisosRevocadosCsrfYVersion()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("revision-scope");var otro=particularCotizacion("revision-ajeno");var p=pedidoRevision(c);var ea=empleadoArchivos("revision-lector",a);var eb=empleadoArchivos("revision-otra",b);permisoPedidos("revision-otra@example.test");String path=gestionPedido(p);var in=decisionPedido(p,"REVISAR");
+        status(get(ea,path),200);assertThat(get(ea,path).body()).contains("permiso de gestión");status(post(ea,path,in),403);status(get(eb,path),403);status(post(eb,path,in),403);status(post(c,path,in),403);status(post(otro,cancelarPedido(p),cancelacionPedido(p)),404);status(get(c,path),403);
+        var sinCsrf=HttpRequest.newBuilder(uri(path)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(admin.send(sinCsrf,HttpResponse.BodyHandlers.ofString()),403);
+        permisoPedidos("revision-lector@example.test");var r=post(ea,path,in);status(r,200);var revised=JSON.readTree(r.body());var stale=decisionPedido(p,"APROBAR");status(post(ea,path,stale),409);
+        jdbc.update("UPDATE lamontana.usuario_permiso SET fecha_revocacion=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='revision-lector@example.test')");status(post(ea,path,in),403);
+        jdbc.update("UPDATE lamontana.usuario_sucursal SET activa=false,fecha_hasta=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='revision-lector@example.test')");status(get(ea,path),403);status(post(ea,path,decisionPedido(revised,"APROBAR")),403);
+        var changed=new HashMap<>(in);changed.put("motivo","Otro motivo");status(post(admin,path,changed),409);status(get(admin,"/api/operacion/sucursales/"+a+"/pedidos?estado=INVALIDO"),400);
+        var bad=decisionPedido(revised,"RECHAZAR");bad.put("mensajeCliente"," ");status(post(admin,path,bad),400);assertThat(contar("historial_estado_pedido")).isEqualTo(2);
+    }
+    @Test void revisionPedidoCancelacionConservaDineroYLiberaCupo()throws Exception{
+        preparar();var slots=new ArrayList<Map<String,Object>>();for(int d=1;d<=5;d++)slots.add(franjaRetiro(d,"09:00","18:00",1,true));aceptar(put(admin,ruta(),retiroSolicitud(slots)));activar();var c=particularCotizacion("revision-pago");var p=pedidoRevision(c);String quote=p.get("cotizacion").asString();
+        status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","5.00","REVISION-DINERO")),200);var payment=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(payment,"5.00")),200);
+        byte[] pdf=pdf(5,false,false,0);var q2=ofertaAceptada(c,ofertaPdf(pdf,5));pdfAceptado(c,q2,pdf);var full=revisarPedido(c,q2);assertThat(full.get("franja").get("fecha")).isNotEqualTo(p.get("reserva").get("fecha"));
+        var in=cancelacionPedido(p);var r=post(c,cancelarPedido(p),in);status(r,200);var canceled=JSON.readTree(r.body());assertThat(canceled.get("estado").asString()).isEqualTo("CANCELADO");assertThat(canceled.get("estadoReserva").asString()).isEqualTo("LIBERADA");status(post(c,cancelarPedido(p),in),200);assertThat(contar("historial_estado_pedido")).isEqualTo(2);
+        var money=pagosVista(c,quote,false);assertThat(money.get("pedidoFinalizado").asBoolean()).isTrue();assertThat(money.get("aplicado").asString()).isEqualTo("5.00");assertThat(money.get("pendiente").asString()).isEqualTo("0.00");assertThat(money.get("puedeInformar").asBoolean()).isFalse();assertThat(contar("reembolso")).isZero();assertThat(contar("pedido_item")).isEqualTo(1);
+        var available=revisarPedido(c,q2);assertThat(available.get("franja").get("fecha")).isEqualTo(p.get("reserva").get("fecha"));status(post(c,confirmacionPedido(q2.get("codigoPublico").asString()),confirmarPedido(available)),200);
+        status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","2.00","REVISION-TARDIO")),200);payment=pagosVista(admin,quote,true).get("pagos").get(1);assertThat(payment.get("puedeAplicar").asBoolean()).isFalse();status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(payment,"2.00")),409);
+        payment=pagosVista(admin,quote,true).get("pagos").get(0);var refund=devolverPago(payment,"5.00","DEV-REVISION");status(post(admin,pagos(quote,true)+"/devolver",refund),200);status(post(admin,pagos(quote,true)+"/devolver",refund),200);assertThat(contar("reembolso")).isEqualTo(1);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("0.00");
+    }
+    @Test void revisionPedidoCarreraDecisionRollbackEInvariantes()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("revision-race");var p=pedidoRevision(c);String path=gestionPedido(p);var reviewed=post(admin,path,decisionPedido(p,"REVISAR"));status(reviewed,200);p=JSON.readTree(reviewed.body());
+        var approve=decisionPedido(p,"APROBAR");var cancel=cancelacionPedido(p);var a1=request(admin,"POST",path,approve);var c1=request(c,"POST",cancelarPedido(p),cancel);var x=admin.sendAsync(a1,HttpResponse.BodyHandlers.ofString());var y=c.sendAsync(c1,HttpResponse.BodyHandlers.ofString());var rx=x.get();var ry=y.get();assertThat(List.of(rx.statusCode(),ry.statusCode())).containsExactlyInAnyOrder(200,409);
+        var current=JSON.readTree(get(c,"/api/cliente/pedidos/"+p.get("codigoPublico").asString()).body());if(current.get("estado").asString().equals("APROBADO")){var r=post(c,cancelarPedido(current),cancelacionPedido(current));status(r,200);current=JSON.readTree(r.body());}assertThat(current.get("estadoReserva").asString()).isEqualTo("LIBERADA");
+        String codigoFinal=current.get("codigoPublico").asString();assertThatThrownBy(()->jdbc.update("UPDATE lamontana.pedido SET estado='APROBADO',version=version+1 WHERE codigo_publico=?",UUID.fromString(codigoFinal))).isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.reserva_entrega SET estado='ACTIVA'")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.historial_estado_pedido")).isInstanceOf(DataAccessException.class);
+        var p2=pedidoRevision(c);var reject=decisionPedido(p2,"RECHAZAR");jdbc.execute("CREATE FUNCTION lamontana.fallar_revision_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo parcial'; END $$");jdbc.execute("CREATE TRIGGER fallo_revision_test BEFORE INSERT ON lamontana.historial_estado_pedido FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_revision_test()");status(post(admin,gestionPedido(p2),reject),500);
+        assertThat(JSON.readTree(get(c,"/api/cliente/pedidos/"+p2.get("codigoPublico").asString()).body())).isEqualTo(p2);jdbc.execute("DROP TRIGGER fallo_revision_test ON lamontana.historial_estado_pedido");var request=request(admin,"POST",gestionPedido(p2),reject);x=admin.sendAsync(request,HttpResponse.BodyHandlers.ofString());y=admin.sendAsync(request,HttpResponse.BodyHandlers.ofString());status(x.get(),200);status(y.get(),200);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.historial_estado_pedido WHERE accion='RECHAZAR'",Integer.class)).isEqualTo(1);
+    }
+    @Test void revisionPedidoIntegridadPdfYSucursalDesactivada()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("revision-pdf");var p=pedidoRevision(c);var f=p.get("archivos").get(0);var path=app.getBean(ar.com.lamontana.archivos.ArchivosPrivados.class).original(UUID.fromString(f.get("archivo").asString()),f.get("sha256").asString(),f.get("bytes").asLong());byte[] bytes=Files.readAllBytes(path);Files.write(path,new byte[]{0});status(post(admin,gestionPedido(p),decisionPedido(p,"REVISAR")),409);assertThat(contar("historial_estado_pedido")).isEqualTo(1);Files.write(path,bytes);
+        var r=post(admin,gestionPedido(p),decisionPedido(p,"REVISAR"));status(r,200);p=JSON.readTree(r.body());Files.write(path,new byte[]{1});status(post(admin,gestionPedido(p),decisionPedido(p,"APROBAR")),409);Files.write(path,bytes);
+        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',version=version+1 WHERE codigo_publico=?",UUID.fromString(a));status(get(admin,gestionPedido(p)),200);status(post(admin,gestionPedido(p),decisionPedido(p,"APROBAR")),409);var cancel=decisionPedido(p,"CANCELAR");status(post(admin,gestionPedido(p),cancel),200);status(post(admin,gestionPedido(p),cancel),200);assertThat(jdbc.queryForObject("SELECT estado FROM lamontana.reserva_entrega",String.class)).isEqualTo("LIBERADA");
+    }
+
+    @Test void pedidosNuevaConfiguracionConservaCupoYPdfSinReescribirPrecio()throws Exception{
+        preparar();var slots=new ArrayList<Map<String,Object>>();for(int d=1;d<=5;d++)slots.add(franjaRetiro(d,"09:00","18:00",1,true));aceptar(put(admin,ruta(),retiroSolicitud(slots)));activar();String original=id;var c=particularCotizacion("pedido-config");byte[] pdf=pdf(3,false,false,0);var q1=ofertaAceptada(c,ofertaPdf(pdf,3));pdfAceptado(c,q1,pdf);var q2=ofertaAceptada(c,ofertaPdf(pdf,3));pdfAceptado(c,q2,pdf);var r1=revisarPedido(c,q1);var r2=revisarPedido(c,q2);status(post(c,confirmacionPedido(q1.get("codigoPublico").asString()),confirmarPedido(r1)),200);
+        adoptarCopia(copiarBase(original,UUID.randomUUID()));for(int fase=2;fase<=5;fase++)guardarFaseCopia(fase);confirmarCopia(confirmarCopiaSolicitud());cooldown();activar();var actual=revisarPedido(c,q2);assertThat(actual.get("configuracion").asString()).isEqualTo(id);assertThat(actual.get("franja").get("fecha")).isNotEqualTo(r2.get("franja").get("fecha"));String path=confirmacionPedido(q2.get("codigoPublico").asString());status(post(c,path,confirmarPedido(r2)),409);var r=post(c,path,confirmarPedido(actual));status(r,200);assertThat(JSON.readTree(r.body()).get("oferta")).isEqualTo(q2.get("oferta"));assertThat(JSON.readTree(r.body()).get("configuracion").asString()).isEqualTo(id);
+        assertThat(jdbc.queryForObject("SELECT lamontana.reservas_ocupadas(r.modalidad,r.destino_publico,r.origen_publico,r.fecha_local,r.apertura,r.cierre,r.franja_desde+interval '1 hour',r.franja_hasta+interval '1 hour') FROM lamontana.reserva_entrega r ORDER BY id_pedido LIMIT 1",Integer.class)).isEqualTo(1);
+        var q3=ofertaAceptada(c,ofertaPdf(pdf,3));pdfAceptado(c,q3,pdf);publicar(null,"4.00",false,false);status(get(c,confirmacionPedido(q3.get("codigoPublico").asString())),409);assertThat(contar("pedido")).isEqualTo(2);
+    }
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"PAGO_PREVIO","SENA"})
+    void pedidosVariantesPurasSeCreanAntesDeCobrarYRevalidanProduccion(String criterion)throws Exception{
+        preparar();var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio",criterion));aceptar(put(admin,base()+"/modelo",m));var policy=new HashMap<String,Object>(conPoliticaArchivos(Map.of("medios",criterion.equals("PAGO_PREVIO")?List.of("TRANSFERENCIA"):List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",criterion.equals("SENA"))));if(criterion.equals("SENA"))policy.putAll(Map.of("condicionSena","SIEMPRE","tipoSena","PORCENTAJE","valorSena","25"));var cfg=comando();cfg.put("pagos",policy);aceptar(put(admin,base()+"/pagos",cfg));activar();var c=particularCotizacion("pedido-puro");byte[] pdf=pdf(3,false,false,0);var input=ofertaPdf(pdf,3);input.put("medioPago","TRANSFERENCIA");var q=ofertaAceptada(c,input);String quote=q.get("codigoPublico").asString(),path=confirmacionPedido(quote),ruta=pagos(quote,true);String amount=criterion.equals("PAGO_PREVIO")?q.get("oferta").get("total").asString():q.get("oferta").get("condiciones").get("senaRequerida").asString();
+        pdfAceptado(c,q,pdf);var in=confirmarPedido(revisarPedido(c,q));var creado=post(c,path,in);status(creado,200);var pedido=JSON.readTree(creado.body());
+        assertThat(pedido.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(pedido.get("condiciones").get("revisionHumana").asBoolean()).isFalse();
+        status(post(admin,produccion(pedido)+"/iniciar",iniciarProduccion(pedido)),409);
+        status(post(admin,ruta+"/recibir",recibirPago("TRANSFERENCIA",amount,"PED-PURO-01")),200);var pago=pagosVista(admin,quote,true).get("pagos").get(0);
+        status(post(admin,ruta+"/aplicar",aplicarPago(pago,amount)),200);pedido=pedidoActual(pedido);assertThat(pedido.get("estado").asString()).isEqualTo("APROBADO");
+        pago=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,ruta+"/devolver",devolverPago(pago,amount,"PED-PURO-DEV")),200);
+        status(post(admin,produccion(pedido)+"/iniciar",iniciarProduccion(pedido)),409);
+        assertThat(JSON.readTree(get(c,archivos(quote)).body()).get("carga").get("habilitada").asBoolean()).isFalse(); // Ya confirmado, no por falta de pago.
+        assertThat(contar("pedido")).isEqualTo(1);
+    }
+
+    @Test void pedidosVencimientoYBloqueoDeSucursalNoCreanReservas()throws Exception{
+        preparar();activar();var c=particularCotizacion("pedido-vencido");byte[] pdf=pdf(3,false,false,0);var q=ofertaAceptada(c,ofertaPdf(pdf,3));pdfAceptado(c,q,pdf);var rev=revisarPedido(c,q);String path=confirmacionPedido(q.get("codigoPublico").asString());var in=confirmarPedido(rev);var invalid=new HashMap<>(in);invalid.put("condicionesAceptadas",false);status(post(c,path,invalid),400);
+        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA',version=version+1 WHERE codigo_publico=?",UUID.fromString(a));status(post(c,path,in),409);jdbc.update("UPDATE lamontana.sucursal SET estado='ACTIVA',version=version+1 WHERE codigo_publico=?",UUID.fromString(a));
+        org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(ar.com.lamontana.pedidos.PedidoService.class),"clock",java.time.Clock.fixed(Instant.parse(q.get("vigenteHasta").asString()).plusSeconds(1),java.time.ZoneOffset.UTC));status(post(c,path,in),409);assertThat(contar("pedido")).isZero();assertThat(contar("reserva_entrega")).isZero();
+    }
+    @Test void pedidosPuntoReservaPorOrigenYRevalidaDisponibilidad()throws Exception{
+        preparar();guardar("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO","RETIRO_PUNTO_ENTREGA"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));var pointInput=comando();pointInput.putAll(Map.of("codigo","PUNTO","nombre","Punto de prueba","calle","Calle","numero","20","localidad","Ciudad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(a,b).stream().map(sucursal->Map.of("sucursal",sucursal,"costo","5.00","habilitado",true,"franjas",List.of(franjaRetiro(1,"09:00","18:00",1,true)))).toList()));aceptar(post(admin,ruta()+"/puntos",pointInput));String point=borrador.get("entrega").get("puntos").get(0).get("codigoPublico").asString();activar();status(put(admin,"/api/admin/puntos-entrega/disponibilidad/"+point,Map.of("operacion",UUID.randomUUID(),"version",0,"estado","HABILITADO")),200);
+        var clienteA=particularCotizacion("punto-matriz-a");
+        var primero=confirmarPreparacion(clienteA,"RETIRO_PUNTO_ENTREGA",point,"EFECTIVO");
+        assertThat(primero.get("reserva").get("origen").asString()).isEqualTo(a);
+        var fecha=primero.get("reserva").get("fecha");
+        var otraPreparacion=prepararCliente(clienteA,true);
+        var resumen=cotizarCliente(clienteA,otraPreparacion,"RETIRO_PUNTO_ENTREGA",point);
+        assertThat(resumen.get("revision").get("franja").get("fecha")).isNotEqualTo(fecha);
+        String disponibilidad="/api/admin/puntos-entrega/disponibilidad/"+point;
+        status(put(admin,disponibilidad,Map.of("operacion",UUID.randomUUID(),"version",1,"estado","DESHABILITADO")),200);
+        status(post(clienteA,preparaciones(otraPreparacion)+"/confirmar",confirmarCliente(resumen)),409);
+        assertThat(contar("pedido")).isEqualTo(1);
+        status(put(admin,disponibilidad,Map.of("operacion",UUID.randomUUID(),"version",2,"estado","HABILITADO")),200);
+
+        adoptarCopia(copiarBase(id,UUID.randomUUID()));
+        for(int fase:List.of(2,3,4))guardarFaseCopia(fase);
+        var entrega=comando();
+        for(String campo:List.of("preparacionHoras","trasladoHoras","modalidades","horariosPorSucursal"))
+            entrega.put(campo,borrador.get("entrega").get(campo));
+        entrega.put("casaMatriz",b);
+        entrega.put("matrizConfirmada",true);
+        aceptar(put(admin,ruta(),entrega));
+        confirmarCopia(confirmarCopiaSolicitud());
+        cooldown();activar();
+
+        var clienteB=particularCotizacion("punto-matriz-b");
+        var segundo=confirmarPreparacion(clienteB,"RETIRO_PUNTO_ENTREGA",point,"EFECTIVO");
+        assertThat(segundo.get("reserva").get("origen").asString()).isEqualTo(b);
+        assertThat(segundo.get("reserva").get("fecha")).isEqualTo(fecha);
+        assertThat(segundo.get("reserva").get("destino").asString()).isEqualTo(point);
+        assertThat(contar("reserva_entrega")).isEqualTo(2);
+    }
+    @Test void pedidosFinanzasConservanMediosAceptadosAlCambiarConfiguracion()throws Exception{
+        preparar();var pagos=(tools.jackson.databind.node.ObjectNode)borrador.get("pagos").deepCopy();pagos.set("medios",JSON.valueToTree(List.of("TRANSFERENCIA")));var in=comando();in.put("pagos",pagos);aceptar(put(admin,base()+"/pagos",in));activar();String original=id;var c=particularCotizacion("pedido-medios");byte[] pdf=pdf(3,false,false,0);var input=ofertaPdf(pdf,3);input.put("medioPago","TRANSFERENCIA");var q=ofertaAceptada(c,input);pdfAceptado(c,q,pdf);
+        adoptarCopia(copiarBase(original,UUID.randomUUID()));guardarFaseCopia(2);pagos=(tools.jackson.databind.node.ObjectNode)borrador.get("pagos").deepCopy();pagos.set("medios",JSON.valueToTree(List.of("TRANSFERENCIA","EFECTIVO")));in=comando();in.put("pagos",pagos);aceptar(put(admin,base()+"/pagos",in));guardarFaseCopia(4);guardarFaseCopia(5);confirmarCopia(confirmarCopiaSolicitud());cooldown();activar();String confirmada=id;String quote=q.get("codigoPublico").asString();status(post(c,confirmacionPedido(quote),confirmarPedido(revisarPedido(c,q))),200);
+        adoptarCopia(copiarBase(confirmada,UUID.randomUUID()));guardarFaseCopia(2);pagos=(tools.jackson.databind.node.ObjectNode)borrador.get("pagos").deepCopy();pagos.set("medios",JSON.valueToTree(List.of("TRANSFERENCIA")));in=comando();in.put("pagos",pagos);aceptar(put(admin,base()+"/pagos",in));guardarFaseCopia(4);guardarFaseCopia(5);confirmarCopia(confirmarCopiaSolicitud());cooldown();activar();String ruta=pagos(quote,true);status(post(admin,ruta+"/recibir",recibirPago("EFECTIVO","1.00","MEDIO-CAPTURADO")),200);var vista=pagosVista(admin,quote,true);assertThat(vista.get("mediosRecepcion").toString()).contains("EFECTIVO");status(post(admin,ruta+"/aplicar",aplicarPago(vista.get("pagos").get(0),"1.00")),200);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("1.00");
+    }
+    private String confirmacionPedido(String quote){return "/api/cliente/cotizaciones/"+quote+"/confirmacion";}
+    private JsonNode revisarPedido(HttpClient c,JsonNode q)throws Exception{var r=get(c,confirmacionPedido(q.get("codigoPublico").asString()));status(r,200);return JSON.readTree(r.body());}
+    private Map<String,Object> confirmarPedido(JsonNode rev){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",rev.get("version").asLong(),"huella",rev.get("huella").asString(),"condicionesAceptadas",true));}
+    private JsonNode pdfAceptado(HttpClient c,JsonNode q,byte[] pdf)throws Exception{String quote=q.get("codigoPublico").asString();var r=post(c,archivos(quote),inicioArchivo(q));status(r,200);String file=JSON.readTree(r.body()).get("codigoPublico").asString();var f=cargarPdf(c,quote,file,pdf);assertThat(f.get("estado").asString()).isEqualTo("VALIDO");status(post(c,archivos(quote)+"/"+file+"/aceptar",Map.of("operacion",UUID.randomUUID(),"sha256",f.get("sha256").asString())),200);return f;}
+    @Test void pedidosD1ConfirmacionUnicaPrecioCongeladoPdfDineroYReinicio()throws Exception{
+        preparar();activar();var c=particularCotizacion("pedido-d1");byte[] pdf=pdf(5,false,false,0);var q=ofertaAceptada(c,ofertaPdf(pdf,5));String quote=q.get("codigoPublico").asString(),path=confirmacionPedido(quote);
+        assertThat(revisarPedido(c,q).get("habilitada").asBoolean()).isFalse();var f=pdfAceptado(c,q,pdf);var rev=revisarPedido(c,q);assertThat(rev.get("habilitada").asBoolean()).isTrue();assertThat(rev.get("condiciones").get("revisionHumana").asBoolean()).isFalse();assertThat(contar("reserva_entrega")).isZero();
+        publicar(null,"3.00",true,false);assertThat(revisarPedido(c,q).get("huella")).isEqualTo(rev.get("huella"));var in=confirmarPedido(rev);var r=post(c,path,in);status(r,200);var pedido=JSON.readTree(r.body());String order=pedido.get("codigoPublico").asString();assertThat(pedido.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(pedido.get("aprobadaEn").isNull()).isTrue();assertThat(pedido.get("oferta")).isEqualTo(q.get("oferta"));assertThat(pedido.get("archivos").get(0).get("archivo")).isEqualTo(f.get("codigoPublico"));
+        status(post(c,path,in),200);assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("pedido_item")).isEqualTo(1);assertThat(contar("reserva_entrega")).isEqualTo(1);assertThat(contar("pago")).isZero();assertThat(cotizacion(c,quote).get("estado").asString()).isEqualTo("CONFIRMADA");assertThat(revisarPedido(c,q).get("pedido").asString()).isEqualTo(order);
+        var other=new HashMap<>(in);other.put("operacion",UUID.randomUUID());status(post(c,path,other),409);status(post(c,archivos(quote),inicioArchivo(cotizacion(c,quote))),409);status(post(c,"/api/cliente/cotizaciones/"+quote+"/cancelar",Map.of("operacion",UUID.randomUUID(),"version",3,"motivo","Otro")),409);assertThat(binario(c,archivos(quote)+"/"+f.get("codigoPublico").asString()+"/original").body()).isEqualTo(pdf);
+        status(post(admin,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","5.00","PEDIDO-D1-01")),200);var p=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,pagos(quote,true)+"/aplicar",aplicarPago(p,"5.00")),200);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("5.00");assertThat(contar("historial_estado_pedido")).isEqualTo(1);
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.pedido SET total=1")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.reserva_entrega")).isInstanceOf(DataAccessException.class);var antesDelReinicio=JSON.readTree(get(c,"/api/cliente/pedidos/"+order).body());
+        assertThat(antesDelReinicio.get("oferta")).isEqualTo(pedido.get("oferta"));
+        assertThat(antesDelReinicio.get("archivos")).isEqualTo(pedido.get("archivos"));
+        app.close();arrancar();status(post(c,path,in),200);assertThat(JSON.readTree(get(c,"/api/cliente/pedidos/"+order).body())).isEqualTo(antesDelReinicio);assertThat(JSON.readTree(get(c,"/api/cliente/pedidos").body()).get("total").asLong()).isEqualTo(1);
+    }
+    @Test void pedidosCupoConcurrenteRespuestaPerdidaRevalidacionYRollback()throws Exception{
+        preparar();var slots=new ArrayList<Map<String,Object>>();for(int d=1;d<=5;d++)slots.add(franjaRetiro(d,"09:00","18:00",1,true));aceptar(put(admin,ruta(),retiroSolicitud(slots)));activar();var c=particularCotizacion("pedido-race");byte[] pdf=pdf(3,false,false,0);var q1=ofertaAceptada(c,ofertaPdf(pdf,3));var q2=ofertaAceptada(c,ofertaPdf(pdf,3));pdfAceptado(c,q1,pdf);pdfAceptado(c,q2,pdf);var v1=revisarPedido(c,q1);var v2=revisarPedido(c,q2);assertThat(v1.get("franja").get("fecha")).isEqualTo(v2.get("franja").get("fecha"));
+        var in1=confirmarPedido(v1);var in2=confirmarPedido(v2);String path1=confirmacionPedido(q1.get("codigoPublico").asString()),path2=confirmacionPedido(q2.get("codigoPublico").asString());var x=c.sendAsync(request(c,"POST",path1,in1),HttpResponse.BodyHandlers.ofString());var y=c.sendAsync(request(c,"POST",path2,in2),HttpResponse.BodyHandlers.ofString());var rx=x.get();var ry=y.get();assertThat(List.of(rx.statusCode(),ry.statusCode())).containsExactlyInAnyOrder(200,409);assertThat(contar("pedido")).isEqualTo(1);var loser=rx.statusCode()==409?q1:q2;String lp=rx.statusCode()==409?path1:path2;var next=revisarPedido(c,loser);assertThat(next.get("franja").get("fecha")).isNotEqualTo(v1.get("franja").get("fecha"));var in=confirmarPedido(next);
+        jdbc.execute("CREATE FUNCTION lamontana.fallar_pedido_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo parcial de prueba'; END $$");jdbc.execute("CREATE TRIGGER fallo_pedido_test BEFORE INSERT ON lamontana.historial_estado_pedido FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_pedido_test()");status(post(c,lp,in),500);assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("reserva_entrega")).isEqualTo(1);assertThat(cotizacion(c,loser.get("codigoPublico").asString()).get("estado").asString()).isEqualTo("VIGENTE");jdbc.execute("DROP TRIGGER fallo_pedido_test ON lamontana.historial_estado_pedido");
+        var req=request(c,"POST",lp,in);x=c.sendAsync(req,HttpResponse.BodyHandlers.ofString());y=c.sendAsync(req,HttpResponse.BodyHandlers.ofString());status(x.get(),200);status(y.get(),200);assertThat(contar("pedido")).isEqualTo(2);assertThat(contar("reserva_entrega")).isEqualTo(2);
+    }
+    @Test void pedidosPermisosRevocacionPdfCambiadoIntegridadYCsrf()throws Exception{
+        preparar();activar();var c=particularCotizacion("pedido-scope");var other=particularCotizacion("pedido-other");var ea=empleadoArchivos("pedido-a",a);var eb=empleadoArchivos("pedido-b",b);byte[] pdf=pdf(3,false,false,0);var q=ofertaAceptada(c,ofertaPdf(pdf,3));String quote=q.get("codigoPublico").asString(),path=confirmacionPedido(quote);var f=pdfAceptado(c,q,pdf);var rev=revisarPedido(c,q);var in=confirmarPedido(rev);
+        status(get(other,path),404);status(get(ea,path),403);status(post(other,path,in),404);var noCsrf=HttpRequest.newBuilder(uri(path)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(c.send(noCsrf,HttpResponse.BodyHandlers.ofString()),403);
+        var changed=pdfAceptado(c,q,pdf(3,false,false,2));status(post(c,path,in),409);in=confirmarPedido(revisarPedido(c,q));var filePath=app.getBean(ar.com.lamontana.archivos.ArchivosPrivados.class).original(UUID.fromString(changed.get("codigoPublico").asString()),changed.get("sha256").asString(),changed.get("bytes").asLong());var good=Files.readAllBytes(filePath);Files.write(filePath,new byte[]{1,2,3});status(post(c,path,in),409);assertThat(contar("pedido")).isZero();Files.write(filePath,good);
+        var r=post(c,path,in);status(r,200);var order=JSON.readTree(r.body()).get("codigoPublico").asString();status(get(other,"/api/cliente/pedidos/"+order),404);status(get(ea,"/api/operacion/pedidos/"+order),200);status(get(eb,"/api/operacion/pedidos/"+order),403);status(get(ea,"/api/operacion/sucursales/"+b+"/pedidos"),403);assertThat(JSON.readTree(get(ea,"/api/operacion/sucursales/"+a+"/pedidos").body()).get("total").asLong()).isEqualTo(1);
+        jdbc.update("UPDATE lamontana.usuario_sucursal SET activa=false,fecha_hasta=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='pedido-a@example.test')");status(get(ea,"/api/operacion/pedidos/"+order),403);var modified=new HashMap<>(in);modified.put("version",10);status(post(c,path,modified),409);status(get(c,"/api/cliente/pedidos?pagina=-1"),400);
+    }
+    @Test void pedidosZonaComparteCupoEntreSucursalesYExigeContacto()throws Exception{
+        preparar();activar();var c=particularCotizacion("pedido-zona");byte[] pdf=pdf(3,false,false,0);var orders=new ArrayList<JsonNode>();var revisiones=new ArrayList<JsonNode>();
+        for(int n=0;n<3;n++){var input=ofertaPdf(pdf,3);input.put("modalidad","ENVIO_DOMICILIO");input.put("direccion",Map.of("calle","Calle","numero","123","referencias","Puerta","territorio",territorio()));if(n==1){input.put("sucursal",b);var tree=(tools.jackson.databind.node.ObjectNode)JSON.valueToTree(input);((tools.jackson.databind.node.ObjectNode)tree.get("items").get(0).get("trabajo")).set("terminaciones",JSON.valueToTree(List.of()));input=JSON.readValue(JSON.writeValueAsString(tree),new tools.jackson.core.type.TypeReference<HashMap<String,Object>>(){});}var q=ofertaAceptada(c,input);pdfAceptado(c,q,pdf);orders.add(q);revisiones.add(revisarPedido(c,q));}
+        for(int n=0;n<2;n++){var q=orders.get(n);String path=confirmacionPedido(q.get("codigoPublico").asString());var in=confirmarPedido(revisiones.get(n));status(post(c,path,in),400);in.put("contacto",Map.of("receptor","Persona receptora","telefono","+54 260 4000000"));status(post(c,path,in),200);}
+        var q=orders.get(2);var current=revisarPedido(c,q);assertThat(current.get("franja").get("fecha")).isNotEqualTo(revisiones.get(2).get("franja").get("fecha"));assertThat(contar("pedido")).isEqualTo(2);assertThat(jdbc.queryForObject("SELECT count(DISTINCT origen_publico) FROM lamontana.reserva_entrega",Integer.class)).isEqualTo(2);
+    }
+
+    private Map<String,Object> franjaRetiro(int dia,String desde,String hasta,int cupo,boolean habilitada){return Map.of("dia",dia,"apertura",desde,"cierre",hasta,"capacidadPedidos",cupo,"habilitada",habilitada);}
+    private Map<String,Object> retiroSolicitud(List<? extends Map<String,Object>> franjas){var h=new HashMap<String,Object>(horario(a,semana("09:00","18:00")));h.put("franjasRetiro",franjas);return entrega("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO"),List.of(h,horario(b,semana("09:00","18:00"))));}
+    @Test void retiroVacioLimitesHorarioPermisosYActivacionNoInventanCupos()throws Exception{
+        assertThat(contar("franja_entrega")).isZero();preparar();aceptar(put(admin,ruta(),retiroSolicitud(List.of())));assertProblemas("RETIRO_SIN_FRANJAS_VALIDAS");status(post(admin,ruta()+"/simular",simulacion(a,"RETIRO_SUCURSAL","2026-09-28T12:00:00Z")),409);status(post(admin,rutaActivar()+"/solicitar",solicitud()),409);
+        String original=borrador.toString();for(var franjas:List.of(List.of(franjaRetiro(1,"09:00","12:00",-1,true)),List.of(franjaRetiro(1,"12:00","09:00",1,true)),List.of(franjaRetiro(1,"09:00","12:00",1,true),franjaRetiro(1,"11:00","13:00",1,true)))){status(put(admin,ruta(),retiroSolicitud(franjas)),400);assertThat(estado().get("borrador").toString()).isEqualTo(original);}
+        aceptar(put(admin,ruta(),retiroSolicitud(List.of(franjaRetiro(1,"08:00","09:00",3,true)))));
+        assertThat(validacion().get("valida").asBoolean()).isTrue();
+        var fueraDeProduccion=simular(a,"RETIRO_SUCURSAL","2026-09-28T12:00:00Z");
+        assertThat(fueraDeProduccion.get("destinoSucursal").get("cupoConfigurado").asInt()).isEqualTo(3);
+        aceptar(put(admin,ruta(),retiroSolicitud(List.of(franjaRetiro(1,"09:00","12:00",0,true),franjaRetiro(1,"12:00","13:00",5,false)))));assertProblemas("RETIRO_SIN_FRANJAS_VALIDAS");
+        var c=particularCotizacion("sin-permiso-retiro");status(put(c,ruta(),retiroSolicitud(List.of())),403);status(put(cliente(),ruta(),retiroSolicitud(List.of())),401);
+        var sin=HttpRequest.newBuilder(uri(ruta())).header("Content-Type","application/json").PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(retiroSolicitud(List.of())))).build();status(admin.send(sin,HttpResponse.BodyHandlers.ofString()),403);
+    }
+    @Test void retiroFranjasExplicitasSimulacionYCotizacionPersistenSinReservar()throws Exception{
+        preparar();aceptar(put(admin,ruta(),retiroSolicitud(List.of(franjaRetiro(1,"10:00","12:00",0,true),franjaRetiro(1,"13:00","14:00",3,false),franjaRetiro(1,"15:00","16:00",4,true)))));assertThat(validacion().get("valida").asBoolean()).isTrue();int filas=contar("franja_entrega");var r=simular(a,"RETIRO_SUCURSAL","2026-09-28T12:00:00Z");assertInstante(r,"finPreparacion","2026-09-28T13:00:00Z");assertInstante(r,"disponibleDesde","2026-09-28T18:00:00Z");assertThat(r.get("llegadaEstimada").isNull()).isTrue();assertThat(r.get("destinoSucursal").get("cupoConfigurado").asInt()).isEqualTo(4);assertThat(r.get("destinoSucursal").get("fecha").asString()).isEqualTo("2026-09-28");assertThat(r.get("advertencias").toString()).contains("no representa plazas libres");
+        assertInstante(simular(a,"RETIRO_SUCURSAL","2026-09-28T18:30:00Z"),"disponibleDesde","2026-10-05T18:00:00Z");assertThat(contar("franja_entrega")).isEqualTo(filas);String original=borrador.toString();app.close();arrancar();assertThat(estado().get("borrador").toString()).isEqualTo(original);assertThat(simular(a,"RETIRO_SUCURSAL","2026-09-28T12:00:00Z")).isEqualTo(r);
+        activar();var c=particularCotizacion("retiro-cotizado");var q=cotizar(c,ofertaCliente());assertThat(q.get("oferta").get("entrega").get("destinoSucursal").get("cupoConfigurado").asInt()).isEqualTo(4);assertThat(q.get("oferta").get("total").asString()).isEqualTo("32.00");assertThat(q.get("oferta").get("costoEntrega").asString()).isEqualTo("0.00");assertThat(contar("franja_entrega")).isEqualTo(filas);assertThat(contar("pago")).isZero();
+    }
+    @Test void retiroCopiaComparacionRollbackYVersionCerradaConservanFranjas()throws Exception{
+        preparar();aceptar(put(admin,ruta(),retiroSolicitud(List.of(franjaRetiro(1,"15:00","16:00",4,true)))));var primera=activar();String origen=id;var viejo=historial("/"+origen);status(put(admin,ruta(),retiroSolicitud(List.of())),409);segundaActivaRollback();var comparacion=historial("/"+origen+"/comparacion/"+id);assertThat(comparacion.toString()).contains("franjasRetiro");boolean changed=false;for(var seccion:comparacion.get("secciones"))if(seccion.get("codigo").asString().equals("horarios"))changed=seccion.get("modificada").asBoolean();assertThat(changed).isTrue();
+        var rollback=confirmarRollback(autorizarRollback());assertThat(rollback.get("estado").asString()).isEqualTo("EXITOSO");var restaurada=estado().get("activa").get("configuracion");assertThat(restaurada.get("entrega")).isEqualTo(primera.get("configuracion").get("entrega"));var historica=historial("/"+origen);assertThat(historica.get("modulos")).isEqualTo(viejo.get("modulos"));var copia=copiarBase(restaurada.get("codigoPublico").asString(),UUID.randomUUID());assertEntregaHeredada(copia.get("entrega"),restaurada.get("entrega"));adoptarCopia(copia);guardarFaseCopia(5);assertThat(borrador.get("entrega")).isEqualTo(restaurada.get("entrega"));
+    }
+    @Test void retiroGuardadoConcurrenteYFalloParcialReviertenCalendariosYCupos()throws Exception{
+        preparar();String original=borrador.toString();jdbc.execute("CREATE FUNCTION lamontana.fallo_retiro_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.id_configuracion_retiro IS NOT NULL AND NEW.capacidad_pedidos=17 THEN RAISE EXCEPTION 'Fallo local de retiro'; END IF; RETURN NEW; END $$");jdbc.execute("CREATE TRIGGER fallo_retiro_test BEFORE INSERT ON lamontana.franja_entrega FOR EACH ROW EXECUTE FUNCTION lamontana.fallo_retiro_test()");status(put(admin,ruta(),retiroSolicitud(List.of(franjaRetiro(1,"10:00","12:00",17,true)))),500);assertThat(estado().get("borrador").toString()).isEqualTo(original);jdbc.execute("DROP TRIGGER fallo_retiro_test ON lamontana.franja_entrega");
+        var in=retiroSolicitud(List.of(franjaRetiro(1,"10:00","12:00",7,true)));var req=request(admin,"PUT",ruta(),in);var x=admin.sendAsync(req,HttpResponse.BodyHandlers.ofString());var y=admin.sendAsync(req,HttpResponse.BodyHandlers.ofString());var uno=x.get();var dos=y.get();status(uno,200);status(dos,200);assertThat(uno.body()).isEqualTo(dos.body());assertThat(JSON.readTree(uno.body()).get("version").asLong()).isEqualTo(borrador.get("version").asLong()+1);aceptar(uno);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.franja_entrega WHERE id_configuracion_retiro IS NOT NULL",Integer.class)).isEqualTo(6);
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.franja_entrega SET id_sucursal_retiro=NULL WHERE id_configuracion_retiro IS NOT NULL")).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);assertThat(estado().get("borrador")).isEqualTo(borrador);
+    }
+
+    @Test void pagosImportesReferenciasYRestriccionSqlNoPierdenPrecision()throws Exception{
+        preparar();activar();var c=particularCotizacion("limites-dinero");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString(),ruta=pagos(quote,true);
+        for(String importe:List.of("0","-1","1.001","100000000000000000.00"))status(post(admin,ruta+"/recibir",recibirPago("TRANSFERENCIA",importe,"INVALIDA")),400);
+        var futuro=recibirPago("TRANSFERENCIA","1.00","FUTURO");futuro.put("recibidoEn",Instant.now().plusSeconds(3600).toString());status(post(admin,ruta+"/recibir",futuro),400);
+        var pago=recibirPago("TRANSFERENCIA","99999999999999999.99","ß".repeat(160));status(post(admin,ruta+"/recibir",pago),200);var v=pagosVista(admin,quote,true);assertThat(v.get("pagos").get(0).get("importe").asString()).isEqualTo("99999999999999999.99");assertThat(v.get("pagos").get(0).get("maximoAplicable").asString()).isEqualTo("32.00");pago.put("operacion",UUID.randomUUID());status(post(admin,ruta+"/recibir",pago),409);
+        long eventos=contar("evento_financiero");var tx=new org.springframework.transaction.support.TransactionTemplate(app.getBean(org.springframework.transaction.PlatformTransactionManager.class));
+        assertThatThrownBy(()->tx.execute(status->{long evento=jdbc.queryForObject("INSERT INTO lamontana.evento_financiero(id_operacion,id_cotizacion,id_actor,actor_nombre,actor_rol,tipo,huella,motivo) SELECT ?,c.id_cotizacion,u.id_usuario,'Admin prueba','ADMIN_ADMIN','APLICAR',repeat('a',64),'Invariante SQL' FROM lamontana.cotizacion c CROSS JOIN lamontana.usuario u WHERE c.codigo_publico=? AND u.correo=? RETURNING id_evento",Long.class,UUID.randomUUID(),UUID.fromString(quote),EMAIL);jdbc.update("INSERT INTO lamontana.aplicacion_pago_cotizacion(id_pago,id_cotizacion,id_evento,importe) SELECT p.id_pago,p.id_cotizacion,?,33 FROM lamontana.pago p",evento);return null;})).isInstanceOf(DataAccessException.class).hasRootCauseInstanceOf(org.postgresql.util.PSQLException.class);
+        assertThat(contar("aplicacion_pago_cotizacion")).isZero();assertThat(contar("evento_financiero")).isEqualTo(eventos);assertThat(contar("pago")).isEqualTo(1);
+    }
+
+    private String comprobantes(String quote,boolean interno){return "/api/"+(interno?"operacion":"cliente")+"/cotizaciones/"+quote+"/comprobantes";}
+    private Map<String,Object> iniciarComprobante(String intento,String pago){var in=new HashMap<String,Object>();in.putAll(Map.of("operacion",UUID.randomUUID(),"nombre","Comprobante.pdf","detalle","Documento aportado para verificar el movimiento"));if(intento!=null)in.put("intento",intento);if(pago!=null)in.put("pago",pago);return in;}
+    private String informarPago(HttpClient c,String quote)throws Exception{var response=post(c,pagos(quote,false)+"/informar",Map.of("operacion",UUID.randomUUID(),"importe","20.00","referencia","Transferencia informada","motivo","Movimiento enviado"));status(response,200);return JSON.readTree(response.body()).get("intentos").get(0).get("codigoPublico").asString();}
+    private HttpRequest requestPdf(HttpClient c,String path,byte[] bytes)throws Exception{return HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(70)).header("Content-Type","application/pdf").header("X-CSRF-TOKEN",csrf(c)).PUT(HttpRequest.BodyPublishers.ofByteArray(bytes)).build();}
+    private JsonNode enviarComprobante(HttpClient c,String path,byte[] bytes)throws Exception{var r=c.send(requestPdf(c,path,bytes),HttpResponse.BodyHandlers.ofString());status(r,200);return JSON.readTree(r.body());}
+    private JsonNode listaComprobantes(HttpClient c,String path)throws Exception{var r=get(c,path);status(r,200);return JSON.readTree(r.body());}
+
+    @Test void comprobantesAntesDeAcreditarNoCreanDineroYNacenConFinalidadPrivada()throws Exception{
+        preparar();var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio","PAGO_PREVIO"));aceptar(put(admin,base()+"/modelo",m));var config=comando();config.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("TRANSFERENCIA"),"instruccionesTransferencia","Cuenta bancaria de prueba","vigenciaCotizacionMinutos",90,"exigirSena",false)));aceptar(put(admin,base()+"/pagos",config));activar();var c=particularCotizacion("evidencia-previa");byte[] bytes=pdf(3,false,false,0);var input=ofertaPdf(bytes,3);input.put("medioPago","TRANSFERENCIA");var q=ofertaAceptada(c,input);String quote=q.get("codigoPublico").asString(),intento=informarPago(c,quote),base=comprobantes(quote,false);
+        var cargaTrabajo=post(c,archivos(quote),inicioArchivo(q));status(cargaTrabajo,200);
+        var archivoTrabajo=JSON.readTree(cargaTrabajo.body()).get("codigoPublico").asString();
+        var inicio=iniciarComprobante(intento,null);var response=post(c,base,inicio);status(response,200);String file=JSON.readTree(response.body()).get("codigoPublico").asString();status(post(c,base,inicio),200);assertThat(file).isNotEqualTo(archivoTrabajo);assertThat(contar("archivo_almacenado")).isEqualTo(2);assertThat(contar("comprobante_pago")).isEqualTo(1);
+        var result=enviarComprobante(c,base+"/"+file+"/contenido",bytes);assertThat(result.get("estado").asString()).isEqualTo("VALIDO");assertThat(result.get("paginas").asInt()).isEqualTo(3);assertThat(result.get("origen").asString()).isEqualTo("TRANSFERENCIA_INFORMADA");assertThat(contar("pago")).isZero();assertThat(contar("archivo_trabajo")).isOne();assertThat(contar("aceptacion_vista_previa")).isZero();status(get(c,base+"/"+archivoTrabajo),404);
+        assertThat(enviarComprobante(c,base+"/"+file+"/contenido",new byte[]{0}).get("codigoPublico").asString()).isEqualTo(file);assertThat(antivirus.ultimo).isEqualTo(bytes);var original=binario(c,base+"/"+file+"/original");assertThat(original.body()).isEqualTo(bytes);assertThat(original.headers().firstValue("Cache-Control").orElse("")).contains("no-store","private");assertThat(original.headers().firstValue("Content-Disposition").orElse("")).contains("attachment");assertThat(binario(c,base+"/"+file+"/paginas/2").body()).startsWith(new byte[]{(byte)137,80,78,71});status(get(c,base+"/"+file+"/paginas/0"),400);status(get(c,archivos(quote)+"/"+file),404);
+        var trabajo=new HashMap<>(inicioArchivo(q));trabajo.put("operacion",inicio.get("operacion"));status(post(c,archivos(quote),trabajo),409);
+        assertThatThrownBy(()->jdbc.update("INSERT INTO lamontana.archivo_trabajo(id_archivo_almacenado,id_cotizacion_item) SELECT a.id_archivo_almacenado,i.id_cotizacion_item FROM lamontana.archivo_almacenado a CROSS JOIN lamontana.cotizacion_item i WHERE a.codigo_publico=?::uuid",file)).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("UPDATE lamontana.comprobante_pago SET detalle='Otro contenido'")).isInstanceOf(DataAccessException.class);
+        var recibir=recibirPago("TRANSFERENCIA","20.00","EVIDENCIA-BANCO");recibir.put("intento",intento);status(post(admin,pagos(quote,true)+"/recibir",recibir),200);var payment=pagosVista(admin,quote,true).get("pagos").get(0);var list=listaComprobantes(c,base+"?pago="+payment.get("codigoPublico").asString());assertThat(list.get("total").asInt()).isEqualTo(1);assertThat(list.get("elementos").get(0).get("codigoPublico").asString()).isEqualTo(file);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("0.00");
+        app.close();arrancar();c=cliente();login(c,"cotiza-evidencia-previa@example.test");assertThat(binario(c,base+"/"+file+"/original").body()).isEqualTo(bytes);assertThat(listaComprobantes(c,base+"?pago="+payment.get("codigoPublico").asString()).get("total").asInt()).isEqualTo(1);
+    }
+    @Test void comprobantesVersionesRechazosAntivirusYFallosConservanEvidenciaYDinero()throws Exception{
+        preparar();activar();var c=particularCotizacion("evidencia-version");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString(),intento=informarPago(c,quote),base=comprobantes(quote,false);byte[] bueno=pdf(2,false,false,0);
+        var start=post(c,base,iniciarComprobante(intento,null));status(start,200);String primero=JSON.readTree(start.body()).get("codigoPublico").asString();enviarComprobante(c,base+"/"+primero+"/contenido",bueno);
+        start=post(c,base,iniciarComprobante(intento,null));String segundo=JSON.readTree(start.body()).get("codigoPublico").asString();var nuevo=enviarComprobante(c,base+"/"+segundo+"/contenido",pdf(3,false,false,1));assertThat(nuevo.get("predecesor").asString()).isEqualTo(primero);assertThat(binario(c,base+"/"+primero+"/original").body()).isEqualTo(bueno);
+        for(byte[] bad:List.of(new byte[]{1,2,3},pdf(1,true,false,0),pdf(1,false,true,0))){String id=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();assertThat(enviarComprobante(c,base+"/"+id+"/contenido",bad).get("estado").asString()).isEqualTo("RECHAZADO");status(get(c,base+"/"+id+"/original"),409);assertThat(Files.exists(archivos.resolve("pdf").resolve(id))).isFalse();}
+        antivirus.response="stream: Eicar-Test-Signature FOUND";String malware=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();assertThat(enviarComprobante(c,base+"/"+malware+"/contenido",bueno).get("codigoResultado").asString()).isEqualTo("SEGURIDAD_RECHAZADA");
+        antivirus.response="stream: scan ERROR";String down=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();assertThat(enviarComprobante(c,base+"/"+down+"/contenido",bueno).get("estado").asString()).isEqualTo("FALLIDO");antivirus.response="stream: OK";
+        String fail=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();jdbc.execute("CREATE FUNCTION lamontana.fallar_comprobante_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.estado='VALIDO' THEN RAISE EXCEPTION 'fallo de publicación de prueba'; END IF; RETURN NEW; END $$");jdbc.execute("CREATE TRIGGER fallo_comprobante_test BEFORE UPDATE ON lamontana.archivo_almacenado FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_comprobante_test()");assertThat(enviarComprobante(c,base+"/"+fail+"/contenido",bueno).get("estado").asString()).isEqualTo("FALLIDO");jdbc.execute("DROP TRIGGER fallo_comprobante_test ON lamontana.archivo_almacenado");assertThat(Files.exists(archivos.resolve("pdf").resolve(fail))).isFalse();assertThat(contar("pago")).isZero();assertThat(listaComprobantes(c,base+"?intento="+intento).get("total").asInt()).isEqualTo(8);assertThat(binario(c,base+"/"+primero+"/original").body()).isEqualTo(bueno);
+    }
+    @Test void comprobantesPermisosPropositoYRevocacionAislanContenidoFinanciero()throws Exception{
+        preparar();activar();var c=particularCotizacion("evidencia-scope");var otro=particularCotizacion("evidencia-ajena");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString(),intento=informarPago(c,quote),base=comprobantes(quote,false),interno=comprobantes(quote,true);byte[] pdf=pdf(2,false,false,0);String file=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();enviarComprobante(c,base+"/"+file+"/contenido",pdf);
+        var ea=empleadoArchivos("evidencia-a",a);var eb=empleadoArchivos("evidencia-b",b);status(get(ea,interno+"/"+file),403);permisoEmpleado("evidencia-a@example.test","REGISTRAR_DEVOLUCION");permisoEmpleado("evidencia-b@example.test","ACREDITAR_PAGO");status(get(ea,interno+"/"+file+"/original"),200);status(post(ea,interno,iniciarComprobante(intento,null)),403);status(get(eb,interno+"/"+file+"/original"),403);status(get(otro,base+"/"+file+"/original"),404);status(get(c,interno+"/"+file),403);status(get(admin,base+"/"+file),403);
+        var nulo=iniciarComprobante(intento,null);nulo.put("detalle","Documento"+(char)0+"inválido");status(post(c,base,nulo),400);var ambos=iniciarComprobante(intento,UUID.randomUUID().toString());status(post(c,base,ambos),400);status(get(c,base),400);status(get(c,base+"?intento="+intento+"&pagina=-1"),400);var sin=HttpRequest.newBuilder(uri(base)).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(iniciarComprobante(intento,null)))).build();status(c.send(sin,HttpResponse.BodyHandlers.ofString()),403);
+        status(post(admin,pagos(quote,true)+"/recibir",recibirPago("EFECTIVO","10.00","COMPROBANTE-EFECTIVO")),200);String pago=pagosVista(admin,quote,true).get("pagos").get(0).get("codigoPublico").asString();status(post(c,base,iniciarComprobante(null,pago)),403);var cash=post(admin,interno,iniciarComprobante(null,pago));status(cash,200);String recibo=JSON.readTree(cash.body()).get("codigoPublico").asString();assertThat(enviarComprobante(admin,interno+"/"+recibo+"/contenido",pdf).get("tipo").asString()).isEqualTo("RECIBO_INTERNO");assertThat(binario(c,base+"/"+recibo+"/original").body()).isEqualTo(pdf);
+        jdbc.update("UPDATE lamontana.usuario_sucursal SET activa=false,fecha_hasta=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='evidencia-a@example.test')");status(get(ea,interno+"/"+file+"/original"),403);
+    }
+    @Test void comprobantesConcurrenciaLimiteIntegridadYRecuperacionNoPublicanParciales()throws Exception{
+        preparar();activar();var c=particularCotizacion("evidencia-race");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString(),intento=informarPago(c,quote),base=comprobantes(quote,false);byte[] pdf=pdf(2,false,false,0);var inicio=iniciarComprobante(intento,null);var req=request(c,"POST",base,inicio);var x=c.sendAsync(req,HttpResponse.BodyHandlers.ofString());var y=c.sendAsync(req,HttpResponse.BodyHandlers.ofString());var uno=x.get();var dos=y.get();status(uno,200);status(dos,200);assertThat(uno.body()).isEqualTo(dos.body());String file=JSON.readTree(uno.body()).get("codigoPublico").asString();status(post(c,base,iniciarComprobante(intento,null)),409);
+        var raw=requestPdf(c,base+"/"+file+"/contenido",pdf);x=c.sendAsync(raw,HttpResponse.BodyHandlers.ofString());y=c.sendAsync(raw,HttpResponse.BodyHandlers.ofString());status(x.get(),200);status(y.get(),200);assertThat(listaComprobantes(c,base+"?intento="+intento).get("elementos").get(0).get("estado").asString()).isEqualTo("VALIDO");assertThat(contar("validacion_archivo")).isEqualTo(2);assertThat(contar("comprobante_pago")).isEqualTo(1);
+        Files.write(archivos.resolve("pdf").resolve(file).resolve("original.pdf"),new byte[]{0});status(get(c,base+"/"+file+"/original"),503);Files.write(archivos.resolve("pdf").resolve(file).resolve("original.pdf"),pdf);
+        String bigId=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();byte[] big=new byte[10485761];System.arraycopy(pdf,0,big,0,pdf.length);var large=HttpRequest.newBuilder(uri(base+"/"+bigId+"/contenido")).timeout(Duration.ofSeconds(30)).header("Content-Type","application/pdf").header("X-CSRF-TOKEN",csrf(c)).PUT(HttpRequest.BodyPublishers.ofInputStream(()->new ByteArrayInputStream(big))).build();var result=c.send(large,HttpResponse.BodyHandlers.ofString());status(result,200);assertThat(JSON.readTree(result.body()).get("codigoResultado").asString()).isEqualTo("ARCHIVO_DEMASIADO_GRANDE");assertThat(Files.exists(archivos.resolve("pdf").resolve(bigId))).isFalse();
+        String interrupted=JSON.readTree(post(c,base,iniciarComprobante(intento,null)).body()).get("codigoPublico").asString();jdbc.update("UPDATE lamontana.archivo_almacenado SET estado='VALIDANDO',fecha_inicio=now() WHERE codigo_publico=?",UUID.fromString(interrupted));Files.createDirectories(archivos.resolve("pdf").resolve(interrupted));Files.write(archivos.resolve("pdf").resolve(interrupted).resolve("original.part"),pdf);app.close();arrancar();c=cliente();login(c,"cotiza-evidencia-race@example.test");var saved=get(c,base+"/"+interrupted);status(saved,200);assertThat(JSON.readTree(saved.body()).get("codigoResultado").asString()).isEqualTo("SERVICIO_REINICIADO");assertThat(Files.exists(archivos.resolve("pdf").resolve(interrupted))).isFalse();assertThat(binario(c,base+"/"+file+"/original").body()).isEqualTo(pdf);assertThat(contar("pago")).isZero();
+    }
+
+    private String pagos(String quote,boolean interno){return "/api/"+(interno?"operacion":"cliente")+"/cotizaciones/"+quote+"/pagos";}
+    private JsonNode pagosVista(HttpClient c,String quote,boolean interno)throws Exception{var r=get(c,pagos(quote,interno));status(r,200);return JSON.readTree(r.body());}
+    private JsonNode ofertaAceptada(HttpClient c,Map<String,Object> input)throws Exception{var q=cotizar(c,input);status(post(c,"/api/cliente/cotizaciones/"+q.get("codigoPublico").asString()+"/aceptar",decisionCotizacion(q)),200);return cotizacion(c,q.get("codigoPublico").asString());}
+    private Map<String,Object> recibirPago(String medio,String cantidad,String referencia){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"medio",medio,"importe",cantidad,"referencia",referencia,"recibidoEn",Instant.now().minusSeconds(1).toString(),"verificado",true,"motivo","Dinero efectivamente verificado en el movimiento"));}
+    private Map<String,Object> aplicarPago(JsonNode p,String importe){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"pago",p.get("codigoPublico").asString(),"version",p.get("version").asLong(),"importe",importe,"motivo","Aplicar al trabajo aceptado por su cliente"));}
+    private Map<String,Object> devolverPago(JsonNode p,String importe,String referencia){var in=aplicarPago(p,importe);in.putAll(Map.of("medio","TRANSFERENCIA","referencia",referencia,"devueltoEn",Instant.now().toString(),"verificado",true,"motivo","Devolución realizada al cliente"));return in;}
+    private void permisoEmpleado(String correo,String permiso){jdbc.update("INSERT INTO lamontana.usuario_permiso(id_usuario,id_permiso,id_usuario_otorgante) SELECT u.id_usuario,p.id_permiso,(SELECT id_usuario FROM lamontana.usuario WHERE correo='entrega@example.test') FROM lamontana.usuario u CROSS JOIN lamontana.permiso p WHERE u.correo=? AND p.codigo=?",correo,permiso);}
+
+    @Test void pagosIntentoNoEsDineroRecepcionIdempotenteYAuditoriaInmutable()throws Exception{
+        preparar();activar();var c=particularCotizacion("dinero");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString();String client=pagos(quote,false),interno=pagos(quote,true);
+        var info=new HashMap<String,Object>(Map.of("operacion",UUID.randomUUID(),"importe","32.00","referencia","Referencia declarada","motivo","Transferencia enviada"));status(post(c,client+"/informar",info),200);status(post(c,client+"/informar",info),200);
+        var vista=pagosVista(c,quote,false);assertThat(vista.get("aplicado").asString()).isEqualTo("0.00");assertThat(vista.get("pagos").size()).isZero();assertThat(vista.get("intentos").size()).isEqualTo(1);assertThat(contar("pago")).isZero();
+        var input=recibirPago("TRANSFERENCIA","35.00","BANCO CUENTA MOV-001");input.put("intento",vista.get("intentos").get(0).get("codigoPublico").asString());status(post(c,interno+"/recibir",input),403);
+        var falso=new HashMap<>(input);falso.put("verificado",false);status(post(admin,interno+"/recibir",falso),400);status(post(admin,interno+"/recibir",input),200);status(post(admin,interno+"/recibir",input),200);
+        vista=pagosVista(c,quote,false);assertThat(vista.get("intentos").get(0).get("importe").asString()).isEqualTo("32.00");assertThat(vista.get("intentos").get(0).get("estado").asString()).isEqualTo("ACREDITADO");assertThat(vista.get("pagos").get(0).get("importe").asString()).isEqualTo("35.00");assertThat(vista.get("aplicado").asString()).isEqualTo("0.00");
+        var dup=new HashMap<>(input);dup.put("operacion",UUID.randomUUID());dup.remove("intento");status(post(admin,interno+"/recibir",dup),409);assertThat(contar("pago")).isEqualTo(1);
+        var p=vista.get("pagos").get(0);var appInput=aplicarPago(p,"32.00");status(post(admin,interno+"/aplicar",appInput),200);status(post(admin,interno+"/aplicar",appInput),200);vista=pagosVista(c,quote,false);assertThat(vista.get("pendiente").asString()).isEqualTo("0.00");assertThat(vista.get("pagos").get(0).get("disponible").asString()).isEqualTo("3.00");
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.pago SET importe=1")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.evento_financiero")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("UPDATE lamontana.aplicacion_pago_cotizacion SET importe=1")).isInstanceOf(DataAccessException.class);
+        app.close();arrancar();admin=cliente();login(admin,EMAIL);var reinicio=pagosVista(admin,quote,true);assertThat(reinicio.get("pagos").get(0).get("aplicaciones")).isEqualTo(vista.get("pagos").get(0).get("aplicaciones"));assertThat(reinicio.get("pagos").get(0).get("disponible")).isEqualTo(vista.get("pagos").get(0).get("disponible"));assertThat(reinicio.get("aplicado").asString()).isEqualTo("32.00");assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.cotizacion WHERE confirmada_en IS NOT NULL",Long.class)).isZero();
+    }
+    @Test void pagosTardiosD2ReasignanSoloOfertaAceptadaConDiferenciaYDevolucion()throws Exception{
+        preparar();activar();var c=particularCotizacion("d2");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString(),ruta=pagos(quote,true);
+        status(post(admin,ruta+"/recibir",recibirPago("TRANSFERENCIA","32.00","D2-01")),200);var p=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,ruta+"/aplicar",aplicarPago(p,"32.00")),200);
+        var clock=java.time.Clock.fixed(Instant.parse(q.get("vigenteHasta").asString()).plusSeconds(1),java.time.ZoneOffset.UTC);org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(ar.com.lamontana.cotizaciones.CotizacionService.class),"clock",clock);org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(ar.com.lamontana.pagos.PagoService.class),"clock",clock);
+        assertThat(pagosVista(admin,quote,true).get("estado").asString()).isEqualTo("EXPIRADA");status(post(admin,ruta+"/recibir",recibirPago("TRANSFERENCIA","5.00","D2-TARDIO")),200);
+        var siguiente=ofertaCliente();siguiente.put("reemplaza",quote);var nueva=cotizar(c,siguiente);String next=nueva.get("codigoPublico").asString();p=pagosVista(admin,next,true).get("pagos").get(0);var aplicar=aplicarPago(p,"20.00");status(post(admin,pagos(next,true)+"/aplicar",aplicar),409);
+        status(post(c,"/api/cliente/cotizaciones/"+next+"/aceptar",decisionCotizacion(nueva)),200);status(post(admin,pagos(next,true)+"/aplicar",aplicar),200);status(post(admin,pagos(next,true)+"/aplicar",aplicar),200);
+        var v=pagosVista(c,next,false);assertThat(v.get("aplicado").asString()).isEqualTo("20.00");assertThat(v.get("pendiente").asString()).isEqualTo("12.00");assertThat(v.get("pagos").get(0).get("disponible").asString()).isEqualTo("12.00");assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("0.00");assertThat(v.get("pagos").get(0).get("aplicaciones").size()).isEqualTo(2);
+        var refund=devolverPago(v.get("pagos").get(0),"12.00","DEV-EXCESO");status(post(admin,pagos(next,true)+"/devolver",refund),200);status(post(admin,pagos(next,true)+"/devolver",refund),200);v=pagosVista(c,next,false);assertThat(v.get("aplicado").asString()).isEqualTo("20.00");assertThat(v.get("pagos").get(0).get("disponible").asString()).isEqualTo("0.00");
+        status(post(admin,pagos(next,true)+"/devolver",devolverPago(v.get("pagos").get(0),"5.00","DEV-PARCIAL")),200);v=pagosVista(c,next,false);assertThat(v.get("aplicado").asString()).isEqualTo("15.00");assertThat(v.get("pendiente").asString()).isEqualTo("17.00");assertThat(v.get("pagos").get(0).get("devuelto").asString()).isEqualTo("17.00");
+        status(post(admin,pagos(next,true)+"/devolver",devolverPago(v.get("pagos").get(0),"15.01","DEV-EXCESIVO")),409);assertThat(contar("reembolso")).isEqualTo(2);assertThat(contar("liberacion_aplicacion_pago")).isEqualTo(1);
+        var ajena=ofertaAceptada(c,ofertaCliente());status(post(admin,pagos(ajena.get("codigoPublico").asString(),true)+"/aplicar",aplicarPago(v.get("pagos").get(1),"5.00")),400);assertThat(cotizacion(c,quote).get("oferta")).isEqualTo(q.get("oferta"));
+    }
+    @Test void pagosConcurrenciaFalloParcialYSaldoNoSeConsumenDosVeces()throws Exception{
+        preparar();activar();var c=particularCotizacion("race-pago");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString(),ruta=pagos(quote,true);var in=recibirPago("TRANSFERENCIA","32.00","REC-001");var r=request(admin,"POST",ruta+"/recibir",in);var x=admin.sendAsync(r,HttpResponse.BodyHandlers.ofString());var y=admin.sendAsync(r,HttpResponse.BodyHandlers.ofString());status(x.get(),200);status(y.get(),200);assertThat(contar("pago")).isEqualTo(1);
+        var p=pagosVista(admin,quote,true).get("pagos").get(0);var uno=aplicarPago(p,"25.00");var dos=aplicarPago(p,"25.00");x=admin.sendAsync(request(admin,"POST",ruta+"/aplicar",uno),HttpResponse.BodyHandlers.ofString());y=admin.sendAsync(request(admin,"POST",ruta+"/aplicar",dos),HttpResponse.BodyHandlers.ofString());assertThat(List.of(x.get().statusCode(),y.get().statusCode())).containsExactlyInAnyOrder(200,409);assertThat(pagosVista(c,quote,false).get("aplicado").asString()).isEqualTo("25.00");
+        p=pagosVista(admin,quote,true).get("pagos").get(0);var dev=devolverPago(p,"32.00","DEV-RACE");var appInput=aplicarPago(p,"7.00");x=admin.sendAsync(request(admin,"POST",ruta+"/devolver",dev),HttpResponse.BodyHandlers.ofString());y=admin.sendAsync(request(admin,"POST",ruta+"/aplicar",appInput),HttpResponse.BodyHandlers.ofString());assertThat(List.of(x.get().statusCode(),y.get().statusCode())).containsExactlyInAnyOrder(200,409);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.pago_disponible WHERE disponible<0",Long.class)).isZero();
+        var info=Map.of("operacion",UUID.randomUUID(),"importe","2.00","referencia","PENDIENTE","motivo","Datos de la transferencia");status(post(c,pagos(quote,false)+"/informar",info),200);var i=pagosVista(c,quote,false).get("intentos").get(0);var rec=recibirPago("TRANSFERENCIA","2.00","FALLO-SQL");rec.put("intento",i.get("codigoPublico").asString());
+        jdbc.execute("CREATE FUNCTION lamontana.fallar_pago_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo parcial de prueba'; END $$");jdbc.execute("CREATE TRIGGER fallo_pago_test BEFORE INSERT ON lamontana.pago FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_pago_test()");status(post(admin,ruta+"/recibir",rec),500);assertThat(pagosVista(c,quote,false).get("intentos").get(0).get("estado").asString()).isEqualTo("PENDIENTE");jdbc.execute("DROP TRIGGER fallo_pago_test ON lamontana.pago");status(post(admin,ruta+"/recibir",rec),200);assertThat(contar("pago")).isEqualTo(2);
+    }
+    @Test void pagosPermisosSucursalRevocadosClienteAjenoYDescarteNoCreanDinero()throws Exception{
+        preparar();activar();var c=particularCotizacion("scope-pago");var other=particularCotizacion("otro-pago");var q=ofertaAceptada(c,ofertaCliente());String quote=q.get("codigoPublico").asString();var ea=empleadoArchivos("cajero-a",a);var eb=empleadoArchivos("cajero-b",b);
+        status(get(ea,pagos(quote,true)),403);permisoEmpleado("cajero-a@example.test","REGISTRAR_COBRO");permisoEmpleado("cajero-b@example.test","ACREDITAR_PAGO");status(get(ea,pagos(quote,true)),200);status(get(eb,pagos(quote,true)),403);status(get(other,pagos(quote,false)),404);status(get(admin,pagos(quote,false)),403);
+        status(post(ea,pagos(quote,true)+"/recibir",recibirPago("TRANSFERENCIA","10","BANK-SCOPE")),403);status(post(ea,pagos(quote,true)+"/recibir",recibirPago("EFECTIVO","30","CAJA-SCOPE")),200);var p=pagosVista(ea,quote,true).get("pagos").get(0);status(post(ea,pagos(quote,true)+"/aplicar",aplicarPago(p,"10")),200);var cash=pagosVista(ea,quote,true).get("pagos").get(0);status(post(ea,pagos(quote,true)+"/aplicar",aplicarPago(cash,"15")),409);status(post(ea,pagos(quote,true)+"/devolver",devolverPago(p,"10","DEV-SCOPE")),403);
+        var info=Map.of("operacion",UUID.randomUUID(),"importe","3.00","referencia","No se envió","motivo","Informada por error");status(post(c,pagos(quote,false)+"/informar",info),200);var i=pagosVista(c,quote,false).get("intentos").get(0);var discard=Map.of("operacion",UUID.randomUUID(),"intento",i.get("codigoPublico").asString(),"motivo","Transferencia no realizada");status(post(c,pagos(quote,false)+"/descartar",discard),200);status(post(c,pagos(quote,false)+"/descartar",discard),200);assertThat(contar("pago")).isEqualTo(1);
+        jdbc.update("UPDATE lamontana.usuario_sucursal SET activa=false,fecha_hasta=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='cajero-a@example.test')");status(get(ea,pagos(quote,true)),403);status(get(ea,"/api/operacion/sucursales/"+a+"/pagos"),403);
+        var sin=HttpRequest.newBuilder(uri(pagos(quote,true)+"/recibir")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(recibirPago("EFECTIVO","1","CSRF")))).build();status(admin.send(sin,HttpResponse.BodyHandlers.ofString()),403);
+    }
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"PAGO_PREVIO","SENA"})
+    void pagosNoBloqueanPdfYDevolucionConservaAccesoPrivado(String criterion)throws Exception{
+        preparar();var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio",criterion));aceptar(put(admin,base()+"/modelo",m));var policy=new HashMap<String,Object>(conPoliticaArchivos(Map.of("medios",criterion.equals("PAGO_PREVIO")?List.of("TRANSFERENCIA"):List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",criterion.equals("SENA"))));if(criterion.equals("SENA"))policy.putAll(Map.of("condicionSena","SIEMPRE","tipoSena","PORCENTAJE","valorSena","25"));var cfg=comando();cfg.put("pagos",policy);aceptar(put(admin,base()+"/pagos",cfg));activar();var c=particularCotizacion("gate-dinero");byte[] pdf=pdf(3,false,false,0);var input=ofertaPdf(pdf,3);input.put("medioPago","TRANSFERENCIA");var q=ofertaAceptada(c,input);String quote=q.get("codigoPublico").asString(),ruta=pagos(quote,true);String amount=criterion.equals("PAGO_PREVIO")?q.get("oferta").get("total").asString():q.get("oferta").get("condiciones").get("senaRequerida").asString();
+        assertThat(JSON.readTree(get(c,archivos(quote)).body()).get("carga").get("habilitada").asBoolean()).isTrue();status(post(admin,ruta+"/recibir",recibirPago("TRANSFERENCIA",amount,"GATE-01")),200);assertThat(JSON.readTree(get(c,archivos(quote)).body()).get("carga").get("habilitada").asBoolean()).isTrue();var p=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,ruta+"/aplicar",aplicarPago(p,amount)),200);assertThat(JSON.readTree(get(c,archivos(quote)).body()).get("carga").get("habilitada").asBoolean()).isTrue();var f=post(c,archivos(quote),inicioArchivo(q));status(f,200);String file=JSON.readTree(f.body()).get("codigoPublico").asString();assertThat(cargarPdf(c,quote,file,pdf).get("estado").asString()).isEqualTo("VALIDO");
+        p=pagosVista(admin,quote,true).get("pagos").get(0);status(post(admin,ruta+"/devolver",devolverPago(p,amount,"GATE-DEV")),200);assertThat(JSON.readTree(get(c,archivos(quote)).body()).get("carga").get("habilitada").asBoolean()).isTrue();assertThat(binario(c,archivos(quote)+"/"+file+"/original").body()).isEqualTo(pdf);status(post(c,archivos(quote),inicioArchivo(q)),200);
+        if(criterion.equals("SENA")){status(post(admin,ruta+"/recibir",recibirPago("EFECTIVO",amount,"GATE-CASH")),200);p=pagosVista(admin,quote,true).get("pagos").get(1);status(post(admin,ruta+"/aplicar",aplicarPago(p,amount)),200);assertThat(JSON.readTree(get(c,archivos(quote)).body()).get("carga").get("habilitada").asBoolean()).isTrue();}
+    }
+
+
+    /** HTTP real + PDFBox + antivirus de ensayo: presupuesto antes de entrega/pago y cierre atómico. */
+    private void clientePolitica()throws Exception{var pagos=JSON.readValue(borrador.get("pagos").toString(),HashMap.class);pagos.put("umbralAprobacion","10");var in=comando();in.put("pagos",pagos);aceptar(put(admin,base()+"/pagos",in));}
+    private String preparaciones(JsonNode p){return "/api/cliente/preparaciones/"+p.get("codigoPublico").asString();}
+    private JsonNode preparacionLeida(HttpClient c,JsonNode p)throws Exception{var r=get(c,preparaciones(p));status(r,200);return JSON.readTree(r.body());}
+    private JsonNode prepararCliente(HttpClient c,boolean aceptar)throws Exception{
+        var preparacion=prepararCliente(c,aceptar,3);
+        assertThat(preparacion.get("presupuesto").get("subtotal").asString()).isEqualTo("20.00");
+        return preparacion;
+    }
+    private JsonNode prepararCliente(HttpClient c,boolean aceptar,int... paginasPorArchivo)throws Exception{
+        int pagosAntes=contar("pago"), pedidosAntes=contar("pedido");
+        var start=post(c,"/api/cliente/preparaciones",null);status(start,200);
+        var p=JSON.readTree(start.body());String path=preparaciones(p);
+        var items=new ArrayList<Map<String,Object>>();
+        for(int paginas:paginasPorArchivo){
+            var cargar=post(c,path+"/archivos",Map.of("operacion",UUID.randomUUID(),"nombre","Trabajo "+(items.size()+1)+".pdf"));status(cargar,200);
+            String file=JSON.readTree(cargar.body()).get("codigoPublico").asString();
+            var pdf=pdf(paginas,false,false,items.size());
+            var recibido=c.send(requestPdf(c,path+"/archivos/"+file+"/contenido",pdf),HttpResponse.BodyHandlers.ofString());status(recibido,200);
+            var f=JSON.readTree(recibido.body());assertThat(f.get("estado").asString()).isEqualTo("VALIDO");assertThat(f.get("paginas").asInt()).isEqualTo(paginas);
+            if(aceptar)status(post(c,path+"/archivos/"+file+"/aceptar",Map.of("operacion",UUID.randomUUID(),"sha256",f.get("sha256").asString())),200);
+            var trabajo=JSON.readTree(JSON.writeValueAsString(ofertaPdf(pdf,paginas))).get("items").get(0).get("trabajo");
+            items.add(Map.of("archivo",file,"trabajo",trabajo));
+        }
+        assertThat(contar("pago")).isEqualTo(pagosAntes);assertThat(contar("pedido")).isEqualTo(pedidosAntes);
+        p=preparacionLeida(c,p);
+        var budget=post(c,path+"/presupuesto",Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"configuracion",id,"revisionComercial",comercial,"items",items));
+        status(budget,200);return JSON.readTree(budget.body());
+    }
+    private JsonNode cotizarCliente(HttpClient c,JsonNode p,String modalidad,String destino)throws Exception{
+        return cotizarCliente(c,p,modalidad,destino,"TRANSFERENCIA");
+    }
+    private JsonNode cotizarCliente(HttpClient c,JsonNode p,String modalidad,String destino,String medio)throws Exception{
+        var pref=new HashMap<String,Object>();pref.put("modalidad",modalidad);pref.put("medioPago",medio);
+        if(modalidad.equals("RETIRO_SUCURSAL"))pref.put("destinoRetiro",destino);
+        if(modalidad.equals("RETIRO_PUNTO_ENTREGA"))pref.put("punto",destino);
+        if(modalidad.equals("ENVIO_DOMICILIO"))pref.put("direccion",Map.of("calle","Casa","numero","20","referencias","Timbre","territorio",territorio()));
+        var r=post(c,preparaciones(p)+"/cotizar",Map.of("operacion",UUID.randomUUID(),"version",p.get("version").asLong(),"preferencias",pref));status(r,200);return JSON.readTree(r.body());
+    }
+    private Map<String,Object> confirmarCliente(JsonNode checkout){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",checkout.get("preparacion").get("version").asLong(),"cotizacion",checkout.get("cotizacion").get("codigoPublico").asString(),"huella",checkout.get("huella").asString(),"condicionesAceptadas",true));}
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"MATRIZ","OTRA","PUNTO","DOMICILIO"})
+    void clienteTresEtapasPresupuestoDestinoYConfirmacionReal(String variante)throws Exception{
+        preparar();clientePolitica();String punto=null;
+        if(variante.equals("PUNTO")){
+            guardar("1","1",List.of("RETIRO_SUCURSAL","RETIRO_PUNTO_ENTREGA","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));
+            var in=comando();in.putAll(Map.of("codigo","CLIENTE","nombre","Punto cliente","calle","Prueba","numero","10","localidad","Localidad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(Map.of("sucursal",a,"costo","2.50","habilitado",true,"franjas",List.of(Map.of("dia",2,"apertura","09:00","cierre","18:00","capacidadPedidos",5,"habilitada",true))))));aceptar(post(admin,ruta()+"/puntos",in));punto=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.punto_entrega",String.class);
+        }
+        if(variante.equals("OTRA")){for(var printer:borrador.get("recursos").get("impresoras"))if(!printer.get("sucursal").isNull()&&printer.get("sucursal").asString().equals(b)){var estado=comando();estado.putAll(Map.of("estado","DESHABILITADA","motivo","Reubicar el equipo fuera del destino de retiro"));aceptar(post(admin,base()+"/impresoras/"+printer.get("codigoPublico").asString()+"/estado",estado));var cambio=comando();cambio.putAll(Map.of("nombre",printer.get("nombre").asString(),"formatos",List.of(formato),"admiteColor",false,"admiteDobleFaz",true,"capacidadHojas",2,"estado","OPERATIVA"));aceptar(put(admin,base()+"/impresoras/"+printer.get("codigoPublico").asString(),cambio));estado=comando();estado.putAll(Map.of("estado","OPERATIVA","motivo","Equipo global disponible sin ubicación productiva asignada"));aceptar(post(admin,base()+"/impresoras/"+printer.get("codigoPublico").asString()+"/estado",estado));}}
+        activar();if(punto!=null)status(put(admin,"/api/admin/puntos-entrega/disponibilidad/"+punto,Map.of("operacion",UUID.randomUUID(),"version",0,"estado","HABILITADO")),200);var c=particularCotizacion("cliente-"+variante);var p=prepararCliente(c,true);
+        String modalidad=variante.equals("PUNTO")?"RETIRO_PUNTO_ENTREGA":variante.equals("DOMICILIO")?"ENVIO_DOMICILIO":"RETIRO_SUCURSAL";
+        var view=cotizarCliente(c,p,modalidad,variante.equals("OTRA")?b:variante.equals("PUNTO")?punto:a);var quote=view.get("cotizacion");assertThat(quote.get("oferta").get("origenGlobal").asBoolean()).isTrue();assertThat(quote.get("oferta").get("sucursal").get("codigoPublico").asString()).isEqualTo(a);
+        assertThat(quote.get("oferta").get("subtotal").asString()).isEqualTo("20.00");
+        var confirm=confirmarCliente(view);if(variante.equals("DOMICILIO"))confirm.put("contacto",Map.of("receptor","Cliente","telefono","123456789"));
+        status(post(c,"/api/cliente/cotizaciones/"+quote.get("codigoPublico").asString()+"/confirmacion",Map.of("operacion",UUID.randomUUID(),"version",1,"huella","0".repeat(64),"condicionesAceptadas",true)),409);
+        var response=post(c,preparaciones(p)+"/confirmar",confirm);status(response,200);var order=JSON.readTree(response.body());assertThat(order.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(order.get("reserva").get("origen").asString()).isEqualTo(a);assertThat(order.get("reserva").get("destino").asString()).isEqualTo(variante.equals("OTRA")?b:variante.equals("PUNTO")?punto:variante.equals("MATRIZ")?a:order.get("reserva").get("destino").asString());
+        assertThat(order.get("retiroConTraslado").asBoolean()).isEqualTo(variante.equals("OTRA"));assertThat(order.get("cobro").get("estado").asString()).isEqualTo("PENDIENTE_PAGO");
+        assertThat(post(c,preparaciones(p)+"/confirmar",confirm).body()).isEqualTo(response.body());assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("reserva_entrega")).isEqualTo(1);assertThat(contar("pago")).isZero();
+        var after=preparacionLeida(c,p);assertThat(after.get("estado").asString()).isEqualTo("CONFIRMADA");assertThat(after.get("pedido").asString()).isEqualTo(order.get("codigoPublico").asString());
+        assertThat(binario(c,preparaciones(p)+"/archivos/"+p.get("archivos").get(0).get("codigoPublico").asString()+"/original").statusCode()).isEqualTo(410);
+        assertThat(binario(c,"/api/cliente/cotizaciones/"+quote.get("codigoPublico").asString()+"/archivos/"+order.get("archivos").get(0).get("archivo").asString()+"/original").statusCode()).isEqualTo(200);
+        status(get(particularCotizacion("ajeno-"+variante),preparaciones(p)),404);
+    }
+    @Test void clienteRecotizaSinDuplicarPdfYRechazaAceptacionDesactualizada()throws Exception{
+        preparar();clientePolitica();activar();var c=particularCotizacion("cliente-recargar");var p=prepararCliente(c,true);var first=cotizarCliente(c,p,"RETIRO_SUCURSAL",a);var old=confirmarCliente(first);var next=cotizarCliente(c,first.get("preparacion"),"RETIRO_SUCURSAL",b);
+        assertThat(contar("archivo_almacenado")).isEqualTo(1);assertThat(contar("archivo_trabajo")).isEqualTo(2);assertThat(contar("aceptacion_vista_previa")).isEqualTo(1);status(post(c,preparaciones(p)+"/confirmar",old),409);assertThat(contar("pedido")).isZero();
+        var replay=cotizarCliente(c,next.get("preparacion"),"RETIRO_SUCURSAL",b);assertThat(replay.get("cotizacion").get("codigoPublico")).isEqualTo(next.get("cotizacion").get("codigoPublico"));assertThat(contar("cotizacion")).isEqualTo(2);
+        var response=post(c,preparaciones(p)+"/confirmar",confirmarCliente(replay));status(response,200);
+    }
+    @Test void clienteNoCreaPedidoSinAceptarPaginasNiConVersionAjena()throws Exception{
+        preparar();clientePolitica();activar();var c=particularCotizacion("cliente-preview");var p=prepararCliente(c,false);var view=cotizarCliente(c,p,"RETIRO_SUCURSAL",a);status(post(c,preparaciones(p)+"/confirmar",confirmarCliente(view)),409);assertThat(contar("pedido")).isZero();
+        String file=p.get("archivos").get(0).get("codigoPublico").asString();var other=particularCotizacion("cliente-preview-ajeno");assertThat(binario(other,preparaciones(p)+"/archivos/"+file+"/original").statusCode()).isEqualTo(404);
+        var request=HttpRequest.newBuilder(uri(preparaciones(p)+"/archivos/"+file+"/quitar")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(Map.of("operacion",UUID.randomUUID())))).build();status(c.send(request,HttpResponse.BodyHandlers.ofString()),403);
+        status(post(c,preparaciones(p)+"/archivos/"+file+"/quitar",Map.of("operacion",UUID.randomUUID())),200);assertThat(binario(c,preparaciones(p)+"/archivos/"+file+"/original").statusCode()).isEqualTo(410);assertThat(preparacionLeida(c,p).get("presupuesto").isNull()).isTrue();
+    }
+
+
+    @Test void clientePagoInformadoNoAcreditaYCancelacionConservaHistoria()throws Exception{
+        preparar();clientePolitica();activar();var c=particularCotizacion("cliente-pago");var p=prepararCliente(c,true);var view=cotizarCliente(c,p,"RETIRO_SUCURSAL",a);var created=post(c,preparaciones(p)+"/confirmar",confirmarCliente(view));status(created,200);var order=JSON.readTree(created.body());String q=order.get("cotizacion").asString();informarPago(c,q);
+        var actual=pedidoActual(order);assertThat(actual.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");assertThat(pagosVista(c,q,false).get("aplicado").asString()).isEqualTo("0.00");assertThat(actual.get("cobro").get("estado").asString()).isEqualTo("PAGO_INFORMADO");
+        jdbc.update("UPDATE lamontana.cobro_pedido SET fecha_limite=statement_timestamp()-interval '100 hours',retener_hasta=statement_timestamp()-interval '100 hours'+retencion_horas*interval '1 hour' WHERE id_pedido=?",order.get("numero").asLong());app.getBean(ar.com.lamontana.pagos.ConservacionArchivosScheduler.class).ejecutar();assertThat(pedidoActual(order).get("estado").asString()).isEqualTo("PENDIENTE_REVISION");
+        status(post(c,cancelarPedido(actual),cancelacionPedido(pedidoActual(actual))),200);assertThat(pedidoActual(actual).get("estado").asString()).isEqualTo("CANCELADO");assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("intento_pago")).isEqualTo(1);assertThat(pedidoActual(actual).get("oferta")).isEqualTo(order.get("oferta"));
+    }
+    @Test void clienteRetencionAgotadaPurgaContenidoSinBorrarPedido()throws Exception{
+        preparar();clientePolitica();activar();var c=particularCotizacion("cliente-retencion");var p=prepararCliente(c,true);var view=cotizarCliente(c,p,"RETIRO_SUCURSAL",a);var created=post(c,preparaciones(p)+"/confirmar",confirmarCliente(view));status(created,200);var order=JSON.readTree(created.body());String q=order.get("cotizacion").asString(),file=order.get("archivos").get(0).get("archivo").asString();
+        jdbc.update("UPDATE lamontana.cobro_pedido SET fecha_limite=statement_timestamp()-interval '100 hours',retener_hasta=statement_timestamp()-interval '100 hours'+retencion_horas*interval '1 hour' WHERE id_pedido=?",order.get("numero").asLong());app.getBean(ar.com.lamontana.pagos.ConservacionArchivosScheduler.class).ejecutar();
+        assertThat(pedidoActual(order).get("estado").asString()).isEqualTo("CANCELADO");assertThat(contar("pedido")).isEqualTo(1);assertThat(contar("archivo_almacenado")).isEqualTo(1);assertThat(Files.exists(archivos.resolve("pdf").resolve(file).resolve("original.pdf"))).isFalse();assertThat(binario(c,"/api/cliente/cotizaciones/"+q+"/archivos/"+file+"/original").statusCode()).isEqualTo(410);
+        assertThat(pedidoActual(order).get("oferta")).isEqualTo(order.get("oferta"));assertThat(pedidoActual(order).get("historial").size()).isGreaterThan(1);
+    }
+
+    private JsonNode pedidoEnSucursal(HttpClient c,String origen)throws Exception{
+        byte[] bytes=pdf(5,false,false,1);var input=ofertaPdf(bytes,5);input.put("sucursal",origen);input.put("origenGlobal",false);var q=ofertaAceptada(c,input);pdfAceptado(c,q,bytes);
+        var r=post(c,confirmacionPedido(q.get("codigoPublico").asString()),confirmarPedido(revisarPedido(c,q)));status(r,200);return JSON.readTree(r.body());
+    }
+    @Test void adminGlobalReuneOrigenesYDestinosSinAlterarPermisosNiHistoria()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("admin-global");var other=particularCotizacion("admin-global-otro");
+        var prep=prepararCliente(c,true);var view=cotizarCliente(c,prep,"RETIRO_SUCURSAL",b);var created=post(c,preparaciones(prep)+"/confirmar",confirmarCliente(view));status(created,200);var traslado=JSON.readTree(created.body());var local=pedidoEnSucursal(c,a);var heredado=pedidoEnSucursal(other,b);
+        var all=get(admin,"/api/admin/pedidos");status(all,200);var lista=JSON.readTree(all.body());assertThat(lista.get("total").asInt()).isEqualTo(3);assertThat(lista.get("elementos").size()).isEqualTo(3);
+        var porId=new HashMap<String,JsonNode>();for(var row:lista.get("elementos"))porId.put(row.get("codigoPublico").asString(),row);
+        var fila=porId.get(traslado.get("codigoPublico").asString());assertThat(fila.get("destino").asString()).isEqualTo(traslado.get("reserva").get("nombre").asString());assertThat(fila.get("retiroConTraslado").asBoolean()).isTrue();
+        assertThat(porId.containsKey(heredado.get("codigoPublico").asString())).isTrue();
+        var empleado=empleadoArchivos("admin-global-empleado-b",b);var scoped=get(empleado,"/api/operacion/sucursales/"+b+"/pedidos");status(scoped,200);assertThat(JSON.readTree(scoped.body()).get("total").asInt()).isEqualTo(1);status(get(empleado,"/api/operacion/pedidos/"+traslado.get("codigoPublico").asString()),403);
+        assertThat(JSON.readTree(get(c,"/api/cliente/pedidos").body()).get("total").asInt()).isEqualTo(2);assertThat(JSON.readTree(get(other,"/api/cliente/pedidos").body()).get("total").asInt()).isEqualTo(1);
+        status(post(c,cancelarPedido(local),cancelacionPedido(local)),200);
+        var pendientes=get(admin,"/api/admin/pedidos?estado=PENDIENTE_REVISION");status(pendientes,200);assertThat(JSON.readTree(pendientes.body()).get("total").asInt()).isEqualTo(2);
+        var historicos=get(admin,"/api/admin/pedidos?estado=CANCELADO");status(historicos,200);assertThat(JSON.readTree(historicos.body()).get("total").asInt()).isEqualTo(1);
+        assertThat(JSON.readTree(get(admin,"/api/admin/pedidos").body()).get("total").asInt()).isEqualTo(3);assertThat(pedidoActual(traslado).get("oferta")).isEqualTo(traslado.get("oferta"));
+    }
+    @Test void adminGlobalExigeRolValidaFiltrosYPaginaVaciaNoInventaContadores()throws Exception{
+        prepararManualSinAnticipo();activar();var c=particularCotizacion("admin-scope");var e=empleadoArchivos("admin-no-global",a);
+        status(get(c,"/api/admin/pedidos"),403);status(get(e,"/api/admin/pedidos"),403);status(get(cliente(),"/api/admin/pedidos"),401);
+        status(get(admin,"/api/admin/pedidos?estado=INVENTADO"),400);status(get(admin,"/api/admin/pedidos?pagina=-1"),400);status(post(admin,"/api/admin/pedidos",Map.of()),403);
+        var vacio=get(admin,"/api/admin/pedidos?estado=EN_PRODUCCION&pagina=1");status(vacio,200);assertThat(JSON.readTree(vacio.body()).get("total").asInt()).isZero();assertThat(JSON.readTree(vacio.body()).get("elementos").size()).isZero();
+        assertThatThrownBy(()->app.getBean(ar.com.lamontana.pedidos.PedidoService.class).listarGlobal(0,null,"admin-no-global@example.test")).isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    }
+    private JsonNode revision()throws Exception{var r=get(admin,base()+"/revision");status(r,200);return JSON.readTree(r.body());}
+    private Set<String> codigos(JsonNode r){var c=new HashSet<String>();for(var h:r.get("hallazgos"))c.add(h.get("codigo").asString());return c;}
+    private void preparar()throws Exception{
+        status(post(admin,"/api/admin/catalogo/formatos",Map.of("codigo","F","nombre","Formato","anchoMm","210","altoMm","297")),201);
+        status(post(admin,"/api/admin/catalogo/papeles",Map.of("codigo","P","nombre","Papel","gramaje","80","terminacion","Mate")),201);
+        status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","TERM","nombre","Acabado","tipo","TERMINACION")),201);
+        formato=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.formato",String.class);
+        papel=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.papel",String.class);
+        terminacion=jdbc.queryForObject("SELECT codigo_publico::text FROM lamontana.servicio WHERE codigo='TERM'",String.class);
+        var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio","MONTO_TOTAL"));aceptar(put(admin,base()+"/modelo",m));
+        var p=comando();p.put("pagos",Map.of("medios",List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SUPERAR_UMBRAL_APROBACION","tipoSena","PORCENTAJE","valorSena","25","umbralAprobacion","30","politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72)));aceptar(put(admin,base()+"/pagos",p));
+        var r=comando();r.put("metodoAsignacion","MANUAL");r.put("serviciosPorSucursal",List.of(Map.of("sucursal",a,"servicios",List.of(servicio,terminacion)),Map.of("sucursal",b,"servicios",List.of(servicio))));aceptar(put(admin,base()+"/recursos",r));
+        for(String origen:List.of(a,b)){var i=comando();i.putAll(Map.of("sucursal",origen,"nombre","Impresora "+origen,"formatos",List.of(formato),"admiteColor",false,"admiteDobleFaz",true,"capacidadHojas",2,"estado","OPERATIVA"));aceptar(post(admin,base()+"/impresoras",i));}
+        guardar("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));
+        var z=comando();z.putAll(Map.of("codigo","CENTRO","nombre","Centro","zonaHoraria","America/Argentina/Buenos_Aires","costo","12.50","habilitada",true,"territorios",List.of(territorio()),"franjas",List.of(Map.of("dia",1,"apertura","09:00","cierre","18:00","capacidadPedidos",2,"habilitada",true))));aceptar(post(admin,ruta()+"/zonas",z));
+        publicar(null,"2.00",true,false);
+    }
+    private Map<String,Object> territorio(){return Map.of("codigoPostal","5600","localidad","San Rafael","provincia","Mendoza");}
+    private Map<String,Object> oferta(String id,String base,String precio,int minutos,boolean habilitada){return Map.of("servicio",id,"nombreVisible",id.equals(servicio)?"Impresión":"Acabado","basePrecio",base,"precio",precio,"preparacionMinutos",minutos,"habilitado",habilitada,"compatibilidades",id.equals(servicio)?List.of():List.of(Map.of("formato",formato,"papel",papel)));}
+    private void publicar(Instant fecha,String precio,boolean term,boolean color)throws Exception{
+        var c=new HashMap<String,Object>();c.put("operacion",UUID.randomUUID().toString());c.put("versionBase",comercial);c.put("motivo","Revisión de prueba");c.put("programadaPara",fecha==null?null:fecha.toString());
+        var tarifas=new ArrayList<Map<String,Object>>();tarifas.add(Map.of("formato",formato,"papel",papel,"color","BLANCO_NEGRO","precio",precio,"recargoDobleFaz","0.50","habilitada",true));if(color)tarifas.add(Map.of("formato",formato,"papel",papel,"color","COLOR","precio","5","recargoDobleFaz","0","habilitada",true));c.put("tarifas",tarifas);c.put("servicios",List.of(oferta(servicio,"POR_CARILLA","0",30,true),oferta(terminacion,"POR_HOJA","1.25",120,term)));
+        var r=post(admin,"/api/admin/catalogo/revisiones",c);status(r,200);if(fecha==null)comercial=JSON.readTree(r.body()).get("codigoPublico").asString();
+    }
+    private Map<String,Object> ejemplo(String modalidad){var c=new HashMap<String,Object>();c.putAll(Map.of("version",borrador.get("version").asLong(),"revisionComercial",comercial,"sucursal",a,"item",Map.of("servicio",servicio,"formato",formato,"papel",papel,"color","BLANCO_NEGRO","paginas",3,"copias",2,"dobleFaz",true,"terminaciones",List.of(terminacion)),"modalidad",modalidad,"recibidoEn","2026-09-28T12:00:00Z"));if(modalidad.equals("ENVIO_DOMICILIO"))c.put("territorio",territorio());return c;}
+    private JsonNode simular(Map<String,Object> e)throws Exception{var r=post(admin,base()+"/revision/simular",e);status(r,200);return JSON.readTree(r.body());}
+    private void configurarSegundo()throws Exception{
+        var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio","MONTO_TOTAL"));aceptar(put(admin,base()+"/modelo",m));
+        var p=comando();p.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SUPERAR_UMBRAL_APROBACION","tipoSena","PORCENTAJE","valorSena","25","umbralAprobacion","30")));aceptar(put(admin,base()+"/pagos",p));
+        var heredados=estado().get("activa").get("configuracion").get("recursos").get("impresoras");
+        assertThat(borrador.get("recursos").get("impresoras")).isEqualTo(heredados);
+        guardarFaseCopia(4);
+        guardar("2","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));
+        confirmarCopia(confirmarCopiaSolicitud());
+    }
+    private Map<String,Object> decision()throws Exception{var r=revision();return new HashMap<>(Map.of("version",borrador.get("version").asLong(),"revisionComercial",comercial,"huellaRevision",r.get("huella").asString(),"advertenciasRevisadas",true,"motivo","Habilitar operación configurada"));}
+    private Map<String,Object> solicitud()throws Exception{return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"decision",decision(),"contrasena",CLAVE));}
+    private String rutaActivar(){return base()+"/activacion";}
+    private String solicitar(Map<String,Object> s)throws Exception{status(post(admin,rutaActivar()+"/solicitar",s),200);return smtp.recibir().token();}
+    private Map<String,Object> confirmacion(Map<String,Object> s,String token){var c=new HashMap<>(s);c.put("codigo",token);return c;}
+    private JsonNode activar()throws Exception{var s=solicitud();var r=post(admin,rutaActivar()+"/confirmar",confirmacion(s,solicitar(s)));status(r,200);assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("EXITOSO");return JSON.readTree(r.body()).get("version");}
+    private void cooldown(){jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_emision=clock_timestamp()-interval '2 minutes'");}
+    private JsonNode copiarBase(String origen,UUID operacion)throws Exception{var r=post(admin,"/api/admin/configuracion/historial/"+origen+"/base",Map.of("operacion",operacion));status(r,200);return JSON.readTree(r.body());}
+    private void adoptarCopia(JsonNode copia){borrador=copia;id=copia.get("codigoPublico").asString();}
+    private void guardarFaseCopia(int fase)throws Exception{var in=comando();String path="";switch(fase){case 2-> {path="/modelo";in.put("modelo",borrador.get("modelo"));in.put("criterio",borrador.get("criterio"));}case 3->{path="/pagos";in.put("pagos",borrador.get("pagos"));}case 4->{path="/recursos";in.put("metodoAsignacion",borrador.get("recursos").get("metodoAsignacion"));}case 5->{path="/entrega";for(String key:List.of("casaMatriz","preparacionHoras","trasladoHoras","modalidades","horariosPorSucursal"))in.put(key,borrador.get("entrega").get(key));in.put("matrizConfirmada",true);}default->throw new IllegalArgumentException();}aceptar(put(admin,base()+path,in));}
+    private Map<String,Object> confirmarCopiaSolicitud()throws Exception{var r=revision();return Map.of("operacion",UUID.randomUUID(),"version",borrador.get("version").asLong(),"revisionComercial",r.get("catalogo").get("actual").get("codigoPublico").asString(),"huellaRevision",r.get("huella").asString(),"advertenciasRevisadas",true);}
+    private void confirmarCopia(Map<String,Object> in)throws Exception{var r=post(admin,base()+"/revision/confirmar",in);status(r,200);borrador=JSON.readTree(r.body()).get("borrador");}
+    private void assertEntregaHeredada(JsonNode copia,JsonNode original) {
+        var esperada=(tools.jackson.databind.node.ObjectNode)original.deepCopy();
+        assertThat(esperada.get("matrizConfirmada").asBoolean()).isTrue();
+        esperada.put("matrizConfirmada",false);
+        assertThat(copia).isEqualTo(esperada);
+    }
+    @Test void crearBorradorHabitualHeredaLaVigenteYRecuperaEquiposEnBorradorAnteriorVacio()throws Exception{
+        preparar();var activa=activar();String origen=id;int equipos=contar("impresora");
+        var input=Map.of("operacion",UUID.randomUUID());var r=post(admin,"/api/admin/configuracion/borradores",input);status(r,200);var copia=JSON.readTree(r.body());
+        assertThat(copia.get("copia").get("origen").asString()).isEqualTo(origen);
+        assertEntregaHeredada(copia.get("entrega"),activa.get("configuracion").get("entrega"));
+        for(String campo:List.of("modelo","criterio","pagos","recursos"))assertThat(copia.get(campo)).as(campo).isEqualTo(activa.get("configuracion").get(campo));
+        assertThat(contar("impresora")).isEqualTo(equipos);assertThat(estado().get("activa")).isEqualTo(activa);
+        var replay=post(admin,"/api/admin/configuracion/borradores",input);status(replay,200);assertThat(JSON.readTree(replay.body())).isEqualTo(copia);
+        status(post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID())),409);
+        adoptarCopia(copia);var recuperar=comando();status(post(admin,base()+"/impresoras/recuperar-vigentes",recuperar),409);
+        // Simula un borrador vacío creado por la versión anterior, conservando pagos y horarios.
+        long cfg=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?",Long.class,UUID.fromString(id));
+        jdbc.update("DELETE FROM lamontana.configuracion_impresora_formato WHERE id_configuracion_version=?",cfg);jdbc.update("DELETE FROM lamontana.configuracion_impresora WHERE id_configuracion_version=?",cfg);
+        var antes=estado().get("borrador");recuperar=comando();var saved=post(admin,base()+"/impresoras/recuperar-vigentes",recuperar);status(saved,200);var restored=JSON.readTree(saved.body());
+        assertThat(restored.get("recursos").get("impresoras")).isEqualTo(activa.get("configuracion").get("recursos").get("impresoras"));
+        for(String campo:List.of("modelo","criterio","pagos","entrega"))assertThat(restored.get(campo)).isEqualTo(antes.get(campo));
+        assertThat(contar("impresora")).isEqualTo(equipos);assertThat(estado().get("activa")).isEqualTo(activa);
+        status(post(admin,base()+"/impresoras/recuperar-vigentes",recuperar),200);
+        adoptarCopia(restored);status(post(admin,base()+"/impresoras/recuperar-vigentes",comando()),409);
+    }
+    @Test void baseCopiaIntegraIdentidadesOrigenYBarridoSinDuplicarNiReactivar()throws Exception{
+        preparar();var p=comando();p.putAll(Map.of("codigo","PUNTO","nombre","Punto central","calle","Prueba","numero","10","localidad","Localidad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(Map.of("sucursal",a,"costo","2.50","habilitado",true,"franjas",List.of(Map.of("dia",2,"apertura","09:00","cierre","12:00","capacidadPedidos",3,"habilitada",true))),Map.of("sucursal",b,"costo","0.00","habilitado",true,"franjas",List.of(Map.of("dia",3,"apertura","15:00","cierre","18:00","capacidadPedidos",0,"habilitada",false))))));aceptar(post(admin,ruta()+"/puntos",p));
+        var i=comando();i.putAll(Map.of("sucursal",a,"nombre","Retirada histórica","formatos",List.of(formato),"admiteColor",true,"admiteDobleFaz",false,"capacidadHojas",30,"estado","DESHABILITADA"));aceptar(post(admin,base()+"/impresoras",i));String retirada=null;for(var printer:borrador.get("recursos").get("impresoras"))if(printer.get("nombre").asString().equals("Retirada histórica"))retirada=printer.get("codigoPublico").asString();var retirar=comando();retirar.put("motivo","Retirada declarada");aceptar(post(admin,base()+"/impresoras/"+retirada+"/retirar",retirar));
+        var activa=activar();String origen=id;int impresoras=contar("impresora"),puntos=contar("punto_entrega"),zonas=contar("zona_entrega"),catalogo=contar("catalogo_revision"),desafios=contar("autorizacion_configuracion");UUID op=UUID.randomUUID();var copia=copiarBase(origen,op);assertThat(copia.get("copia").get("origen").asString()).isEqualTo(origen);assertThat(copia.get("copia").get("fasesConfirmadas").size()).isZero();assertThat(copia.get("copia").get("barridoInicial").size()).isPositive();
+        assertEntregaHeredada(copia.get("entrega"),activa.get("configuracion").get("entrega"));
+        for(String field:List.of("modelo","criterio","pagos","recursos"))assertThat(copia.get(field)).as(field).isEqualTo(activa.get("configuracion").get(field));assertThat(copia.get("estado").asString()).isEqualTo("EN_PREPARACION");assertThat(estado().get("activa")).isEqualTo(activa);assertThat(contar("impresora")).isEqualTo(impresoras);assertThat(contar("punto_entrega")).isEqualTo(puntos);assertThat(contar("zona_entrega")).isEqualTo(zonas);assertThat(contar("catalogo_revision")).isEqualTo(catalogo);assertThat(contar("autorizacion_configuracion")).isEqualTo(desafios);assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("programacion_configuracion")).isZero();assertThat(copiarBase(origen,op)).isEqualTo(copia);
+        status(post(admin,"/api/admin/configuracion/historial/"+origen+"/base",Map.of("operacion",UUID.randomUUID())),409);adoptarCopia(copia);status(post(admin,rutaActivar()+"/solicitar",solicitud()),409);assertThat(historial("/"+origen).get("base").get("permitida").asBoolean()).isFalse();app.close();arrancar();assertThat(estado().get("borrador")).isEqualTo(copia);
+    }
+    @Test void baseReconfirmacionObligatoriaInvalidacionYActivacionSegura()throws Exception{
+        preparar();activar();String origen=id;UUID op=UUID.randomUUID();adoptarCopia(copiarBase(origen,op));status(post(admin,base()+"/revision/confirmar",confirmarCopiaSolicitud()),409);guardarFaseCopia(5);assertThat(borrador.get("copia").get("fasesConfirmadas").toString()).isEqualTo("[5]");guardarFaseCopia(2);assertThat(borrador.get("copia").get("fasesConfirmadas").toString()).isEqualTo("[2]");guardarFaseCopia(3);guardarFaseCopia(4);guardarFaseCopia(5);assertThat(revision().get("bloqueos").asLong()).isZero();cooldown();status(post(admin,rutaActivar()+"/solicitar",solicitud()),409);
+        var confirmacion=confirmarCopiaSolicitud();confirmarCopia(confirmacion);long edicion=borrador.get("version").asLong();confirmarCopia(confirmacion);assertThat(borrador.get("version").asLong()).isEqualTo(edicion);assertThat(borrador.get("copia").get("fasesConfirmadas").toString()).isEqualTo("[2,3,4,5,6]");
+        String impresora=borrador.get("recursos").get("impresoras").get(0).get("codigoPublico").asString();var cambiar=comando();cambiar.putAll(Map.of("estado","DESHABILITADA","motivo","Revisión de recurso"));aceptar(post(admin,base()+"/impresoras/"+impresora+"/estado",cambiar));assertThat(borrador.get("copia").get("fasesConfirmadas").toString()).isEqualTo("[2,3]");status(post(admin,base()+"/revision/confirmar",confirmacion),409);cambiar=comando();cambiar.putAll(Map.of("estado","OPERATIVA","motivo","Recurso revisado"));aceptar(post(admin,base()+"/impresoras/"+impresora+"/estado",cambiar));guardarFaseCopia(4);guardarFaseCopia(5);confirmarCopia(confirmarCopiaSolicitud());
+        publicar(null,"9",true,true);status(post(admin,rutaActivar()+"/solicitar",solicitud()),409);confirmarCopia(confirmarCopiaSolicitud());var activa=activar();assertThat(activa.get("predecesora").asString()).isEqualTo(origen);assertThat(activa.get("configuracion").get("copia").get("origen").asString()).isEqualTo(origen);assertThat(copiarBase(origen,op).get("estado").asString()).isEqualTo("ACTIVA");assertThat(contar("origen_configuracion")).isEqualTo(1);assertThat(historial("/"+id).get("copia").get("origen").asString()).isEqualTo(origen);
+    }
+    @Test void baseRollbackDeCopiaConcurrenciaBarridoDinamicoYPermisos()throws Exception{
+        preparar();activar();String origen=id;var real=app.getBean(CopiaParametrosConfiguracion.class);var fallida=org.mockito.Mockito.mock(CopiaParametrosConfiguracion.class);org.mockito.Mockito.doAnswer(call->{real.copiar(call.getArgument(0),call.getArgument(1));throw new IllegalStateException("Fallo de copia de prueba");}).when(fallida).copiar(org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.anyLong());org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(CopiaConfiguracionService.class),"parametros",fallida);var in=Map.of("operacion",UUID.randomUUID());int comprobantes=contar("comprobante_configuracion"),versiones=contar("configuracion_version");var errorCopia=post(admin,"/api/admin/configuracion/historial/"+origen+"/base",in);status(errorCopia,500);assertThat(errorCopia.body()).doesNotContain("Fallo de copia de prueba","stackTrace");status(get(admin,"/error"),403);status(get(cliente(),"/error"),401);assertThat(contar("origen_configuracion")).isZero();assertThat(contar("configuracion_version")).isEqualTo(versiones);assertThat(contar("comprobante_configuracion")).isEqualTo(comprobantes);org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(CopiaConfiguracionService.class),"parametros",real);
+        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA'");var r1=request(admin,"POST","/api/admin/configuracion/historial/"+origen+"/base",in);var r2=request(admin,"POST","/api/admin/configuracion/historial/"+origen+"/base",in);var a1=admin.sendAsync(r1,HttpResponse.BodyHandlers.ofString());var a2=admin.sendAsync(r2,HttpResponse.BodyHandlers.ofString());var c1=a1.get();var c2=a2.get();status(c1,200);status(c2,200);assertThat(c1.body()).isEqualTo(c2.body());var copia=JSON.readTree(c1.body());assertThat(copia.get("copia").get("barridoInicial").toString()).contains("MATRIZ_INACTIVA").doesNotContain("SIN_IMPRESORA_OPERATIVA");assertThat(contar("origen_configuracion")).isEqualTo(1);status(post(admin,"/api/admin/configuracion/historial/"+copia.get("codigoPublico").asString()+"/base",Map.of("operacion",UUID.randomUUID())),409);status(post(cliente(),"/api/admin/configuracion/historial/"+origen+"/base",in),401);
+        for(String rol:List.of("CLIENTE","EMPLEADO","ADMIN_ADMIN")){String correo=rol.toLowerCase()+"-base@example.test";jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Interno','Test','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo=?",UUID.randomUUID(),correo,EMAIL,rol);var actor=cliente();login(actor,correo);status(post(actor,"/api/admin/configuracion/historial/"+origen+"/base",in),403);}
+        var sin=HttpRequest.newBuilder(uri("/api/admin/configuracion/historial/"+origen+"/base")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(in))).build();status(admin.send(sin,HttpResponse.BodyHandlers.ofString()),403);
+    }
+    @Test void baseProgramadaConservaConfirmacionYHistoricaPuedeOriginarOtraCopia()throws Exception{
+        preparar();var original=activar();String origen=id;adoptarCopia(copiarBase(origen,UUID.randomUUID()));
+        for(int fase=2;fase<=5;fase++)guardarFaseCopia(fase);cooldown();
+        status(post(admin,rutaProgramar()+"/solicitar",solicitudProgramacion()),409);
+        confirmarCopia(confirmarCopiaSolicitud());programar();String programada=id;
+        assertThat(historial("/"+origen).get("base").get("permitida").asBoolean()).isFalse();
+        status(post(admin,"/api/admin/configuracion/historial/"+origen+"/base",Map.of("operacion",UUID.randomUUID())),409);
+        status(post(admin,"/api/admin/configuracion/historial/"+programada+"/base",Map.of("operacion",UUID.randomUUID())),409);
+        app.close();arrancar();vencerProgramacion();ejecutar(true);
+        var vigente=estado().get("activa");assertThat(vigente.get("configuracion").get("codigoPublico").asString()).isEqualTo(programada);
+        assertThat(vigente.get("configuracion").get("copia").get("fasesConfirmadas").toString()).isEqualTo("[2,3,4,5,6]");
+        assertThat(vigente.get("predecesora").asString()).isEqualTo(origen);assertThat(historial("/"+origen).get("version").get("estado").asString()).isEqualTo("HISTORICA");
+        assertThat(historial("/"+origen).get("base").get("permitida").asBoolean()).isTrue();
+        var copia=copiarBase(origen,UUID.randomUUID());assertThat(copia.get("numero").asLong()).isEqualTo(3);assertThat(copia.get("copia").get("origen").asString()).isEqualTo(origen);
+        assertEntregaHeredada(copia.get("entrega"),original.get("configuracion").get("entrega"));
+        for(String field:List.of("modelo","criterio","pagos","recursos"))assertThat(copia.get(field)).isEqualTo(original.get("configuracion").get(field));
+        assertThat(copia.get("copia").get("fasesConfirmadas").size()).isZero();assertThat(estado().get("activa")).isEqualTo(vigente);
+    }
+    private JsonNode revisionRollback()throws Exception{var r=get(admin,"/api/admin/configuracion/rollback/revision");status(r,200);return JSON.readTree(r.body());}
+    private void segundaActivaRollback()throws Exception{var n=post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID()));status(n,200);adoptarCopia(JSON.readTree(n.body()));configurarSegundo();cooldown();activar();cooldown();}
+    private JsonNode dosActivasRollback()throws Exception{preparar();var original=activar();segundaActivaRollback();return original;}
+    private Map<String,Object> solicitudRollback()throws Exception{
+        var r=revisionRollback();var d=new HashMap<String,Object>();d.put("activa",r.get("activa").get("configuracion").get("codigoPublico"));d.put("objetivo",r.get("objetivo").get("configuracion").get("codigoPublico"));d.put("versionObjetivo",r.get("objetivo").get("configuracion").get("version"));d.put("programada",r.get("programada").isNull()?null:r.get("programada").get("configuracion").get("codigoPublico"));d.put("revisionComercial",r.get("condiciones").get("catalogo").get("actual").get("codigoPublico"));d.put("huellaRevision",r.get("huella"));d.put("advertenciasRevisadas",true);d.put("cancelarProgramacion",!r.get("programada").isNull());d.put("motivo","Recuperar condiciones anteriores verificadas");return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"decision",d,"contrasena",CLAVE));
+    }
+    private Map<String,Object> autorizarRollback()throws Exception{cooldown();var c=solicitudRollback();status(post(admin,"/api/admin/configuracion/rollback/solicitar",c),200);c.put("codigo",smtp.recibir().token());return c;}
+    private JsonNode confirmarRollback(Map<String,Object> c)throws Exception{var r=post(admin,"/api/admin/configuracion/rollback/confirmar",c);status(r,200);return JSON.readTree(r.body());}
+    private JsonNode programadaRollback()throws Exception{var activa=estado().get("activa").get("configuracion");adoptarCopia(copiarBase(activa.get("codigoPublico").asString(),UUID.randomUUID()));for(int f=2;f<=5;f++)guardarFaseCopia(f);confirmarCopia(confirmarCopiaSolicitud());cooldown();programar();cooldown();return estado().get("programada");}
+    @Test void rollbackSinPredecesoraBorradorPermisosCsrfYRevocacion()throws Exception{
+        assertThat(revisionRollback().get("permitida").asBoolean()).isFalse();preparar();activar();assertThat(revisionRollback().get("objetivo").isNull()).isTrue();segundaActivaRollback();assertThat(revisionRollback().get("permitida").asBoolean()).isTrue();
+        var s=solicitudRollback();s.put("contrasena","NoEsLaClave");status(post(admin,"/api/admin/configuracion/rollback/solicitar",s),400);s.put("contrasena",CLAVE);status(post(admin,"/api/admin/configuracion/rollback/solicitar",s),200);var c=confirmacion(s,smtp.recibir().token());var decision=(Map<String,Object>)s.get("decision");var op=Map.of("operacion",s.get("operacion"),"objetivo",decision.get("objetivo"));status(post(admin,"/api/admin/configuracion/rollback/revocar",op),200);status(post(admin,"/api/admin/configuracion/rollback/confirmar",c),409);
+        status(get(cliente(),"/api/admin/configuracion/rollback/revision"),401);
+        for(String rol:List.of("CLIENTE","EMPLEADO","ADMIN_ADMIN")){String mail=rol.toLowerCase()+"-rollback@example.test";jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Interno','Prueba','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo=?",UUID.randomUUID(),mail,EMAIL,rol);var actor=cliente();login(actor,mail);status(get(actor,"/api/admin/configuracion/rollback/revision"),403);status(post(actor,"/api/admin/configuracion/rollback/solicitar",s),403);status(post(actor,"/api/admin/configuracion/rollback/confirmar",c),403);}
+        var sinCsrf=HttpRequest.newBuilder(uri("/api/admin/configuracion/rollback/solicitar")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(s))).build();status(admin.send(sinCsrf,HttpResponse.BodyHandlers.ofString()),403);
+        status(post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID())),200);assertThat(revisionRollback().get("permitida").asBoolean()).isFalse();cooldown();status(post(admin,"/api/admin/configuracion/rollback/solicitar",solicitudRollback()),409);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_activacion_configuracion WHERE operacion='ROLLBACK'",Integer.class)).isZero();
+    }
+    @Test void rollbackNuevaVersionCancelaProgramacionConservaPredecesoraYReplay()throws Exception{
+        var original=dosActivasRollback();String primera=original.get("configuracion").get("codigoPublico").asString(),segunda=id;var programada=programadaRollback();publicar(null,"4.00",true,false);var r=revisionRollback();assertThat(r.get("permitida").asBoolean()).isTrue();var s=solicitudRollback();var d=(Map<String,Object>)s.get("decision");d.put("cancelarProgramacion",false);status(post(admin,"/api/admin/configuracion/rollback/solicitar",s),409);
+        var c=autorizarRollback();var result=confirmarRollback(c);assertThat(result.get("estado").asString()).isEqualTo("EXITOSO");var nueva=result.get("version");assertThat(nueva.get("configuracion").get("numero").asLong()).isEqualTo(4);assertThat(nueva.get("configuracion").get("copia").get("tipo").asString()).isEqualTo("ROLLBACK");assertThat(nueva.get("configuracion").get("copia").get("origen").asString()).isEqualTo(primera);assertThat(nueva.get("configuracion").get("copia").get("fasesConfirmadas").size()).isZero();assertThat(nueva.get("predecesora").asString()).isEqualTo(segunda);assertThat(nueva.get("revisionComercial").asString()).isEqualTo(comercial);
+        for(String key:List.of("modelo","criterio","pagos","recursos","entrega"))assertThat(nueva.get("configuracion").get(key)).as(key).isEqualTo(original.get("configuracion").get(key));assertThat(result.get("programacionCancelada").get("codigoPublico")).isEqualTo(programada.get("configuracion").get("codigoPublico"));assertThat(result.get("programacionCancelada").get("estado").asString()).isEqualTo("CANCELADA");assertThat(result.get("intento").get("configuracion").asString()).isEqualTo(primera);assertThat(result.get("intento").get("resultante")).isEqualTo(nueva.get("configuracion").get("codigoPublico"));assertThat(result.get("intento").get("operacion").asString()).isEqualTo("ROLLBACK");assertThat(confirmarRollback(c)).isEqualTo(result);ejecutar(true);assertThat(contar("activacion_configuracion")).isEqualTo(3);
+        assertThat(historial("/"+nueva.get("configuracion").get("codigoPublico").asString()+"/auditoria").toString()).contains("ROLLBACK_EXITOSO","ROLLBACK_PUBLICADO");assertThat(historial("/"+segunda+"/auditoria").toString()).contains("ROLLBACK_EXITOSO");assertThat(revisionRollback().get("objetivo").get("configuracion").get("codigoPublico").asString()).isEqualTo(segunda);
+        var segundo=confirmarRollback(autorizarRollback());assertThat(segundo.get("version").get("configuracion").get("numero").asLong()).isEqualTo(5);assertThat(segundo.get("version").get("configuracion").get("copia").get("origen").asString()).isEqualTo(segunda);assertThat(confirmarRollback(c).get("version").get("configuracion").get("codigoPublico")).isEqualTo(nueva.get("configuracion").get("codigoPublico"));assertThat(contar("configuracion_version")).isEqualTo(5);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.configuracion_version WHERE estado='ACTIVA'",Integer.class)).isEqualTo(1);
+        app.close();arrancar();assertThat(estado().get("activa")).isEqualTo(segundo.get("version"));assertThat(confirmarRollback(c).get("estado").asString()).isEqualTo("EXITOSO");
+    }
+    @Test void rollbackFalloDespuesDeCopiarYPublicarRevierteTodoMenosIntento()throws Exception{
+        dosActivasRollback();var programada=programadaRollback();var activa=estado().get("activa");int versiones=contar("configuracion_version"),copias=contar("origen_configuracion");var c=autorizarRollback();var real=app.getBean(PublicacionRollback.class);var fallida=org.mockito.Mockito.mock(PublicacionRollback.class);org.mockito.Mockito.doAnswer(call->{real.publicar(call.getArgument(0),call.getArgument(1),call.getArgument(2),call.getArgument(3),call.getArgument(4),call.getArgument(5));throw new IllegalStateException("Detalle interno de prueba");}).when(fallida).publicar(org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyString());org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(RollbackConfiguracionService.class),"publicacion",fallida);
+        var result=confirmarRollback(c);assertThat(result.get("estado").asString()).isEqualTo("FALLIDO");assertThat(result.toString()).doesNotContain("Detalle interno");assertThat(result.get("programacionCancelada").isNull()).isTrue();assertThat(result.get("version").isNull()).isTrue();assertThat(contar("configuracion_version")).isEqualTo(versiones);assertThat(contar("origen_configuracion")).isEqualTo(copias);assertThat(estado().get("activa")).isEqualTo(activa);assertThat(estado().get("programada")).isEqualTo(programada);assertThat(confirmarRollback(c)).isEqualTo(result);ejecutar(false);assertThat(estado().get("programada")).isEqualTo(programada);
+        org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(RollbackConfiguracionService.class),"publicacion",real);assertThat(confirmarRollback(autorizarRollback()).get("estado").asString()).isEqualTo("EXITOSO");
+    }
+    @Test void rollbackRevalidaCondicionesActualesSinReintentoPropio()throws Exception{
+        dosActivasRollback();var activa=estado().get("activa");var c=autorizarRollback();jdbc.update("UPDATE lamontana.catalogo_revision SET vigente=false,estado='HISTORICA' WHERE vigente");var result=confirmarRollback(c);assertThat(result.get("estado").asString()).isEqualTo("FALLIDO");assertThat(result.get("intento").get("resultado").asString()).isEqualTo("VALIDACION_RECHAZADA");assertThat(estado().get("activa")).isEqualTo(activa);assertThat(estado().get("programada").isNull()).isTrue();int intentos=contar("intento_activacion_configuracion");ejecutar(true);ejecutar(false);assertThat(contar("intento_activacion_configuracion")).isEqualTo(intentos);assertThat(revisionRollback().get("permitida").asBoolean()).isFalse();assertThat(confirmarRollback(c)).isEqualTo(result);
+    }
+    @Test void rollbackInterrumpidoSeRecuperaSinRepetirCopiaNiCancelar()throws Exception{
+        dosActivasRollback();var programada=programadaRollback();var activa=estado().get("activa");var c=autorizarRollback();var fallida=org.mockito.Mockito.mock(PublicacionRollback.class);org.mockito.Mockito.doThrow(new AssertionError("Interrupción después del inicio durable")).when(fallida).publicar(org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyString());org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(RollbackConfiguracionService.class),"publicacion",fallida);status(post(admin,"/api/admin/configuracion/rollback/confirmar",c),500);assertThat(jdbc.queryForObject("SELECT estado FROM lamontana.intento_activacion_configuracion WHERE operacion='ROLLBACK'",String.class)).isEqualTo("INICIADO");app.close();arrancar();ejecutar(true);var recuperado=confirmarRollback(c);assertThat(recuperado.get("estado").asString()).isEqualTo("INTERRUMPIDO");assertThat(recuperado.get("version").isNull()).isTrue();assertThat(estado().get("activa")).isEqualTo(activa);assertThat(estado().get("programada")).isEqualTo(programada);assertThat(contar("configuracion_version")).isEqualTo(3);
+    }
+    @Test void rollbackConcurrenciaConWorkerYConfirmacionesUnicas()throws Exception{
+        dosActivasRollback();programadaRollback();vencerProgramacion();var c=autorizarRollback();var real=app.getBean(PublicacionRollback.class);var demorada=org.mockito.Mockito.mock(PublicacionRollback.class);var dentro=new CountDownLatch(1);var continuar=new CountDownLatch(1);
+        org.mockito.Mockito.doAnswer(call->{dentro.countDown();assertThat(continuar.await(15,TimeUnit.SECONDS)).isTrue();return real.publicar(call.getArgument(0),call.getArgument(1),call.getArgument(2),call.getArgument(3),call.getArgument(4),call.getArgument(5));}).when(demorada).publicar(org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyString());org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(RollbackConfiguracionService.class),"publicacion",demorada);
+        var one=admin.sendAsync(request(admin,"POST","/api/admin/configuracion/rollback/confirmar",c),HttpResponse.BodyHandlers.ofString());try{assertThat(dentro.await(15,TimeUnit.SECONDS)).isTrue();var two=admin.sendAsync(request(admin,"POST","/api/admin/configuracion/rollback/confirmar",c),HttpResponse.BodyHandlers.ofString());ejecutar(false);continuar.countDown();var r1=one.get(20,TimeUnit.SECONDS);var r2=two.get(20,TimeUnit.SECONDS);status(r1,200);status(r2,200);assertThat(r2.body()).isEqualTo(r1.body());assertThat(JSON.readTree(r1.body()).get("estado").asString()).isEqualTo("EXITOSO");assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_activacion_configuracion WHERE operacion='ROLLBACK'",Integer.class)).isEqualTo(1);}finally{continuar.countDown();org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(RollbackConfiguracionService.class),"publicacion",real);}
+        programadaRollback();vencerProgramacion();var otra=autorizarRollback();ejecutar(false);var vigente=estado().get("activa");status(post(admin,"/api/admin/configuracion/rollback/confirmar",otra),409);assertThat(estado().get("activa")).isEqualTo(vigente);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_activacion_configuracion WHERE operacion='ROLLBACK'",Integer.class)).isEqualTo(1);
+    }
+    @Test void archivosPdfPrivadosVistaPreviaVersionesAceptacionYReinicio()throws Exception{
+        preparar();activar();var c=particularCotizacion("pdf");byte[] pdf=pdf(3,false,false,0);var q=cotizar(c,ofertaPdf(pdf,3));String quote=q.get("codigoPublico").asString();
+        status(post(c,archivos(quote),inicioArchivo(q)),409);status(post(c,"/api/cliente/cotizaciones/"+quote+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,quote);
+        var input=inicioArchivo(q);var pending=JSON.readTree(post(c,archivos(quote),input).body());String file=pending.get("codigoPublico").asString();status(post(c,archivos(quote),input),200);assertThat(contar("archivo_almacenado")).isEqualTo(1);
+        var loaded=cargarPdf(c,quote,file,pdf);assertThat(loaded.get("estado").asString()).isEqualTo("VALIDO");assertThat(antivirus.ultimo).isEqualTo(pdf);assertThat(loaded.get("paginas").asInt()).isEqualTo(3);assertThat(contar("validacion_archivo")).isEqualTo(2);
+        assertThat(cargarPdf(c,quote,file,pdf)).isEqualTo(loaded);
+        var original=binario(c,archivos(quote)+"/"+file+"/original");assertThat(original.statusCode()).isEqualTo(200);assertThat(original.body()).isEqualTo(pdf);assertThat(original.headers().firstValue("Content-Disposition").orElseThrow()).startsWith("attachment;");assertThat(original.headers().firstValue("Cache-Control").orElseThrow()).contains("no-store");
+        var png=binario(c,archivos(quote)+"/"+file+"/paginas/3");assertThat(png.statusCode()).isEqualTo(200);var image=javax.imageio.ImageIO.read(new ByteArrayInputStream(png.body()));assertThat(image.getHeight()).isGreaterThan(1000);status(get(c,archivos(quote)+"/"+file+"/paginas/4"),400);
+        var ack=Map.of("operacion",UUID.randomUUID(),"sha256",loaded.get("sha256").asString());status(post(c,archivos(quote)+"/"+file+"/aceptar",ack),200);status(post(c,archivos(quote)+"/"+file+"/aceptar",ack),200);assertThat(contar("aceptacion_vista_previa")).isEqualTo(1);
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.validacion_archivo SET codigo_resultado='OTRO'")).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("DELETE FROM lamontana.aceptacion_vista_previa")).isInstanceOf(DataAccessException.class);
+        app.close();arrancar();assertThat(binario(c,archivos(quote)+"/"+file+"/original").body()).isEqualTo(pdf);assertThat(JSON.readTree(get(c,archivos(quote)+"/"+file).body()).get("aceptadaEn").isNull()).isFalse();
+        String next=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();var replacement=cargarPdf(c,quote,next,pdf(3,false,false,2));assertThat(replacement.get("codigoResultado").asString()).isEqualTo("NUEVO_CONTENIDO_MISMO_IMPORTE");assertThat(replacement.get("aceptadaEn").isNull()).isTrue();assertThat(replacement.get("activo").asBoolean()).isTrue();assertThat(JSON.readTree(get(c,archivos(quote)+"/"+file).body()).get("activo").asBoolean()).isFalse();assertThat(cotizacion(c,quote)).isEqualTo(q);status(post(c,archivos(quote)+"/"+file+"/aceptar",Map.of("operacion",UUID.randomUUID(),"sha256",loaded.get("sha256").asString())),409);
+    }
+    @Test void archivosDiscrepanciaExigeNuevaOfertaSinCambiarPrecioOriginal()throws Exception{
+        preparar();activar();var c=particularCotizacion("discrepancia");byte[] declared=pdf(3,false,false,0),actual=pdf(5,false,false,0);var q=cotizar(c,ofertaPdf(declared,3));String quote=q.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+quote+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,quote);
+        String file=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();var result=cargarPdf(c,quote,file,actual);assertThat(result.get("estado").asString()).isEqualTo("REQUIERE_COTIZACION");assertThat(result.get("activo").asBoolean()).isFalse();assertThat(result.get("paginas").asInt()).isEqualTo(5);assertThat(binario(c,archivos(quote)+"/"+file+"/paginas/5").statusCode()).isEqualTo(200);status(post(c,archivos(quote)+"/"+file+"/aceptar",Map.of("operacion",UUID.randomUUID(),"sha256",result.get("sha256").asString())),409);
+        var changed=ofertaPdf(actual,5);changed.put("reemplaza",quote);var next=cotizar(c,changed);assertThat(next.get("aceptadaEn").isNull()).isTrue();assertThat(next.get("oferta").get("total")).isNotEqualTo(q.get("oferta").get("total"));assertThat(cotizacion(c,quote).get("oferta")).isEqualTo(q.get("oferta"));status(post(c,archivos(next.get("codigoPublico").asString()),inicioArchivo(next)),409);
+        status(post(c,"/api/cliente/cotizaciones/"+next.get("codigoPublico").asString()+"/aceptar",decisionCotizacion(next)),200);next=cotizacion(c,next.get("codigoPublico").asString());String nf=JSON.readTree(post(c,archivos(next.get("codigoPublico").asString()),inicioArchivo(next)).body()).get("codigoPublico").asString();assertThat(cargarPdf(c,next.get("codigoPublico").asString(),nf,actual).get("estado").asString()).isEqualTo("VALIDO");
+    }
+    @Test void archivosRechazanContenidoCifradoActivoMalwareYAntivirusIncompleto()throws Exception{
+        preparar();activar();var c=particularCotizacion("rechazos");byte[] original=pdf(3,false,false,0);var q=cotizar(c,ofertaPdf(original,3));String quote=q.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+quote+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,quote);
+        byte[][] invalid={"not-pdf".getBytes(),"%PDF-1.7\nroto".getBytes(),pdf(3,true,false,0),pdf(3,false,true,0)};String[] codes={"TIPO_INVALIDO","PDF_INVALIDO","CIFRADO","CONTENIDO_ACTIVO"};
+        for(int i=0;i<invalid.length;i++){String f=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();var result=cargarPdf(c,quote,f,invalid[i]);assertThat(result.get("estado").asString()).isEqualTo("RECHAZADO");assertThat(result.get("codigoResultado").asString()).isEqualTo(codes[i]);status(get(c,archivos(quote)+"/"+f+"/original"),409);assertThat(Files.exists(archivos.resolve("pdf").resolve(f))).isFalse();}
+        antivirus.response="stream: Test-Signature FOUND";String f=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();assertThat(cargarPdf(c,quote,f,original).get("codigoResultado").asString()).isEqualTo("SEGURIDAD_RECHAZADA");
+        antivirus.response="stream: incomplete ERROR";f=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();assertThat(cargarPdf(c,quote,f,original).get("estado").asString()).isEqualTo("FALLIDO");assertThat(contar("aceptacion_vista_previa")).isZero();assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.archivo_trabajo WHERE activo",Integer.class)).isZero();
+    }
+    @Test void archivosPermisosSucursalCsrfCarreraYRecuperacionDeFallo()throws Exception{
+        preparar();activar();var c=particularCotizacion("seguridad");var other=particularCotizacion("ajeno-pdf");byte[] pdf=pdf(3,false,false,0);var q=cotizar(c,ofertaPdf(pdf,3));String quote=q.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+quote+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,quote);
+        status(get(other,archivos(quote)),404);status(post(admin,archivos(quote),inicioArchivo(q)),403);status(post(other,archivos(quote),inicioArchivo(q)),404);
+        var command=inicioArchivo(q);var pool=Executors.newFixedThreadPool(2);List<HttpResponse<String>> responses;
+        try{var one=pool.submit(()->post(c,archivos(quote),command));var two=pool.submit(()->post(c,archivos(quote),command));responses=List.of(one.get(10,TimeUnit.SECONDS),two.get(10,TimeUnit.SECONDS));}finally{pool.shutdownNow();}
+        responses.forEach(r->status(r,200));assertThat(contar("archivo_almacenado")).isEqualTo(1);String f=JSON.readTree(responses.get(0).body()).get("codigoPublico").asString();
+        var noCsrf=HttpRequest.newBuilder(uri(archivos(quote)+"/"+f+"/contenido")).header("Content-Type","application/pdf").PUT(HttpRequest.BodyPublishers.ofByteArray(pdf)).build();status(c.send(noCsrf,HttpResponse.BodyHandlers.ofString()),403);
+        jdbc.execute("CREATE FUNCTION lamontana.fallo_pdf_prueba() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de prueba'; END $$");jdbc.execute("CREATE TRIGGER fallo_pdf_prueba BEFORE UPDATE ON lamontana.archivo_trabajo FOR EACH ROW WHEN (NEW.activo) EXECUTE FUNCTION lamontana.fallo_pdf_prueba()");var failed=cargarPdf(c,quote,f,pdf);assertThat(failed.get("estado").asString()).isEqualTo("FALLIDO");assertThat(contar("validacion_archivo")).isEqualTo(2);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.archivo_trabajo WHERE activo",Integer.class)).isZero();assertThat(Files.exists(archivos.resolve("pdf").resolve(f))).isFalse();jdbc.execute("DROP TRIGGER fallo_pdf_prueba ON lamontana.archivo_trabajo");jdbc.execute("DROP FUNCTION lamontana.fallo_pdf_prueba()");
+        String interrupted=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();jdbc.update("UPDATE lamontana.archivo_almacenado SET estado='VALIDANDO',fecha_inicio=now() WHERE codigo_publico=?",UUID.fromString(interrupted));app.close();arrancar();assertThat(JSON.readTree(get(c,archivos(quote)+"/"+interrupted).body()).get("codigoResultado").asString()).isEqualTo("SERVICIO_REINICIADO");
+        String valid=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();assertThat(cargarPdf(c,quote,valid,pdf).get("estado").asString()).isEqualTo("VALIDO");
+        var employeeA=empleadoArchivos("pdf-a",a);var employeeB=empleadoArchivos("pdf-b",b);String internal=archivos(quote).replace("/cliente/","/operacion/")+"/"+valid;
+        status(get(admin,internal),200);status(get(employeeA,internal),200);status(get(employeeB,internal),403);status(get(c,internal),403);status(get(other,archivos(quote)+"/"+valid),404);
+        jdbc.update("UPDATE lamontana.usuario_sucursal SET activa=false,fecha_hasta=now() WHERE id_usuario=(SELECT id_usuario FROM lamontana.usuario WHERE correo='pdf-a@example.test')");status(get(employeeA,internal+"/original"),403);
+    }
+    @Test void archivosLimitesIntegridadYVencimientoNoHabilitanPreview()throws Exception{
+        preparar();activar();var c=particularCotizacion("limites-pdf");byte[] pdf=pdf(3,false,false,0);var q=cotizar(c,ofertaPdf(pdf,3));String quote=q.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+quote+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,quote);
+        String f=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();assertThatThrownBy(()->jdbc.update("UPDATE lamontana.archivo_trabajo SET activo=true")).isInstanceOf(DataAccessException.class);
+        byte[] big=new byte[10*1024*1024+1];System.arraycopy(pdf,0,big,0,pdf.length);var req=HttpRequest.newBuilder(uri(archivos(quote)+"/"+f+"/contenido")).timeout(Duration.ofSeconds(30)).header("Content-Type","application/pdf").header("X-CSRF-TOKEN",csrf(c)).PUT(HttpRequest.BodyPublishers.ofInputStream(()->new ByteArrayInputStream(big))).build();var response=c.send(req,HttpResponse.BodyHandlers.ofString());status(response,200);assertThat(JSON.readTree(response.body()).get("codigoResultado").asString()).isEqualTo("ARCHIVO_DEMASIADO_GRANDE");assertThat(antivirus.ultimo).isNull();assertThat(Files.exists(archivos.resolve("pdf").resolve(f))).isFalse();
+        String valid=JSON.readTree(post(c,archivos(quote),inicioArchivo(q)).body()).get("codigoPublico").asString();var result=cargarPdf(c,quote,valid,pdf);Path stored=archivos.resolve("pdf").resolve(valid).resolve("original.pdf");Files.write(stored,new byte[]{1,2,3});var ack=Map.of("operacion",UUID.randomUUID(),"sha256",result.get("sha256").asString());status(post(c,archivos(quote)+"/"+valid+"/aceptar",ack),503);status(get(c,archivos(quote)+"/"+valid+"/original"),503);assertThat(contar("aceptacion_vista_previa")).isZero();Files.write(stored,pdf);
+        org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(ar.com.lamontana.archivos.ArchivoService.class),"clock",java.time.Clock.fixed(Instant.parse(q.get("vigenteHasta").asString()),java.time.ZoneOffset.UTC));status(post(c,archivos(quote)+"/"+valid+"/aceptar",ack),409);status(post(c,archivos(quote),inicioArchivo(q)),409);assertThat(binario(c,archivos(quote)+"/"+valid+"/original").body()).isEqualTo(pdf);
+        status(get(admin,"/api/operacion/sucursales/"+a+"/archivos"),200);assertThat(JSON.readTree(get(admin,"/api/operacion/sucursales/"+a+"/archivos").body()).get("total").asLong()).isEqualTo(1);status(get(c,"/api/operacion/sucursales/"+a+"/archivos"),403);
+    }
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(strings={"PAGO_PREVIO","SENA"})
+    void archivosPagoPrevioYSenaPermitenCargaSinDineroReal(String criterion)throws Exception{
+        preparar();var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio",criterion));aceptar(put(admin,base()+"/modelo",m));var p=comando();var policy=new HashMap<String,Object>();policy.putAll(conPoliticaArchivos(Map.of("medios",criterion.equals("PAGO_PREVIO")?List.of("TRANSFERENCIA"):List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",criterion.equals("SENA"))));if(criterion.equals("SENA"))policy.putAll(Map.of("condicionSena","SIEMPRE","tipoSena","PORCENTAJE","valorSena","25"));p.put("pagos",policy);aceptar(put(admin,base()+"/pagos",p));activar();var c=particularCotizacion("puro");var quoteInput=ofertaPdf(pdf(3,false,false,0),3);if(criterion.equals("PAGO_PREVIO"))quoteInput.put("medioPago","TRANSFERENCIA");var q=cotizar(c,quoteInput);String quote=q.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+quote+"/aceptar",decisionCotizacion(q)),200);q=cotizacion(c,quote);var view=JSON.readTree(get(c,archivos(quote)).body());assertThat(view.get("carga").get("habilitada").asBoolean()).isTrue();status(post(c,archivos(quote),inicioArchivo(q)),200);assertThat(contar("archivo_almacenado")).isEqualTo(1);assertThat(antivirus.ultimo).isNull();
+    }
+    private HttpClient empleadoArchivos(String name,String branch)throws Exception{jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Empleado','PDF','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo='EMPLEADO'",UUID.randomUUID(),name+"@example.test",EMAIL);jdbc.update("INSERT INTO lamontana.usuario_sucursal(id_usuario,id_sucursal) VALUES ((SELECT id_usuario FROM lamontana.usuario WHERE correo=?),(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?))",name+"@example.test",UUID.fromString(branch));var c=cliente();login(c,name+"@example.test");return c;}
+    private String archivos(String quote){return "/api/cliente/cotizaciones/"+quote+"/archivos";}
+    private Map<String,Object> inicioArchivo(JsonNode q){return Map.of("operacion",UUID.randomUUID(),"item",q.get("oferta").get("items").get(0).get("codigoPublico").asString(),"version",q.get("version").asLong());}
+    private Map<String,Object> ofertaPdf(byte[] pdf,int pages)throws Exception{var input=ofertaCliente();input.put("items",List.of(Map.of("documento",Map.of("nombre","Trabajo.pdf","bytes",pdf.length,"sha256",HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(pdf))),"trabajo",Map.of("servicio",servicio,"formato",formato,"papel",papel,"color","BLANCO_NEGRO","paginas",pages,"copias",2,"dobleFaz",true,"terminaciones",List.of(terminacion)))));return input;}
+    private JsonNode cargarPdf(HttpClient c,String q,String f,byte[] bytes)throws Exception{var req=HttpRequest.newBuilder(uri(archivos(q)+"/"+f+"/contenido")).timeout(Duration.ofSeconds(65)).header("Content-Type","application/pdf").header("X-CSRF-TOKEN",csrf(c)).PUT(HttpRequest.BodyPublishers.ofByteArray(bytes)).build();var r=c.send(req,HttpResponse.BodyHandlers.ofString());status(r,200);return JSON.readTree(r.body());}
+    private HttpResponse<byte[]> binario(HttpClient c,String path)throws Exception{return c.send(HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(30)).GET().build(),HttpResponse.BodyHandlers.ofByteArray());}
+    private byte[] pdf(int pages,boolean encrypted,boolean active,int mark)throws Exception{try(var document=new org.apache.pdfbox.pdmodel.PDDocument();var bytes=new ByteArrayOutputStream()){for(int i=0;i<pages;i++){var page=new org.apache.pdfbox.pdmodel.PDPage(org.apache.pdfbox.pdmodel.common.PDRectangle.A4);document.addPage(page);try(var content=new org.apache.pdfbox.pdmodel.PDPageContentStream(document,page)){content.setNonStrokingColor(mark==0?java.awt.Color.BLUE:java.awt.Color.ORANGE);content.addRect(50,60+i,100,120);content.fill();}}if(encrypted)document.protect(new org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy("owner","secret",new org.apache.pdfbox.pdmodel.encryption.AccessPermission()));if(mark==2){var destination=new org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitDestination();destination.setPage(document.getPage(0));document.getDocumentCatalog().setOpenAction(destination);}if(active)document.getDocumentCatalog().setOpenAction(new org.apache.pdfbox.pdmodel.interactive.action.PDActionJavaScript("app.alert('test')"));document.save(bytes);return bytes.toByteArray();}}
+
+    private HttpClient particularCotizacion(String sufijo)throws Exception {
+        String correo="cotiza-"+sufijo+"@example.test";
+        jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Cliente','Cotización','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo='CLIENTE'",UUID.randomUUID(),correo,EMAIL);
+        var c=cliente();login(c,correo);return c;
+    }
+    private Map<String,Object> ofertaCliente(){
+        var in=new HashMap<String,Object>();in.putAll(Map.of("operacion",UUID.randomUUID(),"configuracion",id,"revisionComercial",comercial,"origenGlobal",false,"sucursal",a,"modalidad","RETIRO_SUCURSAL","medioPago","EFECTIVO"));
+        var uno=Map.of("documento",Map.of("nombre","Uno.pdf","bytes",1000,"sha256","a".repeat(64)),"trabajo",Map.of("servicio",servicio,"formato",formato,"papel",papel,"color","BLANCO_NEGRO","paginas",3,"copias",2,"dobleFaz",true,"terminaciones",List.of(terminacion)));
+        var dos=Map.of("documento",Map.of("nombre","Dos.pdf","bytes",1500,"sha256","b".repeat(64)),"trabajo",Map.of("servicio",servicio,"formato",formato,"papel",papel,"color","BLANCO_NEGRO","paginas",6,"copias",1,"dobleFaz",false,"terminaciones",List.of()));
+        in.put("items",List.of(uno,dos));return in;
+    }
+    private JsonNode cotizar(HttpClient c,Map<String,Object> in)throws Exception{var r=post(c,"/api/cliente/cotizaciones",in);status(r,200);return JSON.readTree(r.body());}
+    private JsonNode cotizacion(HttpClient c,String id)throws Exception{var r=get(c,"/api/cliente/cotizaciones/"+id);status(r,200);return JSON.readTree(r.body());}
+    private Map<String,Object> decisionCotizacion(JsonNode q){return new HashMap<>(Map.of("operacion",UUID.randomUUID(),"version",q.get("version").asLong()));}
+    @Test void cotizacionesDisponibilidadPermisosYValidacionesNoExponenAdministracion()throws Exception{
+        var c=particularCotizacion("permisos");var opciones=get(c,"/api/cliente/cotizaciones/opciones");status(opciones,200);assertThat(JSON.readTree(opciones.body()).get("disponible").asBoolean()).isFalse();status(get(admin,"/api/cliente/cotizaciones/opciones"),403);status(get(cliente(),"/api/cliente/cotizaciones"),401);
+        preparar();var input=ofertaCliente();status(post(c,"/api/cliente/cotizaciones",input),409);activar();opciones=get(c,"/api/cliente/cotizaciones/opciones");status(opciones,200);assertThat(JSON.readTree(opciones.body()).get("sucursales").size()).isEqualTo(2);assertThat(opciones.body()).doesNotContain("hash_contrasena","motivo","actor","historial","predecesora");
+        var sin=HttpRequest.newBuilder(uri("/api/cliente/cotizaciones")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(input))).build();status(c.send(sin,HttpResponse.BodyHandlers.ofString()),403);
+        input.put("items",List.of());status(post(c,"/api/cliente/cotizaciones",input),400);input=ofertaCliente();input.put("medioPago","MERCADOPAGO");status(post(c,"/api/cliente/cotizaciones",input),400);
+        input=ofertaCliente();input.put("sucursal",UUID.randomUUID());status(post(c,"/api/cliente/cotizaciones",input),409);
+        input=ofertaCliente();var invalidItems=JSON.readTree(JSON.writeValueAsString(input));((tools.jackson.databind.node.ObjectNode)invalidItems.get("items").get(0).get("documento")).put("nombre","a\nb\n.pdf");status(post(c,"/api/cliente/cotizaciones",invalidItems),400);
+        input=ofertaCliente();var item=((List<?>)input.get("items")).get(0);input.put("items",List.of(item,item));status(post(c,"/api/cliente/cotizaciones",input),400);assertThat(contar("cotizacion")).isZero();assertThat(contar("cotizacion_item")).isZero();
+    }
+    @Test void activarSinSenaNoInventaRevisionHumanaSobreUmbralEnCotizacion()throws Exception{
+        preparar();var p=comando();p.put("pagos",conPoliticaArchivos(Map.of("medios",List.of("EFECTIVO"),"vigenciaCotizacionMinutos",90,"exigirSena",false,"umbralAprobacion","30")));aceptar(put(admin,base()+"/pagos",p));
+        activar();var cliente=particularCotizacion("sin-sena");var q=cotizar(cliente,ofertaCliente());var condiciones=q.get("oferta").get("condiciones");
+        assertThat(q.get("oferta").get("total").asString()).isEqualTo("32.00");
+        assertThat(condiciones.get("revisionHumana").asBoolean()).isFalse();
+        assertThat(condiciones.get("cargaRequiereAcreditacion").asBoolean()).isFalse();
+        assertThat(condiciones.get("senaRequerida").asString()).isEqualTo("0.00");
+        assertThat(condiciones.get("saldo").asString()).isEqualTo("32.00");
+        status(post(cliente,"/api/cliente/cotizaciones/"+q.get("codigoPublico").asString()+"/aceptar",decisionCotizacion(q)),200);
+    }
+    @Test void cotizacionesPorHojaGuardanUnServicioYCongelanElDesglose()throws Exception{
+        preparar();activar();var cliente=particularCotizacion("hojas");var anterior=cotizar(cliente,ofertaCliente());
+        assertThat(anterior.get("oferta").get("total").asString()).isEqualTo("32.00");
+        var tarifa=new HashMap<String,Object>(Map.of("formato",formato,"papel",papel,"color","BLANCO_NEGRO","precio","30","recargoDobleFaz","0","habilitada",true,"grupo",UUID.randomUUID(),"nombre","Tarifa hojas","modoDobleFaz","FIJO","valorDobleFaz","40"));
+        var datos=new HashMap<String,Object>();datos.put("operacion",UUID.randomUUID());datos.put("versionBase",comercial);datos.put("motivo","Cobro por hoja");datos.put("tarifas",List.of(tarifa));datos.put("servicios",List.of(oferta(servicio,"POR_CARILLA","0",30,true),oferta(terminacion,"POR_HOJA","1.25",120,true)));
+        var revision=post(admin,"/api/admin/catalogo/revisiones",datos);status(revision,200);comercial=JSON.readTree(revision.body()).get("codigoPublico").asString();
+        var input=ofertaCliente();var nueva=cotizar(cliente,input);String codigo=nueva.get("codigoPublico").asString();
+        assertThat(nueva.get("oferta").get("total").asString()).isEqualTo("325.00");
+        var precio=nueva.get("oferta").get("items").get(0).get("precio");assertThat(precio.get("subtotal").asString()).isEqualTo("145.00");
+        assertThat(precio.get("lineas").size()).isEqualTo(2);var impresion=precio.get("lineas").get(0);
+        assertThat(impresion.get("base").asString()).isEqualTo("POR_COPIA");assertThat(impresion.get("unidades").asInt()).isEqualTo(2);
+        assertThat(impresion.get("precioUnitario").asString()).isEqualTo("70.00");assertThat(impresion.get("importe").asString()).isEqualTo("140.00");assertThat(impresion.get("detalle").asString()).contains("doble faz a ARS 40,00","simple faz a ARS 30,00");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.cotizacion_item_servicio s JOIN lamontana.cotizacion_item i USING(id_cotizacion_item) JOIN lamontana.cotizacion c USING(id_cotizacion) WHERE c.codigo_publico=? AND s.tipo_servicio='IMPRESION'",Integer.class,UUID.fromString(codigo))).isEqualTo(2);
+        assertThat(cotizar(cliente,input)).isEqualTo(nueva);
+        var aceptar=decisionCotizacion(nueva);status(post(cliente,"/api/cliente/cotizaciones/"+codigo+"/aceptar",aceptar),200);var aceptada=cotizacion(cliente,codigo);
+        tarifa.put("modoDobleFaz","PORCENTAJE");tarifa.put("valorDobleFaz","10");datos.put("versionBase",comercial);datos.put("operacion",UUID.randomUUID());revision=post(admin,"/api/admin/catalogo/revisiones",datos);status(revision,200);comercial=JSON.readTree(revision.body()).get("codigoPublico").asString();
+        assertThat(cotizar(cliente,ofertaCliente()).get("oferta").get("total").asString()).isEqualTo("311.00");
+        assertThat(cotizacion(cliente,codigo)).isEqualTo(aceptada);assertThat(cotizacion(cliente,anterior.get("codigoPublico").asString())).isEqualTo(anterior);
+        app.close();arrancar();assertThat(cotizacion(cliente,codigo)).isEqualTo(aceptada);assertThat(cotizacion(cliente,anterior.get("codigoPublico").asString())).isEqualTo(anterior);
+    }
+    @Test void cotizacionesMultiplesCalculoAutoritativoPrecioCongeladoAceptacionYReinicio()throws Exception{
+        preparar();activar();var c=particularCotizacion("precios");var input=ofertaCliente();input.put("total","0.01");var q=cotizar(c,input);String codigo=q.get("codigoPublico").asString();var o=q.get("oferta");
+        assertThat(o.get("total").asString()).isEqualTo("32.00");assertThat(o.get("items").size()).isEqualTo(2);assertThat(o.get("items").get(0).get("precio").get("hojas").asInt()).isEqualTo(4);assertThat(o.get("condiciones").get("senaRequerida").asString()).isEqualTo("8.00");assertThat(o.get("condiciones").get("revisionHumana").asBoolean()).isFalse();assertThat(o.get("condiciones").get("cargaRequiereAcreditacion").asBoolean()).isFalse();assertThat(contar("cotizacion_item_servicio")).isEqualTo(3);
+        var aceptar=decisionCotizacion(q);status(post(c,"/api/cliente/cotizaciones/"+codigo+"/aceptar",aceptar),200);status(post(c,"/api/cliente/cotizaciones/"+codigo+"/aceptar",aceptar),200);assertThat(contar("evento_cotizacion")).isEqualTo(2);var aceptada=cotizacion(c,codigo);assertThat(aceptada.get("aceptadaEn").isNull()).isFalse();assertThat(aceptada.get("estado").asString()).isEqualTo("VIGENTE");
+        publicar(null,"3.00",true,false);assertThat(cotizacion(c,codigo)).isEqualTo(aceptada);var nueva=cotizar(c,ofertaCliente());assertThat(nueva.get("oferta").get("total").asString()).isEqualTo("44.00");assertThat(cotizar(c,input)).isEqualTo(aceptada);
+        assertThatThrownBy(()->jdbc.update("UPDATE lamontana.cotizacion SET total=0 WHERE codigo_publico=?",UUID.fromString(codigo))).isInstanceOf(DataAccessException.class);assertThatThrownBy(()->jdbc.update("UPDATE lamontana.cotizacion_item SET nombre_archivo_declarado='otro.pdf'")).isInstanceOf(DataAccessException.class);
+        app.close();arrancar();assertThat(cotizacion(c,codigo)).isEqualTo(aceptada);assertThat(contar("cotizacion")).isEqualTo(2);
+    }
+    @Test void cotizacionesAislamientoReemplazoVencimientoYTransicionTerminal()throws Exception{
+        preparar();activar();var c=particularCotizacion("dueño");var otro=particularCotizacion("ajeno");var q=cotizar(c,ofertaCliente());String codigo=q.get("codigoPublico").asString();status(get(otro,"/api/cliente/cotizaciones/"+codigo),404);status(post(otro,"/api/cliente/cotizaciones/"+codigo+"/aceptar",decisionCotizacion(q)),404);var ajena=ofertaCliente();ajena.put("reemplaza",codigo);status(post(otro,"/api/cliente/cotizaciones",ajena),404);assertThat(JSON.readTree(get(otro,"/api/cliente/cotizaciones").body()).get("total").asInt()).isZero();
+        var service=app.getBean(ar.com.lamontana.cotizaciones.CotizacionService.class);org.springframework.test.util.ReflectionTestUtils.setField(service,"clock",java.time.Clock.fixed(Instant.parse(q.get("vigenteHasta").asString()),java.time.ZoneOffset.UTC));assertThat(cotizacion(c,codigo).get("estado").asString()).isEqualTo("EXPIRADA");status(post(c,"/api/cliente/cotizaciones/"+codigo+"/aceptar",decisionCotizacion(q)),409);
+        var in=ofertaCliente();in.put("reemplaza",codigo);var reemplazo=cotizar(c,in);assertThat(reemplazo.get("aceptadaEn").isNull()).isTrue();assertThat(reemplazo.get("reemplaza").asString()).isEqualTo(codigo);assertThat(cotizacion(c,codigo).get("estado").asString()).isEqualTo("EXPIRADA");assertThat(cotizacion(c,codigo).get("oferta")).isEqualTo(q.get("oferta"));status(post(c,"/api/cliente/cotizaciones",new HashMap<>(in){{put("operacion",UUID.randomUUID());}}),409);
+        var cancel=decisionCotizacion(reemplazo);cancel.put("motivo","No continúo con el trabajo");String cancelada=reemplazo.get("codigoPublico").asString();status(post(c,"/api/cliente/cotizaciones/"+cancelada+"/cancelar",cancel),200);status(post(c,"/api/cliente/cotizaciones/"+cancelada+"/cancelar",cancel),200);assertThat(cotizacion(c,cancelada).get("estado").asString()).isEqualTo("CANCELADA");status(post(c,"/api/cliente/cotizaciones/"+cancelada+"/aceptar",decisionCotizacion(cotizacion(c,cancelada))),409);
+    }
+    @Test void cotizacionesConcurrenciaRespuestaPerdidaYReemplazoNoDejanParciales()throws Exception{
+        preparar();activar();var c=particularCotizacion("concurrente");var in=ofertaCliente();var r1=request(c,"POST","/api/cliente/cotizaciones",in);var r2=request(c,"POST","/api/cliente/cotizaciones",in);var a1=c.sendAsync(r1,HttpResponse.BodyHandlers.ofString());var a2=c.sendAsync(r2,HttpResponse.BodyHandlers.ofString());var uno=a1.get();var dos=a2.get();status(uno,200);status(dos,200);assertThat(uno.body()).isEqualTo(dos.body());assertThat(contar("cotizacion")).isEqualTo(1);assertThat(contar("cotizacion_item")).isEqualTo(2);
+        var q=JSON.readTree(uno.body());String codigo=q.get("codigoPublico").asString();var changed=new HashMap<>(in);changed.put("medioPago","TRANSFERENCIA");status(post(c,"/api/cliente/cotizaciones",changed),409);
+        var repl=ofertaCliente();repl.put("reemplaza",codigo);var segundo=new HashMap<>(repl);segundo.put("operacion",UUID.randomUUID());var p1=request(c,"POST","/api/cliente/cotizaciones",repl);var p2=request(c,"POST","/api/cliente/cotizaciones",segundo);var t1=c.sendAsync(p1,HttpResponse.BodyHandlers.ofString());var t2=c.sendAsync(p2,HttpResponse.BodyHandlers.ofString());assertThat(List.of(t1.get().statusCode(),t2.get().statusCode())).containsExactlyInAnyOrder(200,409);assertThat(contar("cotizacion")).isEqualTo(2);assertThat(contar("cotizacion_item")).isEqualTo(4);assertThat(cotizacion(c,codigo).get("estado").asString()).isEqualTo("CANCELADA");
+    }
+    @Test void cotizacionesEntregaDomicilioYCambioOperativoNoReescribeOferta()throws Exception{
+        preparar();activar();var c=particularCotizacion("destino");var in=ofertaCliente();in.put("modalidad","ENVIO_DOMICILIO");in.put("direccion",Map.of("calle","Real","numero","20","referencias","Portón","territorio",territorio()));var q=cotizar(c,in);assertThat(q.get("oferta").get("costoEntrega").asString()).isEqualTo("12.50");assertThat(q.get("oferta").get("total").asString()).isEqualTo("44.50");assertThat(q.get("oferta").get("entrega").get("destinoZona").get("cupoConfigurado").asInt()).isEqualTo(2);
+        segundaActivaRollback();assertThat(cotizacion(c,q.get("codigoPublico").asString())).isEqualTo(q);in.put("operacion",UUID.randomUUID());status(post(c,"/api/cliente/cotizaciones",in),409);in.put("configuracion",id);var nueva=cotizar(c,in);assertThat(nueva.get("oferta").get("configuracion")).isNotEqualTo(q.get("oferta").get("configuracion"));
+        jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA' WHERE codigo_publico=?",UUID.fromString(a));status(post(c,"/api/cliente/cotizaciones",ofertaCliente()),409);assertThat(cotizacion(c,q.get("codigoPublico").asString()).get("oferta")).isEqualTo(q.get("oferta"));
+    }
+
+    @Test void cotizacionesFalloParcialRevierteReemplazoYPaginacionCompleta()throws Exception {
+        preparar();activar();var c=particularCotizacion("integridad");var q=cotizar(c,ofertaCliente());String codigo=q.get("codigoPublico").asString();var in=ofertaCliente();in.put("reemplaza",codigo);
+        jdbc.execute("CREATE FUNCTION lamontana.fallar_item_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.nombre_archivo_declarado='Dos.pdf' THEN RAISE EXCEPTION 'fallo de almacenamiento de prueba'; END IF; RETURN NEW; END $$");
+        jdbc.execute("CREATE TRIGGER falla_item_test BEFORE INSERT ON lamontana.cotizacion_item FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_item_test()");
+        var error=post(c,"/api/cliente/cotizaciones",in);status(error,500);assertThat(error.body()).doesNotContain("fallo de almacenamiento de prueba");assertThat(contar("cotizacion")).isEqualTo(1);assertThat(contar("cotizacion_item")).isEqualTo(2);assertThat(contar("evento_cotizacion")).isEqualTo(1);assertThat(cotizacion(c,codigo)).isEqualTo(q);
+        jdbc.execute("DROP TRIGGER falla_item_test ON lamontana.cotizacion_item");var nueva=cotizar(c,in);assertThat(cotizar(c,in)).isEqualTo(nueva);
+        for(int i=0;i<25;i++)cotizar(c,ofertaCliente());var primera=JSON.readTree(get(c,"/api/cliente/cotizaciones?pagina=0").body());var segunda=JSON.readTree(get(c,"/api/cliente/cotizaciones?pagina=1").body());assertThat(primera.get("total").asInt()).isEqualTo(27);assertThat(primera.get("elementos").size()).isEqualTo(25);assertThat(segunda.get("elementos").size()).isEqualTo(2);assertThat(segunda.get("elementos").get(1).get("codigoPublico").asString()).isEqualTo(codigo);status(get(c,"/api/cliente/cotizaciones?pagina=-1"),400);
+    }
+    private JsonNode historial(String ruta)throws Exception{var r=get(admin,"/api/admin/configuracion/historial"+ruta);status(r,200);return JSON.readTree(r.body());}
+    @Test void historialDetalleComparacionAuditoriaCompletaSinMutacionesYReinicio()throws Exception{
+        assertThat(historial("").get("versiones").get("total").asLong()).isZero();status(get(admin,"/api/admin/configuracion/historial/"+id),404);
+        preparar();activar();String primera=id;var primero=historial("/"+id);assertThat(primero.get("revisionComercial").get("codigo").asString()).isEqualTo(comercial);assertThat(primero.get("version").get("autor").get("capturado").asBoolean()).isTrue();assertThat(primero.get("modulos").size()).isEqualTo(5);
+        cooldown();aceptar(post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID())));id=borrador.get("codigoPublico").asString();configurarSegundo();activar();
+        var lista=historial("");assertThat(lista.get("cantidades").get("HISTORICA").asInt()).isEqualTo(1);assertThat(lista.get("cantidades").get("ACTIVA").asInt()).isEqualTo(1);assertThat(lista.get("versiones").get("elementos").get(0).get("codigo").asString()).isEqualTo(id);
+        var anterior=historial("/"+primera);assertThat(anterior.get("version").get("estado").asString()).isEqualTo("HISTORICA");assertThat(anterior.get("reemplazadaPor").get("codigo").asString()).isEqualTo(id);assertThat(historial("/"+id).get("predecesora").get("codigo").asString()).isEqualTo(primera);assertThat(anterior.get("modulos")).isEqualTo(primero.get("modulos"));
+        var comp=historial("/"+primera+"/comparacion/"+id);assertThat(comp.get("secciones").get(0).get("modificada").asBoolean()).isFalse();assertThat(comp.get("secciones").get(1).get("modificada").asBoolean()).isFalse();assertThat(comp.get("secciones").get(3).get("modificada").asBoolean()).isTrue();assertThat(historial("/"+primera+"/comparacion/"+primera).get("modificadas").asLong()).isZero();
+        jdbc.update("UPDATE lamontana.usuario SET nombre='Nombre nuevo' WHERE correo=?",EMAIL);assertThat(historial("/"+primera).get("version").get("autor").get("nombre").asString()).isEqualTo("Admin Entrega");assertThat(historial("/"+primera).get("activador").get("nombre").asString()).isEqualTo("Admin Entrega");
+        jdbc.update("INSERT INTO lamontana.evento_configuracion(id_configuracion_version,id_actor,tipo,version,motivo) SELECT c.id_configuracion_version,c.id_usuario_creador,'AUTORIZACION_RECHAZADA',c.version,'Evento de prueba '||n FROM lamontana.configuracion_version c CROSS JOIN generate_series(1,55) n WHERE c.codigo_publico=?",UUID.fromString(primera));
+        jdbc.update("INSERT INTO lamontana.intento_activacion_configuracion(id_intento,id_version_objetivo,origen,estado,fecha_inicio,fecha_fin,codigo_resultado,detalle_sanitizado) SELECT gen_random_uuid(),c.id_configuracion_version,'REINTENTO','FALLIDO',clock_timestamp()-interval '1 minute',clock_timestamp(),'PRUEBA','Intento de prueba '||n FROM lamontana.configuracion_version c CROSS JOIN generate_series(1,55) n WHERE c.codigo_publico=?",UUID.fromString(primera));
+        int eventos=contar("evento_configuracion"),intentos=contar("intento_activacion_configuracion");var keys=new HashSet<String>();int fallidos=0;long total=historial("/"+primera+"/auditoria").get("total").asLong();for(int pagina=0;pagina*25<total;pagina++){var pag=historial("/"+primera+"/auditoria?pagina="+pagina);for(var ev:pag.get("elementos")){assertThat(keys.add(ev.get("clave").asString())).isTrue();if(ev.get("tipo").asString().equals("INTENTO_FALLIDO"))fallidos++;}}assertThat(keys.size()).isEqualTo(total);assertThat(fallidos).isEqualTo(55);
+        publicar(null,"8",true,true);assertThat(historial("/"+primera).get("modulos")).isEqualTo(primero.get("modulos"));assertThat(historial("/"+primera).get("revisionComercial")).isEqualTo(primero.get("revisionComercial"));assertThat(contar("evento_configuracion")).isEqualTo(eventos);assertThat(contar("intento_activacion_configuracion")).isEqualTo(intentos);
+        app.close();arrancar();assertThat(historial("/"+primera).get("modulos")).isEqualTo(primero.get("modulos"));assertThat(historial("/"+primera+"/auditoria").get("total").asLong()).isEqualTo(total);
+    }
+    @Test void historialProgramaConReferenciaAutorYCancelacionSinFalsaVigencia()throws Exception{
+        preparar();programar();var d=historial("/"+id);assertThat(d.get("version").get("estado").asString()).isEqualTo("PROGRAMADA");assertThat(d.get("version").get("activadaEn").isNull()).isTrue();assertThat(d.get("programador").get("rol").asString()).isEqualTo("ADMIN_ADMIN");assertThat(d.get("revisionComercial").get("codigo").asString()).isEqualTo(comercial);
+        cooldown();var actual=estado().get("programada").get("configuracion");var s=new HashMap<String,Object>(Map.of("operacion",UUID.randomUUID(),"version",actual.get("version").asLong(),"motivo","Cancelar para revisar","contrasena",CLAVE));status(post(admin,rutaProgramar()+"/cancelacion/solicitar",s),200);s.put("codigo",smtp.recibir().token());status(post(admin,rutaProgramar()+"/cancelacion/confirmar",s),200);var cancel=historial("/"+id);assertThat(cancel.get("version").get("estado").asString()).isEqualTo("CANCELADA");assertThat(cancel.get("version").get("activadaEn").isNull()).isTrue();assertThat(cancel.get("version").get("previstaEn")).isEqualTo(d.get("version").get("previstaEn"));assertThat(cancel.get("motivoProgramacion")).isEqualTo(d.get("motivoProgramacion"));
+        jdbc.update("UPDATE lamontana.configuracion_version SET nombre_actor=NULL,rol_actor=NULL WHERE codigo_publico=?",UUID.fromString(id));var vieja=historial("/"+id);assertThat(vieja.get("version").get("autor").get("capturado").asBoolean()).isFalse();assertThat(vieja.get("version").get("autor").get("rol").isNull()).isTrue();
+    }
+    @Test void historialFiltrosPaginacionPermisosYValidacion()throws Exception{
+        jdbc.update("INSERT INTO lamontana.configuracion_version(codigo_publico,numero_version,id_usuario_creador,estado,id_usuario_cancelador,fecha_cancelacion,motivo_cancelacion) SELECT gen_random_uuid(),n,u.id_usuario,'CANCELADA',u.id_usuario,clock_timestamp(),'Cancelación de prueba' FROM lamontana.usuario u CROSS JOIN generate_series(2,57) n WHERE correo=?",EMAIL);
+        assertThat(historial("").get("versiones").get("total").asLong()).isEqualTo(56);assertThat(historial("?pagina=2").get("versiones").get("elementos").size()).isEqualTo(6);assertThat(historial("?orden=ANTIGUAS").get("versiones").get("elementos").get(0).get("numero").asLong()).isEqualTo(2);assertThat(historial("?buscar=V57&estado=CANCELADA").get("versiones").get("total").asLong()).isEqualTo(1);assertThat(historial("?estado=ACTIVA").get("versiones").get("total").asLong()).isZero();
+        String cerrada=historial("").get("versiones").get("elementos").get(0).get("codigo").asString();for(String q:List.of("?pagina=-1","?pagina=1000001","?estado=EN_PREPARACION","?orden=sql","?buscar=%25"))status(get(admin,"/api/admin/configuracion/historial"+q),400);status(get(admin,"/api/admin/configuracion/historial/"+UUID.randomUUID()),404);status(get(admin,"/api/admin/configuracion/historial/"+cerrada+"/auditoria?pagina=-1"),400);status(get(cliente(),"/api/admin/configuracion/historial"),401);
+        for(String rol:List.of("CLIENTE","EMPLEADO","ADMIN_ADMIN")){String correo=rol.toLowerCase()+"-history@example.test";jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Interno','Test','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo=?",UUID.randomUUID(),correo,EMAIL,rol);var actor=cliente();login(actor,correo);for(String path:List.of("","/"+cerrada,"/"+cerrada+"/auditoria","/"+cerrada+"/comparacion/"+cerrada))status(get(actor,"/api/admin/configuracion/historial"+path),rol.equals("ADMIN_ADMIN")?200:403);status(post(actor,"/api/admin/configuracion/historial/"+cerrada,Map.of()),403);}
+    }
+    @Test void primeraActivacionConcurrenteRecuperacionInmutabilidadYReinicio()throws Exception{
+        preparar();assertThat(estado().get("activa").isNull()).isTrue();assertThat(revision().get("huella")).isEqualTo(revision().get("huella"));String snapshot=borrador.toString();var s=solicitud();var token=solicitar(s);status(post(admin,rutaActivar()+"/solicitar",s),200);assertThat(smtp.pendientes()).isZero();assertThat(estado().get("activa").isNull()).isTrue();
+        var c=confirmacion(s,token);var req1=request(admin,"POST",rutaActivar()+"/confirmar",c);var req2=request(admin,"POST",rutaActivar()+"/confirmar",c);var f1=admin.sendAsync(req1,HttpResponse.BodyHandlers.ofString());var f2=admin.sendAsync(req2,HttpResponse.BodyHandlers.ofString());var r1=f1.get();var r2=f2.get();status(r1,200);status(r2,200);assertThat(r1.body()).isEqualTo(r2.body());var activada=JSON.readTree(r1.body()).get("version");assertThat(JSON.readTree(r1.body()).get("intento").get("origen").asString()).isEqualTo("MANUAL");assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);
+        assertThat(activada.get("configuracion").get("estado").asString()).isEqualTo("ACTIVA");assertThat(activada.get("predecesora").isNull()).isTrue();assertThat(activada.get("revisionComercial").asString()).isEqualTo(comercial);assertThat(estado().get("borrador").isNull()).isTrue();assertThat(estado().get("activa")).isEqualTo(activada);assertThat(contar("activacion_configuracion")).isEqualTo(1);
+        for(String field:List.of("modelo","criterio","pagos","recursos","entrega"))assertThat(activada.get("configuracion").get(field)).isEqualTo(JSON.readTree(snapshot).get(field));
+        var edit=comando();edit.put("modelo","MANUAL");status(put(admin,base()+"/modelo",edit),409);status(put(admin,ruta(),entrega("2","0",List.of("RETIRO_SUCURSAL"),List.of())),409);
+        assertThat(JSON.readTree(get(admin,"/api/admin/puntos-entrega/disponibilidad").body()).get("contexto").asString()).isEqualTo("CONFIGURACION_ACTIVA");
+        app.close();arrancar();status(post(admin,rutaActivar()+"/confirmar",c),200);assertThat(estado().get("activa")).isEqualTo(activada);assertThat(contar("activacion_configuracion")).isEqualTo(1);
+        c.put("codigo","incorrecto");status(post(admin,rutaActivar()+"/confirmar",c),400);
+    }
+    @Test void reemplazoAtomicoFalloDurableConservaActivaBorradorYResultado()throws Exception{
+        preparar();var original=activar();String primera=id;cooldown();var nuevo=post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID().toString()));status(nuevo,200);borrador=JSON.readTree(nuevo.body());id=borrador.get("codigoPublico").asString();configurarSegundo();
+        var s=solicitud();var c=confirmacion(s,solicitar(s));var input=JSON.readValue(JSON.writeValueAsString(c),ActivacionConfiguracionController.Confirmar.class);var antes=estado();
+        jdbc.execute("CREATE FUNCTION lamontana.fallar_activacion_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fallo de prueba'; END $$");jdbc.execute("CREATE TRIGGER fallo_activacion BEFORE INSERT ON lamontana.activacion_configuracion FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_activacion_test()");
+        var fallido=app.getBean(ActivacionConfiguracionService.class).confirmar(UUID.fromString(id),input,EMAIL);assertThat(fallido.estado()).isEqualTo("FALLIDO");assertThat(fallido.version()).isNull();assertThat(fallido.intento().resultado()).isEqualTo("ERROR_PUBLICACION");assertThat(estado().get("activa")).isEqualTo(antes.get("activa"));assertThat(estado().get("borrador")).isEqualTo(antes.get("borrador"));assertThat(jdbc.queryForObject("SELECT fecha_consumo IS NOT NULL FROM lamontana.autorizacion_configuracion WHERE id_operacion=?",Boolean.class,UUID.fromString((String)s.get("operacion")))).isTrue();jdbc.execute("DROP TRIGGER fallo_activacion ON lamontana.activacion_configuracion");
+        assertThat(app.getBean(ActivacionConfiguracionService.class).confirmar(UUID.fromString(id),input,EMAIL)).isEqualTo(fallido);ejecutar(false);assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("programacion_configuracion")).isZero();cooldown();s=solicitud();c=confirmacion(s,solicitar(s));
+        var r=post(admin,rutaActivar()+"/confirmar",c);status(r,200);var activa=JSON.readTree(r.body()).get("version");assertThat(activa.get("predecesora").asString()).isEqualTo(primera);assertThat(contar("activacion_configuracion")).isEqualTo(2);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.configuracion_version WHERE estado='ACTIVA'",Integer.class)).isEqualTo(1);assertThat(jdbc.queryForObject("SELECT estado FROM lamontana.configuracion_version WHERE codigo_publico=?",String.class,UUID.fromString(primera))).isEqualTo("HISTORICA");assertThat(jdbc.queryForObject("SELECT fin_vigencia= (SELECT fecha_activacion FROM lamontana.activacion_configuracion ORDER BY fecha_activacion DESC LIMIT 1) FROM lamontana.activacion_configuracion WHERE id_predecesora IS NULL",Boolean.class)).isTrue();
+    }
+    @Test void cambioComercialAdvertenciasRevocacionEdicionEIntentos()throws Exception{
+        preparar();var falta=solicitud();var d=new HashMap<>((Map<String,Object>)falta.get("decision"));d.put("advertenciasRevisadas",false);falta.put("decision",d);status(post(admin,rutaActivar()+"/solicitar",falta),409);assertThat(contar("autorizacion_configuracion")).isZero();
+        var s=solicitud();var token=solicitar(s);var c=confirmacion(s,token);for(int n=1;n<=5;n++){var malo=confirmacion(s,"invalido");status(post(admin,rutaActivar()+"/confirmar",malo),400);}status(post(admin,rutaActivar()+"/confirmar",c),400);assertThat(jdbc.queryForObject("SELECT intentos FROM lamontana.autorizacion_configuracion",Integer.class)).isEqualTo(5);assertThat(estado().get("activa").isNull()).isTrue();
+        cooldown();s=solicitud();token=solicitar(s);c=confirmacion(s,token);status(post(admin,rutaActivar()+"/revocar",Map.of("operacion",s.get("operacion"))),200);status(post(admin,rutaActivar()+"/confirmar",c),409);
+        cooldown();s=solicitud();token=solicitar(s);c=confirmacion(s,token);publicar(null,"3",true,false);var rechazado=post(admin,rutaActivar()+"/confirmar",c);status(rechazado,200);assertThat(JSON.readTree(rechazado.body()).get("estado").asString()).isEqualTo("FALLIDO");assertThat(contar("activacion_configuracion")).isZero();assertThat(estado().get("borrador").get("version")).isEqualTo(borrador.get("version"));
+        cooldown();s=solicitud();token=solicitar(s);c=confirmacion(s,token);guardar("2","1",List.of("RETIRO_SUCURSAL"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));status(post(admin,rutaActivar()+"/confirmar",c),409);
+    }
+    @Test void smtpFallidoCodigoVencidoPermisosYCsrf()throws Exception{
+        preparar();var s=solicitud();smtp.rechazar=true;var input=JSON.readValue(JSON.writeValueAsString(s),ActivacionConfiguracionController.Solicitar.class);assertThatThrownBy(()->app.getBean(ActivacionConfiguracionService.class).solicitar(UUID.fromString(id),input,EMAIL)).isInstanceOf(ar.com.lamontana.identidad.CorreoService.CorreoNoDisponible.class);assertThat(contar("autorizacion_configuracion")).isZero();smtp.rechazar=false;
+        var token=solicitar(s);var c=confirmacion(s,token);status(post(admin,base()+"/cancelacion/confirmar",Map.of("operacion",s.get("operacion"),"version",borrador.get("version").asLong(),"motivo","Otro propósito","contrasena",CLAVE,"codigo",token)),409);assertThat(estado().get("borrador").get("estado").asString()).isEqualTo("EN_PREPARACION");jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_emision=clock_timestamp()-interval '20 minutes',fecha_vencimiento=clock_timestamp()-interval '1 minute'");status(post(admin,rutaActivar()+"/confirmar",c),400);
+        var sin=HttpRequest.newBuilder(uri(rutaActivar()+"/confirmar")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(c))).build();status(admin.send(sin,HttpResponse.BodyHandlers.ofString()),403);
+        var anon=cliente();status(post(anon,rutaActivar()+"/solicitar",s),401);for(String rol:List.of("CLIENTE","EMPLEADO","ADMIN_ADMIN")){String correo=rol.toLowerCase()+"-activation@example.test";jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Interno','Test','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo=?",UUID.randomUUID(),correo,EMAIL,rol);var actor=cliente();login(actor,correo);for(String accion:List.of("solicitar","confirmar"))status(post(actor,rutaActivar()+"/"+accion,accion.equals("solicitar")?s:c),403);status(post(actor,rutaActivar()+"/revocar",Map.of("operacion",s.get("operacion"))),403);}
+    }
+    @Test void programacionExigePropietarioCsrfYCredenciales()throws Exception{
+        preparar();var s=solicitudProgramacion();var incorrecta=new HashMap<>(s);incorrecta.put("contrasena","Incorrecta123!");status(post(admin,rutaProgramar()+"/solicitar",incorrecta),400);assertThat(contar("autorizacion_configuracion")).isZero();
+        var sin=HttpRequest.newBuilder(uri(rutaProgramar()+"/solicitar")).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(s))).build();status(admin.send(sin,HttpResponse.BodyHandlers.ofString()),403);status(post(cliente(),rutaProgramar()+"/solicitar",s),401);
+        for(String rol:List.of("CLIENTE","EMPLEADO","ADMIN_ADMIN")){String correo=rol.toLowerCase()+"-program@example.test";jdbc.update("INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado) SELECT ?,r.id_rol,?,u.hash_contrasena,'Interno','Test','ACTIVO' FROM lamontana.usuario u CROSS JOIN lamontana.rol r WHERE u.correo=? AND r.codigo=?",UUID.randomUUID(),correo,EMAIL,rol);var actor=cliente();login(actor,correo);status(post(actor,rutaProgramar()+"/solicitar",s),403);status(post(actor,rutaProgramar()+"/revocar",Map.of("operacion",s.get("operacion"))),403);status(get(actor,rutaProgramar()+"/revision"),403);status(post(actor,rutaProgramar()+"/activacion/solicitar",solicitud()),403);status(post(actor,rutaProgramar()+"/cancelacion/solicitar",Map.of("operacion",UUID.randomUUID(),"version",borrador.get("version").asLong(),"motivo","Sin permiso","contrasena",CLAVE)),403);}
+    }
+    private String rutaProgramar(){return base()+"/programacion";}
+    private Map<String,Object> solicitudProgramacion()throws Exception{
+        return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"contrasena",CLAVE,"decision",Map.of("revision",decision(),"fechaLocal",java.time.LocalDateTime.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires")).plusDays(1).withNano(0).toString(),"zonaHoraria","America/Argentina/Buenos_Aires")));
+    }
+    private Map<String,Object> programar()throws Exception{
+        var s=solicitudProgramacion();status(post(admin,rutaProgramar()+"/solicitar",s),200);var c=confirmacion(s,smtp.recibir().token());var r=post(admin,rutaProgramar()+"/confirmar",c);status(r,200);return c;
+    }
+    private int intentosObjetivo(){return jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_activacion_configuracion WHERE id_version_objetivo=(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?)",Integer.class,UUID.fromString(id));}
+    private void vencerProgramacion(){jdbc.update("UPDATE lamontana.programacion_configuracion SET fecha_confirmacion=clock_timestamp()-interval '2 days',fecha_programada=clock_timestamp()-interval '1 day'");}
+    private void ejecutar(boolean recuperacion){app.getBean(EjecucionProgramadaService.class).reconciliar(recuperacion);}
+    private void vencerReintento(){jdbc.update("UPDATE lamontana.programacion_configuracion SET fecha_confirmacion=least(fecha_confirmacion,clock_timestamp()-interval '1 day')");jdbc.update("UPDATE lamontana.intento_activacion_configuracion SET fecha_inicio=clock_timestamp()-interval '12 minutes',fecha_fin=clock_timestamp()-interval '11 minutes',fecha_atraso_detectado=CASE WHEN origen='RECUPERACION' THEN clock_timestamp()-interval '12 minutes' ELSE NULL END WHERE estado='FALLIDO'");}
+    @Test void programacionSeguraInmutableCancelacionYReinicio()throws Exception{
+        preparar();var s=solicitudProgramacion();var d=new HashMap<>((Map<String,Object>)s.get("decision"));d.put("zonaHoraria","UTC-03:00");s.put("decision",d);status(post(admin,rutaProgramar()+"/solicitar",s),409);
+        d.put("zonaHoraria","America/New_York");d.put("fechaLocal","2030-11-03T01:30:00");status(post(admin,rutaProgramar()+"/solicitar",s),409);
+        d.put("fechaLocal","2030-03-10T02:30:00");status(post(admin,rutaProgramar()+"/solicitar",s),409);d.put("fechaLocal","2020-01-01T12:00:00");status(post(admin,rutaProgramar()+"/solicitar",s),409);assertThat(contar("autorizacion_configuracion")).isZero();
+        s=solicitudProgramacion();status(post(admin,rutaProgramar()+"/solicitar",s),200);String token=smtp.recibir().token();var c=confirmacion(s,token);var cambiado=new HashMap<>((Map<String,Object>)s.get("decision"));cambiado.put("fechaLocal","2031-01-01T10:00:00");var distinto=new HashMap<>(c);distinto.put("decision",cambiado);status(post(admin,rutaProgramar()+"/confirmar",distinto),409);
+        status(post(admin,rutaActivar()+"/confirmar",Map.of("operacion",s.get("operacion"),"decision",decision(),"contrasena",CLAVE,"codigo",token)),409);
+        var req1=request(admin,"POST",rutaProgramar()+"/confirmar",c);var req2=request(admin,"POST",rutaProgramar()+"/confirmar",c);var f1=admin.sendAsync(req1,HttpResponse.BodyHandlers.ofString());var f2=admin.sendAsync(req2,HttpResponse.BodyHandlers.ofString());var r1=f1.get();var r2=f2.get();status(r1,200);status(r2,200);assertThat(r1.body()).isEqualTo(r2.body());var programada=JSON.readTree(r1.body());assertThat(estado().get("programada")).isEqualTo(programada);assertThat(estado().get("borrador").isNull()).isTrue();assertThat(estado().get("activa").isNull()).isTrue();
+        ejecutar(false);assertThat(contar("intento_activacion_configuracion")).isZero();status(post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID())),409);var cambio=comando();cambio.put("modelo","MANUAL");status(put(admin,base()+"/modelo",cambio),409);
+        assertThatThrownBy(()->jdbc.update("INSERT INTO lamontana.configuracion_version(codigo_publico,numero_version,id_usuario_creador,estado) SELECT ?,100,id_usuario,'EN_PREPARACION' FROM lamontana.usuario WHERE correo=?",UUID.randomUUID(),EMAIL)).isInstanceOf(DataAccessException.class);
+        app.close();arrancar();assertThat(estado().get("programada")).isEqualTo(programada);cooldown();var cancelar=new HashMap<String,Object>(Map.of("operacion",UUID.randomUUID(),"version",programada.get("configuracion").get("version").asLong(),"motivo","Cambio de fecha requerido","contrasena",CLAVE));status(post(admin,rutaProgramar()+"/cancelacion/solicitar",cancelar),200);cancelar.put("codigo",smtp.recibir().token());status(post(admin,rutaProgramar()+"/cancelacion/revocar",Map.of("operacion",cancelar.get("operacion"))),200);status(post(admin,rutaProgramar()+"/cancelacion/confirmar",cancelar),409);cooldown();cancelar.put("operacion",UUID.randomUUID());cancelar.remove("codigo");status(post(admin,rutaProgramar()+"/cancelacion/solicitar",cancelar),200);cancelar.put("codigo",smtp.recibir().token());status(post(admin,rutaProgramar()+"/cancelacion/confirmar",cancelar),200);status(post(admin,rutaProgramar()+"/cancelacion/confirmar",cancelar),200);assertThat(estado().get("programada").isNull()).isTrue();assertThat(contar("programacion_configuracion")).isEqualTo(1);vencerProgramacion();ejecutar(true);assertThat(contar("intento_activacion_configuracion")).isZero();status(post(admin,rutaProgramar()+"/confirmar",c),200);assertThat(estado().get("programada").isNull()).isTrue();status(post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID())),200);
+    }
+    @Test void programacionAutomaticaAtomicaFallosDiezMinutosYConcurrencia()throws Exception{
+        preparar();String original=id;var previa=activar();cooldown();var nuevo=post(admin,"/api/admin/configuracion/borradores",Map.of("operacion",UUID.randomUUID()));status(nuevo,200);borrador=JSON.readTree(nuevo.body());id=borrador.get("codigoPublico").asString();configurarSegundo();var c=programar();vencerProgramacion();
+        jdbc.execute("CREATE FUNCTION lamontana.fallar_programacion_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'secreto-no-debe-registrarse'; END $$");jdbc.execute("CREATE TRIGGER fallo_programacion BEFORE INSERT ON lamontana.activacion_configuracion FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_programacion_test()");
+        var engine=app.getBean(EjecucionProgramadaService.class);var pool=Executors.newFixedThreadPool(4);try{var tareas=new ArrayList<Future<?>>();for(int n=0;n<4;n++)tareas.add(pool.submit(()->engine.reconciliar(false)));for(var tarea:tareas)tarea.get(20,TimeUnit.SECONDS);}finally{pool.shutdownNow();}
+        assertThat(intentosObjetivo()).isEqualTo(1);assertThat(estado().get("activa")).isEqualTo(previa);var programada=estado().get("programada");assertThat(programada.toString()).doesNotContain("secreto-no-debe-registrarse");assertThat(programada.get("intentos").get(0).get("resultado").asString()).isEqualTo("ERROR_PUBLICACION");assertThat(Duration.between(Instant.parse(programada.get("intentos").get(0).get("terminadoEn").asString()),Instant.parse(programada.get("proximoIntentoEn").asString()))).isEqualTo(Duration.ofMinutes(10));
+        ejecutar(false);ejecutar(true);assertThat(intentosObjetivo()).isEqualTo(1);vencerReintento();ejecutar(false);assertThat(intentosObjetivo()).isEqualTo(2);assertThat(estado().get("activa")).isEqualTo(previa);
+        jdbc.execute("DROP TRIGGER fallo_programacion ON lamontana.activacion_configuracion");vencerReintento();app.close();arrancar(true);assertThat(estado().get("programada").isNull()).isTrue();var actual=estado().get("activa");assertThat(actual.get("predecesora").asString()).isEqualTo(original);assertThat(actual.get("activador").asString()).isEqualTo("Sistema automático");assertThat(contar("activacion_configuracion")).isEqualTo(2);assertThat(intentosObjetivo()).isEqualTo(3);assertThat(jdbc.queryForObject("SELECT origen FROM lamontana.intento_activacion_configuracion WHERE estado='EXITOSO' AND id_version_objetivo=(SELECT id_configuracion_version FROM lamontana.configuracion_version WHERE codigo_publico=?)",String.class,UUID.fromString(id))).isEqualTo("RECUPERACION");ejecutar(false);assertThat(intentosObjetivo()).isEqualTo(3);status(post(admin,rutaProgramar()+"/confirmar",c),200);assertThat(estado().get("programada").isNull()).isTrue();
+    }
+    @Test void primeraProgramacionRevalidaCondicionesActualesYSinRespaldo()throws Exception{
+        preparar();programar();vencerProgramacion();jdbc.update("UPDATE lamontana.sucursal SET estado='DESACTIVADA'");ejecutar(false);assertThat(estado().get("activa").isNull()).isTrue();assertThat(estado().get("programada").get("intentos").get(0).get("resultado").asString()).isEqualTo("CONDICIONES_NO_VALIDAS");jdbc.update("UPDATE lamontana.sucursal SET estado='ACTIVA'");vencerReintento();ejecutar(false);assertThat(estado().get("activa").get("predecesora").isNull()).isTrue();assertThat(jdbc.queryForObject("SELECT id_actor IS NULL FROM lamontana.activacion_configuracion",Boolean.class)).isTrue();assertThat(contar("intento_activacion_configuracion")).isEqualTo(2);
+    }
+    @Test void recuperaInicioDurableSinPublicacionYNoDuplicaExito()throws Exception{
+        preparar();programar();vencerProgramacion();jdbc.update("INSERT INTO lamontana.intento_activacion_configuracion(id_intento,id_version_objetivo,origen,estado,fecha_inicio) SELECT ?,id_configuracion_version,'PROGRAMACION','INICIADO',clock_timestamp()-interval '2 hours' FROM lamontana.configuracion_version WHERE codigo_publico=?",UUID.randomUUID(),UUID.fromString(id));
+        assertThatThrownBy(()->jdbc.update("INSERT INTO lamontana.intento_activacion_configuracion(id_intento,id_version_objetivo,origen,estado,fecha_inicio) SELECT ?,id_configuracion_version,'PROGRAMACION','INICIADO',clock_timestamp() FROM lamontana.configuracion_version WHERE codigo_publico=?",UUID.randomUUID(),UUID.fromString(id))).isInstanceOf(DataAccessException.class);
+        app.close();arrancar(true);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_activacion_configuracion WHERE estado='INTERRUMPIDO'",Integer.class)).isEqualTo(1);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.intento_activacion_configuracion WHERE estado='EXITOSO' AND origen='RECUPERACION' AND fecha_atraso_detectado>= (SELECT fecha_programada FROM lamontana.programacion_configuracion)",Integer.class)).isEqualTo(1);assertThat(contar("activacion_configuracion")).isEqualTo(1);app.close();arrancar(true);assertThat(contar("intento_activacion_configuracion")).isEqualTo(2);assertThat(contar("activacion_configuracion")).isEqualTo(1);
+    }
+    @Test void programacionNoReutilizaAutorizacionDeAccesoRevocada()throws Exception{
+        preparar();programar();vencerProgramacion();jdbc.update("UPDATE lamontana.usuario SET version_acceso=version_acceso+1 WHERE correo=?",EMAIL);ejecutar(false);assertThat(contar("activacion_configuracion")).isZero();assertThat(jdbc.queryForObject("SELECT codigo_resultado FROM lamontana.intento_activacion_configuracion",String.class)).isEqualTo("AUTORIZACION_NO_VIGENTE");
+    }
+    private Map<String,Object> solicitudAdelanto()throws Exception{
+        var respuesta=get(admin,rutaProgramar()+"/revision");status(respuesta,200);var r=JSON.readTree(respuesta.body());
+        return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"contrasena",CLAVE,"decision",Map.of("version",r.get("borrador").get("version").asLong(),"revisionComercial",r.get("catalogo").get("actual").get("codigoPublico").asString(),"huellaRevision",r.get("huella").asString(),"advertenciasRevisadas",true,"motivo","Activar ahora la programación revisada")));
+    }
+    private Map<String,Object> autorizarAdelanto()throws Exception{cooldown();var s=solicitudAdelanto();status(post(admin,rutaProgramar()+"/activacion/solicitar",s),200);return confirmacion(s,smtp.recibir().token());}
+    @Test void adelantoManualAntesDeFechaConcurrenteConservaProgramacionYActor()throws Exception{
+        preparar();programar();var prevista=estado().get("programada").get("previstaEn").asString();var c=autorizarAdelanto();status(post(admin,rutaActivar()+"/confirmar",c),409);
+        var req1=request(admin,"POST",rutaProgramar()+"/activacion/confirmar",c);var req2=request(admin,"POST",rutaProgramar()+"/activacion/confirmar",c);var f1=admin.sendAsync(req1,HttpResponse.BodyHandlers.ofString());var f2=admin.sendAsync(req2,HttpResponse.BodyHandlers.ofString());var r1=f1.get();var r2=f2.get();status(r1,200);status(r2,200);assertThat(r1.body()).isEqualTo(r2.body());var resultado=JSON.readTree(r1.body());assertThat(resultado.get("estado").asString()).isEqualTo("EXITOSO");assertThat(resultado.get("intento").get("origen").asString()).isEqualTo("MANUAL");assertThat(Instant.parse(resultado.get("version").get("activadaEn").asString())).isBefore(Instant.parse(prevista));assertThat(resultado.get("version").get("activador").asString()).isEqualTo("Admin Entrega");assertThat(contar("programacion_configuracion")).isEqualTo(1);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);assertThat(estado().get("programada").isNull()).isTrue();ejecutar(true);assertThat(contar("activacion_configuracion")).isEqualTo(1);app.close();arrancar(true);status(post(admin,rutaProgramar()+"/activacion/confirmar",c),200);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);
+    }
+    @Test void falloManualProgramadoConservaResultadoYReintentaADiezMinutos()throws Exception{
+        preparar();programar();vencerProgramacion();var c=autorizarAdelanto();publicar(null,"4",true,false);var r=post(admin,rutaProgramar()+"/activacion/confirmar",c);status(r,200);var resultado=JSON.readTree(r.body());assertThat(resultado.get("estado").asString()).isEqualTo("FALLIDO");assertThat(resultado.get("intento").get("origen").asString()).isEqualTo("MANUAL");assertThat(resultado.get("intento").get("resultado").asString()).isEqualTo("VALIDACION_RECHAZADA");assertThat(estado().get("activa").isNull()).isTrue();var programada=estado().get("programada");assertThat(Duration.between(Instant.parse(resultado.get("intento").get("terminadoEn").asString()),Instant.parse(programada.get("proximoIntentoEn").asString()))).isEqualTo(Duration.ofMinutes(10));assertThat(post(admin,rutaProgramar()+"/activacion/confirmar",c).body()).isEqualTo(r.body());ejecutar(false);ejecutar(true);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);vencerReintento();ejecutar(false);assertThat(contar("intento_activacion_configuracion")).isEqualTo(2);assertThat(estado().get("activa").isNull()).isFalse();assertThat(jdbc.queryForObject("SELECT id_usuario_actor IS NULL FROM lamontana.intento_activacion_configuracion WHERE estado='EXITOSO'",Boolean.class)).isTrue();
+    }
+    @Test void interrupcionDespuesDeInicioEsDurableBloqueaEdicionYSeRecuperaSinReejecutar()throws Exception{
+        preparar();var s=solicitud();var c=confirmacion(s,solicitar(s));var input=JSON.readValue(JSON.writeValueAsString(c),ActivacionConfiguracionController.Confirmar.class);
+        var interrumpida=org.mockito.Mockito.mock(PublicacionConfiguracion.class);org.mockito.Mockito.doThrow(new AssertionError("Caída simulada después del inicio durable")).when(interrumpida).publicar(org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any());
+        org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(ActivacionConfiguracionService.class),"publicacion",interrumpida);
+        assertThatThrownBy(()->app.getBean(ActivacionConfiguracionService.class).confirmar(UUID.fromString(id),input,EMAIL)).isInstanceOf(AssertionError.class);assertThat(contar("activacion_configuracion")).isZero();assertThat(jdbc.queryForObject("SELECT estado FROM lamontana.intento_activacion_configuracion",String.class)).isEqualTo("INICIADO");
+        var cambio=comando();cambio.put("modelo","MANUAL");status(put(admin,base()+"/modelo",cambio),409);status(post(admin,base()+"/cancelacion/solicitar",Map.of("operacion",UUID.randomUUID(),"version",borrador.get("version").asLong(),"contrasena",CLAVE,"motivo","Esperar recuperación")),409);status(post(admin,rutaProgramar()+"/solicitar",solicitudProgramacion()),409);
+        app.close();arrancar(true);var r=post(admin,rutaActivar()+"/confirmar",c);status(r,200);assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("INTERRUMPIDO");assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);assertThat(contar("activacion_configuracion")).isZero();assertThat(estado().get("borrador").get("version")).isEqualTo(borrador.get("version"));cooldown();activar();assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("intento_activacion_configuracion")).isEqualTo(2);
+    }
+    @Test void reintentoDeAdelantoPuedeVencerAntesDeLaFechaOriginal()throws Exception{
+        preparar();programar();var prevista=Instant.parse(estado().get("programada").get("previstaEn").asString());var c=autorizarAdelanto();publicar(null,"4",true,false);var r=post(admin,rutaProgramar()+"/activacion/confirmar",c);status(r,200);assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("FALLIDO");vencerReintento();ejecutar(true);assertThat(Instant.parse(estado().get("activa").get("activadaEn").asString())).isBefore(prevista);assertThat(jdbc.queryForObject("SELECT origen FROM lamontana.intento_activacion_configuracion WHERE estado='EXITOSO'",String.class)).isEqualTo("REINTENTO");assertThat(jdbc.queryForObject("SELECT fecha_atraso_detectado IS NULL FROM lamontana.intento_activacion_configuracion WHERE estado='EXITOSO'",Boolean.class)).isTrue();
+    }
+    @Test void reciboDeActivacionAnteriorNoInventaIntentoHistorico()throws Exception{
+        preparar();var s=solicitud();var c=confirmacion(s,solicitar(s));var r=post(admin,rutaActivar()+"/confirmar",c);status(r,200);var version=JSON.readTree(r.body()).get("version");
+        // Fixture de una activación previa a V19: su recibo y fecha real existían sin instrumentación de intentos.
+        jdbc.update("DELETE FROM lamontana.intento_activacion_configuracion");var replay=post(admin,rutaActivar()+"/confirmar",c);status(replay,200);var resultado=JSON.readTree(replay.body());assertThat(resultado.get("estado").asString()).isEqualTo("EXITOSO");assertThat(resultado.get("intento").isNull()).isTrue();assertThat(resultado.get("version")).isEqualTo(version);assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("intento_activacion_configuracion")).isZero();
+    }
+    @Test void falloInmediatoNoAdelantaProgramacionCreadaDespues()throws Exception{
+        preparar();var s=solicitud();var c=confirmacion(s,solicitar(s));publicar(null,"4",true,false);var r=post(admin,rutaActivar()+"/confirmar",c);status(r,200);assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("FALLIDO");cooldown();programar();jdbc.update("UPDATE lamontana.intento_activacion_configuracion SET fecha_inicio=clock_timestamp()-interval '12 minutes',fecha_fin=clock_timestamp()-interval '11 minutes' WHERE estado='FALLIDO'");var prevista=estado().get("programada");assertThat(prevista.get("proximoIntentoEn")).isEqualTo(prevista.get("previstaEn"));ejecutar(false);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);assertThat(estado().get("activa").isNull()).isTrue();
+    }
+    @Test void automaticoQueGanaLaExclusionImpidePublicacionManualDuplicada()throws Exception{
+        preparar();programar();vencerProgramacion();var c=autorizarAdelanto();var engine=app.getBean(EjecucionProgramadaService.class);
+        try(var guard=pg.getPostgresDatabase().getConnection()){
+            guard.setAutoCommit(false);try(var stmt=guard.createStatement()){stmt.execute("SELECT pg_advisory_xact_lock(764003)");}
+            var automatico=CompletableFuture.runAsync(()->engine.reconciliar(false));boolean coordinando=false;
+            for(int n=0;n<100;n++){coordinando=Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype='advisory' AND objid=764004 AND granted)",Boolean.class));if(coordinando)break;Thread.sleep(10);}
+            assertThat(coordinando).isTrue();var manual=admin.sendAsync(request(admin,"POST",rutaProgramar()+"/activacion/confirmar",c),HttpResponse.BodyHandlers.ofString());guard.commit();automatico.get(15,TimeUnit.SECONDS);status(manual.get(15,TimeUnit.SECONDS),409);
+        }
+        assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);assertThat(estado().get("intentos").get(0).get("origen").asString()).isEqualTo("PROGRAMACION");
+    }
+    @Test void manualQueGanaLaExclusionNoEsInterrumpidoPorElWorker()throws Exception{
+        preparar();programar();vencerProgramacion();var c=autorizarAdelanto();var real=app.getBean(PublicacionConfiguracion.class);var demorada=org.mockito.Mockito.mock(PublicacionConfiguracion.class);var dentro=new CountDownLatch(1);var continuar=new CountDownLatch(1);
+        org.mockito.Mockito.doAnswer(inv->{dentro.countDown();assertThat(continuar.await(10,TimeUnit.SECONDS)).isTrue();real.publicar(inv.getArgument(0),inv.getArgument(1),inv.getArgument(2),inv.getArgument(3),inv.getArgument(4));return null;}).when(demorada).publicar(org.mockito.ArgumentMatchers.anyLong(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any());
+        org.springframework.test.util.ReflectionTestUtils.setField(app.getBean(ActivacionConfiguracionService.class),"publicacion",demorada);
+        var manual=admin.sendAsync(request(admin,"POST",rutaProgramar()+"/activacion/confirmar",c),HttpResponse.BodyHandlers.ofString());try{assertThat(dentro.await(10,TimeUnit.SECONDS)).isTrue();ejecutar(true);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);assertThat(jdbc.queryForObject("SELECT estado FROM lamontana.intento_activacion_configuracion",String.class)).isEqualTo("INICIADO");}finally{continuar.countDown();}
+        var r=manual.get(15,TimeUnit.SECONDS);status(r,200);assertThat(JSON.readTree(r.body()).get("estado").asString()).isEqualTo("EXITOSO");assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("intento_activacion_configuracion")).isEqualTo(1);
+    }
+    private void servicios(List<String> sucursales)throws Exception{var c=comando();c.put("metodoAsignacion","MANUAL");c.put("serviciosPorSucursal",sucursales.stream().map(s->Map.of("sucursal",s,"servicios",List.of(servicio))).toList());aceptar(put(admin,base()+"/recursos",c));}
+    private Map<String,Object> dia(int dia,Boolean habilitado,String apertura,String cierre){var d=new HashMap<String,Object>();d.put("dia",dia);d.put("habilitado",habilitado);d.put("apertura",apertura);d.put("cierre",cierre);return d;}
+    private List<Map<String,Object>> semana(String apertura,String cierre){var dias=new ArrayList<Map<String,Object>>();for(int d=1;d<=7;d++)dias.add(dia(d,d<=5,d<=5?apertura:null,d<=5?cierre:null));return dias;}
+    private List<Map<String,Object>> soloDomingo(String apertura,String cierre){var dias=new ArrayList<Map<String,Object>>();for(int d=1;d<=7;d++)dias.add(dia(d,d==7,d==7?apertura:null,d==7?cierre:null));return dias;}
+    // Capacidad explícita del fixture; la instalación no recibe estas franjas.
+    private Map<String,Object> horario(String sucursal,List<? extends Map<String,Object>> dias){var franjas=dias.stream().filter(d->Boolean.TRUE.equals(d.get("habilitado"))&&d.get("apertura")!=null&&d.get("cierre")!=null).map(d->Map.of("dia",d.get("dia"),"apertura",d.get("apertura"),"cierre",d.get("cierre"),"capacidadPedidos",20,"habilitada",true)).toList();return Map.of("sucursal",sucursal,"dias",dias,"franjasRetiro",franjas);}
+    private Map<String,Object> entrega(String preparacion,String traslado,List<String> modalidades,List<? extends Map<String,Object>> horarios){var c=comando();c.put("preparacionHoras",preparacion);c.put("trasladoHoras",traslado);c.put("modalidades",modalidades);c.put("horariosPorSucursal",horarios);c.put("casaMatriz",a);c.put("matrizConfirmada",true);return c;}
+    private void guardar(String preparacion,String traslado,List<String> modalidades,List<? extends Map<String,Object>> horarios)throws Exception{aceptar(put(admin,ruta(),entrega(preparacion,traslado,modalidades,horarios)));}
+    private Map<String,Object> simulacion(String sucursal,String modalidad,String recibido){return new HashMap<>(Map.of("version",borrador.get("version").asLong(),"sucursal",sucursal,"modalidad",modalidad,"recibidoEn",recibido));}
+    private JsonNode simular(String sucursal,String modalidad,String recibido)throws Exception{var r=post(admin,ruta()+"/simular",simulacion(sucursal,modalidad,recibido));status(r,200);return JSON.readTree(r.body());}
+    private JsonNode validacion()throws Exception{var r=get(admin,ruta()+"/validacion");status(r,200);return JSON.readTree(r.body());}
+    private void assertProblemas(String... esperados)throws Exception{var v=validacion();assertThat(v.get("valida").asBoolean()).isFalse();var codigos=new ArrayList<String>();for(var p:v.get("problemas"))codigos.add(p.get("codigo").asString());assertThat(codigos).contains(esperados);}
+    private void assertInstante(JsonNode respuesta,String campo,String esperado){assertThat(Instant.parse(respuesta.get(campo).asString())).isEqualTo(Instant.parse(esperado));}
+    private String sucursal(String codigo)throws Exception{var r=post(admin,"/api/admin/sucursales",Map.of("codigo",codigo,"nombre","Sucursal "+codigo,"calle","Calle","numero","123","localidad","Ciudad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires"));status(r,201);return JSON.readTree(r.body()).get("codigoPublico").asString();}
+    private Map<String,Object> comando(){return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"version",borrador.get("version").asLong()));}
+    private String base(){return "/api/admin/configuracion/borradores/"+id;}
+    private String ruta(){return base()+"/entrega";}
+    private int contar(String tabla){return jdbc.queryForObject("SELECT count(*) FROM lamontana."+tabla,Integer.class);}
+    private JsonNode estado()throws Exception{var r=get(admin,"/api/admin/configuracion");status(r,200);return JSON.readTree(r.body());}
+    private void aceptar(HttpResponse<String> r){status(r,200);borrador=JSON.readTree(r.body());}
+    private HttpClient cliente(){return HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).connectTimeout(Duration.ofSeconds(5)).build();}
+    private URI uri(String path){return URI.create("http://127.0.0.1:"+port+path);}
+    private HttpResponse<String> get(HttpClient c,String path)throws Exception{return c.send(HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(15)).GET().build(),HttpResponse.BodyHandlers.ofString());}
+    private String csrf(HttpClient c)throws Exception{var r=get(c,"/api/auth/csrf");status(r,200);return JSON.readTree(r.body()).get("token").asString();}
+    private HttpRequest request(HttpClient c,String metodo,String path,Object data)throws Exception{return HttpRequest.newBuilder(uri(path)).timeout(Duration.ofSeconds(15)).header("Content-Type","application/json").header("X-CSRF-TOKEN",csrf(c)).method(metodo,HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(data))).build();}
+    private HttpResponse<String> put(HttpClient c,String path,Object data)throws Exception{return c.send(request(c,"PUT",path,data),HttpResponse.BodyHandlers.ofString());}
+    private HttpResponse<String> post(HttpClient c,String path,Object data)throws Exception{return c.send(request(c,"POST",path,data),HttpResponse.BodyHandlers.ofString());}
+    private void login(HttpClient c,String correo)throws Exception{var r=HttpRequest.newBuilder(uri("/api/auth/login")).header("Content-Type","application/x-www-form-urlencoded").header("X-CSRF-TOKEN",csrf(c)).POST(HttpRequest.BodyPublishers.ofString("username="+URLEncoder.encode(correo,StandardCharsets.UTF_8)+"&password="+URLEncoder.encode(CLAVE,StandardCharsets.UTF_8))).build();status(c.send(r,HttpResponse.BodyHandlers.ofString()),200);}
+    private void status(HttpResponse<String> r,int codigo){assertThat(r.statusCode()).withFailMessage("Esperado %s, recibido %s: %s",codigo,r.statusCode(),r.body()).isEqualTo(codigo);}
+    private static final class CapturaSmtp implements AutoCloseable {
+        private final ServerSocket servidor = new ServerSocket(0, 16, InetAddress.getByName("127.0.0.1"));
+        private final BlockingQueue<Mensaje> mensajes = new LinkedBlockingQueue<>();
+        private final ExecutorService hilo = Executors.newSingleThreadExecutor(r -> { var t = new Thread(r, "smtp-correo-test"); t.setDaemon(true); return t; });
+        private volatile boolean rechazar;
+        private volatile Exception fallo;
+        CapturaSmtp() throws IOException { hilo.submit(this::aceptar); }
+        int port() { return servidor.getLocalPort(); }
+        int pendientes() { return mensajes.size(); }
+        Mensaje recibir() throws Exception {
+            var mensaje = mensajes.poll(5, TimeUnit.SECONDS);
+            if (fallo != null) throw new AssertionError("Falló el servidor SMTP de prueba", fallo);
+            assertThat(mensaje).as("El correo debe recibirse realmente por SMTP").isNotNull();
+            return mensaje;
+        }
+        private void aceptar() {
+            while (!servidor.isClosed()) {
+                try (var socket = servidor.accept()) {
+                    socket.setSoTimeout(5000);
+                    var lector = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+                    var escritor = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8));
+                    responder(escritor, "220 localhost ESMTP test");
+                    for (String linea; (linea = lector.readLine()) != null;) {
+                        String comando = linea.toUpperCase(Locale.ROOT);
+                        if (comando.startsWith("EHLO") || comando.startsWith("HELO")) responder(escritor, "250 localhost");
+                        else if (comando.startsWith("MAIL FROM:")) responder(escritor, "250 Sender OK");
+                        else if (comando.startsWith("RCPT TO:")) responder(escritor, rechazar ? "451 Temporary SMTP failure" : "250 Recipient OK");
+                        else if (comando.equals("DATA")) {
+                            responder(escritor, "354 End data with <CRLF>.<CRLF>");
+                            var datos = new StringBuilder();
+                            while ((linea = lector.readLine()) != null && !linea.equals(".")) datos.append(linea.startsWith("..") ? linea.substring(1) : linea).append("\r\n");
+                            var mime = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(datos.toString().getBytes(StandardCharsets.UTF_8)));
+                            mensajes.add(new Mensaje(mime.getAllRecipients()[0].toString(), mime.getFrom()[0].toString(), mime.getSubject(), mime.getContent().toString()));
+                            responder(escritor, "250 Queued");
+                        } else if (comando.equals("QUIT")) { responder(escritor, "221 Bye"); break; }
+                        else if (comando.equals("RSET") || comando.equals("NOOP")) responder(escritor, "250 OK");
+                        else responder(escritor, "502 Command not implemented");
+                    }
+                } catch (Exception ex) { if (!servidor.isClosed()) fallo = ex; }
+            }
+        }
+        private void responder(BufferedWriter escritor, String respuesta) throws IOException { escritor.write(respuesta + "\r\n"); escritor.flush(); }
+        @Override public void close() throws Exception { servidor.close(); hilo.shutdownNow(); assertThat(hilo.awaitTermination(5, TimeUnit.SECONDS)).isTrue(); }
+    }
+    private record Mensaje(String destino, String remitente, String asunto, String cuerpo) {
+        String token() {
+            var encontrado = Pattern.compile("(?m)^[A-Za-z0-9_-]{43}\\r?$").matcher(cuerpo);
+            assertThat(encontrado.find()).as("Código opaco presente en el correo MIME").isTrue();
+            return encontrado.group().strip();
+        }
+        @Override public String toString() { return "Mensaje SMTP [contenido privado de prueba]"; }
+    }
+    private static Map<String,Object> conPoliticaArchivos(Map<String,?> origen){
+        var p=new HashMap<String,Object>(origen);p.putIfAbsent("politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72));return p;
+    }
+}

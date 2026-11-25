@@ -1,0 +1,32 @@
+{
+  "name": "lamontana-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "dev": "node scripts/prepare-pdf.mjs && next dev --hostname 0.0.0.0",
+    "build": "node scripts/prepare-pdf.mjs && next build",
+    "start": "next start --hostname 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test:tracking": "node --test tests/order-tracking.test.cjs",
+    "test:journey": "node --test tests/client-journey.test.cjs",
+    "test:payment-archives": "node --test tests/payment-archive-policy.test.cjs",
+    "test:schedules": "node --test tests/schedule-presets.test.cjs"
+  },
+  "dependencies": {
+    "next": "16.3.5",
+    "pdfjs-dist": "6.3.289",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "5.9.3"
+  }
+}

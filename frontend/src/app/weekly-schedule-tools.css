@@ -1,0 +1,10 @@
+/* Carga semanal explícita, compartida por producción y retiro. */
+.weekly-schedule-tools{margin:18px 0;padding:16px;border:1px solid var(--ui-border,#cbd7e8);border-radius:10px;background:var(--ui-info-bg,#edf4ff);min-width:0}
+.weekly-schedule-tools>summary{cursor:pointer;font-weight:600;line-height:1.6;color:var(--ui-text,#183753)}
+.weekly-schedule-tools .weekly-schedule-days{display:flex;flex-wrap:wrap;gap:12px 20px;border:0;padding:12px 0;margin:0}
+.weekly-schedule-tools .weekly-schedule-days legend{padding-top:12px;font-weight:600}
+.weekly-schedule-tools .weekly-schedule-days .admin-check{display:flex;align-items:center;gap:7px;margin:0}
+.weekly-schedule-tools .configuration-actions{flex-wrap:wrap}
+.weekly-schedule-tools .admin-form-grid{margin-bottom:14px}
+.weekly-schedule-tools>.admin-button{margin-top:12px;max-width:100%;white-space:normal}
+@media(max-width:600px){.weekly-schedule-tools{padding:12px}.weekly-schedule-tools .weekly-schedule-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}

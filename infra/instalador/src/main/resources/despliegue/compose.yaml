@@ -1,0 +1,107 @@
+x-servicio: &servicio
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+  labels:
+    ar.com.lamontana.instalacion: ${INSTALLATION_ID}
+services:
+  postgres:
+    <<: *servicio
+    image: ${IMAGE_POSTGRES}
+    pull_policy: never
+    environment:
+      POSTGRES_DB: lamontana
+      POSTGRES_USER: lamontana
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: [postgres_data:/var/lib/postgresql]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U lamontana -d lamontana"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  backend:
+    <<: *servicio
+    image: ${IMAGE_BACKEND}
+    pull_policy: never
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/lamontana
+      DB_USER: lamontana
+      DB_PASSWORD: ${DB_PASSWORD}
+      LAMONTANA_MODO: ${LAMONTANA_MODO}
+      SETUP_TOKEN: ${SETUP_TOKEN}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_AUTH: ${SMTP_AUTH}
+      SMTP_STARTTLS: ${SMTP_STARTTLS}
+      SMTP_SSL: ${SMTP_SSL}
+      FILES_DIR: /app/archivos
+      WEB_SOURCE_DIR: /app/web-entrada
+      WEB_SOURCE_HOST: ${WEB_SOURCE_DIR}
+      WEB_LIBRARY_DIR: /app/imagenes-web
+      PDF_INSPECTOR_JAR: /app/app.jar
+      CLAMAV_HOST: antivirus
+      CLAMAV_PORT: "3310"
+    ports: ["127.0.0.1:${CONTROL_PORT}:8080"]
+    volumes:
+      - archivos_data:/app/archivos
+      - imagenes_web_data:/app/imagenes-web
+      - type: bind
+        source: ${WEB_SOURCE_DIR}
+        target: /app/web-entrada
+        read_only: true
+        bind: {create_host_path: false}
+    depends_on:
+      postgres: {condition: service_healthy}
+      antivirus: {condition: service_healthy}
+  frontend:
+    <<: *servicio
+    image: ${IMAGE_FRONTEND}
+    pull_policy: never
+    environment:
+      BACKEND_INTERNAL_URL: http://backend:8080
+      NEXT_TELEMETRY_DISABLED: "1"
+      HOSTNAME: 0.0.0.0
+    ports: ["${APP_BIND}:${APP_PORT}:3000"]
+    depends_on:
+      backend: {condition: service_healthy}
+  antivirus:
+    <<: *servicio
+    image: ${IMAGE_ANTIVIRUS}
+    pull_policy: never
+    environment:
+      LAMONTANA_MODO: ${LAMONTANA_MODO}
+    volumes: [antivirus_data:/var/lib/clamav]
+    mem_limit: 4g
+  mailpit:
+    <<: *servicio
+    image: ${IMAGE_MAILPIT}
+    pull_policy: never
+    profiles: [desarrollo]
+    ports: ["127.0.0.1:${MAILPIT_PORT}:8025"]
+    environment: {MP_DATABASE: /data/mailpit.db}
+    volumes: [mail_data:/data]
+  proxy:
+    <<: *servicio
+    image: ${IMAGE_PROXY}
+    pull_policy: never
+    profiles: [standard]
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./proxy:/etc/caddy:ro
+      - tls_data:/data
+      - tls_config:/config
+    depends_on:
+      frontend: {condition: service_healthy}
+volumes:
+  postgres_data:
+  archivos_data:
+  imagenes_web_data:
+  antivirus_data:
+  mail_data:
+  tls_data:
+  tls_config:

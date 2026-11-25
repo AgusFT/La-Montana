@@ -1,0 +1,167 @@
+//#region ENCABEZADO · src/components/configuration-workspace.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/configuration-workspace.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Coordina las fases del configurador operativo, su borrador y guardados, la revisión, aplicación
+ * e historial, y protege la navegación durante ediciones y autorizaciones pendientes.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [async] readState()
+ * - [export] ConfigurationWorkspace({initial,initialPhase=1}:
+ *   {initial:ConfigurationState;initialPhase?:number})
+ *   Componente de interfaz.
+ * - ConfigurationWorkspace :: paymentsSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: resourcesSaved(data: ConfigurationDraft, notice?: string)
+ * - ConfigurationWorkspace :: deliverySaved(data: ConfigurationDraft, destination?: "POINTS" | "ZONES")
+ * - ConfigurationWorkspace :: pointsSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: zonesSaved(data: ConfigurationDraft)
+ * - ConfigurationWorkspace :: loadDraft(data: ConfigurationDraft)
+ * - [async] ConfigurationWorkspace :: refreshCurrent()
+ * - [async] ConfigurationWorkspace :: applied(result: ConfigurationVersion|ConfigurationSchedule)
+ * - [async] ConfigurationWorkspace :: cancelled(data: ConfigurationDraft)
+ * - [async] ConfigurationWorkspace :: send(next?: Command)
+ * - [async] ConfigurationWorkspace :: advance()
+ * - ConfigurationWorkspace :: create()
+ * - ConfigurationWorkspace :: save(event: FormEvent<HTMLFormElement>)
+ * - [async] ConfigurationWorkspace :: consult()
+ * - ConfigurationWorkspace :: adopt()
+ * - ConfigurationWorkspace :: choose(value: OperatingModel)
+ * - ConfigurationWorkspace :: navigate(next: number)
+ * - ConfigurationWorkspace :: goTo(next: number)
+ * - [async] ConfigurationWorkspace :: openReview()
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Command (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - phases [const].
+ * ========================================================================
+ */
+//#endregion
+
+"use client";
+import {useInstallation} from "./installation-guide";
+import {SaveNotice} from "./save-notice";
+import {commercialConfigurationText} from "@/lib/catalog-wording";
+import {useStepNavigation} from "./use-step-navigation";
+import {useNavigationGuard,useConfirmNavigation} from "@/components/navigation-boundary";
+import {ConfigurationHelp} from "@/components/configuration-help";
+import {ConfigurationTour} from "@/components/configuration-tour";
+import {ConfigurationHistory} from "@/components/configuration-history";
+import {useRef,useState,type FormEvent} from "react";
+import {ConfigurationZones} from "@/components/configuration-zones";
+import {ConfigurationPoints} from "@/components/configuration-points";
+import {ConfigurationSchedulePanel} from "@/components/configuration-schedule-panel";
+import {ConfigurationActivation} from "@/components/configuration-activation";
+import {isReview,type Review} from "@/lib/configuration-review-types";
+import {ConfigurationReview} from "@/components/configuration-review";
+import {ConfigurationDelivery,isDeliveryValidation} from "@/components/configuration-delivery";
+import {ConfigurationResources} from "@/components/configuration-resources";
+import {ConfigurationPayments} from "@/components/configuration-payments";
+import {DraftCancellation} from "@/components/draft-cancellation";
+import {MutationError,secureMutation} from "@/lib/secure-mutation";
+import {catalogDate} from "@/lib/catalog-types";
+import {isConfigurationDraft,isConfigurationState,modelLabels,criterionLabels,type ConfigurationState,type ConfigurationVersion,type ConfigurationSchedule,type ConfigurationDraft,type OperatingModel,type ApprovalCriterion} from "@/lib/configuration-types";
+const phases=["Configuración actual","Modelo operativo y aprobación","Pagos y reglas de seña","Recursos y asignación","Horarios y entrega","Revisión final (simulación opcional)","Aplicación y seguridad","Historial de versiones"];
+type Command={path:string;method:"POST"|"PUT";body:string};
+async function readState(){const r=await fetch("/api/admin/configuracion",{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw new Error("No pudimos consultar el borrador.");const data:unknown=await r.json();if(!isConfigurationState(data))throw new Error("La configuración tiene un formato inesperado.");return data;}
+
+export function ConfigurationWorkspace({initial,initialPhase=1,tourOwner}:{initial:ConfigurationState;initialPhase?:number;tourOwner:string}){
+  const guide=useInstallation();
+  const[attempts,setAttempts]=useState(initial.intentos);
+  const[scheduled,setScheduled]=useState(initial.programada),[active,setActive]=useState(initial.activa),[activationReview,setActivationReview]=useState<Review|null>(null);
+  const[printerEditor,setPrinterEditor]=useState(false);
+  const[pointsView,setPointsView]=useState(false),[zonesView,setZonesView]=useState(false);
+  const[childLocked,setChildLocked]=useState(false),[reviewReady,setReviewReady]=useState(false);
+  const[history,setHistory]=useState(initial.historial),[cancelEpoch,setCancelEpoch]=useState(0);
+  const[draft,setDraft]=useState(initial.borrador),[phase,setPhase]=useState(initialPhase===2&&initial.borrador?.copia?2:!initial.activa&&initial.borrador?Math.min(6,guide.data?.guia.faseDisponible??2):1),[model,setModel]=useState<OperatingModel|"">(initial.borrador?.modelo??""),[criterion,setCriterion]=useState<ApprovalCriterion|"">(initial.borrador?.criterio??"");
+  const[baseVersion,setBaseVersion]=useState(initial.borrador?.version??0),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[message,setMessage]=useState(""),[success,setSuccess]=useState(""),[conflict,setConflict]=useState(false),[latest,setLatest]=useState<ConfigurationDraft|null>(null);
+  const stepNavigation=useStepNavigation(phase);
+  const command=useRef<Command|null>(null);const running=attempts.some(i=>i.estado==="INICIADO"),locked=busy||uncertain||childLocked||running;
+  const firstSetup=guide.enabled&&!active&&!guide.data?.activa,phaseLimit=firstSetup?(guide.data?.guia.faseDisponible??1):8;
+  const checkingProgress=firstSetup&&(guide.loading||guide.error||!!draft&&guide.data?.guia.versionBorrador!==draft.version);
+  const modelDirty=model!==(draft?.modelo??"")||(model==="CONDICIONAL"?criterion:"")!==(draft?.criterio??"");
+  useNavigationGuard({dirty:phase===2&&modelDirty,blocked:locked});
+  const confirmNavigation=useConfirmNavigation();
+  function paymentsSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(data.modelo?3:2);setMessage("");setSuccess("Pagos y reglas guardados en el borrador. Todavía no están activos.");}
+  function resourcesSaved(data:ConfigurationDraft,notice?:string){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(4);setMessage("");setSuccess(notice??"Recursos guardados en el borrador. Todavía no están activos.");}
+  function deliverySaved(data:ConfigurationDraft,destination?:"POINTS"|"ZONES"){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setPointsView(destination==="POINTS");setZonesView(destination==="ZONES");setMessage("");setSuccess("Horarios y modalidades guardados en el borrador. Todavía no están activos.");}
+  function pointsSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setPointsView(true);setMessage("");setSuccess("Punto guardado en el borrador. La disponibilidad temporal se gestiona por separado.");}
+  function zonesSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(5);setZonesView(true);setPointsView(false);setMessage("");setSuccess("Zona guardada en el borrador. Sus condiciones todavía no están activas.");}
+  function loadDraft(data:ConfigurationDraft){setDraft(data);setBaseVersion(data.version);setModel(data.modelo??"");setCriterion(data.criterio??"");}
+  async function refreshCurrent(){const state=await readState();setHistory(state.historial);setActive(state.activa);setScheduled(state.programada);setAttempts(state.intentos);if(state.borrador)loadDraft(state.borrador);else{setDraft(null);setBaseVersion(0);setModel("");setCriterion("");}setCancelEpoch(value=>value+1);}
+  async function applied(result:ConfigurationVersion|ConfigurationSchedule){setDraft(null);setBaseVersion(0);setModel("");setCriterion("");if("activadaEn"in result&&result.configuracion.estado==="ACTIVA")setActive(result);if("previstaEn"in result)setScheduled(result.configuracion.estado==="PROGRAMADA"?result:null);await refreshCurrent();}
+  async function cancelled(data:ConfigurationDraft){setScheduled(null);setDraft(null);setPhase(1);setBaseVersion(0);setModel("");setCriterion("");setHistory(current=>[data,...current.filter(item=>item.codigoPublico!==data.codigoPublico)]);setSuccess(`Borrador ${data.numero} cancelado. Su registro permanece en el historial.`);setMessage("");try{await refreshCurrent();}catch{setMessage("La cancelación fue confirmada, pero no pudimos actualizar el estado. Recargá la página para consultar los datos actuales.");}}
+  async function send(next?:Command){
+    if(busy)return;setBusy(true);setMessage("");setSuccess("");if(next)command.current=next;
+    try{if(!command.current)throw new Error("No hay una solicitud pendiente.");const c=command.current;const response=await secureMutation(c.path,c.body,"application/json",c.method);const data:unknown=await response.json();if(!isConfigurationDraft(data))throw new Error("No pudimos confirmar el borrador recibido.");command.current=null;setUncertain(false);setConflict(false);setLatest(null);if(data.estado==="CANCELADA"){await cancelled(data);}else{loadDraft(data);setPhase(2);setSuccess(c.path.endsWith("/modelo")?"Modelo operativo guardado en el borrador. Podés continuar a pagos y reglas.":data.copia?`Borrador creado desde V${data.copia.numeroOrigen}. Se conservaron impresoras y parámetros; revisá cada fase antes de activar.`:"Borrador inicial creado. Elegí el modelo operativo para comenzar.");}}
+    catch(error){setMessage(error instanceof Error?error.message:"No pudimos guardar el borrador.");if(error instanceof MutationError&&!error.uncertain){command.current=null;setUncertain(false);setConflict(error.status===409);}else if(command.current)setUncertain(true);}
+    finally{setBusy(false);}
+  }
+  async function advance(){
+    if(!scheduled||locked)return;setBusy(true);setMessage("");setSuccess("");
+    try{const r=await fetch(`/api/admin/configuracion/borradores/${scheduled.configuracion.codigoPublico}/programacion/revision`,{cache:"no-store"});const data:unknown=await r.json();if(!r.ok||!isReview(data)||data.borrador.estado!=="PROGRAMADA")throw new Error("No pudimos revisar la programación. Actualizá su estado antes de continuar.");setActivationReview(data);setPhase(7);}
+    catch(cause){setMessage(cause instanceof Error?cause.message:"No pudimos revisar la programación.");}finally{setBusy(false);}
+  }
+  function create(){void send({path:"/api/admin/configuracion/borradores",method:"POST",body:JSON.stringify({operacion:crypto.randomUUID()})});}
+  function save(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!draft||locked||conflict)return;if(!model||(model==="CONDICIONAL"&&!criterion)){setMessage("Elegí el modelo y su condición antes de guardar.");return;}void send({path:`/api/admin/configuracion/borradores/${draft.codigoPublico}/modelo`,method:"PUT",body:JSON.stringify({operacion:crypto.randomUUID(),version:baseVersion,modelo:model,criterio:model==="CONDICIONAL"?criterion:null})});}
+  async function consult(){setBusy(true);setMessage("");try{const state=await readState();if(!state.borrador)throw new Error("No hay un borrador guardado. Recargá la página para consultar el estado actual.");setLatest(state.borrador);}catch(error){setMessage(error instanceof Error?error.message:"No pudimos consultar el borrador.");}finally{setBusy(false);}}
+  function adopt(){if(!latest)return;if(!draft){loadDraft(latest);setPhase(2);}else if(draft.codigoPublico!==latest.codigoPublico){setMessage("Cambió el borrador en preparación. Recargá la página para continuar.");return;}else{setDraft(latest);setBaseVersion(latest.version);}setLatest(null);setConflict(false);setMessage("");setSuccess("");}
+  function choose(value:OperatingModel){setModel(value);setCriterion("");setSuccess("");}
+  function navigate(next:number){if(!confirmNavigation())return;setModel(draft?.modelo??"");setCriterion(draft?.criterio??"");goTo(next);}
+  function goTo(next:number){if(firstSetup&&next>phase&&((next>phaseLimit&&!(next===7&&activationReview))||checkingProgress)){setMessage("Completá y guardá los requisitos del paso anterior antes de continuar. Revisá los pendientes de la guía.");return;}if(draft?.copia&&next>=3&&next<=7){const pendiente=[2,3,4,5,6].find(f=>f<next&&!draft.copia!.fasesConfirmadas.includes(f));if(pendiente){setMessage(`Revisá y guardá nuevamente la fase ${pendiente} antes de continuar con la copia.`);setPhase(pendiente);return;}}if(next!==7)setActivationReview(null);setPointsView(false);setZonesView(false);setSuccess("");setMessage("");setPhase(next);}
+  async function openReview(){
+    if(!draft||locked||!confirmNavigation())return;if(firstSetup&&(phaseLimit<6||checkingProgress)){setMessage("Completá y guardá los requisitos de recursos, horarios y modalidades antes de continuar.");return;}if(draft.copia&&[2,3,4,5].some(f=>!draft.copia!.fasesConfirmadas.includes(f))){goTo(6);return;}setBusy(true);setMessage("");setSuccess("");
+    try{const r=await fetch(`/api/admin/configuracion/borradores/${draft.codigoPublico}/entrega/validacion`,{cache:"no-store"}),v:unknown=await r.json();if(!r.ok||!isDeliveryValidation(v))throw new Error("No pudimos comprobar los mínimos de horarios y entrega. Volvé a intentarlo.");
+      if(v.version!==draft.version){await refreshCurrent();goTo(5);setMessage("El borrador cambió. Revisá la edición guardada antes de continuar.");}
+      else if(!v.valida){goTo(5);setMessage("Completá los mínimos de horarios y entrega antes de avanzar a la revisión integral.");}
+      else goTo(6);
+    }catch(cause){setMessage(cause instanceof Error?cause.message:"No pudimos consultar la configuración.");}finally{setBusy(false);}
+  }
+  return <>
+    <p className="admin-info">Configurá la operación paso a paso. Guardá cada formulario para conservar tu avance; al final revisarás y autorizarás la activación. En la primera instalación, los pasos posteriores se habilitan al completar los anteriores. Siempre podés volver a corregir datos guardados.</p>
+    <div className="configuration-layout"><aside id="config-tour-phases" className="configuration-steps"><h2>Flujo de configuración</h2><p>Fase {phase} de 8</p><nav ref={stepNavigation} aria-label="Fases del configurador">{phases.map((label,index)=><button key={label} type="button" aria-current={phase===index+1?"step":undefined} disabled={locked||firstSetup&&index+1>phase&&((index+1>phaseLimit&&!(index===6&&activationReview))||checkingProgress)||(!!draft?.copia&&index>=2&&index<=5&&[2,3,4,5].some(f=>f<=index&&!draft.copia!.fasesConfirmadas.includes(f)))||(index===7&&modelDirty)||(index===6&&!activationReview)||(index===1&&!draft)||(index===2&&(!draft?.modelo||modelDirty))||(index===3&&(!draft?.pagos||modelDirty))||(index===4&&(!draft?.recursos.metodoAsignacion||modelDirty))||(index===5&&(!draft?.recursos.metodoAsignacion||modelDirty||(phase===5&&!reviewReady)))} onClick={()=>index===5?void openReview():navigate(index+1)}><span>{String(index+1).padStart(2,"0")}</span><span>{label}{firstSetup&&index+1>phaseLimit&&index!==6&&<small>Completá la fase anterior</small>}</span></button>)}</nav></aside>
+      <div className="configuration-body"><div id="config-tour-phase-help"><ConfigurationHelp phase={phase}/></div>
+        {success&&<SaveNotice>{success}</SaveNotice>}
+        {firstSetup&&phase>=2&&phase<=6&&<section className="admin-info installation-step-note"><strong>{checkingProgress?"Comprobando el avance guardado…":phase<phaseLimit?"Esta fase está guardada y sus mínimos están completos.":"Completá esta fase para habilitar la siguiente."}</strong><p>Guardar confirma los datos en el borrador. Continuar se habilita sólo cuando están completos. Las simulaciones son opcionales.</p>{phase===phaseLimit&&!!guide.data?.guia.pendientesFase.length&&<ul>{guide.data.guia.pendientesFase.map((text,i)=><li key={i}>{commercialConfigurationText(text)}</li>)}</ul>}</section>}
+        {draft?.copia&&phase!==8&&<section className="admin-info configuration-copy-info"><strong>Borrador V{draft.numero} basado en V{draft.copia.numeroOrigen}</strong><p>Revisá y guardá nuevamente las fases 2 a 5, y confirmá la revisión integral en fase 6. Copiar no aprueba ni activa la configuración.</p><p>{[2,3,4,5,6].map(f=>`Fase ${f}: ${draft.copia!.fasesConfirmadas.includes(f)?"confirmada":"pendiente"}`).join(" · ")}</p><details><summary>Consulta inicial de recursos y condiciones</summary><p>Resultado al crear la copia. La revisión integral vuelve a comprobar las condiciones actuales.</p><ul>{draft.copia.barridoInicial.filter(h=>h.nivel!=="INFORMACION").map((h,i)=><li key={i}>{commercialConfigurationText(h.mensaje)}</li>)}</ul></details></section>}
+        <div id="config-tour-phase-content">{phase===8?<ConfigurationHistory onCurrent={()=>navigate(1)} onLockChange={setChildLocked} onCreated={data=>{loadDraft(data);setScheduled(null);setPhase(2);setMessage("");setSuccess(`Borrador V${data.numero} creado desde V${data.copia!.numeroOrigen}. Revisá nuevamente cada fase.`);}}/>:phase===7&&activationReview?<ConfigurationActivation review={activationReview} active={active} onApplied={applied} onFailed={refreshCurrent} onBack={()=>goTo(activationReview.borrador.estado==="PROGRAMADA"?1:6)} onHome={()=>goTo(1)} onLockChange={setChildLocked}/>:phase===1?<>
+          <h2>Configuración actual</h2>{running&&<div className="admin-info"><p>Hay una activación en curso. La edición queda bloqueada hasta conocer el resultado.</p><button className="admin-button secondary" disabled={busy||uncertain||childLocked} onClick={()=>{void refreshCurrent().catch(()=>setMessage("No pudimos consultar el estado. Recargá para volver a intentarlo."));}}>Actualizar estado de activación</button></div>}<p className="admin-note">Prepará un único borrador. Todas las decisiones comienzan sin seleccionar.</p>
+          <div className="configuration-summary"><section id="config-tour-current" className="admin-card"><small>CONFIGURACIÓN VIGENTE</small><h3>{active?`V${active.configuracion.numero} · Activa`:"Sin configuración activa"}</h3><p>{active?`Activada el ${catalogDate(active.activadaEn)} por ${active.activador}.`:"Completá las fases y confirmá la activación segura."}</p>{active&&<p>Motivo: {active.motivo}</p>}</section><section id="config-tour-scheduled" className="admin-card"><small>PRÓXIMA CONFIGURACIÓN</small><h3>{scheduled?`V${scheduled.configuracion.numero} · Programada`:"No programada"}</h3><p>{scheduled?`Prevista para ${new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short",timeZone:scheduled.zonaHoraria}).format(new Date(scheduled.previstaEn))}. Zona: ${scheduled.zonaHoraria}.`:"Podés programar desde la fase 7 del borrador revisado."}</p></section><section id="config-tour-draft" className="admin-card"><small>ESTADO DE EDICIÓN</small><h3>{draft?"Borrador en curso":scheduled?"Edición cerrada":"Sin borrador"}</h3><p>{draft?`Borrador ${draft.numero} · Edición ${draft.version}`:scheduled?"La programación pendiente impide crear o editar otro borrador.":"Creá el borrador para elegir cómo operará la imprenta."}</p></section></div>
+          {scheduled?<div id="config-tour-schedule-action"><ConfigurationSchedulePanel value={scheduled} active={active} onRefresh={refreshCurrent} onAdvance={advance} onCancelled={cancelled} onLockChange={setChildLocked}/></div>:draft?<section id="config-tour-resume" className="admin-card configuration-resume"><h3>Continuar el borrador guardado</h3><p>Responsable: {draft.actor} · Último guardado: {catalogDate(draft.actualizadaEn)}</p><p>Modelo: {draft.modelo?modelLabels[draft.modelo]:"Sin seleccionar"}{draft.criterio&&` · ${criterionLabels[draft.criterio]}`}</p><button type="button" className="admin-button" disabled={locked} onClick={()=>setPhase(firstSetup?Math.max(2,Math.min(6,phaseLimit)):2)}>{firstSetup?"Continuar paso pendiente":"Editar borrador"}</button></section>:<section id="config-tour-start" className="admin-card"><h3>Comenzar la configuración</h3><p className="admin-note">{active?`Se crea un borrador desde la versión vigente V${active.configuracion.numero}, conservando impresoras, pagos y horarios. Revisá cada fase antes de activar los cambios.`:"Primera instalación: se crea un borrador vacío para configurar la imprenta."}</p><button type="button" className="admin-button" disabled={locked||conflict} onClick={create}>Crear borrador</button></section>}
+          <section className="admin-card"><h3>Recuperar la configuración anterior</h3><p>La reversión manual crea una nueva versión con el contenido de la predecesora efectiva. Requiere revisión, contraseña y código de correo; si tiene éxito cancela también la programación pendiente.</p><button className="admin-button secondary" disabled={locked||!!draft||!active?.predecesora} onClick={()=>location.assign("/administracion/configuracion/rollback")}>Revisar reversión manual</button>{!!draft?<p className="admin-note">Primero cancelá el borrador abierto.</p>:!active?.predecesora&&<p className="admin-note">Todavía no hay una predecesora efectiva que recuperar.</p>}</section>
+          {attempts.length>0&&<section className="admin-card"><h3>Últimos intentos de publicación</h3><ul>{attempts.slice(0,5).map(i=><li key={i.codigo}><strong>{i.operacion==="ROLLBACK"?`Reversión desde V${i.numero}${i.numeroResultante?` → V${i.numeroResultante}`:""}`:`Activación V${i.numero}`} · {i.estado}</strong> · {catalogDate(i.iniciadoEn)} · {i.origen}<p>{i.detalle}</p></li>)}</ul><p className="admin-note">Los registros completos se consultan en la fase 8.</p></section>}
+          {draft&&<DraftCancellation key={`${draft.codigoPublico}:${draft.version}:${cancelEpoch}`} draft={draft} onCancelled={cancelled} onRefresh={refreshCurrent} onLockChange={setChildLocked}/>}
+        </>:phase===6&&draft?<ConfigurationReview key={draft.codigoPublico} draft={draft} onNext={r=>{setActivationReview(r);setSuccess("");setPhase(7);}} onSnapshot={loadDraft} onNavigate={navigate} onLockChange={setChildLocked}/>:phase===5&&draft&&zonesView?<ConfigurationZones key={`${draft.codigoPublico}:${draft.version}`} draft={draft} onSaved={zonesSaved} onLockChange={setChildLocked} onBack={()=>{if(confirmNavigation()){setZonesView(false);setSuccess("");}}}/>:phase===5&&draft&&pointsView?<ConfigurationPoints key={`${draft.codigoPublico}:${draft.version}`} draft={draft} onSaved={pointsSaved} onLockChange={setChildLocked} onBack={()=>{if(confirmNavigation()){setPointsView(false);setSuccess("");}}}/>:phase===5&&draft?<ConfigurationDelivery onNext={openReview} onReviewReady={setReviewReady} key={`${draft.codigoPublico}:${draft.version}`} draft={draft} onZones={()=>{setZonesView(true);setPointsView(false);setSuccess("");}} onPoints={()=>{setPointsView(true);setZonesView(false);setSuccess("");}} onSaved={deliverySaved} onLockChange={setChildLocked} onBack={()=>navigate(4)}/>:phase===4&&draft?<ConfigurationResources onPrinterEditorChange={setPrinterEditor} key={`${draft.codigoPublico}:${draft.version}`} draft={draft} onNext={()=>navigate(5)} onSaved={resourcesSaved} onLockChange={setChildLocked} onBack={()=>navigate(3)}/>:phase===3&&draft?<ConfigurationPayments key={`${draft.codigoPublico}:${draft.version}`} draft={draft} onNext={()=>navigate(4)} onSaved={paymentsSaved} onLockChange={setChildLocked} onBack={()=>navigate(2)}/>:draft&&<form className="admin-form" onSubmit={save}>
+          <div><h2>Fase 2 · Modelo operativo y aprobación</h2><p className="admin-note">Borrador {draft.numero} · Editando versión {baseVersion}. Esta selección se completa con las reglas financieras de la fase 3.</p>{draft.pagos&&<p className="admin-warning">Cambiar el modelo o su condición requiere configurar nuevamente los pagos y reglas de este borrador.</p>}</div>
+          <fieldset id="config-tour-model" disabled={locked} className="admin-fieldset"><legend className="configuration-legend">Elegir modo de operación</legend><div className="configuration-models">
+            <label className={`configuration-option ${model==="MANUAL"?"is-selected":""}`}><input type="radio" name="modelo" aria-label="Control manual" value="MANUAL" required checked={model==="MANUAL"} onChange={()=>choose("MANUAL")}/><strong>Control manual</strong><p>Todos los pedidos requieren revisión y decisión humana. Los medios de pago y las reglas financieras se definen después.</p></label>
+            <label className={`configuration-option ${model==="CONDICIONAL"?"is-selected":""}`}><input type="radio" name="modelo" aria-label="Control condicional" value="CONDICIONAL" required checked={model==="CONDICIONAL"} onChange={()=>choose("CONDICIONAL")}/><strong>Control condicional</strong><p>Una condición admitida define el recorrido de aprobación, junto con las validaciones técnicas y los parámetros financieros.</p></label>
+            <div className="configuration-option is-future"><strong>Automatización certificada</strong><span className="configuration-badge">En construcción</span><p>Evolución futura. No se puede seleccionar en esta versión.</p></div>
+          </div>
+          {model==="CONDICIONAL"&&<section id="config-tour-criterion" className="admin-card configuration-conditions"><h3>Condición de aprobación</h3><p>Elegí una condición. Los importes, porcentajes y medios se configurarán en la fase 3.</p>{Object.entries(criterionLabels).map(([value,label])=><label key={value} className="admin-check"><input type="radio" name="criterio" required value={value} checked={criterion===value} onChange={()=>{setCriterion(value as ApprovalCriterion);setSuccess("");}}/>{label}</label>)}
+            {criterion&&<p className="admin-info">{criterion==="PAGO_PREVIO"?"El cliente carga el PDF privado y completa el pedido normalmente. Las validaciones técnicas son obligatorias. El pago total debe acreditarse antes de aprobar y producir.":criterion==="SENA"?"El cliente carga el PDF privado y completa el pedido normalmente. La seña de Fase 3 debe acreditarse antes de aprobar y producir; no se asigna un importe predeterminado.":"Se valida el PDF y se calcula el importe total. Se compara con el umbral de Fase 3 para aplicar la condición económica configurada. Superarlo no obliga a revisión humana automática."}</p>}
+          </section>}
+          </fieldset>
+          <div id="config-tour-model-actions" className="configuration-actions"><button type="button" className="admin-button secondary" disabled={locked} onClick={()=>navigate(1)}>Volver al estado actual</button><button className="admin-button" disabled={locked||conflict}>{busy?"Guardando…":"Guardar selección"}</button><button type="button" className="admin-button secondary" disabled={locked||!draft.modelo||modelDirty||conflict||firstSetup&&(checkingProgress||phaseLimit<3)} onClick={()=>navigate(3)}>Continuar a pagos y reglas</button></div>
+        </form>}</div>
+        {message&&<p className="admin-warning" role="alert">{message}</p>}
+        {uncertain&&<div className="admin-warning"><p>No pudimos confirmar la respuesta. Conservamos los mismos datos para evitar duplicados.</p><button type="button" className="admin-button" disabled={busy} onClick={()=>send()}>Reintentar la misma solicitud</button></div>}
+        {conflict&&<div className="admin-warning"><p>El borrador cambió. Tu selección sigue en el formulario.</p><button type="button" className="admin-button secondary" disabled={busy} onClick={consult}>Consultar borrador guardado</button></div>}
+        {latest&&<section className="admin-card"><h3>Borrador guardado · Edición {latest.version}</h3><p>Modelo: {latest.modelo?modelLabels[latest.modelo]:"Sin seleccionar"}{latest.criterio&&` · ${criterionLabels[latest.criterio]}`}</p><button type="button" className="admin-button secondary" disabled={locked} onClick={adopt}>{draft?"Usar versión actual conservando mi selección":"Continuar este borrador"}</button></section>}
+      </div>
+    </div>
+    <ConfigurationTour phase={phase} owner={tourOwner} firstSetup={firstSetup} ready={!!guide.data&&!guide.error&&!guide.loading&&!checkingProgress} hasDraft={!!draft} hasScheduled={!!scheduled} hasActive={!!active} conditional={model==="CONDICIONAL"} printerEditor={printerEditor}/>
+    <section className="admin-card configuration-history"><h2>Borradores cancelados</h2><p className="admin-note">La cancelación conserva lo que se había preparado. La fase 8 permite consultar el detalle de todas las versiones cerradas.</p>
+      {history.length===0?<p className="admin-empty">Todavía no hay borradores cancelados.</p>:<div className="admin-table-wrap" tabIndex={0} aria-label="Borradores cancelados"><table className="admin-table"><thead><tr><th>Borrador</th><th>Cancelación</th><th>Responsable</th><th>Motivo</th><th>Selección conservada</th></tr></thead><tbody>{history.map(item=><tr key={item.codigoPublico}><td>{item.numero}<small>Edición {item.version}</small></td><td>{item.canceladaEn?catalogDate(item.canceladaEn):"Sin fecha"}</td><td>{item.cancelador}</td><td>{item.motivoCancelacion}</td><td>{item.modelo?modelLabels[item.modelo]:"Sin seleccionar"}{item.criterio&&<small>{criterionLabels[item.criterio]}</small>}</td></tr>)}</tbody></table></div>}
+    </section>
+    <div className="admin-page-footer"><a href={locked?undefined:"/administracion"} aria-disabled={locked} tabIndex={locked?-1:undefined}>← Volver a administración</a><span>{active?`Configuración activa V${active.configuracion.numero}`:"Sin configuración activa"}</span></div>
+  </>;
+}

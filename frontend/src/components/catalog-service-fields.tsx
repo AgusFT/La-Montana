@@ -1,0 +1,100 @@
+//#region ENCABEZADO · src/components/catalog-service-fields.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/components/catalog-service-fields.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Ofrece sugerencias de servicios básicos y completa nombre, código y tipo al elegir una opción,
+ * conservando la edición manual y evitando códigos conocidos en uso.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - normalize(value: string)
+ * - [export] CatalogServiceFields({existingCodes,disabled}:
+ *   {existingCodes:string[];disabled:boolean})
+ *   Componente de interfaz.
+ * - CatalogServiceFields :: suggestedCode(base: string)
+ * - CatalogServiceFields :: choose(s: Suggestion)
+ * - CatalogServiceFields :: keyboard(event: KeyboardEvent<HTMLInputElement>)
+ * - CatalogServiceFields :: outside(event: PointerEvent)
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - Suggestion (tipo).
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - suggestions [const].
+ * ========================================================================
+ */
+//#endregion
+
+"use client";
+import {useEffect,useId,useRef,useState,type KeyboardEvent} from "react";
+import {CodeField} from "@/components/code-field";
+import type {CatalogService} from "@/lib/catalog-types";
+
+type Suggestion={nombre:string;codigo:string;tipo:CatalogService["tipo"]};
+const suggestions:Suggestion[]=[
+  {nombre:"Impresión",codigo:"IMPRESION",tipo:"IMPRESION"},
+  {nombre:"Anillado",codigo:"ANILLADO",tipo:"TERMINACION"},
+  {nombre:"Plastificado",codigo:"PLASTIFICADO",tipo:"TERMINACION"},
+  {nombre:"Encuadernación",codigo:"ENCUADERNACION",tipo:"TERMINACION"},
+  {nombre:"Corte y refilado",codigo:"CORTE-REFILADO",tipo:"TERMINACION"},
+  {nombre:"Plegado",codigo:"PLEGADO",tipo:"TERMINACION"},
+  {nombre:"Abrochado",codigo:"ABROCHADO",tipo:"TERMINACION"},
+];
+const normalize=(value:string)=>value.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+
+export function CatalogServiceFields({existingCodes,existingNames=[],hasPrinting=false,disabled}:{existingCodes:string[];existingNames?:string[];hasPrinting?:boolean;disabled:boolean}){
+  const id=useId(),input=useRef<HTMLInputElement>(null),control=useRef<HTMLDivElement>(null);
+  const [name,setName]=useState(""),[code,setCode]=useState(""),[type,setType]=useState<CatalogService["tipo"]|"">("");
+  const [open,setOpen]=useState(false),[query,setQuery]=useState(""),[active,setActive]=useState(-1),[selectionNote,setSelectionNote]=useState("");
+  const options=suggestions.filter(s=>(s.tipo!=="IMPRESION"||!hasPrinting)&&!existingCodes.some(code=>code.toUpperCase()===s.codigo)&&!existingNames.some(name=>normalize(name)===normalize(s.nombre))).filter(s=>normalize(`${s.nombre} ${s.codigo}`).includes(normalize(query))),shown=open&&!disabled;
+  const listId=`${id}-options`,helpId=`${id}-help`;
+  function choose(s:Suggestion){setName(s.nombre);setCode(s.codigo);setType(s.tipo);setOpen(false);setActive(-1);setSelectionNote(`Completamos el código ${s.codigo} y el tipo ${s.tipo==="IMPRESION"?"Impresión":"Terminación"}. Podés editar los campos antes de crearlo.`);}
+  function keyboard(event:KeyboardEvent<HTMLInputElement>){
+    if(event.key==="ArrowDown"||event.key==="ArrowUp"){
+      event.preventDefault();
+      if(!shown){setQuery("");setOpen(true);setActive(event.key==="ArrowDown"?0:suggestions.length-1);}
+      else if(options.length)setActive(i=>event.key==="ArrowDown"?(i+1)%options.length:(i<0?options.length-1:(i-1+options.length)%options.length));
+    }else if(event.key==="Enter"&&shown){event.preventDefault();if(active>=0&&options[active])choose(options[active]);else setOpen(false);}
+  }
+  useEffect(()=>{
+    if(!shown)return;
+    function outside(event:PointerEvent){if(event.target instanceof Node&&!control.current?.contains(event.target))setOpen(false);}
+    document.addEventListener("pointerdown",outside);return()=>document.removeEventListener("pointerdown",outside);
+  },[shown]);
+  useEffect(()=>{if(shown&&active>=0)document.getElementById(`${listId}-${active}`)?.scrollIntoView({block:"nearest"});},[active,shown,listId]);
+  return <>
+    <div className="service-name-field">
+      <label htmlFor={id}>Nombre</label>
+      <div ref={control} className="service-name-control" onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}} onKeyDown={e=>{if(e.key==="Escape"&&shown){e.preventDefault();e.stopPropagation();setOpen(false);setActive(-1);}}}>
+        <input ref={input} id={id} name="nombre" required maxLength={140} placeholder="Elegí un servicio básico o escribí el tuyo" autoComplete="off"
+          role="combobox" aria-autocomplete="list" aria-expanded={shown} aria-controls={listId} aria-describedby={helpId} aria-activedescendant={shown&&active>=0&&options[active]?`${listId}-${active}`:undefined}
+          value={name} onFocus={()=>{setQuery("");setActive(-1);setOpen(true);}} onChange={e=>{setName(e.target.value);setQuery(e.target.value);setActive(-1);setOpen(true);setSelectionNote("");}} onKeyDown={keyboard}/>
+        <button type="button" tabIndex={-1} className="service-name-toggle" aria-label="Mostrar servicios básicos" aria-expanded={shown} aria-controls={listId} disabled={disabled} onClick={()=>{if(shown)setOpen(false);else{input.current?.focus();setQuery("");setActive(-1);setOpen(true);}}}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        {shown&&<div className="service-suggestions" tabIndex={-1}>
+          <ul id={listId} role="listbox" aria-label="Servicios básicos">{options.map((s,i)=><li id={`${listId}-${i}`} key={s.codigo} role="option" aria-selected={active===i}
+            onPointerDown={e=>e.preventDefault()} onPointerMove={()=>setActive(i)} onClick={()=>choose(s)}>
+            <strong>{s.nombre}</strong><span>{s.codigo} · {s.tipo==="IMPRESION"?"Impresión":"Terminación"}</span>
+          </li>)}</ul>
+          {options.length===0&&<p role="status">Sin coincidencias. Podés usar el nombre que escribiste y completar el código y el tipo.</p>}
+        </div>}
+      </div>
+      <small id={helpId}>Elegí una sugerencia para completar el código y el tipo, o escribí un nombre propio. Después podés editar todo. Los precios y modos de color se configuran en Tarifas y servicios.</small>
+    </div>
+    {selectionNote&&<p className="service-selection-note admin-info" role="status">{selectionNote}</p>}
+    <CodeField subject="servicio" maxLength={50} value={code} onValueChange={setCode}>
+      <p>Es el identificador único del servicio. Se usa para reconocerlo en el catálogo, al preparar tarifas y servicios ofrecidos.</p>
+      <p><strong>Formato recomendado:</strong> <code>IMPRESION</code> o <code>ANILLADO</code>. B/N y Color se eligen más adelante, dentro de Tarifas de impresión. Los códigos no pueden repetirse.</p>
+      <p>Podés cambiar la sugerencia antes de guardar. Hasta 50 caracteres: letras sin tildes, números, guion o guion bajo, sin espacios. Se guarda en mayúsculas y queda fijo después del alta.</p>
+    </CodeField>
+    <label>Tipo<select name="tipo" required value={type} onChange={e=>setType(e.target.value as CatalogService["tipo"]|"")}><option value="" disabled>Seleccionar tipo</option><option value="IMPRESION">Impresión</option><option value="TERMINACION">Terminación</option></select></label>
+    <label className="service-description">Descripción (opcional)<textarea name="descripcion" maxLength={1000}/></label>
+  </>;
+}

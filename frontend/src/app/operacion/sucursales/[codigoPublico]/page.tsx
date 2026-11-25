@@ -1,0 +1,62 @@
+//#region ENCABEZADO · src/app/operacion/sucursales/[codigoPublico]/page.tsx
+/*
+ * ========================================================================
+ * ARCHIVO: src/app/operacion/sucursales/[codigoPublico]/page.tsx
+ * ========================================================================
+ * FUNCIÓN
+ * Comprueba el acceso a una sucursal y reúne sus bandejas de pedidos, archivos y pagos,
+ * diferenciando recursos inexistentes, acceso denegado y fallos de consulta.
+ *
+ * ------------------------------------------------------------------------
+ * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
+ * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
+ * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
+ * - [export, default, async] OperationBranchPage({ params, searchParams }: { params: Promise<{
+ *   codigoPublico: string }>; searchParams: Promise<{estado?:string}> })
+ *   Componente de página exportado por la ruta de Next.js.
+ *
+ * ------------------------------------------------------------------------
+ * TIPOS DECLARADOS
+ * - No declara tipos con nombre.
+ *
+ * ------------------------------------------------------------------------
+ * VALORES DE MÓDULO Y REEXPORTACIONES
+ * - dynamic [const, exportado].
+ * ========================================================================
+ */
+//#endregion
+
+import {orderStates} from "@/lib/order-types";
+import {AdminShell} from "@/components/admin-shell";
+import { notFound, redirect } from "next/navigation";
+import { IdentityShell } from "@/components/identity-shell";
+import { getSession } from "@/lib/identity-server";
+import { getOperationBranch, getOperationContext } from "@/lib/organization-server";
+import { timeZoneLabel, uuidPattern } from "@/lib/organization-types";
+
+import {OrderListView} from "@/components/order-list";
+import {PaymentQueue} from "@/components/payment-queue";
+import {ReceivedFiles} from "@/components/received-files";
+
+export const dynamic = "force-dynamic";
+export default async function OperationBranchPage({ params, searchParams }: { params: Promise<{ codigoPublico: string }>; searchParams: Promise<{estado?:string}> }) {
+  const session = await getSession();
+  if (session.state === "anonymous") redirect("/acceso");
+  if (session.state === "unavailable") return <IdentityShell title="Sucursal" description="Verificación de tu sesión."><p className="form-message error-message" role="alert">No pudimos verificar la sesión.</p><a className="secondary-link" href="/operacion">Volver a operación</a></IdentityShell>;
+  if (session.state !== "authenticated") return null;
+  if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
+  if (session.profile.rol === "CLIENTE") redirect("/cliente");
+  const { codigoPublico } = await params;
+  const {estado}=await searchParams;const initialState=typeof estado==="string"&&orderStates.includes(estado)?estado:"";
+  if (!uuidPattern.test(codigoPublico)) notFound();
+  const result = await getOperationBranch(codigoPublico);
+  if (result.state === "not-found") notFound();
+  const context=await getOperationContext();
+  const financial=context?.permisos.some(p=>["ACREDITAR_PAGO","REGISTRAR_COBRO","REGISTRAR_DEVOLUCION"].includes(p));
+  const branch = result.state === "found" ? result.branch : null;
+  return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={session.profile.rol === "ADMIN_ADMIN"} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={branch?.nombre ?? (result.state === "forbidden" ? "Acceso denegado" : "Sucursal no disponible")} description="Pedidos confirmados, archivos y pagos de esta sucursal.">
+    {branch ? <article className="branch-card"><h2>{branch.nombre}</h2><p>Código: {branch.codigo}</p><p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p><p>Hora local: {timeZoneLabel(branch.zonaHoraria)}</p>{branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}</article> : <p className="form-message error-message" role="alert">{result.state === "forbidden" ? "No tenés acceso a esta sucursal." : "No pudimos conectar con el sistema para consultar esta sucursal. Intentá nuevamente."}</p>}
+    {branch&&<><OrderListView branch={codigoPublico} initialState={initialState}/><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}</>}
+    <a className="secondary-link" href="/operacion">Volver a tus sucursales</a>
+  </AdminShell>;
+}
