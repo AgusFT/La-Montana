@@ -2,7 +2,7 @@
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM lamontana.flyway_schema_history
-               WHERE type <> 'SCHEMA' AND installed_by <> 'LaMontana-Demo') THEN
+               WHERE installed_by <> 'LaMontana-Demo') THEN
         RAISE EXCEPTION 'La Demo requiere una base inicializada por La Montaña Demo.';
     END IF;
 END $$;

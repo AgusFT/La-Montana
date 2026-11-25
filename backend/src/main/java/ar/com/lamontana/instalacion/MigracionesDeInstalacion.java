@@ -38,8 +38,8 @@ public class MigracionesDeInstalacion implements FlywayConfigurationCustomizer {
                 """, (rs, fila) -> new Base(rs.getBoolean(1), rs.getBoolean(2)));
         List<Aplicada> aplicadas = base.tieneHistorial() ? jdbc.query("""
                 SELECT version, script, success, installed_by FROM lamontana.flyway_schema_history
-                WHERE type <> 'SCHEMA' ORDER BY installed_rank
-                """, (rs, fila) -> new Aplicada(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getString(4)))
+                WHERE type <> 'SCHEMA' OR installed_by <> ? ORDER BY installed_rank
+                """, (rs, fila) -> new Aplicada(rs.getString(1), rs.getString(2), rs.getBoolean(3), rs.getString(4)), ORIGEN)
                 : List.of();
         if (aplicadas.isEmpty()) {
             if (base.ocupada()) throw baseAjena();

@@ -127,6 +127,21 @@ class MigracionesDeInstalacionTest {
     }
 
     @Test
+    void rechazaLaMarcaDeEsquemaDelProductoAunqueAunNoHayaMigradoV1() throws Exception {
+        try (var pg = EmbeddedPostgres.builder().start()) {
+            var ds = pg.getPostgresDatabase();
+            Flyway.configure().dataSource(ds).schemas("lamontana").defaultSchema("lamontana")
+                    .locations("classpath:db/demo").load().migrate();
+            var jdbc = new JdbcTemplate(ds);
+            var antes = jdbc.queryForList(HISTORIAL);
+            assertThat(antes).hasSize(1);
+            assertThat(antes.get(0)).containsEntry("type", "SCHEMA").containsEntry("installed_by", "postgres");
+            assertThatThrownBy(() -> arrancar(pg)).hasStackTraceContaining("La Demo requiere una base nueva");
+            assertThat(jdbc.queryForList(HISTORIAL)).isEqualTo(antes);
+        }
+    }
+
+    @Test
     void rechazaAntesDelPrimerDdlSiElProductoTomaLaBaseEntreLaInspeccionYElBloqueo() throws Exception {
         try (var pg = EmbeddedPostgres.builder().start()) {
             var ds = pg.getPostgresDatabase();
