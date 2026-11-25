@@ -2,6 +2,7 @@ package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.*;
 
+import ar.com.lamontana.instalacion.MigracionesDeInstalacion;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.nio.charset.StandardCharsets;
 import javax.sql.DataSource;
@@ -23,19 +24,15 @@ class MigracionesDeInstalacionTest {
     }
 
     private void arrancar(EmbeddedPostgres pg) {
-        arrancar(pg, "DESARROLLO");
-    }
-
-    private void arrancar(EmbeddedPostgres pg, String modo) {
         try (var app = new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0",
                 "--spring.datasource.url=" + pg.getJdbcUrl("postgres", "postgres"),
-                "--spring.datasource.username=postgres", "--spring.datasource.password=", "--lamontana.instalacion.modo=" + modo)) {
+                "--spring.datasource.username=postgres", "--spring.datasource.password=")) {
             app.getBean(Flyway.class).validate();
         }
     }
 
     @Test
-    void actualizaDesdeV43YV45ConservandoPedidosPagosYSoporte() throws Exception {
+    void rechazaProductoV43YV45ConservandoPedidosPagosYSoporte() throws Exception {
         try (var remoto = EmbeddedPostgres.builder().start(); var v45 = EmbeddedPostgres.builder().start()) {
             preparar(remoto.getPostgresDatabase(), 43);
             var negocio = new JdbcTemplate(remoto.getPostgresDatabase());
@@ -52,11 +49,10 @@ class MigracionesDeInstalacionTest {
                     """;
             var operacion = negocio.queryForMap(consulta);
             var historialRemoto = negocio.queryForList(HISTORIAL);
-            arrancar(remoto);
+            assertThatThrownBy(() -> arrancar(remoto)).hasStackTraceContaining("La Demo requiere una base nueva");
             assertThat(negocio.queryForMap(consulta)).isEqualTo(operacion);
-            assertThat(negocio.queryForList(HISTORIAL).subList(0, historialRemoto.size())).isEqualTo(historialRemoto);
-            assertThat(negocio.queryForObject("SELECT modo FROM lamontana.entorno_instalacion", String.class)).isEqualTo("DESARROLLO");
-            assertThat(negocio.queryForObject("SELECT count(*) FROM lamontana.usuario WHERE es_soporte", Integer.class)).isZero();
+            assertThat(negocio.queryForList(HISTORIAL)).isEqualTo(historialRemoto);
+            assertThat(negocio.queryForObject("SELECT to_regclass('lamontana.entorno_instalacion') IS NULL", Boolean.class)).isTrue();
 
             preparar(v45.getPostgresDatabase(), 45);
             var soporte = new JdbcTemplate(v45.getPostgresDatabase());
@@ -84,29 +80,22 @@ class MigracionesDeInstalacionTest {
                     """;
             var cuentas = soporte.queryForMap(consultaSoporte);
             var historialAnterior = soporte.queryForList(HISTORIAL);
-            arrancar(v45);
+            assertThatThrownBy(() -> arrancar(v45)).hasStackTraceContaining("La Demo requiere una base nueva");
             assertThat(soporte.queryForMap(consultaSoporte)).isEqualTo(cuentas);
-            assertThat(soporte.queryForList(HISTORIAL).subList(0, historialAnterior.size())).isEqualTo(historialAnterior);
+            assertThat(soporte.queryForList(HISTORIAL)).isEqualTo(historialAnterior);
             assertThat(soporte.queryForMap(consulta)).isEqualTo(operacionV45);
-            for (var pg : java.util.List.of(remoto, v45)) {
-                var db = new JdbcTemplate(pg.getPostgresDatabase());
-                var completo = db.queryForList(HISTORIAL);
-                arrancar(pg);
-                assertThat(db.queryForList(HISTORIAL)).isEqualTo(completo);
-                assertThat(db.queryForMap(consulta)).isEqualTo(pg == remoto ? operacion : operacionV45);
-            }
         }
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {39, 40, 43, 44})
-    void completaPrefijosValidosSinCrearCuentaDeSoporte(int version) throws Exception {
+    @ValueSource(ints = {1, 39, 40, 44, 46})
+    void rechazaHistorialDelProductoAunqueElEntornoNoEsteMarcado(int version) throws Exception {
         try (var pg = EmbeddedPostgres.builder().start()) {
             preparar(pg.getPostgresDatabase(), version);
-            arrancar(pg);
             var jdbc = new JdbcTemplate(pg.getPostgresDatabase());
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.flyway_schema_history WHERE version='46' AND success", Integer.class)).isOne();
-            assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario WHERE es_soporte", Integer.class)).isZero();
+            var historial = jdbc.queryForList(HISTORIAL);
+            assertThatThrownBy(() -> arrancar(pg)).hasStackTraceContaining("La Demo requiere una base nueva");
+            assertThat(jdbc.queryForList(HISTORIAL)).isEqualTo(historial);
         }
     }
 
@@ -118,8 +107,48 @@ class MigracionesDeInstalacionTest {
             jdbc.update("INSERT INTO lamontana.entorno_instalacion VALUES (true,gen_random_uuid(),'STANDARD',now())");
             String consulta = "SELECT * FROM lamontana.entorno_instalacion";
             var identidad = jdbc.queryForMap(consulta);
-            arrancar(pg, "STANDARD");
+            assertThatThrownBy(() -> arrancar(pg)).hasStackTraceContaining("La Demo requiere una base nueva");
             assertThat(jdbc.queryForMap(consulta)).isEqualTo(identidad);
+        }
+    }
+
+    @Test
+    void completaLaInicializacionSiSoloSeCreoElHistorialDeDemo() throws Exception {
+        try (var pg = EmbeddedPostgres.builder().start()) {
+            var ds = pg.getPostgresDatabase();
+            var demo = Flyway.configure().dataSource(ds).schemas("lamontana").defaultSchema("lamontana");
+            new MigracionesDeInstalacion("DEMO").customize(demo);
+            demo.locations("classpath:db/demo").load().migrate();
+            arrancar(pg);
+            var jdbc = new JdbcTemplate(ds);
+            assertThat(jdbc.queryForObject("SELECT modo FROM lamontana.entorno_instalacion", String.class))
+                    .isEqualTo("DEMO");
+        }
+    }
+
+    @Test
+    void rechazaAntesDelPrimerDdlSiElProductoTomaLaBaseEntreLaInspeccionYElBloqueo() throws Exception {
+        try (var pg = EmbeddedPostgres.builder().start()) {
+            var ds = pg.getPostgresDatabase();
+            var demo = Flyway.configure().dataSource(ds).schemas("lamontana").defaultSchema("lamontana");
+            new MigracionesDeInstalacion("DEMO").customize(demo);
+            preparar(ds, 43);
+            var jdbc = new JdbcTemplate(ds);
+            jdbc.execute("""
+                    CREATE SEQUENCE public.ddl_detectado;
+                    CREATE FUNCTION public.detectar_ddl() RETURNS event_trigger LANGUAGE plpgsql AS $$
+                      BEGIN PERFORM nextval('public.ddl_detectado'); END $$;
+                    CREATE EVENT TRIGGER detectar_ddl ON ddl_command_start WHEN TAG IN ('CREATE TABLE','ALTER TABLE')
+                      EXECUTE FUNCTION public.detectar_ddl();
+                    """);
+            var antes = jdbc.queryForList(HISTORIAL);
+
+            assertThatThrownBy(() -> demo.load().migrate()).hasStackTraceContaining("La Demo requiere una base");
+            // nextval conserva la evidencia aun si Flyway revierte su transacción.
+            assertThat(jdbc.queryForObject("SELECT is_called FROM public.ddl_detectado", Boolean.class)).isFalse();
+            assertThat(jdbc.queryForList(HISTORIAL)).isEqualTo(antes);
+            assertThat(jdbc.queryForObject("SELECT to_regclass('lamontana.entorno_instalacion') IS NULL",
+                    Boolean.class)).isTrue();
         }
     }
 
@@ -132,13 +161,13 @@ class MigracionesDeInstalacionTest {
             """)
     void rechazaHistorialIncompatibleAntesDeMigrar(String alteracion, String diagnostico) throws Exception {
         try (var pg = EmbeddedPostgres.builder().start()) {
-            preparar(pg.getPostgresDatabase(), 41);
+            arrancar(pg);
             var jdbc = new JdbcTemplate(pg.getPostgresDatabase());
             jdbc.update("UPDATE lamontana.flyway_schema_history SET " + alteracion + " WHERE version='41'");
             var antes = jdbc.queryForList(HISTORIAL);
             assertThatThrownBy(() -> arrancar(pg)).hasStackTraceContaining(diagnostico);
             assertThat(jdbc.queryForList(HISTORIAL)).isEqualTo(antes);
-            assertThat(jdbc.queryForObject("SELECT to_regclass('lamontana.preparacion_cliente') IS NULL", Boolean.class)).isTrue();
+            assertThat(jdbc.queryForObject("SELECT modo FROM lamontana.entorno_instalacion", String.class)).isEqualTo("DEMO");
         }
     }
 }

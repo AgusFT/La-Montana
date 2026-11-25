@@ -71,6 +71,7 @@ server:
   servlet:
     session:
       cookie:
+        name: LAMONTANA_DEMO_SESSION
         http-only: true
         same-site: lax
         secure: ${SESSION_COOKIE_SECURE:false}
@@ -92,15 +93,15 @@ lamontana:
     remitente: ${SMTP_FROM:noreply@lamontana.local}
   instalacion:
     token: ${SETUP_TOKEN:}
-    modo: ${LAMONTANA_MODO:DESARROLLO}
+    modo: ${LAMONTANA_MODO:DEMO}
   archivos:
-    directorio: ${FILES_DIR:./var/archivos}
+    directorio: ${FILES_DIR:./var/demo/archivos}
     inspector-jar: ${PDF_INSPECTOR_JAR:}
     antivirus:
       host: ${CLAMAV_HOST:127.0.0.1}
       port: ${CLAMAV_PORT:3310}
 
   web:
-    entrada: ${WEB_SOURCE_DIR:./datos/imagenes-web/entrada}
+    entrada: ${WEB_SOURCE_DIR:./datos/demo/imagenes-web/entrada}
     ruta-host: ${WEB_SOURCE_HOST:}
-    biblioteca: ${WEB_LIBRARY_DIR:./var/imagenes-web}
+    biblioteca: ${WEB_LIBRARY_DIR:./var/demo/imagenes-web}

@@ -128,7 +128,7 @@ class PapelesCatalogoIntegrationTest {
             jdbc.update("INSERT INTO lamontana.formato(codigo_publico,codigo,nombre,ancho_mm,alto_mm) VALUES (?,'A','Existente A',210,297),(?,'B','Existente B',297,420)",UUID.randomUUID(),UUID.randomUUID());
             jdbc.update("INSERT INTO lamontana.papel(codigo_publico,codigo,nombre,gramaje_g_m2,terminacion_tipo) VALUES (?,'P','Existente',80,'Mate')",UUID.randomUUID());
             var formats=jdbc.queryForList("SELECT * FROM lamontana.formato ORDER BY id_formato");var papers=jdbc.queryForList("SELECT * FROM lamontana.papel ORDER BY id_papel");
-            Flyway.configure().dataSource(ds).defaultSchema("lamontana").schemas("lamontana").load().migrate();
+            Flyway.configure().dataSource(ds).defaultSchema("lamontana").schemas("lamontana").target("37").load().migrate();
             assertThat(jdbc.queryForList("SELECT * FROM lamontana.formato ORDER BY id_formato")).isEqualTo(formats);assertThat(jdbc.queryForList("SELECT * FROM lamontana.papel ORDER BY id_papel")).isEqualTo(papers);
             assertThat(count(jdbc,"catalogo_papel")).isEqualTo(2);assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.catalogo_papel WHERE habilitado AND predefinido IS NULL",Integer.class)).isEqualTo(2);
         }

@@ -69,8 +69,8 @@ public class AlmacenImagenWeb {
     static final long MAX_PIXELES=25_000_000;
     final Path entrada,biblioteca;
     final String rutaHost;
-    public AlmacenImagenWeb(@Value("${lamontana.web.entrada:./datos/imagenes-web/entrada}") String entrada,
-            @Value("${lamontana.web.biblioteca:./var/imagenes-web}") String biblioteca,
+    public AlmacenImagenWeb(@Value("${lamontana.web.entrada:./datos/demo/imagenes-web/entrada}") String entrada,
+            @Value("${lamontana.web.biblioteca:./var/demo/imagenes-web}") String biblioteca,
             @Value("${lamontana.web.ruta-host:}") String rutaHost){
         this.entrada=Path.of(entrada).toAbsolutePath().normalize();this.biblioteca=Path.of(biblioteca).toAbsolutePath().normalize();
         this.rutaHost=rutaHost.isBlank()?this.entrada.toString():rutaHost;

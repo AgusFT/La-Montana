@@ -1058,3 +1058,7 @@ Todos los modos de instalación aplican los SQL de este directorio en el mismo o
 | V44 | Identidad del entorno de instalación |
 | V45 | Asistencia temporal de YG Soluciones |
 | V46 | Aceptación de reprogramaciones por el cliente en el historial del pedido |
+
+## V47 · Identidad de la Demo
+
+El primer arranque de la Demo requiere una base vacía. Flyway registra `LaMontana-Demo` en el historial de las migraciones y comprueba su procedencia bajo bloqueo antes de ejecutar cada script. V47 guarda un identificador único para la instalación y restringe el modo a `DEMO`. Los arranques siguientes comprueban la identidad guardada y el historial. [Abrir SQL](V47__identidad_demo.sql)

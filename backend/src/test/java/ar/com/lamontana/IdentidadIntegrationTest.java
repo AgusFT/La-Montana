@@ -189,7 +189,7 @@ class IdentidadIntegrationTest {
         return client.send(requestPost(path, body, contentType, csrf), HttpResponse.BodyHandlers.ofString());
     }
     private String cookie(CookieManager manager) {
-        var cookie = manager.getCookieStore().getCookies().stream().filter(c -> "SESSION".equals(c.getName())).findFirst().orElseThrow();
+        var cookie = manager.getCookieStore().getCookies().stream().filter(c -> "LAMONTANA_DEMO_SESSION".equals(c.getName())).findFirst().orElseThrow();
         return cookie.getName() + "=" + cookie.getValue();
     }
 }

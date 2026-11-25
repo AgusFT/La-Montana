@@ -92,7 +92,7 @@ class CatalogoMigracionV8IntegrationTest {
             assertThat(jdbc.queryForList("SELECT * FROM lamontana.configuracion_servicio ORDER BY id_configuracion_servicio")).isEqualTo(serviciosAntes);
             assertThat(jdbc.queryForList("SELECT * FROM lamontana.compatibilidad_servicio ORDER BY id_configuracion_servicio")).isEqualTo(compatibilidadesAntes);
 
-            Flyway.configure().dataSource(dataSource).defaultSchema("lamontana").schemas("lamontana").load().migrate();
+            Flyway.configure().dataSource(dataSource).defaultSchema("lamontana").schemas("lamontana").target("46").load().migrate();
 
             // Usa el servicio real con su proxy transaccional; la migración ya ocurrió sobre datos V7.
             try(var context=new AnnotationConfigApplicationContext()) {
