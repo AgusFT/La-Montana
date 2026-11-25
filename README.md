@@ -1,68 +1,39 @@
-# La Montaña · piloto v0.1
+# La Montaña · Demo
 
-Aplicación local con Spring Boot, Next.js y PostgreSQL para una imprenta con varias sucursales. El administrador configura el sistema desde cero; los clientes particulares cotizan PDF y el personal completa revisión, producción manual, calidad, entrega y cierre. No hay cuentas, sucursales, precios, reglas comerciales ni pedidos de muestra precargados. La implementación de Supabase quedó sustituida y permanece solamente en el historial Git.
+Esta rama contiene la base de la edición web de demostración para Windows. Parte de la revisión `e0cb6f8d` de La Montaña. En esta etapa se puede iniciar desde el código fuente, verificar la identidad de Demo y trabajar con sus propios datos locales. La precarga, el selector de roles y el instalador público se entregan en etapas posteriores. [Seguimiento de la edición](https://github.com/AgusFT/La-Montana/issues/229)
 
-## Estado actual · demo v0.1 y plan v6 completos
+## Iniciar desde el código fuente
 
-**Certificación histórica de la revisión 6 (23/09/2026):** la demo cumplió los once criterios originales y los nueve agregados en esa revisión. Su suite completa aprobó 165 pruebas; backend y frontend compilan, incluido el tipado. La aceptación conserva la evidencia original de modelos manual/condicionales, permisos, D1/D2 y las tres modalidades de entrega, y agrega regresión de pedidos, pruebas del sitio, instalación vacía, migración, persistencia y presentación responsive.
-
-El configurador operativo conserva el menú general en escritorio y móvil e incluye ayudas en cada fase. Un borrador guarda el avance sin activar reglas: la activación se autoriza en el paso 7. Al salir de un formulario con cambios sin guardar se puede seguir editando o descartarlos; las solicitudes y autorizaciones pendientes se resuelven o revocan desde el formulario. El navegador de fases mantiene visible el paso seleccionado en pantallas angostas.
-
-El panel `/` explica el orden de instalación y permanece accesible con sesión. `/web` es la página pública local: antes de publicar muestra una estructura sin contenido comercial. Antes del propietario, login y registro explican el requisito; después, los clientes pueden registrarse sin activar pedidos. El dashboard muestra el mapa de preparación sólo durante la primera instalación, hasta activar correctamente una configuración. La instalación inicial avanza en orden obligatorio: sucursal → papeles → servicio base → tarifas y servicios publicados → modelo → pagos → impresoras y asignación → horarios y entrega → revisión y activación. El menú, las URL de las pantallas y las fases internas impiden adelantar pasos incompletos, usando requisitos guardados y validados por el servidor. Los pasos anteriores siguen disponibles para corregirlos. Web, empleados y simulaciones son opcionales; las simulaciones se presentan plegadas. Las reglas de las API de escritura se conservan: este recorrido es una restricción de navegación e interacción del frontend. Un borrador o una primera activación programada todavía mantienen el recorrido visible. Después de activar, el mapa desaparece aunque queden complementos pendientes o se preparen nuevas configuraciones; el configurador sigue disponible desde el menú. El estado se consulta al ingresar, volver a la pestaña o restaurar la página, sin mostrar el mapa antes de conocerlo. El configurador web permite importar imágenes de una carpeta local, guardar identidad/fichas/secciones, revisar en privado y publicar expresamente. Los formularios remotos permanecen deshabilitados con «implementacion en desarrollo».
-
-Este README describe el uso de la app y el desarrollo con fuentes. La documentación del instalador y su validación está en `main`, en `marco-del-proyecto/instalador-autohospedado.md`. Los checkpoints históricos se conservan en Git y en el plan local de coordinación.
-
-## Instalación con el asistente
-
-La entrada principal es el paquete nativo de `infra/instalador`: `.deb` para Ubuntu 26.04 y `.exe` para Windows 11 x64. Contiene runtime Java privado, dependencias comprimidas e imágenes de la versión. La disponibilidad de cada plataforma depende de su matriz de pruebas documentada en `main`; Standard tiene su validación pendiente por decisión del usuario.
-
-1. Instalar el paquete nativo y abrir **LaMontanaInstalador**. Se abre Firefox o Chrome; si faltan, se ofrece Firefox incluido.
-2. Verificar dependencias. Usar la copia incluida, una descarga oficial o completar la instalación manual y volver a verificar. En Windows se prepara WSL2 y la distribución propia `LaMontana-Ubuntu` con Docker Engine.
-3. Elegir una carpeta exclusiva de instalación y **Modo Desarrollo**, con acceso solo desde esta PC por defecto. LAN requiere elegir expresamente una IP local.
-4. Elegir un puerto libre y crear las credenciales del propietario. El alta de SOPORTE es opcional y también está disponible después desde **Asistencia de YG Soluciones**. Cada contraseña la define el usuario. Abrir la dirección que muestra el asistente cuando los servicios estén saludables.
-5. Para mantenimiento, seleccionar esa carpeta y el directorio local de respaldos. **Actualizar** usa la versión incluida; **Reparar** exige la misma versión. Siempre se detiene la app y se verifica una copia bruta antes de modificarla. La copia todavía no dispone de un procedimiento de restauración implementado.
-
-Standard necesita una base nueva, dominio/HTTPS, SMTP real y las verificaciones que explica el asistente. No transforma datos de prueba en producción. Su aceptación de extremo a extremo queda pendiente: no se presenta como producción validada.
-
-El asistente distingue instalaciones creadas por él mediante `instalacion.properties`. Si detecta recursos del Compose anterior sin ese manifiesto, los informa y conserva; requiere revisión presencial, sin adoptar una versión o unos datos que no puede identificar con certeza.
-
-`infra/iniciar-local.sh` abre el lanzador instalado o explica cómo instalarlo. No vuelve a construir contenedores implícitamente.
-
-### Desarrollo con el código fuente
-
-Esta alternativa explícita conserva el Compose del repositorio para editar y reconstruir la app. Requiere Docker/Compose ya accesibles e Internet para la primera construcción. No ofrece las garantías de mantenimiento del asistente.
-
-Desde la raíz del checkout `desarrollo`:
+Desde la carpeta `Demo`, con Docker y Docker Compose disponibles, ejecutar:
 
 ```bash
-./infra/iniciar-desde-fuentes.sh
+./infra/iniciar-local.sh
 ```
 
-El script prepara `.env`, credenciales técnicas y la carpeta `datos/imagenes-web/entrada`, y ejecuta `docker compose up --build --detach --wait`. No publicar `.env`. El técnico no necesita usar esta vía para instalar los paquetes nativos.
+El script prepara las credenciales en el archivo local `.env`, crea `datos/demo/imagenes-web/entrada` y levanta el proyecto Compose `lamontana-demo`. La primera construcción requiere las imágenes y dependencias del proyecto. La base PostgreSQL, las redes y los volúmenes de archivos, imágenes, correo y antivirus pertenecen a esta edición.
 
-| Servicio del Compose de fuentes | Dirección predeterminada |
+| Servicio | Dirección local predeterminada |
 |---|---|
-| Aplicación | http://localhost:3000 |
-| Backend / salud | http://localhost:8080/actuator/health/readiness |
-| Mailpit | http://localhost:8025 |
-| PostgreSQL | localhost:5432 |
+| Aplicación | http://localhost:3200 |
+| Identidad de la edición | http://localhost:3200/api/sistema/entorno |
+| Salud del backend | http://localhost:8280/actuator/health/readiness |
+| Mailpit | http://localhost:8225 |
+| PostgreSQL | `localhost:55433`, base `lamontana_demo` |
 
-Los puertos del asistente se calculan y muestran por instalación; esta tabla solo corresponde al Compose de fuentes. Para este último, ver `.env.example` (`FRONTEND_PORT`, `BACKEND_PORT`, `POSTGRES_PORT`, `MAILPIT_PORT`). No cambiar `DB_PASSWORD` después de inicializar PostgreSQL sin un procedimiento de cambio de contraseña.
+El endpoint de identidad debe devolver `"modo":"DEMO"`. Para consultar o detener esta instalación desde su carpeta y conservar sus datos:
 
 ```bash
-docker compose ps
-docker compose logs --tail=100 backend frontend
-docker compose stop
-docker compose up --detach --wait
+docker compose -p lamontana-demo -f compose.yaml --env-file .env ps
+docker compose -p lamontana-demo -f compose.yaml --env-file .env stop
 ```
 
-Los volúmenes conservan base, archivos, correo, firmas e imágenes web. No usar `docker compose down --volumes` para detener la app: elimina datos. ClamAV y los otros servicios necesitan memoria suficiente; el tamaño del instalador no representa el consumo de ejecución.
+Los puertos y el directorio de imágenes se pueden configurar con las variables `DEMO_*` de [.env.example](.env.example). El nombre de la cookie de sesión de Demo permite usarla en el mismo equipo que la aplicación completa.
 
-## Primera instalación y acceso
+## Configuración inicial de esta base
 
-El asistente crea al propietario durante la instalación y permite dar de alta la cuenta de soporte. El Compose de fuentes conserva su alta manual:
+Hasta que esté disponible el selector de roles, el alta inicial heredada está en `/instalacion`.
 
-1. Abrir `.env` localmente y copiar `SETUP_TOKEN` al formulario `/instalacion`. Ingresar nombre, apellido, correo y contraseña propios, de 12 a 128 caracteres. No hay un administrador predeterminado. Un token manual debe tener al menos 32 caracteres.
+1. Abrir `.env` localmente y copiar `DEMO_SETUP_TOKEN` al formulario `/instalacion`. Ingresar nombre, apellido, correo y contraseña propios, de 12 a 128 caracteres. No hay un administrador predeterminado. Un token manual debe tener al menos 32 caracteres.
 2. Entrar por `/acceso`. La primera alta se cierra definitivamente; reiniciar o conservar el token no permite crear otro propietario.
 3. Verificar el correo desde Seguridad de la cuenta. Mailpit recibe los códigos de verificación, recuperación y autorización; no se envían mensajes a proveedores externos.
 4. Crear sucursales y empleados. Cada empleado recibe una contraseña inicial elegida por el administrador, debe cambiarla al ingresar y sólo ve sus sucursales activas asignadas. Elegir expresamente sus permisos de revisión, producción, calidad, entrega, cierre y finanzas.
@@ -155,15 +126,15 @@ El historial permite filtros, paginación, detalle y comparación. **Usar como b
 
 Abrí **Configurador de página web** desde el menú del propietario. El recorrido es identidad → funcionamiento local/carpeta → biblioteca → fichas → contenido/vista previa → revisión/publicación. Se puede guardar un borrador incompleto y retomarlo; guardar e importar nunca publican. La vista previa requiere sesión de propietario. **Publicar página web** exige revisar y confirmar el contenido; registra autor, fecha y versión sin cambiar precios, pedidos ni configuración operativa. Un conflicto de pestañas conserva los campos y permite consultar la versión guardada antes de decidir cómo continuar.
 
-El Compose de fuentes prepara `datos/imagenes-web/entrada/` dentro del proyecto, fuera de Git. El asistente utiliza la carpeta `entrada/` del directorio de instalación seleccionado. Copiá ahí tus JPEG, PNG o WebP y elegí **Actualizar carpeta**. El panel muestra su ruta absoluta y permite entrar en subcarpetas. **Importar a biblioteca** conserva una copia; **Importar y usar** además prepara su asociación a logotipo, portada o ficha. Completá los textos alternativos, guardá y publicá expresamente cuando esté listo. Las fichas son presentación de productos/servicios; no agregan carrito ni un circuito de compra nuevo.
+El Compose de fuentes prepara `datos/demo/imagenes-web/entrada/` dentro del proyecto, fuera de Git. El asistente utiliza la carpeta `entrada/` del directorio de instalación seleccionado. Copiá ahí tus JPEG, PNG o WebP y elegí **Actualizar carpeta**. El panel muestra su ruta absoluta y permite entrar en subcarpetas. **Importar a biblioteca** conserva una copia; **Importar y usar** además prepara su asociación a logotipo, portada o ficha. Completá los textos alternativos, guardá y publicá expresamente cuando esté listo. Las fichas son presentación de productos/servicios; no agregan carrito ni un circuito de compra nuevo.
 
 Cada imagen admite hasta 10 MiB y 25 millones de píxeles. Se valida el contenido real, se decodifica y se generan PNG sin metadatos y miniaturas de hasta 480 px. WebP utiliza el lector local TwelveMonkeys ImageIO 3.14.0. La entrada se monta de sólo lectura; se rechazan rutas fuera de ella, enlaces simbólicos, archivos especiales y contenido inválido. Los errores se muestran por archivo y no eliminan importaciones anteriores. Los PDF de clientes siguen separados y privados.
 
 Reimportar el mismo contenido reutiliza la copia. Reemplazar un original genera otro recurso; renombrarlo o quitarlo no rompe la copia importada. Quitar una asociación sólo cambia el borrador: las copias se conservan para las versiones que las referencian. No hay una acción de borrado de biblioteca en esta demo. La publicación verifica la integridad de sus imágenes y conserva el sitio anterior si falla. Una respuesta incierta permite repetir la misma operación sin duplicar importaciones o publicaciones.
 
-Para otra carpeta, definir `WEB_SOURCE_DIR=/ruta/absoluta` en `.env` o en el entorno y ejecutar otra vez `infra/iniciar-desde-fuentes.sh` para recrear el montaje. Debe tener permisos ordinarios de lectura y acceso para el usuario del contenedor; no usar `chmod 777`. El formulario sólo elige subcarpetas de esa entrada, no monta otras carpetas del host. La biblioteca se conserva en `imagenes_web_data` y no depende de la carpeta original.
+Para otra carpeta, definir `DEMO_WEB_SOURCE_DIR=/ruta/absoluta` en `.env` o en el entorno y ejecutar otra vez `infra/iniciar-desde-fuentes.sh` para recrear el montaje. Debe tener permisos ordinarios de lectura y acceso para el usuario del contenedor; no usar `chmod 777`. El formulario sólo elige subcarpetas de esa entrada, no monta otras carpetas del host. La biblioteca se conserva en `imagenes_web_data` y no depende de la carpeta original.
 
-La landing está en `http://localhost:3000/web` o `http://127.0.0.1:3000/web`, ajustando el puerto si corresponde. Usá el mismo host durante cada sesión porque las cookies de localhost y 127.0.0.1 son distintas. No requiere IP pública, CDN, fuentes remotas ni Internet durante el uso local de la web ya instalada. Los formularios de dominio/proxy/servidor remoto son informativos, grises y deshabilitados con «implementacion en desarrollo»; no guardan credenciales ni ejecutan despliegues.
+La landing está en `http://localhost:3200/web` o `http://127.0.0.1:3200/web`, ajustando el puerto si corresponde. Usá el mismo host durante cada sesión porque las cookies de localhost y 127.0.0.1 son distintas. No requiere IP pública, CDN, fuentes remotas ni Internet durante el uso local de la web ya instalada. Los formularios de dominio/proxy/servidor remoto son informativos, grises y deshabilitados con «implementacion en desarrollo»; no guardan credenciales ni ejecutan despliegues.
 
 ## Recorrido del cliente y PDF
 
@@ -252,7 +223,7 @@ El PDF usa un visor privado compartido; las etapas del pedido se navegan por sec
 
 ## Desarrollo, datos y pruebas
 
-- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. El esquema se modifica mediante migraciones V1–V38; Hibernate sólo valida.
+- `backend/`: Java 17, Spring Boot 4.1.1, Security, JPA, Flyway, PostgreSQL 18.6. Flyway aplica las migraciones del esquema y Hibernate valida las entidades.
 - `frontend/`: Next.js 16.3.5, React 19.3.0, TypeScript, pnpm 11.19.0 y Node 22/24. App Router, proxy de rutas permitidas y salida standalone.
 - `infra/`, Dockerfiles y `compose.yaml`: servicios, puertos de loopback, salud y volúmenes. Backend/frontend ejecutan como usuarios sin privilegios.
 

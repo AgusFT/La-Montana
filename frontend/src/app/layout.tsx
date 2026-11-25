@@ -32,7 +32,7 @@ import { EntornoAviso } from "@/components/entorno-aviso";
 import {themeBootstrap} from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "La Montaña · Impresiones",
+  title: "La Montaña · Demo",
   description: "Cotización, producción y entrega de pedidos de impresión.",
   robots: { index: false, follow: false },
 };

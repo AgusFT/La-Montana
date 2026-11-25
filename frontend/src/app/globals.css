@@ -92,7 +92,7 @@
 
 .branch-code-field{display:flex;flex-direction:column;gap:9px;min-width:0}.branch-code-control{position:relative}.identity-form .branch-code-control>input,.admin-form .branch-code-control>input{padding-right:48px}.branch-code-info{position:absolute;right:5px;top:3px;width:40px;height:40px;display:grid;place-items:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--navy);cursor:help}.branch-code-info:hover,.branch-code-info[aria-expanded=true]{background:var(--ui-info-bg,#edf5ff)}.branch-code-tooltip{position:absolute;z-index:20;top:100%;left:0;width:100%;box-sizing:border-box;padding:15px;border:1px solid var(--ui-border,#bacddd);border-radius:9px;background:var(--ui-surface,#fff);color:var(--ink);box-shadow:0 8px 24px var(--ui-shadow,#092d4c26);font-size:13px;line-height:1.55;font-weight:400;overflow-wrap:anywhere}.branch-code-tooltip[hidden]{display:none}.branch-code-tooltip p{margin:10px 0 0;font-size:13px;line-height:1.55}.branch-code-tooltip code{white-space:nowrap;color:var(--navy);font-size:12px}
 
-.entorno-desarrollo {padding: .65rem 1rem; background: #fff0ca; color: #47371b; border-bottom: 1px solid #cba35c; font-size: .9rem; text-align: center;}
+.entorno-aviso {padding: .65rem 1rem; background: #fff0ca; color: #47371b; border-bottom: 1px solid #cba35c; font-size: .9rem; text-align: center;}
 .support-page {max-width: 850px; margin: 2rem auto; padding: 1.5rem; line-height: 1.6;}
 .support-page form {padding: 1.5rem; border: 1px solid #839b8e; margin: 1.5rem 0; border-radius: .5rem;}
 .support-page fieldset {min-width: 0; border: 0; padding: 0; margin: 0;}

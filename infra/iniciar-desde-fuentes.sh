@@ -9,42 +9,38 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -e .env ]]; then
-  (
-    umask 077
-    set -o noclobber
-    db_secret=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
-    printf 'DB_PASSWORD=%s\n' "$db_secret" > .env
-  )
-  echo 'Se creó .env con una credencial técnica aleatoria para PostgreSQL.'
-fi
+compose=(docker compose -p lamontana-demo -f compose.yaml --env-file .env)
 
-if grep -q '^SETUP_TOKEN=$' .env; then
-  sed -i '/^SETUP_TOKEN=$/d' .env
-fi
-if ! grep -q '^SETUP_TOKEN=' .env; then
-  (
-    umask 077
-    setup_secret=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
-    printf 'SETUP_TOKEN=%s\n' "$setup_secret" >> .env
-  )
+(
+  umask 077
+  exec 9>>.env
+  flock -x 9
   chmod 600 .env
-  echo 'Token de alta inicial creado en .env. Abrí ese archivo localmente para usarlo en /instalacion.'
-fi
+  if ! grep -q '^DEMO_DB_PASSWORD=.' .env; then
+    db_secret=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+    printf '\nDEMO_DB_PASSWORD=%s\n' "$db_secret" >&9
+    echo 'Se creó una credencial técnica aleatoria para el PostgreSQL de Demo en .env.'
+  fi
+  if ! grep -q '^DEMO_SETUP_TOKEN=.' .env; then
+    setup_secret=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+    printf '\nDEMO_SETUP_TOKEN=%s\n' "$setup_secret" >&9
+    echo 'Token de alta inicial creado en .env. Abrí ese archivo localmente para usarlo en /instalacion.'
+  fi
+)
 
 # Compose interpreta .env; no se ejecuta su contenido como código de shell.
-web_source_path=$(docker compose config --environment | sed -n 's/^WEB_SOURCE_DIR=//p')
-web_source_path=${web_source_path:-"$PWD/datos/imagenes-web/entrada"}
+web_source_path=$("${compose[@]}" config --environment | sed -n 's/^DEMO_WEB_SOURCE_DIR=//p')
+web_source_path=${web_source_path:-"$PWD/datos/demo/imagenes-web/entrada"}
 if [[ "$web_source_path" != /* ]]; then
-  echo 'WEB_SOURCE_DIR debe ser una ruta absoluta. Corregí .env antes de iniciar.' >&2
+  echo 'DEMO_WEB_SOURCE_DIR debe ser una ruta absoluta. Corregí .env antes de iniciar.' >&2
   exit 1
 fi
 web_source_path=$(realpath -m -- "$web_source_path")
 mkdir -p -- "$web_source_path"
-export WEB_SOURCE_DIR="$web_source_path"
+export DEMO_WEB_SOURCE_DIR="$web_source_path"
 echo "Carpeta de entrada de imágenes web: $web_source_path"
 
-docker compose config --quiet
-docker compose up --build --detach --wait
-echo 'Base técnica iniciada. Consultá los puertos publicados con: docker compose ps'
-echo 'Puertos predeterminados: aplicación http://localhost:3000 · correo local http://localhost:8025'
+"${compose[@]}" config --quiet
+"${compose[@]}" up --build --detach --wait
+echo 'Demo iniciada. Consultá los puertos publicados con: docker compose -p lamontana-demo ps'
+echo 'Puertos predeterminados de Demo: aplicación http://localhost:3200 · correo local http://localhost:8225'
