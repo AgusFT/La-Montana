@@ -96,15 +96,23 @@ class BranchDeskApi(private val read: (String) -> String, private val post: (Str
         }
     }
 
-    fun cash(branch: String, page: Int): BranchCash {
-        val json = JSONObject(read("/api/operacion/sucursales/${uuid(branch)}/caja?pagina=$page"))
+    fun cash(branch: String, page: Int, period: String = "HOY", today: String? = null): BranchCash {
+        require(period in setOf("HOY", "AYER", "SEMANA"))
+        val date = today?.let(java.time.LocalDate::parse)
+            ?: java.time.LocalDate.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires"))
+        val range = when (period) {
+            "AYER" -> date.minusDays(1) to date.minusDays(1)
+            "SEMANA" -> date.minusDays(6) to date
+            else -> date to date
+        }
+        val json = JSONObject(read("/api/operacion/sucursales/${uuid(branch)}/caja?pagina=$page&desde=${range.first}&hasta=${range.second}"))
         val summary = json.getJSONObject("resumen")
         return BranchCash(json.getString("hoy"), summary.getString("efectivoActual"),
             summary.getString("efectivoIngresos"), summary.getString("efectivoEgresos"), summary.getString("transferenciasIngresos"),
             json.getJSONArray("movimientos").objects().map {
                 BranchCashMovement(it.getString("tipo"), it.getString("medio"), it.getString("importe"),
                     it.getString("fecha"), it.getString("actor"), it.optString("concepto"))
-            }, json.getInt("total"), json.getInt("pagina"))
+            }, json.getInt("total"), json.getInt("pagina"), summary.getString("efectivoFinal"))
     }
 
     private fun base(branch: String) = "/api/operacion/sucursales/${uuid(branch)}/retiros"

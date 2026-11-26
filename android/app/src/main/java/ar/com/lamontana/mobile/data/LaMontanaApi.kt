@@ -112,6 +112,7 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
             paymentMethods = List(methods.length()) { methods.getString(it) },
             accounts = (detail.optJSONArray("cuentas") ?: JSONArray()).accounts(),
             originBranch = detail.optString("sucursalOrigen"),
+            transferPending = detail.optBoolean("transferenciaPendiente"),
             receipts = List(payments.length()) {
                 val payment = payments.getJSONObject(it)
                 PointReceipt(

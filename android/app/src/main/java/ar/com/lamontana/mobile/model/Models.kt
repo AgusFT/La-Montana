@@ -46,6 +46,7 @@ data class PointOrderDetail(
     val originBranch: String,
     val receipts: List<PointReceipt>,
     val accounts: List<ar.com.lamontana.mobile.data.FinanceAccount> = emptyList(),
+    val transferPending: Boolean = false,
 )
 
 data class RiderRoute(val id: String, val orders: List<RiderOrder>)

@@ -53,4 +53,5 @@ data class BranchCashMovement(val type: String, val method: String, val amount: 
 data class BranchCash(
     val today: String, val current: String, val incoming: String, val outgoing: String,
     val transfers: String, val movements: List<BranchCashMovement>, val total: Int, val page: Int,
+    val closing: String = current,
 )

@@ -50,6 +50,7 @@ data class AppUiState(
     val branchQuery: String = "",
     val branchDetail: BranchOrderDetail? = null,
     val branchCash: BranchCash? = null,
+    val branchCashPeriod: String = "HOY",
     val branchUncertain: Boolean = false,
     val adminPrinters: AdminPrinterPanel? = null,
     val adminBranches: List<AdminAvailability>? = null,
@@ -311,12 +312,23 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
         if (section == BranchSection.CASH && !context.canSeeCash(branch, s.profile)) return
         mutableState.value = s.copy(branchSection = section, branchQuery = text.take(160),
             branchPage = BranchPage(emptyList(), 0, page), branchCash = null, branchDetail = null)
-        if (section == BranchSection.CASH) request({ api.branchDesk.cash(branch, page) }) {
+        if (section == BranchSection.CASH) request({ api.branchDesk.cash(branch, page, s.branchCashPeriod, s.branchCash?.today) }) {
             mutableState.value = state.value.copy(branchCash = it)
         } else request({
             val result = api.branchDesk.orders(branch, section, text, page)
             if (result.orders.isEmpty() && result.page > 0) api.branchDesk.orders(branch, section, text, 0) else result
         }) { mutableState.value = state.value.copy(branchPage = it) }
+    }
+
+    fun loadBranchCash(period: String, page: Int = 0) {
+        val current = state.value
+        val branch = current.branchId ?: return
+        if (current.loading || current.branchUncertain || current.branchSection != BranchSection.CASH ||
+            period !in setOf("HOY", "AYER", "SEMANA")) return
+        mutableState.value = current.copy(branchCashPeriod = period, branchCash = null)
+        request({ api.branchDesk.cash(branch, page, period, current.branchCash?.today) }) {
+            mutableState.value = state.value.copy(branchCash = it)
+        }
     }
 
     fun openBranchOrder(order: BranchOrder) {

@@ -30,6 +30,7 @@ internal fun BranchDeskScreen(
     state: AppUiState, onRefresh: () -> Unit, onSelectBranch: (String) -> Unit,
     onLoad: (BranchSection, String, Int) -> Unit, onOpen: (BranchOrder) -> Unit,
     onClose: () -> Unit, onAction: (BranchAction, String, String, String) -> Unit,
+    onCash: (String, Int) -> Unit,
     onRetry: () -> Unit, onLogout: () -> Unit,
 ) {
     val context = state.branchContext
@@ -103,7 +104,7 @@ internal fun BranchDeskScreen(
                     }
                 }
             } else state.branchCash?.let { cash ->
-                BranchCashView(cash, !locked) { onLoad(BranchSection.CASH, "", it) }
+                BranchCashView(cash, state.branchCashPeriod, !locked, onCash)
             }
         }
     }
@@ -249,20 +250,27 @@ private fun BranchOrderDialog(
 }
 
 @Composable
-private fun BranchCashView(cash: BranchCash, enabled: Boolean, onPage: (Int) -> Unit) {
+private fun BranchCashView(cash: BranchCash, period: String, enabled: Boolean, onLoad: (String, Int) -> Unit) {
     LazyColumn(contentPadding = PaddingValues(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("HOY" to "Hoy", "AYER" to "Ayer", "SEMANA" to "7 días").forEach { (value, label) ->
+                    FilterChip(selected = period == value, enabled = enabled, onClick = { onLoad(value, 0) }, label = { Text(label) })
+                }
+            }
+        }
         item {
             Card(colors = CardDefaults.cardColors(containerColor = Navy)) {
                 Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                    Text("Efectivo acumulado en caja", color = Color.White)
-                    Text(money(cash.current), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-                    Text("Movimientos del ${cash.today}", color = Color.White, fontSize = 12.sp)
+                    Text(if(period=="AYER") "Efectivo al cierre de ayer" else "Efectivo acumulado en caja", color = Color.White)
+                    Text(money(if(period=="AYER") cash.closing else cash.current), color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+                    Text(if(period=="AYER") "Saldo al cierre de ${java.time.LocalDate.parse(cash.today).minusDays(1)}" else "Movimientos ${if(period=="HOY") "de hoy" else "de los últimos 7 días"}", color = Color.White, fontSize = 12.sp)
                 }
             }
         }
         item { Text("Entradas ${money(cash.incoming)} · Salidas ${money(cash.outgoing)}", fontSize = 14.sp) }
         item { Text("Transferencias recibidas ${money(cash.transfers)}", fontSize = 14.sp) }
-        item { Text("Movimientos de hoy", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+        item { Text(if(period=="HOY") "Movimientos de hoy" else if(period=="AYER") "Movimientos de ayer" else "Movimientos de los últimos 7 días", fontWeight = FontWeight.Bold, fontSize = 18.sp) }
         if (cash.movements.isEmpty()) item { Text("No hay movimientos registrados hoy.") }
         items(cash.movements) { movement ->
             Card(colors = CardDefaults.cardColors(containerColor = Color.White)) {
@@ -274,7 +282,7 @@ private fun BranchCashView(cash: BranchCash, enabled: Boolean, onPage: (Int) -> 
                 }
             }
         }
-        if (cash.total > 25) item { BranchPagination(cash.page, cash.total, enabled, onPage) }
+        if (cash.total > 25) item { BranchPagination(cash.page, cash.total, enabled) { onLoad(period, it) } }
     }
 }
 
@@ -303,6 +311,6 @@ private fun BranchDeskPreview() = LaMontanaTheme {
                 BranchOrder("pedido1", 156, "Raúl", true, "LISTO_PARA_ENTREGA", "1529.00", "TRANSFERENCIA"),
                 BranchOrder("pedido2", 154, "Martín Gómez", false, "LISTO_PARA_ENTREGA", "0.00", "EFECTIVO")), 2, 0)),
         onRefresh = {}, onSelectBranch = { _ -> }, onLoad = { _, _, _ -> }, onOpen = { _ -> },
-        onClose = {}, onAction = { _, _, _, _ -> }, onRetry = {}, onLogout = {},
+        onClose = {}, onAction = { _, _, _, _ -> }, onCash = { _, _ -> }, onRetry = {}, onLogout = {},
     )
 }

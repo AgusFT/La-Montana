@@ -4,6 +4,12 @@ import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
+import ar.com.lamontana.mobile.ui.Navy
+import ar.com.lamontana.mobile.ui.Ink
+import ar.com.lamontana.mobile.ui.Green
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
@@ -39,21 +45,61 @@ internal fun PointFinanceScreen(state:AppUiState,load:(Boolean,String,Int)->Unit
         }
     }
     val view=state.finance?:return
-    Card(Modifier.fillMaxWidth()){
-        Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
-            view.amounts.forEach{(label,value)->Text("$label · ${money(value)}",fontWeight=FontWeight.Medium)}
-        }
-    }
     if(state.remittances){
-        Button(enabled=enabled&&view.accounts.isNotEmpty()&&view.available.toBigDecimal().signum()>0,onClick={form=true}){Text("Informar rendición")}
+        Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Navy)){
+            Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                Text("Pendiente de rendición",color=Color.White,fontSize=14.sp)
+                Text(money(view.amounts.first().second),color=Color.White,fontSize=29.sp,fontWeight=FontWeight.Bold)
+                Text("Fondos recibidos por el punto aún no confirmados por la imprenta",color=Color.White,fontSize=12.sp)
+            }
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            view.amounts.drop(1).forEach{(label,value)->
+                Card(Modifier.weight(1f),colors=CardDefaults.cardColors(containerColor=Color.White)){
+                    Column(Modifier.padding(12.dp)){
+                        Text(label,color=Ink,fontSize=12.sp)
+                        Text(money(value),color=Ink,fontWeight=FontWeight.Bold,fontSize=18.sp)
+                    }
+                }
+            }
+        }
+        Text("Cuando entregues efectivo o hagas una transferencia a la imprenta, informá el importe y el destinatario. La sucursal confirma después que lo recibió.",fontSize=13.sp)
+        if(view.accounts.isEmpty()) Text("Todavía no hay un destinatario habilitado para rendir. Administración debe acordar y habilitar una sucursal y el medio de entrega para este punto.",color=Color(0xFF76521B),fontSize=13.sp)
+        Button(enabled=enabled&&view.accounts.isNotEmpty()&&view.available.toBigDecimalOrNull()?.signum()==1,onClick={form=true}){Text("Informar rendición")}
         if(view.settlements.isEmpty())Text("Todavía no hay rendiciones informadas.")
         view.settlements.forEach{r->ListItem(headlineContent={Text("${money(r.amount)} · ${r.state}")},
             supportingContent={Text("${localMoment(r.date)} · ${r.recipient} · ${r.method}\n${r.note}")})}
-        if(form)ReportRemittance(view.accounts,{form=false}){data->
+        if(form&&view.accounts.isNotEmpty())ReportRemittance(view.accounts,view.available,{form=false}){data->
             form=false
             send(PointCommand("/api/punto/rendiciones",data.toString(),"Rendición informada. Pendiente de confirmación."))
         }
     }else{
+        val amounts=view.amounts.toMap()
+        Card(Modifier.fillMaxWidth(),shape=RoundedCornerShape(16.dp),colors=CardDefaults.cardColors(containerColor=Navy)){
+            Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(5.dp)){
+                Text("Recibido por el punto · ${if(state.financePeriod=="HOY")"hoy" else if(state.financePeriod=="AYER")"ayer" else "últimos 7 días"}",color=Color.White,fontSize=14.sp)
+                Text(money(amounts["Recibido por el punto"]?:"0"),color=Color.White,fontSize=30.sp,fontWeight=FontWeight.Bold)
+                Text("Dinero efectivamente recibido en este período",color=Color.White,fontSize=12.sp)
+            }
+        }
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)){
+            listOf("Efectivo","Transferencias al punto").forEach{label->
+                Card(Modifier.weight(1f),colors=CardDefaults.cardColors(containerColor=Color.White)){
+                    Column(Modifier.padding(12.dp)){
+                        Text(label,fontSize=12.sp,color=Ink)
+                        Text(money(amounts[label]?:"0"),fontSize=18.sp,fontWeight=FontWeight.Bold,color=Ink)
+                    }
+                }
+            }
+        }
+        Card(colors=CardDefaults.cardColors(containerColor=Color.White)){
+            Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+                Text("Transferencias directas a sucursal · ${money(amounts["Directo a sucursal"]?:"0")}")
+                Text("Total gestionado · ${money(amounts["Total gestionado"]?:"0")}",fontWeight=FontWeight.Bold)
+                Text("Pendiente de clientes para retirar · ${money(amounts["Pendiente de cobro al retirar"]?:"0")}",color=Green)
+            }
+        }
+        Text("Movimientos del período",fontWeight=FontWeight.Bold,fontSize=18.sp)
         if(view.movements.isEmpty())Text("No hay movimientos en este período.")
         view.movements.forEach{m->OutlinedButton(enabled=enabled,onClick={detail=m},modifier=Modifier.fillMaxWidth()){
             Text("PED-${m.order} · ${money(m.amount)}\n${m.state} · ${m.recipient}")
@@ -77,7 +123,7 @@ internal fun PointFinanceScreen(state:AppUiState,load:(Boolean,String,Int)->Unit
 }
 
 @Composable
-private fun ReportRemittance(accounts:List<FinanceAccount>,close:()->Unit,send:(JSONObject)->Unit){
+private fun ReportRemittance(accounts:List<FinanceAccount>,available:String,close:()->Unit,send:(JSONObject)->Unit){
     var account by remember { mutableStateOf(accounts.first()) }
     var amount by remember { mutableStateOf("") }
     var reference by remember { mutableStateOf("") }
@@ -86,14 +132,16 @@ private fun ReportRemittance(accounts:List<FinanceAccount>,close:()->Unit,send:(
     var error by remember { mutableStateOf("") }
     AlertDialog(onDismissRequest=close,title={Text("Informar rendición")},text={
         Column(Modifier.verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(6.dp)){
-            OutlinedTextField(amount,{amount=it},label={Text("Importe")},singleLine=true)
+            Text("Disponible para informar ${money(available)}")
+            OutlinedTextField(amount,{amount=it},label={Text("Importe a rendir")},singleLine=true)
             accounts.forEach{a->FilterChip(selected=account.id==a.id,onClick={account=a;reference=""},label={Text("${a.name} · ${a.method}")})}
+            Text("Destinatario: ${account.name} · ${account.method}",fontWeight=FontWeight.Bold)
             Text(account.instructions)
             OutlinedTextField(reference,{reference=it.take(140)},label={Text(if(account.method=="EFECTIVO")"Persona receptora" else "Referencia")})
             OutlinedTextField(note,{note=it.take(300)},label={Text("Observación opcional")})
             ProofPicker(if(attachment==null)"Adjuntar comprobante" else "Cambiar comprobante","*/*",{attachment=it;error=""},{error=it})
             if(error.isNotEmpty())Text(error)
-        }},confirmButton={Button(enabled=amount.replace(',','.').toBigDecimalOrNull()?.signum()==1&&reference.isNotBlank(),onClick={
+        }},confirmButton={Button(enabled=amount.replace(',','.').toBigDecimalOrNull()?.let { it.signum()==1 && it <= available.toBigDecimal() }==true&&reference.isNotBlank(),onClick={
             send(JSONObject().put("operacion",UUID.randomUUID().toString()).put("cuenta",account.id).put("importe",amount.replace(',','.'))
                 .put(if(account.method=="EFECTIVO")"receptor" else "referencia",reference).put("observacion",note).put("comprobante",attachment))
         }){Text("Informar")}},dismissButton={TextButton(onClick=close){Text("Volver")}})

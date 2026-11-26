@@ -180,11 +180,23 @@ class BranchDeskTest {
     }
 
     @Test fun dailyCashKeepsTheServerBalanceAndMovementSigns() {
-        val api = BranchDeskApi(read = { assertEquals("/api/operacion/sucursales/$branch/caja?pagina=1", it)
-            """{"hoy":"2026-11-07","resumen":{"efectivoActual":"1400.00","efectivoIngresos":"2000.00","efectivoEgresos":"600.00","transferenciasIngresos":"500.00"},"movimientos":[{"tipo":"PAGO_PROVEEDOR","medio":"EFECTIVO","importe":"-600.00","fecha":"2026-11-07T15:00:00Z","actor":"Responsable","concepto":"Resmas"}],"total":26,"pagina":1}"""
+        val api = BranchDeskApi(read = { assertEquals("/api/operacion/sucursales/$branch/caja?pagina=1&desde=2026-11-07&hasta=2026-11-07", it)
+            """{"hoy":"2026-11-07","resumen":{"efectivoActual":"1400.00","efectivoFinal":"1400.00","efectivoIngresos":"2000.00","efectivoEgresos":"600.00","transferenciasIngresos":"500.00"},"movimientos":[{"tipo":"PAGO_PROVEEDOR","medio":"EFECTIVO","importe":"-600.00","fecha":"2026-11-07T15:00:00Z","actor":"Responsable","concepto":"Resmas"}],"total":26,"pagina":1}"""
         }, post = { _, _ -> error("read only") })
-        val cash = api.cash(branch, 1)
+        val cash = api.cash(branch, 1, "HOY", "2026-11-07")
         assertEquals("1400.00", cash.current); assertEquals("-600.00", cash.movements.single().amount)
         assertEquals("Resmas", cash.movements.single().concept); assertEquals(1, cash.page)
     }
+    @Test fun cashPeriodsUseTheBranchCalendarAndKeepClosingBalanceSeparate() {
+        val urls=mutableListOf<String>()
+        val api=BranchDeskApi(read={ path->
+            urls.add(path)
+            """{"hoy":"2026-11-07","resumen":{"efectivoActual":"1400.00","efectivoFinal":"1250.00","efectivoIngresos":"200.00","efectivoEgresos":"0.00","transferenciasIngresos":"20.00"},"movimientos":[],"total":0,"pagina":0}"""
+        },post={_,_->error("read only")})
+        assertEquals("1250.00",api.cash(branch,0,"AYER","2026-11-07").closing)
+        api.cash(branch,0,"SEMANA","2026-11-07")
+        assertTrue(urls[0].endsWith("desde=2026-11-06&hasta=2026-11-06"))
+        assertTrue(urls[1].endsWith("desde=2026-11-01&hasta=2026-11-07"))
+    }
+
 }

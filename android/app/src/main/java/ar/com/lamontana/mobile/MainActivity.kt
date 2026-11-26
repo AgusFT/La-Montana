@@ -110,6 +110,7 @@ fun LaMontanaApp(vm: AppViewModel = viewModel()) {
         MobileDestination.BRANCH -> BranchDeskScreen(
             state = state, onRefresh = vm::refreshBranch, onSelectBranch = vm::selectBranch,
             onLoad = vm::loadBranchOrders, onOpen = vm::openBranchOrder, onClose = vm::closeBranchOrder,
+            onCash = vm::loadBranchCash,
             onAction = vm::branchAction, onRetry = vm::retryBranchOperation, onLogout = vm::logout,
         )
         MobileDestination.PRINTERS, MobileDestination.PAUSES -> AdminWorkspace(state, vm::refreshAdmin, vm::logout,
@@ -376,7 +377,15 @@ private fun PointOrderDialog(
                         "El rider debe presentar este pedido antes de que puedas confirmar la recepción."
                     })
                 }
-                if (collect) Text("Medio elegido al hacer el pedido: ${logisticsLabel(order.medio)}")
+                if (collect) Text("Medio elegido al hacer el pedido: ${logisticsLabel(order.medio)}. Podés usar cualquiera de los medios disponibles para este saldo.")
+                if (detail.transferPending) Text(
+                    "Ya hay una transferencia informada pendiente. La persona autorizada debe verificarla o descartarla antes de cobrar otra vez o entregar.",
+                    color = Color(0xFF685223), fontSize = 13.sp)
+                else if (order.recorrido == "DISPONIBLE_PUNTO" && order.saldo.toBigDecimalOrNull()?.signum() == 1 &&
+                    "TRANSFERENCIA" !in detail.paymentMethods && detail.accounts.isEmpty()) Text(
+                    "Transferencia no disponible: Administración debe habilitar una cuenta del punto o de la sucursal de origen.",
+                    color = Color(0xFF685223), fontSize = 13.sp)
+
                 detail.works.forEach { Text("${it.nombre} · ${it.paginas} pág. · ${it.copias} copias") }
                 detail.receipts.forEach {
                     Text("${logisticsLabel(it.medio)} · ${money(it.importe)} · ${it.destino}")
