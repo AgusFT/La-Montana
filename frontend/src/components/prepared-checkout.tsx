@@ -40,7 +40,7 @@ export function PreparedCheckout({id}:{id:string}){
    if(c.kind==='confirm'){if(!isOrder(result))throw new Error('No pudimos comprobar el pedido creado. Recuperá la misma operación.');pending.current=null;setUncertain(false);router.push(`/cliente/pedidos/${result.codigoPublico}`);return;}
    if(!isCheckout(result))throw new Error('No pudimos comprobar el total guardado.');received(result);setCalculated(JSON.stringify(JSON.parse(c.body).preferencias));
    pending.current=null;setUncertain(false);setFailedKey('');
-  }catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar el resumen.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;if(c.kind==='quote')setFailedKey(JSON.stringify(JSON.parse(c.body).preferencias));setCalculated('');}}
+  }catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar el resumen.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;if(c.kind==='quote')setFailedKey(JSON.stringify(JSON.parse(c.body).preferencias));if(e.codigo!=='CUPO_DEMO')setCalculated('');}}
   finally{running.current=false;setBusy(false);}
  }
  useEffect(()=>{

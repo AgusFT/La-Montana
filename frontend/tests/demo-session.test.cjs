@@ -4,7 +4,7 @@ const { test } = require("node:test");
 const Module = require("node:module");
 const ts = require("typescript");
 
-test("el proxy de Demo sólo acepta POST de sesión y conserva la protección CSRF y la cookie", async (t) => {
+function loadProxy() {
   const source = readFileSync("src/app/api/[...path]/route.ts", "utf8");
   const compiled = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -13,6 +13,10 @@ test("el proxy de Demo sólo acepta POST de sesión y conserva la protección CS
   proxy.require = (id) => id === "@/lib/organization-types" ? { uuidPattern: /^[0-9a-f-]{36}$/i } : require(id);
   proxy._compile(compiled.outputText, "demo-session-proxy");
 
+  return proxy.exports;
+}
+
+function mockBackend(t) {
   const originalBackend = process.env.BACKEND_INTERNAL_URL;
   process.env.BACKEND_INTERNAL_URL = "http://backend.test";
   t.after(() => {
@@ -20,6 +24,11 @@ test("el proxy de Demo sólo acepta POST de sesión y conserva la protección CS
     else process.env.BACKEND_INTERNAL_URL = originalBackend;
   });
 
+}
+
+test("el proxy de Demo sólo acepta POST de sesión y conserva la protección CSRF y la cookie", async (t) => {
+  const proxy = loadProxy();
+  mockBackend(t);
   const body = JSON.stringify({ rol: "EMPLEADO" });
   const fetch = t.mock.method(globalThis, "fetch", async (url, options) => {
     assert.equal(url, "http://backend.test/api/demo/sesion");
@@ -34,11 +43,11 @@ test("el proxy de Demo sólo acepta POST de sesión y conserva la protección CS
 
   const url = "http://app.test/api/demo/sesion";
   const context = { params: Promise.resolve({ path: ["demo", "sesion"] }) };
-  const denied = await proxy.exports.GET(new Request(url), context);
+  const denied = await proxy.GET(new Request(url), context);
   assert.equal(denied.status, 405);
   assert.equal(fetch.mock.callCount(), 0);
 
-  const response = await proxy.exports.POST(new Request(url, {
+  const response = await proxy.POST(new Request(url, {
     method: "POST",
     body,
     headers: {
@@ -50,4 +59,30 @@ test("el proxy de Demo sólo acepta POST de sesión y conserva la protección CS
   assert.equal(response.status, 200);
   assert.deepEqual(response.headers.getSetCookie(), ["DEMOSESSION=nueva; Path=/; HttpOnly"]);
   assert.equal(fetch.mock.callCount(), 1);
+});
+
+test("el proxy de cupos admite las rutas de inventario, alta y baja y comunica el cupo lleno", async (t) => {
+  const proxy = loadProxy();
+  mockBackend(t);
+  const id = "a2662894-c40c-4e31-9041-3daa40947bc8";
+  const fetch = t.mock.method(globalThis, "fetch", async () => Response.json(
+    { mensaje: "Se alcanzó el cupo de clientes.", codigo: "CUPO_DEMO" }, { status: 409 }
+  ));
+  async function request(method, ruta) {
+    const url = "http://app.test/api/" + ruta;
+    return proxy[method](new Request(url, { method }), { params: Promise.resolve({ path: ruta.split("/") }) });
+  }
+  assert.equal((await request("POST", "demo/cupos")).status, 405);
+  assert.equal((await request("GET", "demo/clientes")).status, 405);
+  assert.equal((await request("POST", `demo/cupos/CAJA/${id}/baja`)).status, 404);
+  assert.equal((await request("POST", "demo/cupos/CLIENTE/1/baja")).status, 404);
+  assert.equal(fetch.mock.callCount(), 0);
+  const create = await request("POST", "demo/clientes");
+  assert.equal(create.status, 409);
+  assert.deepEqual(await create.json(), { mensaje: "Se alcanzó el cupo de clientes.", codigo: "CUPO_DEMO" });
+  await request("GET", "demo/cupos");
+  for (const tipo of ["CLIENTE", "PEDIDO", "COBRO", "DEVOLUCION", "IMPRESORA"]) {
+    await request("POST", `demo/cupos/${tipo}/${id}/baja`);
+  }
+  assert.equal(fetch.mock.callCount(), 7);
 });

@@ -35,6 +35,7 @@ import { getOperationBranch, getOperationContext } from "@/lib/organization-serv
 import { timeZoneLabel, uuidPattern } from "@/lib/organization-types";
 
 import {OrderListView} from "@/components/order-list";
+import {DemoClientForm} from "@/components/demo-client-form";
 import {PaymentQueue} from "@/components/payment-queue";
 import {ReceivedFiles} from "@/components/received-files";
 
@@ -56,7 +57,13 @@ export default async function OperationBranchPage({ params, searchParams }: { pa
   const branch = result.state === "found" ? result.branch : null;
   return <AdminShell name={`${session.profile.nombre} ${session.profile.apellido}`} active="operacion" administration={session.profile.rol === "ADMIN_ADMIN"} userRole={session.profile.rol === "EMPLEADO" ? "Empleado" : "Propietario"} title={branch?.nombre ?? (result.state === "forbidden" ? "Acceso denegado" : "Sucursal no disponible")} description="Pedidos confirmados, archivos y pagos de esta sucursal.">
     {branch ? <article className="branch-card"><h2>{branch.nombre}</h2><p>Código: {branch.codigo}</p><p>{branch.calle} {branch.numero}, {branch.localidad}, {branch.provincia} · CP {branch.codigoPostal}</p><p>Hora local: {timeZoneLabel(branch.zonaHoraria)}</p>{branch.correo && <p>Correo: {branch.correo}</p>}{branch.telefono && <p>Teléfono: {branch.telefono}</p>}</article> : <p className="form-message error-message" role="alert">{result.state === "forbidden" ? "No tenés acceso a esta sucursal." : "No pudimos conectar con el sistema para consultar esta sucursal. Intentá nuevamente."}</p>}
-    {branch&&<><OrderListView branch={codigoPublico} initialState={initialState}/><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}</>}
+    {branch&&<><OrderListView branch={codigoPublico} initialState={initialState}/><ReceivedFiles branch={codigoPublico}/>{financial&&<PaymentQueue branch={codigoPublico}/>}
+      {(session.profile.rol === "ADMIN_ADMIN" || context?.permisos.includes("REGISTRAR_COBRO")) && (
+        <details className="admin-card demo-client-entry">
+          <summary>Crear ficha de cliente ficticio</summary>
+          <DemoClientForm />
+        </details>
+      )}</>}
     <a className="secondary-link" href="/operacion">Volver a tus sucursales</a>
   </AdminShell>;
 }

@@ -28,7 +28,7 @@
 import {installationChanged} from "./installation-types";
 
 export class MutationError extends Error {
-  constructor(message: string, readonly status: number, readonly uncertain = false) { super(message); this.name = "MutationError"; }
+  constructor(message: string, readonly status: number, readonly uncertain = false, readonly codigo?: string) { super(message); this.name = "MutationError"; }
 }
 
 export async function secureMutation(path: string, body?: BodyInit, contentType?: string, method: "POST" | "PUT" | "DELETE" = "POST") {
@@ -42,7 +42,7 @@ export async function secureMutation(path: string, body?: BodyInit, contentType?
   });
   if (!response.ok) {
     const data = await response.json().catch(() => null);
-    throw new MutationError(typeof data?.mensaje === "string" ? data.mensaje : "No fue posible completar la operación.", response.status, response.status >= 500);
+    throw new MutationError(typeof data?.mensaje === "string" ? data.mensaje : "No fue posible completar la operación.", response.status, response.status >= 500, data?.codigo);
   }
   if(typeof window!=="undefined"&&path.startsWith("/api/admin/")&&!path.endsWith("/simular"))window.dispatchEvent(new Event(installationChanged));
   return response;

@@ -35,7 +35,7 @@ import { uuidPattern } from "@/lib/organization-types";
 const allowed: Record<string, readonly string[]> = {
   "admin/soporte": ["GET", "POST"], "admin/soporte/autorizar": ["POST"], "admin/soporte/revocar": ["POST"],
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
-  "demo/sesion": ["POST"],
+  "demo/sesion": ["POST"], "demo/cupos": ["GET"], "demo/clientes": ["POST"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/pagina-web": ["GET"], "admin/pagina-web/borrador": ["PUT"], "admin/pagina-web/revision": ["GET"], "admin/pagina-web/publicar": ["POST"], "publico/pagina-web": ["GET"],
   "admin/pedidos": ["GET"], "admin/preparacion": ["GET"], "sistema/estado": ["GET"], "sistema/entorno": ["GET"],
@@ -111,7 +111,10 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const receivedMethods=path.length===4&&path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2])&&path[3]==="archivos"?["GET"]:null;
   const branchDeletion=path.length===4&&path[0]==="admin"&&path[1]==="sucursales"&&uuidPattern.test(path[2])&&path[3]==="eliminar"?["POST"]:null;
   const catalogServiceMethods=path[0]==="admin"&&path[1]==="catalogo"&&path[2]==="servicios"&&uuidPattern.test(path[3]??"")?(path.length===4?["DELETE"]:path.length===5&&path[4]==="estado"?["PUT"]:null):null;
-  const methods = preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
+  const bajaDemo = path.length === 5 && path[0] === "demo" && path[1] === "cupos"
+    && ["PEDIDO", "CLIENTE", "COBRO", "DEVOLUCION", "IMPRESORA"].includes(path[2])
+    && uuidPattern.test(path[3]) && path[4] === "baja";
+  const methods = bajaDemo ? ["POST"] : preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
@@ -176,7 +179,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     if (!response.ok) {
       const mensaje = typeof data?.mensaje === "string" ? data.mensaje.slice(0, 300) : "No fue posible completar la operación.";
       // Preserve separate Set-Cookie values, including CSRF/session changes on errors.
-      return Response.json({ mensaje }, { status: response.status, headers: resultHeaders });
+      const codigo = response.status === 409 && data?.codigo === "CUPO_DEMO" ? "CUPO_DEMO" : undefined;
+      return Response.json({ mensaje, codigo }, { status: response.status, headers: resultHeaders });
     }
     return Response.json(data, { status: response.status, headers: resultHeaders });
   } catch { return error(502, "No pudimos conectar con el sistema. Intentá nuevamente.", responseHeaders); }
