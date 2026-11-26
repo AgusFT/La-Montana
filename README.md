@@ -1,6 +1,10 @@
 # La Montaña · Demo
 
-La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como administrador, empleado o cliente y recorrer un pedido hasta su impresión simulada. Esta versión se inicia desde el código fuente. El instalador para Windows se entregará en una etapa posterior. [Seguimiento de la edición](https://github.com/AgusFT/La-Montana/issues/229)
+La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como administrador, empleado o cliente y recorrer un pedido hasta su impresión simulada. [Seguimiento de la edición](https://github.com/AgusFT/La-Montana/issues/229)
+
+## Instalar en Windows 11 x64
+
+Ejecutá `LaMontanaDemo-0.1.0.exe` y abrí **LaMontanaDemo** desde el menú Inicio. El asistente verifica el equipo y te guía para elegir la carpeta de la imprenta. Si necesitás preparar WSL2, Ubuntu o Docker, elegí la copia incluida en el instalador. Al terminar, **Abrir la Demo y elegir rol** te lleva al selector en el navegador. La instalación cuenta las 360 horas desde el primer arranque en ese equipo. [Guía de instalación y mantenimiento](https://github.com/AgusFT/La-Montana/blob/main/demo/distribucion.md)
 
 ## Iniciar desde el código fuente
 
