@@ -22,12 +22,13 @@ class PointFinanceTest {
     @Test fun remittanceBalanceIsIndependentOfTheSelectedCollectionPeriod(){
         val api=PointFinanceApi { path->
             assertEquals("/api/punto/rendiciones",path)
-            """{"saldo":{"pendiente":"45000","reservado":"15000","disponible":"30000"},"rendiciones":[],
+            """{"saldo":{"pendiente":"45000","reservado":"15000","disponible":"30000"},"rendiciones":[
+                {"fecha":"2026-11-25","importe":"15000","medio":"TRANSFERENCIA","destinatario":"Sucursal","estado":"CONFIRMADA","referencia":"REF-1","motivo":""}],
                 "cuentas":[{"cuenta":"1","uso":"RENDICION","medio":"TRANSFERENCIA","nombre":"Sucursal","instrucciones":"Cuenta autorizada"}]}"""
         }
         val data=api.remittances()
         assertEquals("30000",data.available)
         assertEquals("TRANSFERENCIA",data.accounts.single().method)
-        assertTrue(data.settlements.isEmpty())
+        assertEquals("REF-1",data.settlements.single().note)
     }
 }

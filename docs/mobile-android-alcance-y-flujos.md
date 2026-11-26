@@ -207,7 +207,7 @@ Usar el entorno aislado `pruebas`, con datos históricos de seis meses, puntos C
 3. Código válido para retiro; código incorrecto sin entregar/cobrar.
 4. Pedido con saldo pagado; pedido con efectivo permitido y cobro/entrega atómicos.
 5. Transferencia informada, **no** acreditada: no equivale a saldo cubierto.
-6. Finanzas e historial de seis meses, con quién/fecha/hora y sin atribuir al punto dinero cobrado por caja.
+6. Comparar los cobros de los últimos siete días y la deuda acumulada del punto con el historial de seis meses de Administración. Verificar que el dinero acreditado directamente a la sucursal quede fuera de la deuda.
 7. Repartidor con varios destinos: retiro de bultos, punto Caballito, punto Palermo y un domicilio.
 8. Entrega a domicilio válida y cliente ausente/reintento.
 9. Intento de ver/entregar pedido fuera del punto o reparto asignado: rechazo backend.

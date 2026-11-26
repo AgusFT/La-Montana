@@ -35,7 +35,7 @@ class PointFinanceApi(private val read:(String)->String){
             "Informado en espera de confirmación" to saldo.getString("reservado"),"Disponible para rendir" to saldo.getString("disponible")),
             accounts=j.getJSONArray("cuentas").accounts(),available=saldo.getString("disponible"),settlements=List(rows.length()){i->
                 rows.getJSONObject(i).run { Remittance(getString("fecha"),getString("importe"),getString("medio"),
-                    getString("destinatario"),getString("estado"),textOr("motivo",textOr("referencia",textOr("receptor")))) }
+                    getString("destinatario"),getString("estado"),listOf(textOr("referencia"),textOr("receptor"),textOr("motivo")).filter { it.isNotBlank() }.joinToString(" · ")) }
             })
     }
 }
