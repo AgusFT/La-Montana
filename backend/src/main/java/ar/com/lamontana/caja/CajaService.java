@@ -183,8 +183,8 @@ public class CajaService {
         var hoy = LocalDate.ofInstant(ahora, acceso.zona());
         var inicio = desde == null ? hoy : desde;
         var fin = hasta == null ? hoy : hasta;
-        if (!acceso.admin() && (!inicio.equals(hoy) || !fin.equals(hoy)))
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Como encargado podés consultar los movimientos del día.");
+        if (!acceso.admin() && (inicio.isBefore(hoy.minusDays(6)) || fin.isAfter(hoy)))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Como encargado podés consultar hasta siete días recientes de tu sucursal.");
         if (inicio.getYear()<1900 || inicio.isAfter(fin) || fin.isAfter(hoy) || ChronoUnit.DAYS.between(inicio, fin) > 365)
             throw invalido("Elegí un período válido de hasta 366 días, sin fechas futuras.");
         return new Periodo(hoy,inicio,fin,Timestamp.from(inicio.atStartOfDay(acceso.zona()).toInstant()),

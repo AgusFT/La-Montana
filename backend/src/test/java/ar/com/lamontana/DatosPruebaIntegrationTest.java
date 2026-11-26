@@ -50,7 +50,8 @@ class DatosPruebaIntegrationTest {
             var inicial=get(encargado,caja,200);
             assertThat(get(admin,caja,200)).isEqualTo(inicial);
             String hoy=inicial.get("hoy").asString(),ayer=LocalDate.parse(hoy).minusDays(1).toString();
-            get(encargado,caja+"?desde="+ayer+"&hasta="+ayer,403);
+            get(encargado,caja+"?desde="+ayer+"&hasta="+ayer,200);
+            get(encargado,caja+"?desde="+LocalDate.parse(hoy).minusDays(7)+"&hasta="+hoy,403);
             get(admin,caja+"?desde="+ayer+"&hasta="+ayer,200);
             BigDecimal efectivo=new BigDecimal(inicial.get("resumen").get("efectivoActual").asString());
             UUID op=UUID.randomUUID();
@@ -271,6 +272,8 @@ class DatosPruebaIntegrationTest {
                     var aviso=Map.of("operacion",UUID.randomUUID(),"cuenta",cuenta,"version",row.version(),"importe",row.saldo(),"referencia",referencia);
                     sendPoint(sesion,"POST",ficha+"/avisos",aviso,200);
                     sendPoint(sesion,"POST",ficha+"/avisos",aviso,200);
+                    assertThat(service.ficha(row.pedido(),correo).transferenciaPendiente()).isTrue();
+                    assertThat(service.ficha(row.pedido(),correo).mediosSaldo()).isEmpty();
                     assertThat(count(jdbc,"pago")).isEqualTo(cobros);
                     var intento=payments.vista(pedido.cotizacion(),ADMIN,true).intentos().stream().filter(i->referencia.equals(i.referencia())).findFirst().orElseThrow();
                     var confirm=Map.of("operacion",UUID.randomUUID(),"cotizacion",pedido.cotizacion(),"aviso",intento.codigoPublico());

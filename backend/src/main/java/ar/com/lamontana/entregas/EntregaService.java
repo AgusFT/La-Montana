@@ -383,6 +383,13 @@ public class EntregaService {
   return new Validacion(out,true,out.cierre()==null?"Cobro y entrega registrados.":"Cobro registrado, pedido entregado y cerrado.");
  }
  public String bloqueoCobroPunto(PedidoService.Detalle p,MedioPago medio,String correo){
+  if(Boolean.TRUE.equals(jdbc.queryForObject("""
+      SELECT EXISTS(SELECT 1 FROM lamontana.intento_pago i
+       JOIN lamontana.cotizacion c ON c.id_cotizacion=i.id_cotizacion
+       LEFT JOIN lamontana.resolucion_intento_pago r USING(id_intento_pago)
+       WHERE c.codigo_publico=? AND r.id_intento_pago IS NULL)
+      """,Boolean.class,p.cotizacion())))
+   return "Hay una transferencia informada pendiente. La sucursal debe verificarla o descartarla antes de recibir otro pago.";
   String bloqueo=pagos.bloqueoSaldo(p.cotizacion(),correo,medio);
   if(bloqueo!=null)return bloqueo;
   return jdbc.queryForObject("SELECT lamontana.dinero_pendiente_cierre(?)",BigDecimal.class,p.numero()).signum()>0

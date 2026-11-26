@@ -33,7 +33,7 @@ public class PuntoRetiroService {
  public record Trabajo(String nombre,int paginas,int copias){}
  public record PagoRegistrado(String medio,String importe,String referencia,PagoService.CobroEnPunto destinoCobro){}
  public record Ficha(Fila pedido,List<Trabajo> trabajos,EntregaService.Vista entrega,List<MedioPago> medios,
-  List<MedioPago> mediosSaldo,String sucursalOrigen,List<PagoRegistrado> pagos,List<FinanzasPunto.Cuenta> cuentas){}
+  List<MedioPago> mediosSaldo,String sucursalOrigen,List<PagoRegistrado> pagos,List<FinanzasPunto.Cuenta> cuentas,boolean transferenciaPendiente){}
  public record Movimiento(long pedido,String tipo,String importe,String medio,String referencia,String responsable,Instant fecha,boolean enPunto,String destinoCobro,String estado,UUID codigo,UUID cotizacion,String verificador,boolean puedeVerificar){}
  public record Finanzas(String pendiente,String efectivo,String transferencia,long total,List<Movimiento> movimientos,int pagina,String desde,String hasta,String directa,String recibido,String gestionado){}
  record Acceso(long punto,long usuario,UUID publico,String nombre,String responsable,boolean cobros){}
@@ -87,7 +87,13 @@ public class PuntoRetiroService {
     .filter(x->x.destinoCobro()!=null)
     .map(x->new PagoRegistrado(x.medio(),x.importe(),x.referencia(),x.destinoCobro())).toList();
   return new Ficha(row,p.oferta().items().stream().map(i->new Trabajo(i.documento().nombre(),i.trabajo().paginas(),i.trabajo().copias())).toList(),
-    d,medios,mediosSaldo,p.oferta().sucursal().nombre(),registrados,cuentas);
+    d,medios,mediosSaldo,p.oferta().sucursal().nombre(),registrados,cuentas,
+    Boolean.TRUE.equals(jdbc.queryForObject("""
+      SELECT EXISTS(SELECT 1 FROM lamontana.intento_pago i
+       LEFT JOIN lamontana.resolucion_intento_pago r USING(id_intento_pago)
+       WHERE i.id_cotizacion=(SELECT id_cotizacion FROM lamontana.pedido_actual WHERE codigo_publico=?)
+        AND r.id_intento_pago IS NULL)
+      """,Boolean.class,id)));
  }
  @Transactional public Bandeja recibir(Recepcion in,String correo){locks();var a=acceso(correo);if(in.pedidos().stream().map(PedidoLote::pedido).distinct().count()!=in.pedidos().size())throw error(HttpStatus.BAD_REQUEST,"No repitas pedidos.");String hash=hash(in.pedidos().stream().sorted(Comparator.comparing(PedidoLote::pedido)).toList());var old=jdbc.query("SELECT id_usuario,huella FROM lamontana.recepcion_lote_punto WHERE id_operacion=?",(r,n)->new Object[]{r.getLong(1),r.getString(2)},in.operacion());if(!old.isEmpty()){if((long)old.get(0)[0]!=a.usuario()||!old.get(0)[1].equals(hash))throw error(HttpStatus.CONFLICT,"La operación ya tiene otros datos.");return buscar(new Buscar("POR_LLEGAR","",0),correo);}
   for(var p:in.pedidos()){
