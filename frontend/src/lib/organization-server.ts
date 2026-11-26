@@ -15,7 +15,6 @@
  * - [async] getResource(path: string): Promise<unknown>
  * - [export, async] getBranchLocations(): Promise<BranchLocation[] | null>
  * - [export, async] getBranches(): Promise<Branch[] | null>
- * - [export, async] getEmployees(): Promise<Employee[] | null>
  * - [export, async] getOperationContext(): Promise<OperationContext | null>
  * - [export, async] getOperationBranch(id: string): Promise<OperationBranchResult>
  *
@@ -28,7 +27,7 @@
 
 import "server-only";
 import { cookies } from "next/headers";
-import { isBranchLocation, type BranchLocation, isBranch, isEmployee, isPermissions, uuidPattern, type Employee, type Branch, type OperationContext } from "@/lib/organization-types";
+import { isBranchLocation, type BranchLocation, isBranch, isPermissions, uuidPattern, type Branch, type OperationContext } from "@/lib/organization-types";
 
 async function getResource(path: string): Promise<unknown> {
   const base = process.env.BACKEND_INTERNAL_URL;
@@ -48,10 +47,6 @@ export async function getBranchLocations(): Promise<BranchLocation[] | null> {
 export async function getBranches(): Promise<Branch[] | null> {
   const data = await getResource("admin/sucursales");
   return Array.isArray(data) && data.every(isBranch) ? data : null;
-}
-export async function getEmployees(): Promise<Employee[] | null> {
-  const data = await getResource("admin/empleados");
-  return Array.isArray(data) && data.every(isEmployee) ? data : null;
 }
 export async function getOperationContext(): Promise<OperationContext | null> {
   const data = await getResource("operacion/contexto");

@@ -21,10 +21,9 @@ export function isPreparation(value:unknown):value is Preparation{
 }
 export function nextStep(data:Preparation){return data.guia.etapas.find(s=>!s.completa);}
 export function installationAllowed(data:Preparation|null,area:string){
-  if(data?.activa||["dashboard","sucursales","empleados","web"].includes(area))return true;
+  if(data?.activa||["dashboard","sucursales","empleados","puntos","riders","web"].includes(area))return true;
   if(!data)return false;
   if(area==="catalogo")return !!data.guia.etapas.find(s=>s.codigo==="papeles")?.habilitada;
   if(area==="configuracion")return !!data.guia.etapas.find(s=>s.codigo==="modelo")?.habilitada;
-  if(area==="puntos")return data.guia.faseDisponible>=5;
   return false;
 }

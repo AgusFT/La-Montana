@@ -1,0 +1,7 @@
+.demo-preview-notice{margin:1rem 0;color:var(--ui-text);font-weight:600}
+.demo-module-preview{border:0;padding:0;margin:0;min-inline-size:0;filter:grayscale(1)}
+.demo-module-preview>section+section{margin-top:1rem}
+.demo-module-preview input,.demo-module-preview select,.demo-module-preview button{cursor:not-allowed}
+.demo-module-preview .admin-form-grid{gap:.75rem}
+.demo-module-preview label:not(.admin-check){display:grid;gap:.35rem}
+.demo-module-preview h3,.demo-module-preview .configuration-actions{margin-top:1rem}

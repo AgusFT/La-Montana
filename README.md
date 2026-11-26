@@ -36,6 +36,12 @@ Los puertos y el directorio de imágenes se pueden configurar con las variables 
 3. Usá **Cambiar rol** y elegí **Empleado**. Entrá a **Ver sucursal**, abrí el pedido aprobado y seleccioná **Impresión simulada**. Elegí la impresora de Senderos, completá el motivo y confirmá el inicio. Después podés registrar la finalización y el control de calidad.
 4. Como **Administrador**, consultá el pedido y su historial. Las tres cuentas comparten los datos de esta instalación. Los cambios del visitante y la impresión registrada se conservan al reiniciar.
 
+## Vigencia y funciones disponibles en la Demo
+
+El banner muestra cuánto queda de las **360 horas desde el primer arranque en el equipo**. El plazo se comprueba localmente y se conserva al actualizar o reinstalar. Si la aplicación detecta que el reloj se atrasó, corregí la fecha y la hora del equipo y elegí **Volver a comprobar**. Al vencer se cierra el acceso, incluso en las sesiones abiertas, y se conservan los archivos.
+
+**Administración de usuarios**, **Puntos de entrega** y **Riders** muestran controles en gris. **Analytics** y **Chat Bot** figuran como funciones prémium futuras. Podés trabajar con las fichas comerciales, las sucursales y los pedidos de Senderos. Las secciones técnicas que siguen describen también funciones del producto completo. [Alcance de la Demo](https://github.com/AgusFT/La-Montana/blob/main/demo/README.md)
+
 ## Casa matriz por versión · V41
 
 Cada configuración nueva debe seleccionar y confirmar una única sucursal activa como **casa matriz** en Fase 5. Los borradores heredan la selección anterior, pero requieren confirmarla nuevamente. Su calendario es la referencia de preparación de toda la imprenta; las otras sucursales pueden atender solo retiros, sin producción. Retirar en matriz no suma traslado; otra sucursal, punto o domicilio sí. Los recursos y servicios permanecen globales.

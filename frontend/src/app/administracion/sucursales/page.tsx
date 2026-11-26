@@ -29,7 +29,7 @@ import {AdminShell} from "@/components/admin-shell";
 import { redirect } from "next/navigation";
 import { roleHome } from "@/lib/roles";
 import { IdentityShell } from "@/components/identity-shell";
-import { BranchForm } from "@/components/organization-forms";
+import { BranchForm } from "@/components/branch-form";
 import { getSession } from "@/lib/identity-server";
 import { getBranches, getBranchLocations } from "@/lib/organization-server";
 import { timeZoneLabel } from "@/lib/organization-types";

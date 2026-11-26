@@ -25,7 +25,6 @@
  */
 //#endregion
 
-import { getPointAvailability } from "@/lib/point-availability-server";
 import { redirect } from "next/navigation";
 import { roleHome } from "@/lib/roles";
 import { IdentityShell } from "@/components/identity-shell";
@@ -44,12 +43,11 @@ export default async function AdministrationPage() {
   if (session.profile.debeCambiarContrasena) redirect("/cuenta/seguridad");
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   const owner = session.profile;
-  const points=await getPointAvailability();
   return <AdminShell title="Dashboard administrativo" description={`Bienvenido, ${owner.nombre}. Consultá todos los pedidos de la imprenta y sus destinos de entrega.`} name={`${owner.nombre} ${owner.apellido}`} active="dashboard">
     <PreparationMap/>
     <div className="dashboard-layout"><div><AdminDashboard/></div>
-    <aside className="dashboard-aside"><section className="dashboard-side-card"><h2>Disponibilidad de puntos</h2>{!points?<p role="alert">No pudimos consultar la disponibilidad.</p>:points.deshabilitados>0?<p className="dashboard-notice" role="status">{points.deshabilitados} {points.deshabilitados===1?"punto de entrega deshabilitado":"puntos de entrega deshabilitados"}.</p>:<p>Sin puntos deshabilitados en la configuración consultada.</p>}<a href="/administracion/puntos-entrega">Revisar disponibilidad →</a></section>
-    <section className="dashboard-side-card"><h2>Acciones rápidas</h2><nav aria-label="Acciones rápidas"><GuidedNavLink area="operacion" href="/administracion/pedidos">Pedidos, producción y entregas</GuidedNavLink><GuidedNavLink area="catalogo" href="/administracion/catalogo">Servicios y precios</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion">Configurar la imprenta</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion/historial">Historial de configuraciones</GuidedNavLink><GuidedNavLink area="sucursales" href="/administracion/sucursales">Administrar sucursales</GuidedNavLink><GuidedNavLink area="empleados" href="/administracion/empleados">Administrar empleados</GuidedNavLink></nav></section>
+    <aside className="dashboard-aside"><section className="dashboard-side-card"><h2>Disponibilidad de puntos</h2><p>Vista previa del módulo de la aplicación móvil.</p><a href="/administracion/puntos-entrega">Ver puntos de entrega →</a></section>
+    <section className="dashboard-side-card"><h2>Acciones rápidas</h2><nav aria-label="Acciones rápidas"><GuidedNavLink area="operacion" href="/administracion/pedidos">Pedidos, producción y entregas</GuidedNavLink><GuidedNavLink area="catalogo" href="/administracion/catalogo">Servicios y precios</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion">Configurar la imprenta</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion/historial">Historial de configuraciones</GuidedNavLink><GuidedNavLink area="sucursales" href="/administracion/sucursales">Administrar sucursales</GuidedNavLink><GuidedNavLink area="empleados" href="/administracion/empleados">Ver administración de usuarios</GuidedNavLink></nav></section>
     <section className="dashboard-side-card"><h2>Funciones del piloto</h2><p>La producción se registra manualmente y los pagos se verifican por personal autorizado.</p><p><span className="configuration-badge">En construcción</span></p><p>CUPS, pagos en línea, reclamos, gestión de clientes y reportes de facturación.</p></section></aside></div>
   </AdminShell>;
 }

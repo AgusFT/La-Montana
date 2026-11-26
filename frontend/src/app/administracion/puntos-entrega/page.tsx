@@ -1,43 +1,21 @@
-//#region ENCABEZADO · src/app/administracion/puntos-entrega/page.tsx
-/*
- * ========================================================================
- * ARCHIVO: src/app/administracion/puntos-entrega/page.tsx
- * ========================================================================
- * FUNCIÓN
- * Comprueba el acceso del propietario y presenta el panel de disponibilidad temporal de los puntos
- * de entrega.
- *
- * ------------------------------------------------------------------------
- * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
- * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
- * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
- * - [export, default, async] PointsPage()
- *   Componente de página exportado por la ruta de Next.js.
- *
- * ------------------------------------------------------------------------
- * TIPOS DECLARADOS
- * - No declara tipos con nombre.
- *
- * ------------------------------------------------------------------------
- * VALORES DE MÓDULO Y REEXPORTACIONES
- * - dynamic [const, exportado].
- * ========================================================================
- */
-//#endregion
+import { DemoModulePreview } from "@/components/demo-module-preview";
 
-import {redirect} from "next/navigation";
-import {AdminShell} from "@/components/admin-shell";
-import {PointAvailabilityWorkspace} from "@/components/point-availability-workspace";
-import {getSession} from "@/lib/identity-server";
-import {getPointAvailability} from "@/lib/point-availability-server";
-import {roleHome} from "@/lib/roles";
-export const dynamic="force-dynamic";
-export default async function PointsPage(){
-  const session=await getSession();if(session.state==="anonymous")redirect("/acceso");
-  if(session.state==="unavailable")return <main className="shell"><h1>Disponibilidad de puntos</h1><p role="alert">No pudimos verificar tu sesión.</p><a href="/administracion/puntos-entrega">Volver a intentar</a></main>;
-  if(session.state!=="authenticated")return null;
-  if(session.profile.debeCambiarContrasena)redirect("/cuenta/seguridad");if(session.profile.rol!=="ADMIN_ADMIN")redirect(roleHome(session.profile.rol));
-  const initial=await getPointAvailability();return <AdminShell title="Disponibilidad de puntos" description="Habilitación temporal de los puntos de entrega" active="puntos" name={`${session.profile.nombre} ${session.profile.apellido}`}>
-    {initial?<PointAvailabilityWorkspace initial={initial}/>:<section className="admin-card"><p role="alert">No pudimos consultar la disponibilidad. No se modificó ningún punto.</p><a className="admin-button" href="/administracion/puntos-entrega">Volver a intentar</a></section>}
-  </AdminShell>;
+export default function PointsPage() {
+  return <DemoModulePreview area="puntos" title="Puntos de entrega" description="Gestión de puntos de retiro y disponibilidad para la aplicación móvil.">
+    <section className="admin-card"><h2>Disponibilidad de puntos</h2>
+      <div className="admin-form-grid"><label>Buscar punto<input type="search" placeholder="Nombre, dirección o código"/></label>
+        <label>Estado<select><option>Todos los estados</option><option>Sin definir</option><option>Habilitado</option><option>Deshabilitado</option></select></label></div>
+      <div className="configuration-actions"><button type="button" className="admin-button">Habilitar punto</button>
+        <button type="button" className="admin-button secondary">Deshabilitar punto</button></div>
+    </section>
+    <section className="admin-card"><h2>Definición del punto</h2><div className="admin-form-grid">
+      {["Código", "Nombre", "Calle", "Número", "Localidad", "Provincia", "Código postal", "Zona horaria", "Referencias para llegar"].map(label =>
+        <label key={label}>{label}<input/></label>)}
+    </div><h3>Sucursales de origen y franjas</h3><div className="admin-form-grid">
+      <label>Sucursal de origen<select><option>Elegir sucursal</option></select></label>
+      <label>Costo de retiro (ARS)<input type="number"/></label><label>Día<select><option>Elegir día</option></select></label>
+      <label>Apertura<input type="time"/></label><label>Cierre<input type="time"/></label><label>Cupo de pedidos<input type="number"/></label>
+    </div><div className="configuration-actions"><button type="button" className="admin-button secondary">Agregar franja</button>
+      <button type="button" className="admin-button">Guardar punto</button></div></section>
+  </DemoModulePreview>;
 }

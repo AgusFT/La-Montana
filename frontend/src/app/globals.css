@@ -99,3 +99,5 @@
 .support-page label {display: block; margin: 1rem 0;}
 .support-page input:not([type=hidden]), .support-page textarea {display: block; width: 100%; padding: .65rem; font: inherit;}
 .support-page button {padding: .7rem 1rem; cursor: pointer; font: inherit;}
+
+.demo-acceso-bloqueado{max-width:44rem;margin:clamp(3rem,12vh,9rem) auto;padding:0 1.5rem}.demo-acceso-bloqueado h1{line-height:1.15}.demo-acceso-bloqueado p{line-height:1.6;overflow-wrap:anywhere}

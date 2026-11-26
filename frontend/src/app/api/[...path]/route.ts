@@ -35,13 +35,12 @@ import { uuidPattern } from "@/lib/organization-types";
 const allowed: Record<string, readonly string[]> = {
   "admin/soporte": ["GET", "POST"], "admin/soporte/autorizar": ["POST"], "admin/soporte/revocar": ["POST"],
   "setup/estado": ["GET"], "auth/csrf": ["GET"], "auth/me": ["GET"],
-  "demo/sesion": ["POST"], "demo/cupos": ["GET"], "demo/clientes": ["POST"],
+  "demo/sesion": ["POST"], "demo/vigencia": ["GET"], "demo/cupos": ["GET"], "demo/clientes": ["POST"],
   "setup/propietario": ["POST"], "auth/login": ["POST"], "auth/logout": ["POST"], "auth/registro": ["POST"],
   "admin/pagina-web": ["GET"], "admin/pagina-web/borrador": ["PUT"], "admin/pagina-web/revision": ["GET"], "admin/pagina-web/publicar": ["POST"], "publico/pagina-web": ["GET"],
   "admin/pedidos": ["GET"], "admin/preparacion": ["GET"], "sistema/estado": ["GET"], "sistema/entorno": ["GET"],
-  "admin/sucursales/ubicaciones": ["GET"], "admin/sucursales": ["GET", "POST"], "admin/empleados": ["GET", "POST"],
+  "admin/sucursales/ubicaciones": ["GET"], "admin/sucursales": ["GET", "POST"],
   "admin/catalogo": ["GET"], "admin/catalogo/papeles-predefinidos": ["POST"], "admin/catalogo/papeles-predefinidos/habilitar-todos": ["POST"], "admin/catalogo/papeles-personalizados": ["POST"], "admin/catalogo/papeles-habilitados": ["PUT"], "admin/catalogo/formatos": ["POST"], "admin/catalogo/papeles": ["POST"], "admin/catalogo/servicios": ["POST"], "admin/catalogo/revisiones": ["POST"],
-  "admin/puntos-entrega/disponibilidad": ["GET"],
   "admin/configuracion": ["GET"], "admin/configuracion/borradores": ["POST"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "auth/correo/solicitar": ["POST"], "auth/correo/confirmar": ["POST"],
@@ -66,10 +65,9 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 6 ? ["PUT"]
     : configDraft && path[4] === "impresoras" && uuidPattern.test(path[5] ?? "") && path.length === 7 && ["estado", "retirar"].includes(path[6]) ? ["POST"] : null;
   const deliveryMethods = configDraft && path.length === 6 && path[4] === "entrega" ? path[5] === "validacion" ? ["GET"] : path[5] === "simular" ? ["POST"] : null : null;
-  const pointMethods = configDraft && path[4] === "entrega" && ["puntos", "zonas"].includes(path[5]) ? path.length === 6 ? ["POST"] : path.length === 7 && uuidPattern.test(path[6]) ? ["PUT"] : null : null;
+  const zoneMethods = configDraft && path[4] === "entrega" && path[5] === "zonas" ? path.length === 6 ? ["POST"] : path.length === 7 && uuidPattern.test(path[6]) ? ["PUT"] : null : null;
   const activationMethods = configDraft && path.length === 6 && ["activacion","programacion"].includes(path[4]) && ["solicitar","confirmar","revocar"].includes(path[5]) ? ["POST"] : null;
   const reviewMethods = configDraft && path[4] === "revision" ? path.length === 5 ? ["GET"] : path.length === 6 && ["simular","confirmar"].includes(path[5]) ? ["POST"] : null : null;
-  const availabilityMethods = path.length === 4 && path[0] === "admin" && path[1] === "puntos-entrega" && path[2] === "disponibilidad" && uuidPattern.test(path[3]) ? ["PUT"] : null;
   const scheduleCancellation = configDraft && path.length === 7 && path[4] === "programacion" && path[5] === "cancelacion" && ["solicitar","confirmar","revocar"].includes(path[6]) ? ["POST"] : null;
   const scheduledReview = configDraft && path.length === 6 && path[4] === "programacion" && path[5] === "revision" ? ["GET"] : null;
   const scheduledActivation = configDraft && path.length === 7 && path[4] === "programacion" && path[5] === "activacion" && ["solicitar","confirmar","revocar"].includes(path[6]) ? ["POST"] : null;
@@ -114,8 +112,8 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const bajaDemo = path.length === 5 && path[0] === "demo" && path[1] === "cupos"
     && ["PEDIDO", "CLIENTE", "COBRO", "DEVOLUCION", "IMPRESORA"].includes(path[2])
     && uuidPattern.test(path[3]) && path[4] === "baja";
-  const methods = bajaDemo ? ["POST"] : preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
-    : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
+  const methods = bajaDemo ? ["POST"] : preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? zoneMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
+    : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && path[1] === "sucursales" ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
   if (!methods) return error(404, "Ruta no disponible.");
@@ -145,7 +143,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       try{for(;;){const next=await reader.read();if(next.done)break;total+=next.value.length;if(total>10485760){await reader.cancel();return error(413,"El PDF supera el máximo de 10 MiB.");}chunks.push(next.value);}}finally{reader.releaseLock();}
       const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}body=bytes;
     }else body=["POST", "PUT"].includes(request.method)?await request.text():undefined;
-    const maxBytes = route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
+    const maxBytes = route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || zoneMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
     if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
     const query = route==="admin/pedidos" || websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {

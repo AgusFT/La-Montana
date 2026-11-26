@@ -29,6 +29,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./theme.css";
 import { EntornoAviso } from "@/components/entorno-aviso";
+import {consultarVigencia, sinVigencia} from "@/lib/demo-vigencia";
 import {themeBootstrap} from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -37,6 +38,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es-AR" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:themeBootstrap}}/></head><body><EntornoAviso />{children}</body></html>;
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const base = process.env.BACKEND_INTERNAL_URL;
+  const inicial = base ? await consultarVigencia(`${base.replace(/\/+$/, "")}/api/demo/vigencia`, AbortSignal.timeout(5000)) : sinVigencia;
+  return <html lang="es-AR" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{__html:themeBootstrap}}/></head><body><EntornoAviso inicial={inicial}>{inicial.estado === "VIGENTE" ? children : null}</EntornoAviso></body></html>;
 }

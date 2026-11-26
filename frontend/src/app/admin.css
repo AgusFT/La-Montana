@@ -285,3 +285,10 @@
 .rate-editor-actions{border-top:1px solid var(--ui-border,#dce6ef);padding-top:16px}.rate-editor-actions p{flex-basis:100%;margin:0}
 .pricing-state.is-editing,.pricing-state.is-pending{background:var(--ui-warning-bg,#fff0d0);color:var(--ui-warning-text,#85530b)}.pricing-state.is-scheduled{background:var(--ui-info-bg,#e6f0ff);color:var(--ui-link,#285b9b)}
 @media(max-width:760px){.rate-summary-actions,.rate-editor-actions{align-items:stretch;flex-direction:column}.rate-summary-actions button,.rate-editor-actions button{width:100%}}
+
+.admin-sidebar nav a.demo-preview-link{color:#c5cfda}
+.admin-sidebar nav a.demo-preview-link[aria-current=page]{background:#384b5f;color:#fff}
+.admin-sidebar .demo-premium-nav{display:flex;align-items:center;gap:.55rem;padding:4px 10px;background:none;border:0;color:#c5cfda;text-align:left;font:inherit;cursor:not-allowed}
+.demo-premium-nav span{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem}.demo-premium-nav small{font-size:.72em}
+@media(min-width:761px){.admin-sidebar nav{overflow-y:auto;grid-auto-rows:minmax(32px,auto);max-height:none}.admin-sidebar .demo-premium-nav{font-size:clamp(12px,1.9dvh,14px)}}
+@media(max-width:760px){.demo-premium-nav span{white-space:nowrap;flex-wrap:nowrap}.admin-sidebar .demo-premium-nav{font-size:12px}}

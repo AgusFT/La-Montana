@@ -14,12 +14,12 @@ import {isOrder} from '@/lib/order-types';
 const emptyAddress:Address={calle:'',numero:'',referencias:'',territorio:{codigoPostal:'',localidad:'',provincia:''}};
 export function PreparedCheckout({id}:{id:string}){
  const router=useRouter(),[prep,setPrep]=useState<Preparation|null>(null),[view,setView]=useState<Checkout|null>(null),[options,setOptions]=useState<QuoteOptions|null>(null);
- const[mode,setMode]=useState<Mode|''>(''),[destination,setDestination]=useState(''),[point,setPoint]=useState(''),[payment,setPayment]=useState(''),[address,setAddress]=useState(emptyAddress);
+ const[mode,setMode]=useState<Mode|''>(''),[destination,setDestination]=useState(''),[payment,setPayment]=useState(''),[address,setAddress]=useState(emptyAddress);
  const[contact,setContact]=useState({receptor:'',telefono:''}),[ack,setAck]=useState(false),[busy,setBusy]=useState(false),[fileLocked,setFileLocked]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(''),[calculated,setCalculated]=useState(''),[failedKey,setFailedKey]=useState('');
  const pending=useRef<null|{kind:'quote'|'confirm';body:string}>(null),running=useRef(false),ready=useRef(false);
  const current=useRef<Preparation|null>(null);current.current=prep;
- const pref:Preferences|null=mode&&payment?{modalidad:mode,destinoRetiro:mode==='RETIRO_SUCURSAL'?destination||null:null,punto:mode==='RETIRO_PUNTO_ENTREGA'?point||null:null,direccion:mode==='ENVIO_DOMICILIO'?address:null,medioPago:payment}:null;
- const valid=!!pref&&(mode!=='RETIRO_SUCURSAL'||!!destination)&&(mode!=='RETIRO_PUNTO_ENTREGA'||!!point)&&(mode!=='ENVIO_DOMICILIO'||[address.calle,address.numero,...Object.values(address.territorio)].every(s=>s.trim().length>0));
+ const pref:Preferences|null=mode&&payment?{modalidad:mode,destinoRetiro:mode==='RETIRO_SUCURSAL'?destination||null:null,punto:null,direccion:mode==='ENVIO_DOMICILIO'?address:null,medioPago:payment}:null;
+ const valid=!!pref&&(mode!=='RETIRO_SUCURSAL'||!!destination)&&(mode!=='ENVIO_DOMICILIO'||[address.calle,address.numero,...Object.values(address.territorio)].every(s=>s.trim().length>0));
  const prefKey=JSON.stringify(pref),locked=busy||uncertain||fileLocked;
  useNavigationGuard({blocked:locked});
  function received(data:Checkout){setView(data);setPrep(data.preparacion);setAck(false);}
@@ -29,7 +29,7 @@ export function PreparedCheckout({id}:{id:string}){
   if(!p.presupuesto)return;
   const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
   const data=await quoteRead(`/api/cliente/preparaciones/${id}/resumen`,isCheckout);received(data);
-  if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad);setDestination(f.destinoRetiro??'');setPoint(f.punto??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);if(data.revision&&data.huella)setCalculated(JSON.stringify(f));}
+  if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad==='RETIRO_PUNTO_ENTREGA'?'':f.modalidad);setDestination(f.destinoRetiro??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);if(data.revision&&data.huella)setCalculated(JSON.stringify(f));}
   ready.current=true;
  }
  useEffect(()=>{void load(true).catch(e=>setError(e.message));},[id]);
@@ -58,7 +58,6 @@ export function PreparedCheckout({id}:{id:string}){
  }
  const budget=prep?.presupuesto;
  const destinations=options?.destinosRetiro??[];
- const points=Array.from(new Map((options?.puntos??[]).filter(p=>p.sucursal===options?.casaMatriz?.codigoPublico).map(p=>[p.codigoPublico,p])).values());
  const accepted=prep?.archivos.filter(f=>!!f.aceptadaEn).length??0;
  return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>
   {!prep&&!error&&<p role="status">Recuperando el resumen de tu trabajo…</p>}
@@ -77,9 +76,8 @@ export function PreparedCheckout({id}:{id:string}){
      <form id="client-delivery" className="workspace-preferences" onSubmit={e=>{e.preventDefault();if(pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
       <fieldset disabled={locked||!options?.disponible}>
        <section className="workspace-panel"><h2>Entrega</h2>
-        <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setAck(false);setMode(e.target.value as Mode);setDestination('');setPoint('');}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA'||points.length>0).map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
+        <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setAck(false);setMode(e.target.value as Mode);setDestination('');}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA').map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
         {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setAck(false);setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre}{s.codigoPublico===options?.casaMatriz?.codigoPublico?' · Casa matriz':''} · {s.direccion}</option>)}</select></label>}
-        {mode==='RETIRO_PUNTO_ENTREGA'&&<label>Punto de entrega<select aria-label="Punto de entrega" required value={point} onChange={e=>{setAck(false);setPoint(e.target.value);}}><option value="">Elegí un punto</option>{points.map(p=><option key={p.codigoPublico} value={p.codigoPublico}>{p.nombre} · {p.direccion}</option>)}</select></label>}
         {mode==='ENVIO_DOMICILIO'&&<div className="workspace-address">{([['calle','Calle'],['numero','Número'],['referencias','Referencias (opcional)']] as const).map(([k,label])=><label key={k}>{label}<input required={k!=='referencias'} maxLength={k==='numero'?30:k==='calle'?140:300} value={address[k]} onChange={e=>{setAck(false);setAddress(a=>({...a,[k]:e.target.value}));}}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([k,label])=><label key={k}>{label}<input required maxLength={k==='codigoPostal'?24:120} value={address.territorio[k]} onChange={e=>{setAck(false);setAddress(a=>({...a,territorio:{...a.territorio,[k]:e.target.value}}));}}/></label>)}</div>}
         <p>{mode==='RETIRO_SUCURSAL'&&destination===options?.casaMatriz?.codigoPublico?'Retiro en casa matriz, según su franja disponible.':'Fuera de casa matriz se agrega el traslado o envío configurado.'} El destino no define dónde se imprime.</p>
        </section>

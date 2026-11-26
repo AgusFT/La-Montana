@@ -86,3 +86,30 @@ test("el proxy de cupos admite las rutas de inventario, alta y baja y comunica e
   }
   assert.equal(fetch.mock.callCount(), 7);
 });
+
+test("el proxy de Demo conserva la vigencia pública y excluye las operaciones de los módulos de presentación", async t => {
+  const proxy = loadProxy();
+  mockBackend(t);
+  const estado = {estado:"VIGENTE",diasRestantes:1,restanteMillis:999,inicio:null,venceEn:null,mensaje:""};
+  const backend = t.mock.method(globalThis, "fetch", async (url, options) => {
+    assert.equal(url, "http://backend.test/api/demo/vigencia");
+    assert.equal(options.cache, "no-store");
+    return Response.json(estado);
+  });
+  async function request(method, path) {
+    return proxy[method](new Request("http://app.test/api/" + path, { method }), { params: Promise.resolve({ path:path.split("/") }) });
+  }
+  const id = "4d9fdf39-1f90-4d08-b7b6-0c77fc9f0079";
+  for (const [method,path] of [
+    ["GET","admin/empleados"],["POST","admin/empleados"],["PUT","admin/empleados/"+id],
+    ["GET","admin/puntos-entrega/disponibilidad"],["PUT","admin/puntos-entrega/disponibilidad/"+id],
+    ["POST",`admin/configuracion/borradores/${id}/entrega/puntos`],
+    ["PUT",`admin/configuracion/borradores/${id}/entrega/puntos/${id}`],["GET","admin/riders"],
+    ["GET","admin/analytics"],["GET","admin/chat-bot"],
+  ]) assert.equal((await request(method,path)).status,404,path);
+  assert.equal((await request("POST","demo/vigencia")).status,405);
+  const response = await request("GET","demo/vigencia");
+  assert.deepEqual(await response.json(),estado);
+  assert.equal(response.headers.get("Cache-Control"),"no-store");
+  assert.equal(backend.mock.callCount(),1);
+});
