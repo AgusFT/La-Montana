@@ -12,8 +12,8 @@ se completan a medida que se validan las etapas.
 | 2. Imprenta ficticia y roles | [#232](https://github.com/AgusFT/La-Montana/issues/232) Precarga e impresión simulada | 2 h | #230 | Inventariar la precarga, comprobar que deja cupos disponibles y que reiniciar conserva una sola copia de cada dato. Recorrer un pedido hasta la impresión simulada. | `b9e955d1` precarga un pedido, un cliente, un cobro y una impresora. En la prueba se abrió el PDF, se completó el trabajo y se aprobó el control de calidad. El reinicio conservó el historial y el inventario. |
 | 2. Imprenta ficticia y roles | [#233](https://github.com/AgusFT/La-Montana/issues/233) Selector de roles | 1 h | #232 | Entrar sin registro ni contraseña y comprobar las sesiones y permisos de administrador, empleado y cliente. | `480d7497` implementa la sesión y `c21d7565` el selector. Se verificaron las tres entradas sin credenciales, la renovación de sesión, el cierre y los permisos de cada rol. |
 | 3. Cupos y bajas | [#234](https://github.com/AgusFT/La-Montana/issues/234) Cupos transaccionales y baja lógica | 3 h | #232 | Por cada cupo, verificar el último lugar, el primer exceso, dos altas simultáneas por un lugar, el reintento, la reversión y el alta después de una baja. Ejecutar las mutaciones desde la interfaz y por API, verificar el cómputo de caja y la conservación de vínculos e historial. | `97babc27` reserva los lugares y conserva las bajas. `c8cbc25a` incorpora la operación por rol, `4de97b19` reserva la ficha del selector y `3c2f2a06` incorpora los controles en la web. La matriz de PostgreSQL y HTTP está en `362a85f4`. |
-| 4. Exclusiones y vencimiento | [#235](https://github.com/AgusFT/La-Montana/issues/235) Módulos de presentación | 1 h | #230, #233 | Verificar los módulos en gris, las etiquetas prémium y la ausencia de las rutas excluidas mediante inventario y llamadas directas. Conservar capturas de la interfaz. | Pendiente. |
-| 4. Exclusiones y vencimiento | [#236](https://github.com/AgusFT/La-Montana/issues/236) Vigencia sin conexión | 2 h | #230, #233 | Comprobar el banner en todas las vistas, que el servidor permite operar a las 359 h 59 min 59 s y que bloquea a las 360 h. Probar sesión abierta, reloj atrasado y corregido, reinicio y red desconectada. Verificar el mensaje de vencimiento y la integridad de los archivos. | Pendiente. |
+| 4. Exclusiones y vencimiento | [#235](https://github.com/AgusFT/La-Montana/issues/235) Módulos de presentación | 1 h | #230, #233 | Verificar los módulos en gris, las etiquetas prémium y la ausencia de las rutas excluidas mediante inventario y llamadas directas. Conservar capturas de la interfaz. | `c6d8b65c` excluye las operaciones del servidor y conserva los destinos históricos. `bba8f177` presenta los paneles y `13913212` actualiza la guía de preparación. En Chromium se comprobaron los controles en gris, el acceso por rol y las dos etiquetas prémium. Las siete operaciones retiradas quedaron fuera del inventario de rutas. |
+| 4. Exclusiones y vencimiento | [#236](https://github.com/AgusFT/La-Montana/issues/236) Vigencia sin conexión | 2 h | #230, #233 | Comprobar el banner en todas las vistas, que el servidor permite operar a las 359 h 59 min 59 s y que bloquea a las 360 h. Probar sesión abierta, reloj atrasado y corregido, reinicio y red desconectada. Verificar el mensaje de vencimiento y la integridad de los archivos. | `4f85d13c` comprueba las 360 horas en el servidor, `a65d786d` conserva la fecha en el equipo y `bba8f177` incorpora el banner y el cierre de las vistas abiertas. PostgreSQL y HTTP verificaron el último segundo, el vencimiento, el retroceso y la corrección del reloj y la conservación del PDF. |
 | 5. Instalador y prueba Windows | [#237](https://github.com/AgusFT/La-Montana/issues/237) Paquete para Windows 11 x64 | 2 h | #234, #235, #236 | Construir el `.exe` con identidad de instalación y actualización, directorios y volúmenes propios de Demo. Registrar versión, tamaño y SHA-256. | Pendiente. |
 | 5. Instalador y prueba Windows | [#238](https://github.com/AgusFT/La-Montana/issues/238) Validación del paquete | 2 h | #237 | En Windows 11 x64, instalar en una máquina sin La Montaña, operar sin conexión, reparar, desinstalar y reinstalar. Verificar el plazo original y el aislamiento de una instalación del producto completo. Registrar las pruebas de Windows y la regresión del servidor, la interfaz y el instalador. | Pendiente. |
 | 6. Distribución | [#239](https://github.com/AgusFT/La-Montana/issues/239) Descarga pública | 1 h | #231, #238 | Enlazar el archivo versionado desde YG Soluciones. Descargarlo de forma anónima y comparar su tamaño y SHA-256 con el artefacto probado. Verificar los permisos de las entregas privadas y documentar URL, fecha y retiro. | Pendiente. |
@@ -40,3 +40,23 @@ En Chromium, los formularios de confirmación de pedido, alta de ficha, cobro
 en efectivo y alta de impresora mostraron el motivo del rechazo. Después de
 liberar un lugar desde el panel se pudo completar cada alta. La API rechazó
 la baja de Lucía y el selector siguió abriendo su pedido de muestra.
+
+## Verificación de los módulos y la vigencia
+
+En el navegador se revisaron los 29 controles de **Administración de usuarios**,
+21 de **Puntos de entrega** y 3 de **Riders**. Ninguno aceptó foco ni cambios.
+**Analytics** y **Chat Bot** aparecieron como prémium futuros en los tres roles.
+Las siete operaciones retiradas se cotejaron con las rutas del servidor y se
+intentaron con una sesión de administrador. El retiro en sucursal y la consulta
+de pedidos siguieron disponibles. [Tarea #235](https://github.com/AgusFT/La-Montana/issues/235)
+
+En una instalación de prueba con la aplicación y la base aisladas de Internet,
+la sesión de cliente mostró el mensaje de fin al cumplirse las 360 horas, sin
+recargar la página. El selector también mostró el aviso con JavaScript desactivado.
+En otra copia, la sesión se recuperó cuando el reloj alcanzó la última hora válida.
+
+La actualización conservó la fecha inicial, los cuatro cupos, el pedido, el
+cobro y el contenido del PDF. El PDF seguía intacto después de vencer. Al
+reinstalar el servicio con una base nueva en el mismo equipo, la copia vencida
+conservó su fecha de inicio y siguió vencida. La prueba del instalador nativo
+en Windows corresponde a la etapa 5. [Tarea #236](https://github.com/AgusFT/La-Montana/issues/236)

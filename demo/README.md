@@ -60,20 +60,26 @@ personas intentan ocupar el último lugar a la vez, una sola lo obtiene.
 ## Funciones y módulos de presentación
 
 La producción usa impresoras simuladas. La impresión física y la app móvil
-(APK) quedan fuera de esta entrega. En la etapa 4, el panel de administración
-de usuarios y los módulos de puntos de entrega y riders aparecerán en gris.
-Sus operaciones quedarán excluidas del servidor de Demo. La barra lateral
-identificará Analytics y Chat Bot como funciones prémium futuras.
+(APK) quedan fuera de esta entrega. En **Administración de usuarios** podés
+ver los campos de la ficha, las sucursales asignadas y los permisos. Los
+controles aparecen en gris. **Puntos de entrega** y **Riders** también tienen
+vistas de muestra. El recorrido de Senderos usa retiro en sucursal. Las barras
+laterales identifican **Analytics** y **Chat Bot** como funciones prémium futuras.
+
+La operación comercial sigue disponible. Por ejemplo, podés crear una ficha
+ficticia desde caja, consultar un pedido e iniciar su impresión simulada.
 
 ## Vigencia
 
-La etapa 4 incorporará el control de vigencia. Los 15 días se contarán como
-360 horas desde el primer arranque de la Demo en el equipo. Todas las vistas,
-incluido el selector de roles, mostrarán los días restantes. Reiniciar, reparar
-o reinstalar la Demo conservará el plazo original.
+Disponés de **360 horas desde el primer arranque** de la Demo en el equipo.
+La franja superior muestra los días restantes en todas las vistas, incluido el
+selector de roles. Una fracción del último día se muestra como un día restante.
+El servidor local verifica la vigencia incluso cuando el equipo está sin Internet.
 
-Si se atrasa el reloj del equipo, las operaciones quedarán bloqueadas hasta
-corregirlo. Al corregirlo, la Demo volverá a comprobar el vencimiento original.
-Al cumplirse las 360 horas, conservará los archivos y mostrará este mensaje.
+Si aparece **Revisá el reloj del equipo**, corregí la fecha y la hora y elegí
+**Volver a comprobar**. La Demo retoma el plazo original al alcanzar la última
+hora válida registrada. El reinicio conserva ese plazo. Al cumplirse las
+360 horas, la aplicación cierra el acceso aun con una sesión abierta,
+conserva los archivos y muestra este mensaje.
 
 > Fin de la Demo, para adquirir el producto comunicate con administracion@yg-soluciones.com
