@@ -142,7 +142,8 @@ class ImprentaDemoIntegrationTest {
                     SELECT gen_random_uuid(),1,id_usuario,'ACTIVA','MANUAL',2 FROM lamontana.usuario;
                     """);
             String existentes = """
-                    SELECT to_jsonb(e)::text AS identidad,to_jsonb(i)::text AS inicializacion,to_jsonb(u)::text AS propietario,
+                    SELECT e.unica, e.id_instalacion, e.modo, e.creada_en,
+                           to_jsonb(i)::text AS inicializacion,to_jsonb(u)::text AS propietario,
                            to_jsonb(c)::text AS catalogo,to_jsonb(v)::text AS configuracion
                     FROM lamontana.entorno_instalacion e CROSS JOIN lamontana.inicializacion_sistema i
                     JOIN lamontana.usuario u ON id_usuario=id_usuario_propietario
@@ -152,6 +153,8 @@ class ImprentaDemoIntegrationTest {
             var antes = jdbc.queryForMap(existentes);
             flyway(ds, "latest").migrate();
             assertThat(jdbc.queryForMap(existentes)).isEqualTo(antes);
+            assertThat(jdbc.queryForObject("SELECT vigencia_inicio IS NULL FROM lamontana.entorno_instalacion WHERE unica",
+                    Boolean.class)).as("El primer arranque registra el plazo del equipo después de migrar").isTrue();
             assertThat(jdbc.queryForObject("SELECT es_administrador_propietario FROM lamontana.usuario WHERE codigo_publico=?",
                     Boolean.class, ADMIN)).isFalse();
             assertThat(correo(jdbc, ADMIN)).endsWith("@demo.invalid").isNotEqualTo("administracion@demo.invalid");
