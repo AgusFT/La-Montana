@@ -33,6 +33,7 @@
 
 package ar.com.lamontana.identidad;
 
+import java.sql.SQLException;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -42,12 +43,32 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class ErroresIdentidad {
+    private static final Map<String, String> MENSAJES_CUPO = Map.of(
+            "23D01", "La Demo admite hasta 20 pedidos.",
+            "23D02", "La Demo admite hasta 10 clientes.",
+            "23D03", "La Demo admite hasta 30 movimientos de caja entre cobros y devoluciones.",
+            "23D04", "La Demo admite hasta 2 impresoras simuladas.");
+    private static final Map<String, String> MENSAJES_BAJA = Map.of(
+            "23D11", "El pedido está dado de baja en la Demo. Elegí un pedido activo para iniciar una impresión.",
+            "23D14", "La impresora está dada de baja en la Demo. Elegí otra para iniciar la impresión.");
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     ResponseEntity<Map<String,String>> formato(org.springframework.http.converter.HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest().body(Map.of("mensaje", "Revisá el formato y los valores de los datos enviados."));
     }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     ResponseEntity<Map<String, String>> conflicto(org.springframework.dao.DataIntegrityViolationException ex) {
+        if (ex.getMostSpecificCause() instanceof SQLException sql && sql.getSQLState() != null) {
+            String mensaje = MENSAJES_CUPO.get(sql.getSQLState());
+            if (mensaje != null) {
+                return ResponseEntity.status(409).body(Map.of("codigo", "CUPO_DEMO",
+                        "mensaje", mensaje + " Liberá un lugar desde los cupos de la Demo."));
+            }
+            String baja = MENSAJES_BAJA.get(sql.getSQLState());
+            if (baja != null) {
+                return ResponseEntity.status(409).body(Map.of("codigo", "BAJA_DEMO", "mensaje", baja));
+            }
+        }
         return ResponseEntity.status(409).body(Map.of("mensaje", "Los datos entran en conflicto con un registro existente. Revisá el correo o el código."));
     }
     @ExceptionHandler(CorreoService.CorreoNoDisponible.class)
