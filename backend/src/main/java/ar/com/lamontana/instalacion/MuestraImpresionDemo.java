@@ -17,17 +17,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class MuestraImpresionDemo implements ApplicationRunner {
     private static final UUID ARCHIVO = UUID.fromString("4d9fdf39-1f90-4d08-b7b6-0c77fc9f0081");
     private record Original(String hash, long bytes) {}
+    private final VigenciaDemo vigencia;
     private final JdbcTemplate jdbc;
     private final ArchivosPrivados archivos;
 
-    public MuestraImpresionDemo(JdbcTemplate jdbc, ArchivosPrivados archivos) {
-        this.jdbc = jdbc;
+    public MuestraImpresionDemo(JdbcTemplate jdbc, ArchivosPrivados archivos, VigenciaDemo vigencia) {
+        this.jdbc = jdbc; this.vigencia = vigencia;
         this.archivos = archivos;
     }
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws IOException {
+        if (!vigencia.operativa()) return;
         // Serializa arranques y la eliminación por política de conservación.
         jdbc.execute("SELECT pg_advisory_xact_lock(764003)");
         var original = jdbc.query("""

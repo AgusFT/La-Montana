@@ -1,6 +1,8 @@
 //#region Conservación · revocación durable, purga idempotente y recordatorios independientes
 package ar.com.lamontana.pagos;
 
+import ar.com.lamontana.instalacion.VigenciaDemo;
+
 import ar.com.lamontana.archivos.ArchivosPrivados;
 import ar.com.lamontana.identidad.CorreoService;
 import java.io.IOException;
@@ -19,13 +21,15 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 public class ConservacionArchivosScheduler {
     private static final Logger log=LoggerFactory.getLogger(ConservacionArchivosScheduler.class);
+    private final VigenciaDemo vigencia;
     private final JdbcTemplate jdbc;private final TransactionTemplate tx;private final ArchivosPrivados storage;private final CorreoService correo;
-    public ConservacionArchivosScheduler(JdbcTemplate jdbc,PlatformTransactionManager manager,ArchivosPrivados storage,CorreoService correo){this.jdbc=jdbc;tx=new TransactionTemplate(manager);tx.setTimeout(20);this.storage=storage;this.correo=correo;}
+    public ConservacionArchivosScheduler(JdbcTemplate jdbc,PlatformTransactionManager manager,ArchivosPrivados storage,CorreoService correo, VigenciaDemo vigencia){this.jdbc=jdbc; this.vigencia = vigencia;tx=new TransactionTemplate(manager);tx.setTimeout(20);this.storage=storage;this.correo=correo;}
     private boolean bloquear(){for(long id:new long[]{764003,764001,764002,764004})if(!Boolean.TRUE.equals(jdbc.queryForObject("SELECT pg_try_advisory_xact_lock(?)",Boolean.class,id)))return false;return true;}
 
     @Scheduled(fixedDelayString="${lamontana.archivos.conservacion-intervalo-ms:60000}",initialDelayString="${lamontana.archivos.conservacion-inicio-ms:15000}")
     public void ejecutar(){
-        try{tx.executeWithoutResult(s->{if(!bloquear())return;avisos();preparar();});eliminar();enviarAvisos();}
+        if (!vigencia.operativa()) return;
+        try{tx.executeWithoutResult(s->{if(!bloquear())return;avisos();preparar();});eliminar();if (vigencia.operativa()) enviarAvisos();}
         catch(RuntimeException error){log.warn("La conservación se reintentará; no se descartan filas ni auditoría. Tipo: {}",error.getClass().getSimpleName());}
     }
     private void avisos(){
@@ -68,6 +72,7 @@ public class ConservacionArchivosScheduler {
             if(trabajos.isEmpty()||!Boolean.TRUE.equals(jdbc.queryForObject("SELECT lamontana.cobro_puede_purgar(?)",Boolean.class,trabajos.get(0))))return;
             try{
                 // Un pago informado toma los mismos locks; no puede confirmarse entre comprobación y borrado.
+                if (!vigencia.operativa()) return;
                 storage.descartar(file);
                 jdbc.update("UPDATE lamontana.eliminacion_archivo SET eliminado_en=clock_timestamp(),intentos=intentos+1,ultimo_error=NULL WHERE id_archivo_almacenado=(SELECT id_archivo_almacenado FROM lamontana.archivo_almacenado WHERE codigo_publico=?)",file);
                 evento(trabajos.get(0),"CONTENIDO_ELIMINADO","Eliminación física idempotente del archivo "+file+" y sus vistas previas. Se conserva la referencia histórica.");

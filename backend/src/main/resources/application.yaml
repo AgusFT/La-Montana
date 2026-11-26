@@ -90,6 +90,8 @@ management:
         readiness:
           include: readinessState,db
 lamontana:
+  demo:
+    vigencia-directorio: ${DEMO_VIGENCIA_DIR:${PROGRAMDATA:${user.home}/.local/state}/YG-Soluciones/LaMontanaDemo/vigencia}
   correo:
     remitente: ${SMTP_FROM:noreply@lamontana.local}
   instalacion:

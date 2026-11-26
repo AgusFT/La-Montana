@@ -32,6 +32,7 @@
   <name>La Montaña</name>
   <properties>
     <java.version>17</java.version>
+    <maven.build.timestamp.format>yyyyMMdd-HHmmss-SSS</maven.build.timestamp.format>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -103,6 +104,15 @@
   <build>
     <finalName>lamontana</finalName>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <lamontana.demo.vigencia-directorio>${project.build.directory}/vigencia-pruebas/${maven.build.timestamp}-${surefire.forkNumber}</lamontana.demo.vigencia-directorio>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>

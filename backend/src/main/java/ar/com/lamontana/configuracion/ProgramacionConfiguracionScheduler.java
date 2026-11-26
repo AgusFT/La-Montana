@@ -9,7 +9,7 @@
  *
  * ------------------------------------------------------------------------
  * CONSTRUCTORES DECLARADOS
- * - [public] ProgramacionConfiguracionScheduler(EjecucionProgramadaService ejecucion)
+ * - [public] ProgramacionConfiguracionScheduler(EjecucionProgramadaService ejecucion, VigenciaDemo vigencia)
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
@@ -29,6 +29,8 @@
 
 package ar.com.lamontana.configuracion;
 
+import ar.com.lamontana.instalacion.VigenciaDemo;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -38,9 +40,10 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name="lamontana.configuracion.ejecucion-automatica",havingValue="true",matchIfMissing=true)
 public class ProgramacionConfiguracionScheduler {
+    private final VigenciaDemo vigencia;
     private final EjecucionProgramadaService ejecucion;
-    public ProgramacionConfiguracionScheduler(EjecucionProgramadaService ejecucion){this.ejecucion=ejecucion;}
-    @EventListener(ApplicationReadyEvent.class) public void recuperar(){ejecucion.reconciliar(true);}
+    public ProgramacionConfiguracionScheduler(EjecucionProgramadaService ejecucion, VigenciaDemo vigencia){this.ejecucion=ejecucion; this.vigencia = vigencia;}
+    @EventListener(ApplicationReadyEvent.class) public void recuperar(){if (vigencia.operativa()) ejecucion.reconciliar(true);}
     @Scheduled(fixedDelayString="${lamontana.configuracion.reconciliacion-intervalo-ms:5000}",initialDelayString="${lamontana.configuracion.reconciliacion-inicio-ms:5000}")
-    public void ejecutar(){ejecucion.reconciliar(false);}
+    public void ejecutar(){if (vigencia.operativa()) ejecucion.reconciliar(false);}
 }

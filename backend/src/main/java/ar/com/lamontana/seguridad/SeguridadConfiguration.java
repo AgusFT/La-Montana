@@ -74,6 +74,7 @@ public class SeguridadConfiguration {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/publico/pagina-web", "/api/publico/pagina-web/imagenes/*", "/api/publico/pagina-web/imagenes/*/miniatura", "/api/sistema/estado", "/api/sistema/entorno", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/demo/vigencia").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/demo/sesion").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/demo/cupos").hasRole("ADMIN_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/demo/cupos/*/*/baja").hasRole("ADMIN_ADMIN")
