@@ -23,15 +23,34 @@ function PrepareWork(){
  const [activeFile,setActiveFile]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
  const running=useRef(false),pending=useRef<null|(()=>Promise<void>)>(null),input=useRef<HTMLInputElement>(null);
- const locked=busy||uncertain||fileLocked;
+ const [refreshing,setRefreshing]=useState(false);
+ const readSequence=useRef(0);
+ const locked=busy||refreshing||uncertain||fileLocked;
  useNavigationGuard({blocked:locked});
- async function load(initial=false){
-  const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
+ async function load(){
+  const sequence=++readSequence.current;
+  const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);
   const response=await secureMutation('/api/cliente/preparaciones');
-  const p:unknown=await response.json();if(!isPreparation(p))throw new Error('No pudimos recuperar el trabajo preparado.');setPrep(p);
-  if(initial)setRows(p.archivos.map(f=>{const t=p.items.find(i=>i.archivo===f.codigoPublico)?.trabajo;return {archivo:f.codigoPublico,choice:t?[t.servicio,t.formato,t.papel,t.color].join(':'):'',copies:String(t?.copias??1),double:t?.dobleFaz??false,ends:t?.terminaciones??[]};}));
+  const p:unknown=await response.json();if(!isPreparation(p))throw new Error('No pudimos recuperar el trabajo preparado.');
+  if(sequence!==readSequence.current)return;
+  setOptions(o);setPrep(p);
+  setRows(previous=>p.archivos.map(file=>{
+   const archivo=file.codigoPublico;
+   const draft=previous.find(row=>row.archivo===archivo);
+   if(draft)return draft;
+   const work=p.items.find(item=>item.archivo===archivo)?.trabajo;
+   return {archivo,choice:work?[work.servicio,work.formato,work.papel,work.color].join(':'):'',
+    copies:String(work?.copias??1),double:work?.dobleFaz??false,ends:work?.terminaciones??[]};
+  }));
  }
- useEffect(()=>{void load(true).catch(e=>setError(e.message));},[]);
+ async function refresh(){
+  if(running.current)return;
+  running.current=true;setRefreshing(true);
+  try{await load();setError('');}
+  catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar los datos. Volvé a intentar.');}
+  finally{running.current=false;setRefreshing(false);}
+ }
+ useEffect(()=>{void load().catch(e=>setError(e.message));},[]);
  useEffect(()=>{if(!prep?.archivos.some(f=>f.estado==='VALIDANDO'))return;const t=setTimeout(()=>void load().catch(e=>setError(e.message)),2500);return()=>clearTimeout(t);},[prep]);
  async function execute(task?:()=>Promise<void>){
   if(running.current)return;if(task)pending.current=task;if(!pending.current)return;
@@ -48,8 +67,9 @@ function PrepareWork(){
    while(index<uploads.length){const u=uploads[index];
     if(!u.id){const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos`,JSON.stringify({operacion:u.operation,nombre:u.file.name}),'application/json');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el intento de carga.');u.id=a.codigoPublico;}
     const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${u.id}/contenido`,u.file,'application/pdf','PUT');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el análisis del PDF.');
-    setRows(old=>old.some(x=>x.archivo===u.id)?old:[...old,{archivo:u.id!,choice:'',copies:'1',double:false,ends:[]}]);setActiveFile(u.id!);index++;await load();
+    setActiveFile(u.id);index++;
    }
+   await load();
   });
  }
  function update(id:string,change:Partial<Row>){setRows(old=>old.map(r=>r.archivo===id?{...r,...change}:r));}
@@ -63,7 +83,7 @@ function PrepareWork(){
  }
  async function remove(file:string){
   if(!prep||locked)return;const body=JSON.stringify({operacion:crypto.randomUUID()});
-  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${file}/quitar`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p))throw new Error('No se pudo comprobar que el PDF fue quitado.');setPrep(p);setRows(old=>old.filter(x=>x.archivo!==file));});
+  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${file}/quitar`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p))throw new Error('No se pudo comprobar que el PDF fue quitado.');readSequence.current++;setPrep(p);setRows(old=>old.filter(x=>x.archivo!==file));});
  }
  async function submit(e:FormEvent){
   e.preventDefault();if(locked||!prep||!options?.configuracion||!options.revisionComercial)return;
@@ -87,7 +107,7 @@ function PrepareWork(){
   {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}
   {busy&&<p role="status" className="client-note">Guardando y verificando tu trabajo…</p>}
   {error&&<p className="client-warning" role="alert">{error}</p>}
-  {uncertain?<button type="button" className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button type="button" className="client-button secondary" disabled={locked} onClick={()=>void load(true).catch(e=>setError(e.message))}>Actualizar datos</button>}
+  {uncertain?<button type="button" className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button type="button" className="client-button secondary" disabled={locked} onClick={()=>void refresh()}>{refreshing?'Actualizando…':'Actualizar datos'}</button>}
   <form onSubmit={submit} className="client-workspace">
    <section id="client-upload" className="workspace-panel workspace-files" data-has-files={!!prep?.archivos.length}>
     <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">1</span><h2>Tus archivos</h2><small>{prep?.archivos.length??0} / 20</small></header>

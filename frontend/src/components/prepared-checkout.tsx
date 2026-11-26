@@ -8,31 +8,55 @@ import {ClientContextTour} from './client-context-tour';
 import {useNavigationGuard} from './navigation-boundary';
 import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {isOptions,quoteRead,money,date,modeLabels,type QuoteOptions,type Mode,type Address} from '@/lib/quote-types';
-import {isCheckout,isPreparation,type Checkout,type Preparation,type Preferences} from '@/lib/prepared-work';
+import {isCheckout,type Checkout,type Preparation,type Preferences} from '@/lib/prepared-work';
 import {isOrder} from '@/lib/order-types';
 
 const emptyAddress:Address={calle:'',numero:'',referencias:'',territorio:{codigoPostal:'',localidad:'',provincia:''}};
 export function PreparedCheckout({id}:{id:string}){
  const router=useRouter(),[prep,setPrep]=useState<Preparation|null>(null),[view,setView]=useState<Checkout|null>(null),[options,setOptions]=useState<QuoteOptions|null>(null);
  const[mode,setMode]=useState<Mode|''>(''),[destination,setDestination]=useState(''),[payment,setPayment]=useState(''),[address,setAddress]=useState(emptyAddress);
- const[contact,setContact]=useState({receptor:'',telefono:''}),[ack,setAck]=useState(false),[busy,setBusy]=useState(false),[fileLocked,setFileLocked]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(''),[calculated,setCalculated]=useState(''),[failedKey,setFailedKey]=useState('');
- const pending=useRef<null|{kind:'quote'|'confirm';body:string}>(null),running=useRef(false),ready=useRef(false);
+ const[contact,setContact]=useState({receptor:'',telefono:''}),[acceptedHash,setAcceptedHash]=useState<string|null>(null),[busy,setBusy]=useState(false),[fileLocked,setFileLocked]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(''),[calculated,setCalculated]=useState(''),[failedKey,setFailedKey]=useState('');
+ const pending=useRef<null|{kind:'quote'|'confirm';body:string}>(null),running=useRef(false);
+ const readSequence=useRef(0);
+ const [summaryState,setSummaryState]=useState<'loading'|'ready'|'error'>('loading');
  const current=useRef<Preparation|null>(null);current.current=prep;
  const pref:Preferences|null=mode&&payment?{modalidad:mode,destinoRetiro:mode==='RETIRO_SUCURSAL'?destination||null:null,punto:null,direccion:mode==='ENVIO_DOMICILIO'?address:null,medioPago:payment}:null;
  const valid=!!pref&&(mode!=='RETIRO_SUCURSAL'||!!destination)&&(mode!=='ENVIO_DOMICILIO'||[address.calle,address.numero,...Object.values(address.territorio)].every(s=>s.trim().length>0));
- const prefKey=JSON.stringify(pref),locked=busy||uncertain||fileLocked;
+ const prefKey=JSON.stringify(pref),locked=busy||uncertain||fileLocked||summaryState==='loading';
  useNavigationGuard({blocked:locked});
- function received(data:Checkout){setView(data);setPrep(data.preparacion);setAck(false);}
- async function load(initial=false){
-  const p=await quoteRead(`/api/cliente/preparaciones/${id}`,isPreparation);setPrep(p);
-  if(p.pedido){router.replace(`/cliente/pedidos/${p.pedido}`);return;}
-  if(!p.presupuesto)return;
-  const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);setOptions(o);
-  const data=await quoteRead(`/api/cliente/preparaciones/${id}/resumen`,isCheckout);received(data);
-  if(initial&&p.preferencias){const f=p.preferencias;setMode(f.modalidad==='RETIRO_PUNTO_ENTREGA'?'':f.modalidad);setDestination(f.destinoRetiro??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);if(data.revision&&data.huella)setCalculated(JSON.stringify(f));}
-  ready.current=true;
+ const ack=acceptedHash!==null&&acceptedHash===view?.huella;
+ function received(data:Checkout){
+  setView(data);setPrep(data.preparacion);
+  setAcceptedHash(previous=>previous===data.huella?previous:null);
  }
- useEffect(()=>{void load(true).catch(e=>setError(e.message));},[id]);
+ async function load(initial=false){
+  const sequence=++readSequence.current;
+  setSummaryState('loading');setError('');
+  try{
+   const data=await quoteRead(`/api/cliente/preparaciones/${id}/resumen`,isCheckout);
+   if(sequence!==readSequence.current)return;
+   const p=data.preparacion;
+   if(p.pedido){router.replace(`/cliente/pedidos/${p.pedido}`);return;}
+   if(p.presupuesto){
+    const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);
+    if(sequence!==readSequence.current)return;
+    setOptions(o);
+   }
+   received(data);
+   if((initial||!view)&&p.preferencias){
+    const f=p.preferencias;
+    setMode(f.modalidad==='RETIRO_PUNTO_ENTREGA'?'':f.modalidad);
+    setDestination(f.destinoRetiro??'');setPayment(f.medioPago);setAddress(f.direccion??emptyAddress);
+    if(data.revision&&data.huella)setCalculated(JSON.stringify(f));
+   }
+   setSummaryState('ready');
+  }catch(e){
+   if(sequence!==readSequence.current)return;
+   setSummaryState('error');
+   setError(e instanceof Error?e.message:'No pudimos actualizar el resumen. Volvé a intentar.');
+  }
+ }
+ useEffect(()=>{void load(true);return()=>{readSequence.current++;};},[id]);
  async function execute(command?:{kind:'quote'|'confirm';body:string}){
   if(running.current)return;if(command)pending.current=command;if(!pending.current)return;
   const c=pending.current;running.current=true;setBusy(true);setError('');
@@ -44,15 +68,15 @@ export function PreparedCheckout({id}:{id:string}){
   finally{running.current=false;setBusy(false);}
  }
  useEffect(()=>{
-  if(!ready.current||!valid||!pref||locked||calculated===prefKey||failedKey===prefKey)return;
-  setAck(false);
+  if(summaryState!=='ready'||!valid||!pref||locked||calculated===prefKey||failedKey===prefKey)return;
+  setAcceptedHash(null);
   const timer=setTimeout(()=>{const p=current.current;if(p)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:p.version,preferencias:JSON.parse(prefKey)})});},500);
   return()=>clearTimeout(timer);
- },[prefKey,valid,locked,calculated,failedKey]);
+ },[prefKey,valid,locked,calculated,failedKey,summaryState]);
  // Explicit retries only after a rejected calculation; avoid automatic write loops.
  const quote=view?.cotizacion,revision=view?.revision,summary=quote&&calculated===prefKey?quote.oferta:null;
  const allAccepted=!!prep?.archivos.length&&prep.archivos.every(f=>f.estado==='VALIDO'&&!!f.aceptadaEn);
- const fresh=calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
+ const fresh=summaryState==='ready'&&calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
  async function confirm(e:FormEvent){e.preventDefault();if(locked||!prep||!quote||!fresh||!ack||!allAccepted)return;
   await execute({kind:'confirm',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,cotizacion:quote.codigoPublico,huella:view?.huella,condicionesAceptadas:true,contacto:mode==='ENVIO_DOMICILIO'?contact:null})});
  }
@@ -60,10 +84,10 @@ export function PreparedCheckout({id}:{id:string}){
  const destinations=options?.destinosRetiro??[];
  const accepted=prep?.archivos.filter(f=>!!f.aceptadaEn).length??0;
  return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>
-  {!prep&&!error&&<p role="status">Recuperando el resumen de tu trabajo…</p>}
+  {summaryState==='loading'&&<p role="status">{prep?'Actualizando el resumen de tu pedido…':'Recuperando el resumen de tu trabajo…'}</p>}
   {busy&&<p role="status" className="client-note">Verificando y actualizando tu pedido…</p>}
   {error&&<p className="client-warning" role="alert">{error}</p>}
-  {uncertain?<button className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button className="client-button secondary" disabled={locked} onClick={()=>void load().catch(e=>setError(e.message))}>Actualizar resumen</button>}
+  {uncertain?<button className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button className="client-button secondary" disabled={locked} onClick={()=>void load()}>Actualizar resumen</button>}
   {prep&&!budget&&<section className="client-card client-empty"><h2>Primero, prepará tu trabajo</h2><p>Agregá los PDF y revisá sus opciones para calcular el presupuesto.</p><a className="client-button" href="/cliente/cotizaciones/nueva">Volver a preparar el trabajo</a></section>}
   {budget&&<><p className="client-compact-intro">Revisá tu trabajo, elegí cómo recibirlo y comprobá el total antes de crear el pedido.</p>
    <div className="client-checkout-layout">
@@ -76,19 +100,19 @@ export function PreparedCheckout({id}:{id:string}){
      <form id="client-delivery" className="workspace-preferences" onSubmit={e=>{e.preventDefault();if(pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
       <fieldset disabled={locked||!options?.disponible}>
        <section className="workspace-panel"><h2>Entrega</h2>
-        <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setAck(false);setMode(e.target.value as Mode);setDestination('');}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA').map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
-        {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setAck(false);setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre}{s.codigoPublico===options?.casaMatriz?.codigoPublico?' · Casa matriz':''} · {s.direccion}</option>)}</select></label>}
-        {mode==='ENVIO_DOMICILIO'&&<div className="workspace-address">{([['calle','Calle'],['numero','Número'],['referencias','Referencias (opcional)']] as const).map(([k,label])=><label key={k}>{label}<input required={k!=='referencias'} maxLength={k==='numero'?30:k==='calle'?140:300} value={address[k]} onChange={e=>{setAck(false);setAddress(a=>({...a,[k]:e.target.value}));}}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([k,label])=><label key={k}>{label}<input required maxLength={k==='codigoPostal'?24:120} value={address.territorio[k]} onChange={e=>{setAck(false);setAddress(a=>({...a,territorio:{...a.territorio,[k]:e.target.value}}));}}/></label>)}</div>}
+        <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setAcceptedHash(null);setMode(e.target.value as Mode);setDestination('');}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA').map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
+        {mode==='RETIRO_SUCURSAL'&&<label>Destino de retiro<select aria-label="Destino de retiro" required value={destination} onChange={e=>{setAcceptedHash(null);setDestination(e.target.value);}}><option value="">Elegí dónde retirar</option>{destinations.map(s=><option key={s.codigoPublico} value={s.codigoPublico}>{s.nombre}{s.codigoPublico===options?.casaMatriz?.codigoPublico?' · Casa matriz':''} · {s.direccion}</option>)}</select></label>}
+        {mode==='ENVIO_DOMICILIO'&&<div className="workspace-address">{([['calle','Calle'],['numero','Número'],['referencias','Referencias (opcional)']] as const).map(([k,label])=><label key={k}>{label}<input required={k!=='referencias'} maxLength={k==='numero'?30:k==='calle'?140:300} value={address[k]} onChange={e=>{setAcceptedHash(null);setAddress(a=>({...a,[k]:e.target.value}));}}/></label>)}{([['codigoPostal','Código postal'],['localidad','Localidad'],['provincia','Provincia']] as const).map(([k,label])=><label key={k}>{label}<input required maxLength={k==='codigoPostal'?24:120} value={address.territorio[k]} onChange={e=>{setAcceptedHash(null);setAddress(a=>({...a,territorio:{...a.territorio,[k]:e.target.value}}));}}/></label>)}</div>}
         <p>{mode==='RETIRO_SUCURSAL'&&destination===options?.casaMatriz?.codigoPublico?'Retiro en casa matriz, según su franja disponible.':'Fuera de casa matriz se agrega el traslado o envío configurado.'} El destino no define dónde se imprime.</p>
        </section>
        <section className="workspace-panel"><h2>Pago</h2>
-        <label>Medio de pago<select aria-label="Medio de pago" required value={payment} onChange={e=>{setAck(false);setPayment(e.target.value);}}><option value="">Elegí un medio</option>{options?.medios.map(m=><option key={m} value={m}>{m==='EFECTIVO'?'Efectivo':'Transferencia'}</option>)}</select></label>
+        <label>Medio de pago<select aria-label="Medio de pago" required value={payment} onChange={e=>{setAcceptedHash(null);setPayment(e.target.value);}}><option value="">Elegí un medio</option>{options?.medios.map(m=><option key={m} value={m}>{m==='EFECTIVO'?'Efectivo':'Transferencia'}</option>)}</select></label>
         <p>Podés crear el pedido antes de pagar. La aprobación y producción dependen de las condiciones indicadas en el resumen.</p><p>Una transferencia informada no es un pago acreditado. Podrás informarla desde tu pedido.</p>
        </section>
        <div className="workspace-recalculate"><p>{summary?'Entrega y total actualizados. El cupo se reserva al crear el pedido.':busy?'Actualizando entrega y total…':'Elegí entrega y pago. El total se actualizará automáticamente.'}</p><button className="client-button secondary" disabled={!valid}>Actualizar entrega y total</button></div>
       </fieldset>
      </form>
-     <section id="client-review-files" className="workspace-panel"><PreparedFileReview quote={id} version={prep.version} total={prep.archivos.length} accepted={accepted} disabled={locked} onChange={()=>void load().catch(e=>setError(e.message))} onLockChange={setFileLocked}/></section>
+     <section id="client-review-files" className="workspace-panel"><PreparedFileReview quote={id} version={prep.version} total={prep.archivos.length} accepted={accepted} disabled={locked} onChange={()=>void load()} onLockChange={setFileLocked}/></section>
     </div>
     <aside className="workspace-checkout-aside" aria-label="Total y confirmación">
      <section className="workspace-panel workspace-price" aria-live="polite"><h2>{summary?'Total de tu pedido':'Subtotal de tu trabajo'}</h2>
@@ -103,7 +127,7 @@ export function PreparedCheckout({id}:{id:string}){
      </section>
      <form id="client-create-order" onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>Confirmá tu pedido</h2>
       {mode==='ENVIO_DOMICILIO'&&<div className="workspace-contact"><label>Quién recibe<input required maxLength={140} disabled={locked} value={contact.receptor} onChange={e=>setContact({...contact,receptor:e.target.value})}/></label><label>Teléfono<input required maxLength={40} disabled={locked} value={contact.telefono} onChange={e=>setContact({...contact,telefono:e.target.value})}/></label></div>}
-      <label className="client-check"><input type="checkbox" checked={ack} disabled={locked||!fresh||!allAccepted} onChange={e=>setAck(e.target.checked)}/>Revisé y acepto los archivos, el total final, el destino, la estimación y las condiciones vigentes.</label>
+      <label className="client-check"><input type="checkbox" checked={ack} disabled={locked||!fresh||!allAccepted} onChange={e=>setAcceptedHash(e.target.checked?view?.huella??null:null)}/>Revisé y acepto los archivos, el total final, el destino, la estimación y las condiciones vigentes.</label>
       {!allAccepted&&<p className="client-note"><a href="#client-review-files">Revisá y aceptá tus PDF</a> para habilitar la confirmación.</p>}
       <button className="client-button" disabled={locked||!fresh||!allAccepted||!ack}>Confirmar / Crear pedido →</button>
       <p className="workspace-confirm-note">Después de crearlo, los cambios y la cancelación siguen las reglas del pedido.</p>

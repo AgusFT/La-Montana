@@ -36,16 +36,20 @@ function actualizarVigenciaSiBloqueada(status: number) {
 }
 
 export async function secureMutation(path: string, body?: BodyInit, contentType?: string, method: "POST" | "PUT" | "DELETE" = "POST") {
-  const csrfResponse = await fetch("/api/auth/csrf", { cache: "no-store", credentials: "same-origin" });
+  const csrfResponse = await fetch("/api/auth/csrf", { cache: "no-store", credentials: "same-origin" }).catch(() => {
+    throw new Error("No pudimos conectar con la imprenta. Comprobá que esté en funcionamiento y volvé a intentar.");
+  });
   if (!csrfResponse.ok) {
     actualizarVigenciaSiBloqueada(csrfResponse.status);
     throw new MutationError("No pudimos preparar una operación segura. Intentá nuevamente.", csrfResponse.status);
   }
-  const csrf = await csrfResponse.json();
-  if (typeof csrf.token !== "string" || csrf.headerName?.toUpperCase() !== "X-CSRF-TOKEN") throw new MutationError("La protección de sesión no está disponible.", 503);
+  const csrf = await csrfResponse.json().catch(() => { throw new Error("No pudimos leer la respuesta de la imprenta. Volvé a intentar."); });
+  if (typeof csrf?.token !== "string" || typeof csrf.headerName !== "string" || csrf.headerName.toUpperCase() !== "X-CSRF-TOKEN") throw new MutationError("No pudimos preparar la sesión. Volvé a intentar.", 503);
   const response = await fetch(path, {
     method, credentials: "same-origin", cache: "no-store",
     headers: { "X-CSRF-TOKEN": csrf.token, ...(contentType ? { "Content-Type": contentType } : {}) }, body,
+  }).catch(() => {
+    throw new MutationError("Se interrumpió la conexión con la imprenta y no pudimos confirmar el resultado. Cuando vuelva la conexión, reintentá la misma operación.", 0, true);
   });
   if (!response.ok) {
     actualizarVigenciaSiBloqueada(response.status);

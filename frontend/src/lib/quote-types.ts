@@ -58,4 +58,11 @@ export function isOptions(v:unknown):v is QuoteOptions{return record(v)&&typeof 
 export function isQuoteList(v:unknown):v is QuoteList{return record(v)&&Number.isSafeInteger(v.total)&&Number.isSafeInteger(v.pagina)&&Array.isArray(v.elementos)&&v.elementos.every(e=>record(e)&&typeof e.codigoPublico==="string"&&typeof e.total==="string"&&typeof e.estado==="string");}
 export const money=(value:string)=>{const [whole,fraction="00"]=value.split(".");return new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS"}).formatToParts(BigInt(whole)).map(p=>p.type==="fraction"?fraction.padEnd(2,"0"):p.value).join("");};
 export const date=(value:string|null)=>value?new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short"}).format(new Date(value)):"Pendiente";
-export async function quoteRead<T>(path:string,guard:(v:unknown)=>v is T):Promise<T>{const r=await fetch(path,{cache:"no-store"});const d:unknown=await r.json();if(!r.ok||!guard(d))throw new Error(record(d)&&typeof d.mensaje==="string"?d.mensaje:"No pudimos consultar las cotizaciones. Volvé a intentarlo.");return d;}
+export async function quoteRead<T>(path:string,guard:(v:unknown)=>v is T):Promise<T>{
+ const response=await fetch(path,{cache:"no-store"}).catch(()=>{
+  throw new Error("No pudimos conectar con la imprenta. Comprobá la conexión y volvé a intentar.");
+ });
+ const data:unknown=await response.json().catch(()=>null);
+ if(!response.ok||!guard(data))throw new Error(record(data)&&typeof data.mensaje==="string"?data.mensaje:"No pudimos consultar los datos. Volvé a intentarlo.");
+ return data;
+}

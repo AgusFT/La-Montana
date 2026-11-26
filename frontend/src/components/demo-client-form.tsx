@@ -29,7 +29,7 @@ export function DemoClientForm({ onCreated }: { onCreated?: () => void }) {
     setBusy(true);
     try {
       const response = await secureMutation("/api/demo/clientes", JSON.stringify(command.current), "application/json");
-      const client = await response.json();
+      const client = await response.json().catch(() => null);
       if (typeof client?.codigo !== "string" || !uuidPattern.test(client.codigo)) {
         throw new Error("No pudimos confirmar el alta. Volvé a enviar la ficha para comprobarla.");
       }
@@ -44,7 +44,7 @@ export function DemoClientForm({ onCreated }: { onCreated?: () => void }) {
     }
   }
 
-  return <form onSubmit={create} className="admin-form">
+  return <form onSubmit={create} onChange={() => { setError(""); setNotice(""); }} className="admin-form">
     <p>Usá un nombre y un apellido ficticios. La ficha ocupa un lugar en el cupo compartido de clientes.</p>
     <div className="form-columns">
       <label>Nombre ficticio<input name="nombre" autoComplete="off" required maxLength={100} disabled={busy} /></label>

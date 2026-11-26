@@ -62,7 +62,7 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
   const location = locations?.find(p => p.provincia === province);
   function dayChange(day: number, changes: Partial<BranchDay>) {
     setHours(rows => rows.map(row => row.dia === day ? { ...row, ...changes } : row));
-    setSaved(false); setMessage(""); setCopyNotice("");
+    setCopyNotice("");
   }
   function canApplyHours(source: BranchDay) {
     return source.habilitado && !!source.apertura && !!source.cierre && source.apertura < source.cierre
@@ -115,15 +115,15 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
     <h2>{branch ? "Editar sucursal" : "Nueva sucursal"}</h2>
     <p className="empty-note">Completá la dirección y después elegí qué días abre y en qué horario atiende.</p>
     {!locations && <p className="form-message error-message" role="alert">No pudimos cargar las provincias. <a href="/administracion/sucursales">Volver a intentar</a>.</p>}
-    <fieldset className="plain-fieldset" disabled={busy || deleting || !locations}>
+    <fieldset className="plain-fieldset" disabled={busy || deleting || !locations} onChange={() => { setSaved(false); setMessage(""); }}>
       <fieldset id={!branch?"branch-create-location":undefined} className="choice-fieldset branch-form-section"><legend>1. Ubicación y contacto</legend>
         <p className="empty-note">País: Argentina. La zona horaria se calcula sin conexión a Internet.</p>
         <div className="form-columns">{fields.slice(0, 4).map(field)}
           <label>Provincia / Ciudad Autónoma<select name="provincia" required value={province} onChange={e => {
-            setProvince(e.target.value); setSaved(false);
+            setProvince(e.target.value);
             if (!locality && e.target.value === "Ciudad Autónoma de Buenos Aires") setLocality("Ciudad Autónoma de Buenos Aires");
           }}><option value="">Seleccionar provincia o CABA</option>{locations?.map(p => <option key={p.provincia} value={p.provincia}>{p.provincia === "Ciudad Autónoma de Buenos Aires" ? "CABA · Ciudad Autónoma de Buenos Aires" : p.provincia}</option>)}</select></label>
-          <label>Localidad<input name="localidad" required maxLength={120} value={locality} onChange={e => { setLocality(e.target.value); setSaved(false); }} /></label>
+          <label>Localidad<input name="localidad" required maxLength={120} value={locality} onChange={e => setLocality(e.target.value)} /></label>
           {fields.slice(4).map(field)}
         </div>
         {branch && !province && <p className="empty-note">Provincia guardada: {branch.provincia}. Seleccionala en el listado para actualizar la ubicación.</p>}
@@ -142,7 +142,7 @@ export function BranchForm({ branch, locations }: { branch?: Branch; locations: 
       </fieldset>
       <fieldset className="choice-fieldset branch-form-section"><legend>Casa matriz</legend>
         {branch?.casaMatrizVigente&&<p className="admin-info">Esta es la casa matriz de la configuración vigente. Para cambiarla, elegí y confirmá otra en Fase 5 y activá esa nueva versión.</p>}
-        <label className="checkbox-label"><input type="checkbox" checked={proposedMain} onChange={e=>{setProposedMain(e.target.checked);setSaved(false);}}/>Proponer esta sucursal como casa matriz</label>
+        <label className="checkbox-label"><input type="checkbox" checked={proposedMain} onChange={e=>setProposedMain(e.target.checked)}/>Proponer esta sucursal como casa matriz</label>
         <p className="empty-note">La propuesta ayuda a preparar un borrador, pero no cambia la matriz vigente. Siempre deberás seleccionarla y confirmarla en Fase 5 del motor. Solo puede haber una propuesta activa.</p>
       </fieldset>
       {branch && <label>Estado<select name="estado" defaultValue={branch.estado}><option value="ACTIVA">Activa</option><option value="DESACTIVADA">Desactivada</option></select></label>}
