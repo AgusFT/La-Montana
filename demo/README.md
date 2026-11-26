@@ -35,18 +35,27 @@ El reinicio conserva el estado que dejó el visitante y una sola copia de la imp
 
 ## Cupos de la imprenta ficticia
 
-La etapa 3 implementará estos límites, compartidos por todos los roles. La
-precarga ocupará un lugar en cada cupo.
+Abrí **Administración → Cupos de la Demo** para ver cuántos lugares se usan y
+qué registros los ocupan. Todos los roles comparten los límites de la instalación.
+La imprenta recién instalada usa un lugar en cada recurso.
 
 | Recurso | Cupo | Qué cuenta |
 | --- | ---: | --- |
 | Pedidos | 20 | Los pedidos cuentan en cualquier estado, incluso si fueron cancelados. Dar de baja un pedido en la Demo libera su lugar y conserva el historial. |
-| Clientes | 10 | Cada ficha de cliente, incluidas las precargadas. Se podrán crear fichas ficticias mediante el flujo comercial. Las cuentas de administrador y empleado quedan fuera del cupo. |
+| Clientes | 10 | Lucía Papel ocupa un lugar reservado para el selector de Cliente. Quedan nueve lugares para otras fichas ficticias. El administrador y los empleados con permiso para registrar cobros pueden crearlas. |
 | Caja | 30 | Cada cobro y cada devolución. Aplicar a un pedido un saldo ya recibido mantiene el contador. Dar de baja un movimiento conserva el asiento y sus vínculos. |
 | Impresoras | 2 | Cada impresora simulada por su identidad. Las copias de la configuración de una impresora comparten un solo lugar. |
 
-Cada baja lógica permitida libera un lugar una sola vez. El historial y sus
-vínculos siguen disponibles según los permisos del rol.
+Para probar una baja, elegí un recurso, seleccioná el registro y confirmá.
+El historial de bajas muestra quién hizo la operación y cuándo. La baja de un
+cobro o una devolución conserva el asiento, el saldo y sus aplicaciones. Dar de
+baja una impresora o un pedido impide iniciar nuevos trabajos con ese registro.
+Las fichas de cliente que crees también admiten baja. Se conserva su historial
+y se bloquea la creación de nuevas cotizaciones y pedidos a su nombre.
+
+Al llegar al límite, el formulario explica qué cupo se agotó. Un administrador
+puede liberar un lugar y después se puede volver a intentar el alta. Si dos
+personas intentan ocupar el último lugar a la vez, una sola lo obtiene.
 
 ## Funciones y módulos de presentación
 
