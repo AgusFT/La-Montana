@@ -16,6 +16,7 @@
  * MÉTODOS DECLARADOS
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
+ * - [protected] boolean shouldNotFilter(HttpServletRequest request)
  * - [protected] void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
  *   FilterChain chain) throws ServletException, IOException
  *
@@ -43,6 +44,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class SesionVigenteFilter extends OncePerRequestFilter {
     private final JdbcTemplate jdbc;
     public SesionVigenteFilter(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        // El selector puede reemplazar una sesión previa revocada o pendiente de cambio de clave.
+        return "POST".equals(request.getMethod()) && "/api/demo/sesion".equals(request.getServletPath());
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
         var authentication = SecurityContextHolder.getContext().getAuthentication();

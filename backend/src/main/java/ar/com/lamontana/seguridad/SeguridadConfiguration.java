@@ -13,8 +13,10 @@
  * automáticamente no se enumeran.
  * - [paquete] PasswordEncoder contrasenas()
  *   Provee una dependencia administrada por Spring.
+ * - [paquete] SecurityContextRepository repositorioSeguridad()
  * - [paquete] SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad,
- *   org.springframework.jdbc.core.JdbcTemplate jdbc) throws Exception
+ *   org.springframework.jdbc.core.JdbcTemplate jdbc, SecurityContextRepository repositorioSeguridad)
+ *   throws Exception
  *   Provee una dependencia administrada por Spring.
  *
  * ------------------------------------------------------------------------
@@ -39,6 +41,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.DelegatingSecurityContextRepository;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextRepository;
 
 @Configuration
 public class SeguridadConfiguration {
@@ -49,8 +55,16 @@ public class SeguridadConfiguration {
     }
 
     @Bean
-    SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad, org.springframework.jdbc.core.JdbcTemplate jdbc) throws Exception {
+    SecurityContextRepository repositorioSeguridad() {
+        return new DelegatingSecurityContextRepository(new RequestAttributeSecurityContextRepository(),
+                new HttpSessionSecurityContextRepository());
+    }
+
+    @Bean
+    SecurityFilterChain seguridad(HttpSecurity http, IdentidadService identidad, org.springframework.jdbc.core.JdbcTemplate jdbc,
+                                  SecurityContextRepository repositorioSeguridad) throws Exception {
         return http
+                .securityContext(contexto -> contexto.securityContextRepository(repositorioSeguridad))
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/api/instalador/cuentas","/api/instalador/correo"))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET,"/api/instalador/estado").permitAll()
@@ -60,6 +74,7 @@ public class SeguridadConfiguration {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/publico/pagina-web", "/api/publico/pagina-web/imagenes/*", "/api/publico/pagina-web/imagenes/*/miniatura", "/api/sistema/estado", "/api/sistema/entorno", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/demo/sesion").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/auth/contrasena", "/api/auth/correo/solicitar", "/api/auth/correo/confirmar").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/admin/pagina-web", "/api/admin/pagina-web/revision", "/api/admin/pagina-web/origen", "/api/admin/pagina-web/origen/miniatura", "/api/admin/pagina-web/imagenes", "/api/admin/pagina-web/imagenes/*", "/api/admin/pagina-web/imagenes/*/miniatura").hasRole("ADMIN_ADMIN")

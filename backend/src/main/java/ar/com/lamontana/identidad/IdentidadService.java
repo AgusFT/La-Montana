@@ -18,6 +18,8 @@
  * - [public] EstadoInstalacion estado()
  * - [public] void crearPropietario(IdentidadController.AltaPropietario alta)
  * - [public] UserDetails loadUserByUsername(String username)
+ * - [paquete] UsuarioSesion usuarioDemo(UUID codigo, String rol)
+ * - [private] UsuarioSesion usuario(ResultSet rs, int fila)
  * - [public] void registrarCliente(IdentidadController.RegistroCliente registro)
  * - [public] Perfil perfil(String correo)
  * - [public] void registrarAcceso(String tipo, String correo)
@@ -36,6 +38,8 @@ package ar.com.lamontana.identidad;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +55,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class IdentidadService implements UserDetailsService {
+    private static final String CONSULTA_USUARIO = """
+            SELECT u.correo,u.hash_contrasena,u.estado,r.codigo,r.activo,u.version_acceso,
+                   (NOT u.es_soporte OR lamontana.soporte_habilitado(u.id_usuario)) AS permiso_soporte
+            FROM lamontana.usuario u JOIN lamontana.rol r USING (id_rol)
+            """;
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
     private final String setupToken;
@@ -89,13 +98,22 @@ public class IdentidadService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-        return jdbc.query("""
-                SELECT u.correo,u.hash_contrasena,u.estado,r.codigo,r.activo,u.version_acceso,(NOT u.es_soporte OR lamontana.soporte_habilitado(u.id_usuario)) AS permiso_soporte
-                FROM lamontana.usuario u JOIN lamontana.rol r USING (id_rol) WHERE lower(u.correo)=?
-                """, (rs, row) -> new UsuarioSesion(rs.getString("correo"), rs.getString("hash_contrasena"),
-                rs.getString("codigo"), "ACTIVO".equals(rs.getString("estado")) && rs.getBoolean("activo") && rs.getBoolean("permiso_soporte"),
-                rs.getLong("version_acceso")), normalizar(username))
+        return jdbc.query(CONSULTA_USUARIO + "WHERE lower(u.correo)=?", this::usuario, normalizar(username))
                 .stream().findFirst().orElseThrow(() -> new UsernameNotFoundException("Credenciales incorrectas"));
+    }
+
+    UsuarioSesion usuarioDemo(UUID codigo, String rol) {
+        return jdbc.query(CONSULTA_USUARIO + """
+                WHERE u.codigo_publico=? AND r.codigo=? AND NOT u.es_soporte AND NOT u.debe_cambiar_contrasena
+                  AND EXISTS (SELECT FROM lamontana.entorno_instalacion WHERE unica AND modo='DEMO')
+                """, this::usuario, codigo, rol).stream().filter(UsuarioSesion::isEnabled).findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Este rol de Demo no está habilitado."));
+    }
+
+    private UsuarioSesion usuario(ResultSet rs, int fila) throws SQLException {
+        boolean activo = "ACTIVO".equals(rs.getString("estado")) && rs.getBoolean("activo") && rs.getBoolean("permiso_soporte");
+        return new UsuarioSesion(rs.getString("correo"), rs.getString("hash_contrasena"),
+                rs.getString("codigo"), activo, rs.getLong("version_acceso"));
     }
 
     @Transactional
