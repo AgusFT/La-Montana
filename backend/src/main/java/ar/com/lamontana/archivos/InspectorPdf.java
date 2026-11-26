@@ -55,7 +55,7 @@ public class InspectorPdf {
         if(!workers.tryAcquire())throw new NoDisponible("El análisis de archivos está ocupado. Volvé a intentar.");
         Process process=null;
         try {
-            var command=new ArrayList<String>();command.add(Path.of(System.getProperty("java.home"),"bin","java").toString());
+            var command=new ArrayList<String>();command.add(Path.of(System.getProperty("java.home"),"bin",System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java").toString());
             command.addAll(List.of("-Xmx256m","-XX:MaxMetaspaceSize=128m","-Djava.awt.headless=true","-Djava.io.tmpdir="+output.getParent(),"-Duser.home="+output.getParent()));
             if(jar.isBlank())command.addAll(List.of("-cp",System.getProperty("java.class.path"),PdfInspectorMain.class.getName()));
             else command.addAll(List.of("-Dloader.main="+PdfInspectorMain.class.getName(),"-cp",Path.of(jar).toAbsolutePath().toString(),"org.springframework.boot.loader.launch.PropertiesLauncher"));

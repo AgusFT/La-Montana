@@ -4,7 +4,7 @@ La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como
 
 ## Instalar en Windows 11 x64
 
-Ejecutá `LaMontanaDemo-0.1.0.exe` y abrí **LaMontanaDemo** desde el menú Inicio. El asistente verifica el equipo y te guía para elegir la carpeta de la imprenta. Si necesitás preparar WSL2, Ubuntu o Docker, elegí la copia incluida en el instalador. Al terminar, **Abrir la Demo y elegir rol** te lleva al selector en el navegador. La instalación cuenta las 360 horas desde el primer arranque en ese equipo. [Guía de instalación y mantenimiento](https://github.com/AgusFT/La-Montana/blob/main/demo/distribucion.md)
+Ejecutá `LaMontanaDemo-0.1.5.exe` y abrí **La Montaña Demo** desde Inicio. En el primer arranque, descargá la base de bytecode oficial de ClamAV o elegí una copia de `bytecode.cvd` de tu equipo o USB. El panel abre el selector de roles en tu navegador. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
 
 ## Iniciar desde el código fuente
 

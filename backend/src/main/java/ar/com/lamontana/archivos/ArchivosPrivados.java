@@ -50,9 +50,13 @@ public class ArchivosPrivados {
     }
     public record Recibido(long bytes,String sha256,Path path){}
     public Path carpeta(UUID id)throws IOException{
-        if(!Files.exists(root,LinkOption.NOFOLLOW_LINKS))Files.createDirectories(root,PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+        // En NTFS se hereda la ACL del almacén privado del usuario.
+        var permisos = root.getFileSystem().supportedFileAttributeViews().contains("posix")
+                ? new java.nio.file.attribute.FileAttribute<?>[]{PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------"))}
+                : new java.nio.file.attribute.FileAttribute<?>[0];
+        Files.createDirectories(root, permisos);
         verificarDirectorio(root);Path dir=root.resolve(id.toString());
-        if(!Files.exists(dir,LinkOption.NOFOLLOW_LINKS))Files.createDirectory(dir,PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+        Files.createDirectories(dir, permisos);
         verificarDirectorio(dir);return dir;
     }
     public Recibido recibir(UUID id,InputStream input)throws IOException{
