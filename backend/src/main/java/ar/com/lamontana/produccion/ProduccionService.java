@@ -165,6 +165,10 @@ public class ProduccionService {
  private Cobertura cobertura(String nombre,String previo,String sena,BigDecimal aplicado){var requerido=new BigDecimal(previo).add(new BigDecimal(sena));return new Cobertura(nombre,requerido.toPlainString(),aplicado.toPlainString(),requerido.subtract(aplicado).max(BigDecimal.ZERO).toPlainString());}
  private List<String> bloqueos(PedidoService.Detalle p,boolean permiso){
   var out=new ArrayList<String>();if(!permiso)out.add("Se requiere el permiso para registrar producción manual.");
+  if (Boolean.TRUE.equals(jdbc.queryForObject("""
+      SELECT EXISTS (SELECT FROM lamontana.demo_cupo_registro
+                     WHERE tipo='PEDIDO' AND codigo_publico=? AND baja_en IS NOT NULL)
+      """, Boolean.class, p.codigoPublico()))) out.add("Este pedido está dado de baja en la Demo.");
   if(!Set.of("APROBADO","EN_PRODUCCION").contains(p.estado()))out.add("Sólo se inicia producción después de la aprobación y antes de superar calidad.");
   if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,p.oferta().sucursal().codigoPublico()))out.add("La sucursal está desactivada: no admite nuevos trabajos.");
   if(cobertura(p).stream().anyMatch(c->new BigDecimal(c.pendiente()).signum()>0))out.add("Falta anticipo acreditado y aplicado por los medios admitidos en las condiciones aceptadas. Un comprobante o dinero sin aplicar no habilita producción.");
@@ -176,7 +180,14 @@ public class ProduccionService {
   case "COMPLETADO"->t.calidad()==null?"Controlá la calidad del trabajo terminado.":t.calidad().resultado()==Resultado.APROBADO?"Este ítem ya superó calidad.":null;
   default->null;
  };}
- private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());return recursos.leer(version).impresoras().stream().filter(i->i.estado().equals("OPERATIVA")&&i.retiradaEn()==null).toList();}
+ private List<RecursosRepositorio.Impresora> impresoras(PedidoService.Detalle p){
+  long version=jdbc.queryForObject("SELECT id_configuracion_version FROM lamontana.pedido_actual WHERE id_pedido=?",Long.class,p.numero());
+  var disponibles=jdbc.queryForList("""
+      SELECT codigo_publico FROM lamontana.demo_cupo_registro WHERE tipo='IMPRESORA' AND baja_en IS NULL
+      """,UUID.class);
+  return recursos.leer(version).impresoras().stream()
+      .filter(i->i.estado().equals("OPERATIVA") && i.retiradaEn()==null && disponibles.contains(i.codigoPublico())).toList();
+ }
  private boolean compatible(RecursosRepositorio.Impresora i,CotizacionService.ItemCotizado item){var t=item.trabajo();return i.formatos().contains(t.formato())&&(!t.color().name().equals("COLOR")||i.admiteColor())&&(!t.dobleFaz()||i.admiteDobleFaz())&&item.precio().hojas()<=i.capacidadHojas();}
  private List<Registro> trabajos(long pedido,UUID item){return jdbc.query("""
   SELECT t.*,o.codigo_publico AS origen,a.codigo_publico AS archivo FROM lamontana.trabajo_impresion t
