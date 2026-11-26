@@ -65,7 +65,7 @@ final class Instalacion {
         return cmd;
     }
     void ejecutar(String... args) throws Exception {
-        var r = Util.ejecutar(compose(args), null, Duration.ofMinutes(20), null);
+        var r = equipo.run(compose(args),Duration.ofMinutes(20));
         if (!r.ok()) throw new IOException("Compose no completó " + args[0] + " (código " + r.codigo() + "). Revisá Docker, los puertos y el espacio disponible.");
     }
 
@@ -132,10 +132,11 @@ final class Instalacion {
                 while (mail == port || mail == control) mail = disponible();
                 estado.setProperty("control",Integer.toString(control));
                 estado.setProperty("mailpit",Integer.toString(mail));
-                estado.setProperty("estado","PREPARADA");
-                persistir();
             }
             verificarUbicacion();
+            estado.setProperty("estado","PREPARADA");
+            persistir();
+            registrarDestino(registro());
             var secretos = Util.properties(raiz.resolve("secretos.properties"));
             if (secretos.getProperty("DB_PASSWORD","").isBlank()) {
                 if (Files.exists(raiz.resolve(".env"))) throw new IOException("Falta la credencial de la instalación.");
@@ -149,9 +150,9 @@ final class Instalacion {
 
     private void verificarUbicacion() throws Exception {
         var r = equipo.run(equipo.docker("ps", "-a", "--filter", "label=com.docker.compose.project="+proyecto(),
-                "--format","{{.Label `com.docker.compose.project.working_dir`}}"));
+                "--format","{{.Label `ar.com.lamontana.instalacion`}}|{{.Label `com.docker.compose.project.working_dir`}}"));
         if (!r.ok()) throw new IOException("No se pudo comprobar la identidad del proyecto Docker.");
-        String esperada = equipo.rutaLinux(raiz.toRealPath());
+        String esperada = estado.getProperty("id")+"|"+equipo.rutaLinux(raiz.toRealPath());
         if (r.salida().lines().anyMatch(ruta -> !(equipo.windows ? ruta.equalsIgnoreCase(esperada) : ruta.equals(esperada))))
             throw new IOException("El proyecto de esta Demo ya pertenece a otra carpeta. Elegí su instalación original.");
     }
@@ -180,11 +181,21 @@ final class Instalacion {
     void desinstalar() throws Exception {
         modificar(() -> {
             if (!existe()) throw new IllegalArgumentException("Seleccioná la carpeta de una Demo instalada.");
-            verificarUbicacion();
-            if (Files.isRegularFile(raiz.resolve("compose.yaml"))) ejecutar("down","--timeout","60");
-            estado.setProperty("estado","DESINSTALADA");persistir();
+            equipo.prepararRetiro();
+            retirarServicios();
             recordar();
         });
+        equipo.liberarEsperaSiCorresponde();
+    }
+
+    private void retirarServicios() throws Exception {
+        verificarUbicacion();
+        if (Files.isRegularFile(raiz.resolve("compose.yaml")) && Files.isRegularFile(raiz.resolve(".env")))
+            ejecutar("down","--timeout","60");
+        if (equipo.recursosDemo().stream().anyMatch(fila->fila.startsWith(estado.getProperty("id")+"|"+proyecto()+"|")))
+            throw new IOException("Quedaron servicios de la Demo. Revisá la carpeta de instalación.");
+        estado.setProperty("estado","DESINSTALADA");
+        persistir();
     }
 
     void abrir() throws Exception {
@@ -196,7 +207,10 @@ final class Instalacion {
         });
     }
 
-    private void iniciarServicios() throws Exception {ejecutar("up","-d","--wait","--wait-timeout","600","--pull","never");}
+    private void iniciarServicios() throws Exception {
+        ejecutar("up","-d","--wait","--wait-timeout","600","--pull","never");
+        if(equipo.windows)equipo.mantenerWsl();
+    }
 
     private void desplegar() throws Exception {
         var carga=Util.ejecutar(equipo.docker("load","--input",equipo.rutaLinux(paquete.archivo("images.tar.gz"))),null,Duration.ofMinutes(20),null);
@@ -239,8 +253,63 @@ final class Instalacion {
         Path dir=System.getProperty("os.name").startsWith("Windows")&&local!=null ? Path.of(local) : Path.of(System.getProperty("user.home"),".local","state");
         return dir.resolve("YG-Soluciones/LaMontanaDemo/asistente.properties");
     }
+    void registrarDestino(Path registro) throws IOException {
+        var ficha=new Properties();
+        ficha.setProperty("id",estado.getProperty("id"));
+        ficha.setProperty("directorio",raiz.toString());
+        ficha.setProperty("retirada",Boolean.toString("DESINSTALADA".equals(estado.getProperty("estado"))));
+        Path p=registro.resolveSibling("instalaciones").resolve(estado.getProperty("id")+".properties");
+        Util.guardar(p,ficha);
+    }
+    static void retirarRegistradas(Equipo equipo, Path registro) throws Exception {
+        var destinos=new LinkedHashMap<Path,String>();
+        Path fichas=registro.resolveSibling("instalaciones");
+        boolean algunaFicha=Files.isDirectory(fichas);
+        if(algunaFicha)try(var archivos=Files.newDirectoryStream(fichas,"*.properties")){
+            for(Path f:archivos){
+                var p=Carpetas.leerFicha(f);
+                String id=p.getProperty("id","");
+                if(!f.getFileName().toString().equals(id+".properties"))throw new IOException("El registro de instalaciones de la Demo es inconsistente.");
+                if(!Boolean.parseBoolean(p.getProperty("retirada","false")))
+                    destinos.put(Carpetas.ruta(p.getProperty("directorio","")),id);
+            }
+        }
+        String ultima=Util.properties(registro).getProperty("directorio","");
+        if(!ultima.isEmpty() && Files.isRegularFile(Carpetas.ruta(ultima).resolve("instalacion.properties"))){
+            var app=new Instalacion(Carpetas.ruta(ultima),equipo);
+            if(!"DESINSTALADA".equals(app.estado.getProperty("estado")))destinos.putIfAbsent(app.raiz,app.estado.getProperty("id"));
+        }
+        if(destinos.isEmpty() && !algunaFicha && ultima.isEmpty())return;
+        boolean distro=equipo.distroPresente(destinos.isEmpty());
+        if(distro){
+            equipo.prepararRetiro();
+            for(String fila:equipo.recursosDemo()){
+                String[] partes=fila.split("\\|",3);
+                if(partes.length!=3)throw new IOException("Docker no informó la identidad completa del proyecto Demo.");
+                Path dir=equipo.rutaWindows(partes[2]).toAbsolutePath().normalize();
+                var app=new Instalacion(dir,equipo);
+                if(!app.existe()||!partes[0].equals(app.estado.getProperty("id"))||!partes[1].equals(app.proyecto()))
+                    throw new IOException("Una instalación de la Demo requiere su carpeta original para confirmar el retiro.");
+                destinos.putIfAbsent(dir,partes[0]);
+            }
+        }
+        for(var entrada:destinos.entrySet()){
+            var app=new Instalacion(entrada.getKey(),equipo);
+            if(!app.existe())continue; // Sin ficha local ni contenedores que la identifiquen.
+            app.modificar(()->{
+                if(!entrada.getValue().equals(app.estado.getProperty("id")))throw new IOException("Cambió la identidad de una carpeta de la Demo.");
+                if(distro)app.retirarServicios();
+                else {app.estado.setProperty("estado","DESINSTALADA");app.persistir();}
+                app.registrarDestino(registro);
+            });
+        }
+        if(distro){
+            if(!equipo.recursosDemo().isEmpty())throw new IOException("Quedaron instalaciones de la Demo en ejecución.");
+            equipo.liberarEsperaSiCorresponde();
+        }
+    }
     void recordar() throws IOException {
-        Path p=registro();Files.createDirectories(p.getParent());
+        Path p=registro();registrarDestino(p);
         var valor=new Properties();valor.setProperty("directorio",raiz.toString());Util.guardar(p,valor);
     }
     static Path ultima() throws IOException {

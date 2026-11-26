@@ -8,26 +8,58 @@ import java.time.Duration;
 import java.util.*;
 
 /** Operaciones de plataforma acotadas; no recibe comandos del navegador. */
-final class Equipo {
+class Equipo {
     static final String DISTRO="LaMontanaDemo-Ubuntu";
     final boolean windows=System.getProperty("os.name").startsWith("Windows");
     final Paquete paquete;
     private Process sesionWsl;
     Equipo(Paquete paquete){this.paquete=paquete;}
     List<String> docker(String...args){var cmd=new ArrayList<String>();if(windows)cmd.addAll(List.of("wsl.exe","--distribution",DISTRO,"--user","root","--exec"));cmd.add("docker");cmd.addAll(List.of(args));return cmd;}
-    Util.Resultado run(List<String> cmd){try{
-        boolean wsl=windows&&cmd.get(0).equals("wsl.exe")&&cmd.contains(DISTRO);
-        if(wsl)mantenerWsl();
-        return Util.ejecutar(cmd,null,Duration.ofSeconds(wsl?120:30),null);
-    }catch(Exception e){return new Util.Resultado(127,"No se pudo ejecutar "+cmd.get(0)+". Verificá su instalación y permisos.");}}
+    Util.Resultado run(List<String> cmd) {
+        return run(cmd,Duration.ofSeconds(windows&&cmd.get(0).equals("wsl.exe")?120:30));
+    }
+    Util.Resultado run(List<String> cmd, Duration timeout){
+        try {return Util.ejecutar(cmd,null,timeout,null);}
+        catch(Exception e){return new Util.Resultado(127,"No se pudo ejecutar "+cmd.get(0)+". Verificá su instalación y permisos.");}
+    }
     synchronized void mantenerWsl() throws IOException {
         if(sesionWsl!=null&&sesionWsl.isAlive())return;
-        // systemd no mantiene WSL activo. Un único proceso por distro conserva la app
-        // al cerrar el navegador/asistente, hasta cerrar la sesión Windows o apagarla.
-        // flock evita duplicados entre asistentes; no cambia la configuración global de WSL.
-        sesionWsl=new ProcessBuilder("wsl.exe","-d",DISTRO,"-u","root","--exec","flock","--nonblock","--no-fork","/run/lamontana-asistente.lock","sleep","infinity")
+        // El cliente de systemd-run queda esperando en WSL mientras la Demo está instalada.
+        // El nombre de unidad identifica exclusivamente esta espera y permite terminarla desde otro proceso.
+        sesionWsl=new ProcessBuilder("wsl.exe","-d",DISTRO,"-u","root","--exec","systemd-run","--wait","--collect","--quiet",
+                "--unit=lamontana-demo-espera","/usr/bin/sleep","infinity")
             .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
         sesionWsl.getOutputStream().close();
+    }
+    boolean distroPresente(boolean soloEnEjecucion) throws IOException {
+        if(!windows)return true;
+        var cmd=new ArrayList<>(List.of("wsl.exe","--list","--quiet"));
+        if(soloEnEjecucion)cmd.add("--running");
+        var r=run(cmd);
+        if(!r.ok())throw new IOException("No se pudieron consultar las distribuciones de WSL2.");
+        return r.salida().replace("\0","").lines().map(String::strip).anyMatch(DISTRO::equalsIgnoreCase);
+    }
+    List<String> recursosDemo() throws IOException {
+        var r=run(docker("ps","-a","--filter","label=ar.com.lamontana.instalacion",
+                "--format","{{.Label `ar.com.lamontana.instalacion`}}|{{.Label `com.docker.compose.project`}}|{{.Label `com.docker.compose.project.working_dir`}}"));
+        if(!r.ok())throw new IOException("No se pudieron identificar los servicios de la Demo en Docker.");
+        return r.salida().lines().filter(line->line.contains("|lamontana-demo-")).toList();
+    }
+    void liberarEsperaSiCorresponde() throws IOException {
+        if(!windows||!recursosDemo().isEmpty())return;
+        var cmd=List.of("wsl.exe","-d",DISTRO,"-u","root","--exec","sh","-c",
+                "if systemctl is-active --quiet lamontana-demo-espera.service; then systemctl stop lamontana-demo-espera.service; fi");
+        if(!run(cmd).ok())throw new IOException("No se pudo cerrar la espera de La Montaña Demo en WSL2.");
+    }
+    void prepararRetiro() throws IOException {
+        if(windows&&!run(List.of("wsl.exe","-d",DISTRO,"-u","root","--exec","systemctl","start","docker")).ok())
+            throw new IOException("No se pudo iniciar Docker en la distribución de la Demo para retirar sus servicios.");
+    }
+    Path rutaWindows(String linux) throws IOException {
+        if(!windows)return Carpetas.ruta(linux);
+        var r=run(List.of("wsl.exe","-d",DISTRO,"-u","root","--exec","wslpath","-w",linux));
+        if(!r.ok())throw new IOException("No se pudo localizar la carpeta Windows de una instalación de la Demo.");
+        return Carpetas.ruta(r.salida().strip());
     }
     Path directorioVigencia() throws IOException {
         if(windows) {

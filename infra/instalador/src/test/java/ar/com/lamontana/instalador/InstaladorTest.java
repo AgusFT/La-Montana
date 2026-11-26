@@ -15,6 +15,7 @@ public class InstaladorTest {
         falla(()->Instalacion.puerto("80"));
         assert Equipo.DISTRO.equals("LaMontanaDemo-Ubuntu");
         Path dir=Files.createTempDirectory("instalador-test-");
+        RetiroWindowsTest.verificar(dir.resolve("retiro"));
         Path original=dir.resolve("release.properties"),copia=dir.resolve("version.properties");
         Files.writeString(original,"version=1\n");
         if(System.getProperty("os.name").startsWith("Windows"))Files.setAttribute(original,"dos:readonly",true);

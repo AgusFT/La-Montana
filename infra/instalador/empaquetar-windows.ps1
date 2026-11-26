@@ -37,7 +37,26 @@ try{
  if($LASTEXITCODE -ne 0){throw 'Falló jar.'}
  $mantenimiento=Join-Path $temp 'mantenimiento.properties'
  [IO.File]::WriteAllText($mantenimiento,"arguments=--mantenimiento`n")
- & "$env:JAVA_HOME\bin\jpackage.exe" -J-Xmx512m --type exe --name LaMontanaDemo --app-version $version --vendor 'YG Soluciones' --description 'La Montaña Demo para Windows' --input $entrada --main-jar instalador.jar --main-class ar.com.lamontana.instalador.Main --add-launcher "LaMontanaDemo-Mantenimiento=$mantenimiento" --java-options "-Xmx256m" --add-modules java.desktop,java.net.http,jdk.httpserver,jdk.crypto.ec --dest $Salida --win-per-user-install --install-dir 'YG Soluciones\LaMontanaDemo' --win-menu --win-menu-group 'YG Soluciones' --win-shortcut --win-upgrade-uuid '07c34905-a7dd-4ca6-8c01-335a0bb17804' --license-file "$carga\AVISOS-TERCEROS.txt"
+ # Personalizar la plantilla de este JDK conserva los identificadores y las reglas de actualización de jpackage.
+ $jdk=Join-Path $temp 'jdk';$wix=Join-Path $temp 'wix'
+ & "$env:JAVA_HOME\bin\jmod.exe" extract --dir $jdk "$env:JAVA_HOME\jmods\jdk.jpackage.jmod"
+ if($LASTEXITCODE -ne 0){throw 'No se pudo leer la plantilla de Windows Installer del JDK.'}
+ $origen=Join-Path $jdk 'classes\jdk\jpackage\internal\resources\main.wxs'
+ $plantilla=[IO.File]::ReadAllText($origen)
+ if([regex]::Matches($plantilla,'<InstallExecuteSequence>').Count -ne 1){throw 'La plantilla WiX del JDK carece de la secuencia de instalación esperada.'}
+ $retiro=@'
+<CustomAction Id="RetirarServiciosLaMontanaDemo" Directory="INSTALLDIR"
+      ExeCommand='&quot;[INSTALLDIR]LaMontanaDemo.exe&quot; --desinstalar-windows'
+      Execute="deferred" Impersonate="yes" Return="check" />
+    <UI>
+      <ProgressText Action="RetirarServiciosLaMontanaDemo">Retirando los servicios de La Montaña Demo. Si falla, consultá [LocalAppDataFolder]YG-Soluciones\LaMontanaDemo\desinstalacion.log.</ProgressText>
+    </UI>
+    <InstallExecuteSequence>
+      <Custom Action="RetirarServiciosLaMontanaDemo" Before="RemoveFiles">Installed AND REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE AND NOT REINSTALL</Custom>
+'@
+ New-Item -ItemType Directory $wix | Out-Null
+ [IO.File]::WriteAllText((Join-Path $wix 'main.wxs'),$plantilla.Replace('<InstallExecuteSequence>',$retiro))
+ & "$env:JAVA_HOME\bin\jpackage.exe" -J-Xmx512m --verbose --type exe --resource-dir $wix --name LaMontanaDemo --app-version $version --vendor 'YG Soluciones' --description 'La Montaña Demo para Windows' --input $entrada --main-jar instalador.jar --main-class ar.com.lamontana.instalador.Main --add-launcher "LaMontanaDemo-Mantenimiento=$mantenimiento" --java-options "-Xmx256m" --add-modules java.desktop,java.net.http,jdk.httpserver,jdk.crypto.ec --dest $Salida --win-per-user-install --install-dir 'YG Soluciones\LaMontanaDemo' --win-menu --win-menu-group 'YG Soluciones' --win-shortcut --win-upgrade-uuid '07c34905-a7dd-4ca6-8c01-335a0bb17804' --license-file "$carga\AVISOS-TERCEROS.txt"
  if($LASTEXITCODE -ne 0){throw 'Falló jpackage.'}
  $exe=Get-Item -LiteralPath (Join-Path $Salida "LaMontanaDemo-$version.exe")
  if($exe.Length -ge 2GB){throw 'El ejecutable supera 2 GiB: revisar distribución antes de publicar.'}

@@ -9,6 +9,19 @@ public final class Main {
     public static void main(String[] args) throws Exception {
         Path location=Path.of(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath();
         Path bundle=location.getParent().resolve("paquete");boolean abrir=true, mantenimiento=false;
+        if(Arrays.equals(args,new String[]{"--desinstalar-windows"})){
+            try {
+                Instalacion.retirarRegistradas(new Equipo(new Paquete(bundle)), Instalacion.registro());
+            } catch(Exception e) {
+                Path log=Instalacion.registro().resolveSibling("desinstalacion.log");
+                String mensaje="No se completó el retiro de la Demo: "+Objects.toString(e.getMessage(),"revisá Docker y la carpeta de la instalación.");
+                try {Files.createDirectories(log.getParent());Files.writeString(log,mensaje+System.lineSeparator());}
+                catch(java.io.IOException fallo){System.err.println("No se pudo guardar el diagnóstico de desinstalación.");}
+                System.err.println(mensaje);
+                System.exit(1);
+            }
+            return;
+        }
         for(int i=0;i<args.length;i++){
             if(args[i].equals("--paquete")&&i+1<args.length)bundle=Path.of(args[++i]);
             else if(args[i].equals("--sin-navegador"))abrir=false;
