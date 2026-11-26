@@ -22,7 +22,7 @@ final class Carpetas implements AutoCloseable {
     private volatile JFileChooser selector;
     private volatile Map<String,Object> estado=Map.of("estado","LIBRE","tipo","");
     Carpetas(Equipo equipo){this.equipo=equipo;}
-    static Path recomendada(){return Path.of(System.getProperty("user.home"),"LaMontana").toAbsolutePath().normalize();}
+    static Path recomendada(){return Path.of(System.getProperty("user.home"),"LaMontanaDemo").toAbsolutePath().normalize();}
     static Path ruta(String texto){
         if(texto==null||texto.isBlank()||texto.length()>4096||texto.chars().anyMatch(c->c<32))throw new IllegalArgumentException("Ingresá una ruta completa válida.");
         try{Path p=Path.of(texto);if(!p.isAbsolute()||texto.startsWith("\\\\"))throw new IllegalArgumentException("Elegí una carpeta de un disco local con su ruta completa.");return p.normalize();}
@@ -57,13 +57,13 @@ final class Carpetas implements AutoCloseable {
         if(equipo.windows){
             String base64=Base64.getEncoder().encodeToString(inicial.toString().getBytes(StandardCharsets.UTF_8));
             String ps="[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); Add-Type -AssemblyName System.Windows.Forms; "+
-                "$d=[System.Windows.Forms.FolderBrowserDialog]::new(); $d.Description='Elegir carpeta de La Montaña'; "+
+                "$d=[System.Windows.Forms.FolderBrowserDialog]::new(); $d.Description='Elegir carpeta de La Montaña Demo'; "+
                 "$d.SelectedPath=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('"+base64+"')); "+
                 "try {if($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Write($d.SelectedPath)}else{exit 1}} finally {$d.Dispose()}";
             try{return selectorNativo(List.of("powershell.exe","-NoProfile","-STA","-EncodedCommand",Base64.getEncoder().encodeToString(ps.getBytes(StandardCharsets.UTF_16LE))));}
             catch(IOException e){if(cancelado)return "";}
         }else if(Files.isExecutable(Path.of("/usr/bin/zenity"))&&(System.getenv("DISPLAY")!=null||System.getenv("WAYLAND_DISPLAY")!=null)){
-            try{return selectorNativo(List.of("/usr/bin/zenity","--file-selection","--directory","--title=Elegir carpeta de La Montaña","--filename="+inicial+File.separator));}
+            try{return selectorNativo(List.of("/usr/bin/zenity","--file-selection","--directory","--title=Elegir carpeta de La Montaña Demo","--filename="+inicial+File.separator));}
             catch(IOException e){if(cancelado)return "";}
         }
         if(GraphicsEnvironment.isHeadless())throw new IOException("No hay una sesión gráfica disponible.");
@@ -71,7 +71,7 @@ final class Carpetas implements AutoCloseable {
         SwingUtilities.invokeAndWait(()->{
             if(cancelado)return;
             try{UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());}catch(Exception ignored){}
-            var c=new JFileChooser(desde.toFile());selector=c;c.setDialogTitle("Elegir carpeta de La Montaña");c.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);c.setAcceptAllFileFilterUsed(false);
+            var c=new JFileChooser(desde.toFile());selector=c;c.setDialogTitle("Elegir carpeta de La Montaña Demo");c.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);c.setAcceptAllFileFilterUsed(false);
             try{if(!cancelado&&c.showDialog(null,"Elegir carpeta")==JFileChooser.APPROVE_OPTION)elegida[0]=c.getSelectedFile().toPath().toAbsolutePath().normalize().toString();}
             finally{selector=null;}
         });
@@ -95,7 +95,7 @@ final class Carpetas implements AutoCloseable {
         if(raiz!=null&&!raiz.isBlank()){Path p=ruta(raiz);if(!Files.isDirectory(p))throw new IllegalArgumentException("Elegí una carpeta existente para ampliar la búsqueda.");buscar(List.of(p),AMPLIADA,false);}
         else{
             var raices=new LinkedHashSet<Path>();raices.add(recomendada());raices.add(Path.of(System.getProperty("user.home")));
-            if(equipo.windows){for(String key:List.of("LOCALAPPDATA","ProgramData")){String v=System.getenv(key);if(v!=null&&!v.isBlank())raices.add(Path.of(v,"LaMontana"));}}
+            if(equipo.windows){for(String key:List.of("LOCALAPPDATA","ProgramData")){String v=System.getenv(key);if(v!=null&&!v.isBlank())raices.add(Path.of(v,"LaMontanaDemo"));}}
             else raices.addAll(List.of(Path.of("/opt"),Path.of("/srv")));
             buscar(new ArrayList<>(raices),RAPIDA,true);
         }
@@ -166,7 +166,7 @@ final class Carpetas implements AutoCloseable {
                 Path ficha=dir.resolve("instalacion.properties");
                 if(Files.exists(ficha,LinkOption.NOFOLLOW_LINKS)){
                     Properties p=leerFicha(ficha);String id=p.getProperty("id",""),proyecto=p.getProperty("proyecto",""),version=p.getProperty("version",""),modo=p.getProperty("modo","");
-                    boolean valida=id.matches("[a-fA-F0-9]{8}-(?:[a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}")&&proyecto.equals("lamontana-"+id.replace("-","").substring(0,12))&&version.matches("[0-9]+\\.[0-9]+\\.[0-9]+")&&Set.of("DESARROLLO","STANDARD").contains(modo);
+                    boolean valida=Instalacion.identidadValida(p);
                     if(proyectoDocker!=null&&!proyectoDocker.equals(proyecto)){omitir("Referencias Docker sin correspondencia confirmada");return false;}
                     String tipo=valida?(Files.isRegularFile(dir.resolve("compose.yaml"),LinkOption.NOFOLLOW_LINKS)?"IDENTIFICADA":"INCOMPLETA"):"INCONSISTENTE";
                     var r=resultado(dir.toString(),tipo,valida,"Estado guardado: "+breve(p.getProperty("estado","PENDIENTE"))+". La salud se comprueba al examinar la carpeta.");
@@ -185,13 +185,13 @@ final class Carpetas implements AutoCloseable {
                 if(!r.ok()){omitir("Docker no disponible para consultar referencias");return;}
                 Set<String> referencias=new HashSet<>();
                 for(String line:r.salida().lines().toList()){
-                    if(parar())break;String[] partes=line.split("\t",2);if(partes.length!=2||!partes[0].matches("lamontana(?:-[a-f0-9]{12})?")||!referencias.add(line))continue;
+                    if(parar())break;String[] partes=line.split("\t",2);if(partes.length!=2||!partes[0].matches("lamontana-demo(?:-[a-f0-9]{12})?")||!referencias.add(line))continue;
                     entradas++;String texto=partes[1];Path dir=null;
                     try{
                         if(equipo.windows&&texto.matches("/mnt/[a-z]/.*"))texto=Character.toUpperCase(texto.charAt(5))+":\\"+texto.substring(7).replace('/','\\');
                         dir=ruta(texto);
                     }catch(IllegalArgumentException ignored){}
-                    if(dir!=null&&Files.isDirectory(dir)&&!enlace(dir)){if(identificar(dir,partes[0].equals("lamontana"),partes[0].equals("lamontana")?null:partes[0]))continue;}
+                    if(dir!=null&&Files.isDirectory(dir)&&!enlace(dir)){if(identificar(dir,partes[0].equals("lamontana-demo"),partes[0].equals("lamontana-demo")?null:partes[0]))continue;}
                     resultados.add(resultado(breve(partes[1]),"REFERENCIA",false,"Docker registra esta ruta, pero no se confirmó una carpeta correspondiente en este sistema."));
                 }
             }catch(Exception e){if(!cancelado)omitir("No se pudieron consultar referencias Docker");}

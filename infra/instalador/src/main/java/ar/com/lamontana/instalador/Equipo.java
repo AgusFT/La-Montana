@@ -9,7 +9,7 @@ import java.util.*;
 
 /** Operaciones de plataforma acotadas; no recibe comandos del navegador. */
 final class Equipo {
-    static final String DISTRO="LaMontana-Ubuntu";
+    static final String DISTRO="LaMontanaDemo-Ubuntu";
     final boolean windows=System.getProperty("os.name").startsWith("Windows");
     final Paquete paquete;
     private Process sesionWsl;
@@ -29,6 +29,14 @@ final class Equipo {
             .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
         sesionWsl.getOutputStream().close();
     }
+    Path directorioVigencia() throws IOException {
+        if(windows) {
+            var p=run(List.of("powershell.exe","-NoProfile","-NonInteractive","-Command","[Environment]::GetFolderPath('CommonApplicationData')"));
+            if(!p.ok()||p.salida().isBlank()) throw new IOException("Windows no informó la carpeta de datos del equipo.");
+            return Carpetas.ruta(p.salida().strip()).resolve("YG-Soluciones/LaMontanaDemo/vigencia");
+        }
+        return Path.of(System.getProperty("user.home"),".local","state","YG-Soluciones","LaMontanaDemo","vigencia");
+    }
     String rutaLinux(Path path) throws Exception {if(!windows)return path.toAbsolutePath().toString();var r=run(List.of("wsl.exe","-d",DISTRO,"-u","root","--exec","wslpath","-u",path.toAbsolutePath().toString()));if(!r.ok())throw new IOException("No se pudo traducir la ruta para WSL2.");return r.salida().strip();}
     List<Map<String,String>> diagnostico(){
         var rows=new ArrayList<Map<String,String>>();
@@ -38,14 +46,14 @@ final class Equipo {
             var otro=run(List.of("docker.exe","info","--format","{{.OperatingSystem}}"));if(otro.ok())rows.add(row("dockerWindows","EXISTENTE",otro.salida()+". Se conserva; La Montaña utiliza Docker Engine dentro de "+DISTRO+"."));}
         else supported=sistemaCompatible();
         rows.add(row("sistema",supported?"COMPATIBLE":"NO_VALIDADO",System.getProperty("os.name")+" / "+System.getProperty("os.arch")));
-        var pendienteWsl=new Util.Resultado(127,"Primero completá WSL2 y la distribución LaMontana-Ubuntu; después verificá Docker.");
+        var pendienteWsl=new Util.Resultado(127,"Primero completá WSL2 y la distribución LaMontanaDemo-Ubuntu; después verificá Docker.");
         var cli=dockerPosible?run(docker("--version")):pendienteWsl;var daemon=dockerPosible?run(docker("info","--format","{{.ServerVersion}}")):pendienteWsl;
         String state=daemon.ok()?(versionMinima(daemon.salida().strip(),24,0)?"DISPONIBLE":"INCOMPATIBLE"):!cli.ok()?"NO_ACCESIBLE":daemon.salida().toLowerCase(Locale.ROOT).contains("permission denied")?"SIN_PERMISOS":"DETENIDO_O_INACCESIBLE";
         rows.add(row("docker",state,daemon.ok()?"Docker Engine "+daemon.salida().strip():daemon.salida().strip()));
         var compose=dockerPosible?run(docker("compose","version","--short")):pendienteWsl;rows.add(row("compose",compose.ok()?(versionMinima(compose.salida().strip(),2,20)?"DISPONIBLE":"INCOMPATIBLE"):"PENDIENTE",compose.salida().strip()));
         if(daemon.ok()){
             var recursos=run(docker("info","--format","CPU={{.NCPU}}; RAM Docker={{.MemTotal}} bytes; plataforma={{.OperatingSystem}}"));rows.add(row("recursos","DIAGNOSTICO",recursos.salida()));
-            var anterior=run(docker("ps","-a","--filter","label=com.docker.compose.project=lamontana","--format","{{.Names}} | {{.Label `com.docker.compose.project.working_dir`}}"));
+            var anterior=run(docker("ps","-a","--filter","label=com.docker.compose.project=lamontana-demo","--format","{{.Names}} | {{.Label `com.docker.compose.project.working_dir`}}"));
             if(anterior.ok()&&!anterior.salida().isBlank())rows.add(row("instalacionAnterior","REQUIERE_IDENTIFICACION","Se detectó una instalación del script anterior. No se adopta ni sobrescribe automáticamente: "+anterior.salida()));
         }
         try{paquete.verificar();rows.add(row("paquete",Boolean.parseBoolean(paquete.manifiesto.getProperty("offline.complete","false"))?"VERIFICADO":"SOLO_APP","Versión "+paquete.version()+"; integridad comprobada. "+(Boolean.parseBoolean(paquete.manifiesto.getProperty("offline.complete","false"))?"Dependencias incluidas.":"Paquete para pruebas con dependencias previamente instaladas; todavía no es un instalador offline completo.")));}catch(Exception e){rows.add(row("paquete","INCOMPLETO",e.getMessage()));}

@@ -12,6 +12,11 @@ final class Paquete {
     String version(){return manifiesto.getProperty("app.version","sin-paquete");}
     Path archivo(String relative) throws IOException {Path p=raiz.resolve(relative).normalize();if(!p.startsWith(raiz)||!Files.isRegularFile(p)||!p.toRealPath().startsWith(raiz.toRealPath()))throw new IOException("Recurso del paquete ausente o fuera de su carpeta: "+relative);return p;}
     void verificar() throws IOException {
+        if(!"DEMO".equals(manifiesto.getProperty("edition")))throw new IOException("El paquete no corresponde a La Montaña Demo.");
+        for(String s:Instalacion.SERVICIOS) {
+            if(manifiesto.getProperty("image."+s,"").isBlank()||!manifiesto.getProperty("image."+s+".id","").matches("sha256:[a-f0-9]{64}"))
+                throw new IOException("El inventario de imágenes de la Demo está incompleto.");
+        }
         versionValida(version());String[] files=manifiesto.getProperty("files","").split(",");if(files.length==0||files[0].isBlank())throw new IOException("El instalador no contiene un paquete offline completo.");
         for(String file:files){String expected=manifiesto.getProperty("sha256."+file,"");if(!expected.matches("[a-f0-9]{64}")||!expected.equals(Util.sha256(archivo(file))))throw new IOException("Recurso ausente o alterado: "+file);}
     }

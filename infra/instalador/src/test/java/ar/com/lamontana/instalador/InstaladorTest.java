@@ -11,13 +11,9 @@ public class InstaladorTest {
         falla(()->Equipo.windowsArgument("x\ny"));
         assert Util.form("nombre=La+Monta%C3%B1a").get("nombre").equals("La Montaña");
         falla(()->Util.form("x=1&x=2"));
-        var datos=new HashMap<String,String>();
-        for(String prefijo:List.of("propietario","soporte"))for(String campo:List.of("nombre","apellido","correo","contrasena"))datos.put(prefijo+"."+campo,"valor-de-prueba");
-        assert Instalacion.cuentas(datos).keySet().equals(Set.of("propietario"));
-        datos.put("crearSoporte","si");assert Instalacion.cuentas(datos).keySet().equals(Set.of("propietario","soporte"));
-        datos.remove("soporte.contrasena");falla(()->Instalacion.cuentas(datos));
-        datos.put("crearSoporte","");assert !Instalacion.cuentas(datos).containsKey("soporte");
-        datos.put("crearSoporte","invalido");falla(()->Instalacion.cuentas(datos));
+        assert Instalacion.puerto("3200")==3200;
+        falla(()->Instalacion.puerto("80"));
+        assert Equipo.DISTRO.equals("LaMontanaDemo-Ubuntu");
         Path dir=Files.createTempDirectory("instalador-test-");
         Path original=dir.resolve("release.properties"),copia=dir.resolve("version.properties");
         Files.writeString(original,"version=1\n");
@@ -40,14 +36,27 @@ public class InstaladorTest {
         Files.delete(dir.resolve("respaldo-interno"));
         verificarRespaldos(dir);
         var segunda=new Instalacion(dir,new Equipo(new Paquete(dir)));
-        app.estado.setProperty("id",UUID.randomUUID().toString());
-        try{app.mantener("reparar",dir.resolve("respaldo"));throw new AssertionError("No debe saltarse el alta después de una interrupción");}
-        catch(java.io.IOException esperada){assert esperada.getMessage().contains("creación de cuentas");}
+        String id=UUID.randomUUID().toString();
+        Files.writeString(dir.resolve("instalacion.properties"),"id="+id+"\nmodo=STANDARD\nversion=0.1.0\nproyecto=lamontana-"+id.replace("-","").substring(0,12));
+        String antes=Util.sha256(dir.resolve("instalacion.properties"));
+        try{new Instalacion(dir,new Equipo(new Paquete(dir)));throw new AssertionError("Debe rechazar la instalación Standard antes de acceder a Docker.");}
+        catch(IllegalArgumentException esperada){assert esperada.getMessage().contains("Demo");}
+        assert Util.sha256(dir.resolve("instalacion.properties")).equals(antes);
+        Files.delete(dir.resolve("instalacion.properties"));
+        try{app.instalar(Map.of("modo","STANDARD"));throw new AssertionError("Debe rechazar Standard.");}catch(IllegalArgumentException esperada){}
+        try{app.instalar(Map.of("lan","si"));throw new AssertionError("La instalación debe ser sólo local.");}catch(IllegalArgumentException esperada){}
+        Path preexistente=Files.writeString(dir.resolve("dato-preexistente"),"conservar");
+        try{app.instalar(Map.of());throw new AssertionError("Debe revisar el destino antes de escribir el lock");}
+        catch(java.io.IOException esperada){assert esperada.getMessage().contains("carpeta vacía");}
+        assert !Files.exists(dir.resolve(".instalador.lock")) && Files.readString(preexistente).equals("conservar");
+        Files.delete(preexistente);
+        try{app.paquete.verificar();throw new AssertionError("Debe rechazar el paquete sin identidad Demo.");}
+        catch(java.io.IOException esperada){assert esperada.getMessage().contains("La Montaña Demo");}
         app.modificar(()->{
             try{segunda.modificar(()->{throw new AssertionError("No debe entrar en una instalación bloqueada");});throw new AssertionError("Debió bloquear al segundo asistente");}
             catch(java.io.IOException esperada){assert esperada.getMessage().contains("Otra ejecución");}
         });
-        app.cerrar();segunda.cerrar();Files.delete(dir.resolve(".instalador.lock"));
+        Files.delete(dir.resolve(".instalador.lock"));
         Files.writeString(original,"app.version=0.2.1\ninstaller.version=0.2.3\n");
         try(var s=new Asistente(new Paquete(dir))){s.start();var c=HttpClient.newHttpClient();String base=s.origen();
             assert c.send(HttpRequest.newBuilder(URI.create(base+"/")).build(),HttpResponse.BodyHandlers.ofString()).statusCode()==200;

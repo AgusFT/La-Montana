@@ -59,7 +59,7 @@ public final class CarpetasTest {
                 assert !c.ocupado():"El cierre dejó una tarea pendiente";
                 try{c.buscar(List.of(root),Carpetas.AMPLIADA,false);throw new AssertionError("Reabrió un selector cerrado");}catch(IllegalArgumentException esperada){}
             }
-            assert !Files.exists(root.resolve("LaMontana")):"La recomendación no debe crear carpetas";
+            assert !Files.exists(root.resolve("LaMontanaDemo")):"La recomendación no debe crear carpetas";
             try{Carpetas.ruta("relativa");throw new AssertionError();}catch(IllegalArgumentException esperada){}
             try{Carpetas.ruta("x\nruta");throw new AssertionError();}catch(IllegalArgumentException esperada){}
             System.out.println("OK: descubrimiento de lectura, clasificación, copias, límites, exclusiones, cancelación, permisos y HTTP autenticado.");
@@ -67,7 +67,7 @@ public final class CarpetasTest {
     }
     static Path instalacion(Path p,String id)throws Exception{
         Files.createDirectories(p);
-        Files.writeString(p.resolve("instalacion.properties"),"id="+id+"\nproyecto=lamontana-"+id.replace("-","").substring(0,12)+"\nversion=0.2.1\nmodo=DESARROLLO\nestado=LISTA\npublico.prueba=interrumpida\n");
+        Files.writeString(p.resolve("instalacion.properties"),"id="+id+"\nproyecto=lamontana-demo-"+id.replace("-","").substring(0,12)+"\nversion=0.2.1\nmodo=DEMO\nestado=LISTA\ndetalle=sin-modificar\n");
         Files.writeString(p.resolve("compose.yaml"),"# No debe ejecutarse\n");
         Files.writeString(p.resolve("secretos.properties"),"NO_LEER_NI_MOSTRAR=prueba\n");
         return p;
@@ -93,7 +93,7 @@ public final class CarpetasTest {
             for(int i=0;i<100;i++){estado=client.send(HttpRequest.newBuilder(URI.create(base+"/api/carpetas/estado")).header("Authorization","Bearer "+s.token()).build(),HttpResponse.BodyHandlers.ofString()).body();if(estado.contains("COMPLETADO"))break;Thread.sleep(10);}
             assert estado.contains("IDENTIFICADA")&&!estado.contains("NO_LEER_NI_MOSTRAR"):estado;
             assert !Files.exists(app.resolve(".instalador.lock")):"La búsqueda construyó una instalación o escribió un bloqueo";
-            assert Files.readString(app.resolve("instalacion.properties")).contains("publico.prueba=interrumpida");
+            assert Files.readString(app.resolve("instalacion.properties")).contains("detalle=sin-modificar");
             var meta=client.send(HttpRequest.newBuilder(URI.create(base+"/api/estado")).header("Authorization","Bearer "+s.token()).build(),HttpResponse.BodyHandlers.ofString()).body();
             assert meta.contains("directorioRecomendado")&&meta.contains("LaMontana"):meta;
             var liberar=new java.util.concurrent.CountDownLatch(1);
