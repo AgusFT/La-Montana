@@ -61,3 +61,23 @@ En la copia Android, ejecutá `git pull --ff-only origin android`. Abrí el dire
 2. Acreditá cada transferencia con acceso a la cuenta correcta. Verificá que sólo la propia aumente la obligación y que el pedido se pueda entregar con código.
 3. Informá una rendición parcial desde Mobile. Rechazala desde Caja y revisá el motivo y la reserva. Informá otra, confirmala en Web y actualizá Rendiciones en el teléfono.
 4. Registrá un pago por servicios desde Caja. Compará el saldo acumulado del punto antes y después. Repetí una operación con respuesta perdida mediante **Recuperar registro**.
+
+## Casos de uso y evidencia de prueba
+
+| Caso | Actor y condición inicial | Resultado comprobable |
+|---|---|---|
+| Cobrar efectivo al retirar | Responsable con cobros habilitados, pedido disponible y código válido | El pago se aplica al pedido y aumenta los fondos del punto. El reintento conserva un solo pago. |
+| Informar y acreditar una transferencia | Responsable del punto elige una cuenta autorizada para el pedido. Un verificador autorizado comprueba el ingreso en esa cuenta. | El aviso conserva la referencia. La acreditación en origen cubre el pedido y la acreditación propia también aumenta la obligación del punto. |
+| Rendir una parte o la totalidad | El punto o un responsable autorizado dispone de fondos y un destinatario habilitado | La operación reserva el importe. Si dos informes distintos compiten por todo el disponible, sólo uno se acepta. |
+| Resolver una rendición | Un usuario autorizado del destinatario comprueba la recepción | La confirmación reduce la obligación una vez. El rechazo libera la reserva y conserva el motivo. |
+| Devolver fondos o pagar servicios | Un usuario autorizado documenta qué fondos entregó o desde qué sucursal hizo el pago | La devolución con fondos del punto disminuye su obligación. El pago de servicios registra un egreso bancario independiente. |
+
+Las siguientes pruebas de integración usan PostgreSQL real, sesiones HTTP y el perfil de pruebas con una base temporal. Se pueden repetir desde `backend` con Maven:
+
+```sh
+mvn '-Dtest=DatosPruebaIntegrationTest#puntoCobraConMedioRealYSeparaElDestinoDeLaTransferencia+escenarioFinancieroOpcionalConservaFondosAlReiniciar+devolucionesYReservasConcurrentesRespetanAlPagadorReal+cajaComparteSaldoPorSucursalYAislaMovimientosComprobantesYArqueos' test
+```
+
+La prueba de devolución compara dos reembolsos del mismo pedido, uno pagado por la imprenta y otro por el punto. La prueba de concurrencia envía dos informes distintos por el total disponible y comprueba una respuesta 204, otra 409 y una sola reserva. La prueba de reinicio conserva las cantidades de pedidos y rendiciones y comprueba que Palermo continúa sin deuda en el escenario de ejemplo.
+
+También se ejecutó el cliente de datos Android en JVM contra el backend y PostgreSQL, con la administración Web abierta en Chromium. En ese recorrido el cliente informó $1,25 y reenvió el mismo comando. Caja mostró una rendición, la confirmó y el cliente volvió a consultar la deuda reducida en $1,25. Otro informe de $2,50 realizado desde el mostrador Web siguió reservado. La validación de navegación, teclado, adjuntos y cortes de conexión desde el emulador forma parte de la prueba manual.

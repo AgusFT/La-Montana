@@ -182,6 +182,53 @@ class DatosPruebaIntegrationTest {
         }finally{limpiar(files);}
     }
 
+    @Test void devolucionesYReservasConcurrentesRespetanAlPagadorReal() throws Exception {
+        Path archivos=Files.createTempDirectory("lamontana-fondos-punto-");
+        try(var pg=postgres();var app=iniciar(pg,archivos,"pruebas",true)){
+            var admin=login(ADMIN);
+            var punto=login("punto.caballito.retiro");
+            var rendiciones=get(punto,"/api/punto/rendiciones",200);
+            var cuenta=rendiciones.get("cuentas").get(0).get("cuenta").asString();
+            var deuda=new BigDecimal(rendiciones.get("saldo").get("pendiente").asString());
+            var movimientos=get(admin,"/api/admin/finanzas-puntos/historial?destino=PUNTO_ENTREGA",200);
+            JsonNode cobro=null;
+            for(var mov:movimientos){
+                if("COBRO".equals(mov.get("tipo").asString())&&"EFECTIVO".equals(mov.get("medio").asString())
+                    &&mov.get("referencia").asString().startsWith("SIMULACION-")){cobro=mov;break;}
+            }
+            assertThat(cobro).isNotNull();
+            var codigo=UUID.fromString(cobro.get("codigo").asString());
+            var cotizacion=cobro.get("cotizacion").asString();
+            var ruta="/api/operacion/cotizaciones/"+cotizacion+"/pagos";
+            for(boolean pagoDelPunto:List.of(false,true)){
+                var pagos=get(admin,ruta,200).get("pagos");
+                long version=0;
+                for(var pago:pagos)if(codigo.toString().equals(pago.get("codigoPublico").asString()))version=pago.get("version").asLong();
+                var comando=new PagoController.Devolver(UUID.randomUUID(),codigo,version,MedioPago.TRANSFERENCIA,"1.00",
+                    "DEV-"+UUID.randomUUID(),Instant.now(),true,"Devolución verificada de prueba",pagoDelPunto);
+                sendPoint(admin,"POST",ruta+"/devolver",comando,200);
+                sendPoint(admin,"POST",ruta+"/devolver",comando,200);
+                if(pagoDelPunto)deuda=deuda.subtract(BigDecimal.ONE);
+                assertThat(new BigDecimal(get(punto,"/api/punto/rendiciones",200).get("saldo").get("pendiente").asString()))
+                    .isEqualByComparingTo(deuda);
+            }
+            var saldo=get(punto,"/api/punto/rendiciones",200).get("saldo");
+            var token=get(punto,"/api/auth/csrf",200).get("token").asString();
+            var primer=informeConcurrente(punto,token,cuenta,saldo.get("disponible").asString());
+            var segundo=informeConcurrente(punto,token,cuenta,saldo.get("disponible").asString());
+            assertThat(List.of(primer.join().statusCode(),segundo.join().statusCode())).containsExactlyInAnyOrder(204,409);
+            assertThat(new BigDecimal(get(punto,"/api/punto/rendiciones",200).get("saldo").get("disponible").asString())).isZero();
+        }finally{limpiar(archivos);}
+    }
+    private java.util.concurrent.CompletableFuture<HttpResponse<String>> informeConcurrente(HttpClient cliente,String token,String cuenta,String disponible) {
+        var id=UUID.randomUUID();
+        var datos=Map.of("operacion",id,"cuenta",cuenta,"importe",disponible,"referencia","SIM-CONCURRENTE-"+id);
+        var solicitud=HttpRequest.newBuilder(uri("/api/punto/rendiciones")).timeout(Duration.ofSeconds(20))
+            .header("Content-Type","application/json").header("X-CSRF-TOKEN",token)
+            .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(datos))).build();
+        return cliente.sendAsync(solicitud,HttpResponse.BodyHandlers.ofString());
+    }
+
     @Test void puntoCobraConMedioRealYSeparaElDestinoDeLaTransferencia()throws Exception{
         Path files=Files.createTempDirectory("lamontana-destino-cobro-");
         try(var pg=postgres();var app=iniciar(pg,files,"pruebas")){
