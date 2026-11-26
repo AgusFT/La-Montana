@@ -1,6 +1,6 @@
 # La Montaña · Demo
 
-Esta rama contiene la base de la edición web de demostración para Windows. Parte de la revisión `e0cb6f8d` de La Montaña. En esta etapa se puede iniciar desde el código fuente, verificar la identidad de Demo y trabajar con sus propios datos locales. La precarga, el selector de roles y el instalador público se entregan en etapas posteriores. [Seguimiento de la edición](https://github.com/AgusFT/La-Montana/issues/229)
+La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como administrador, empleado o cliente y recorrer un pedido hasta su impresión simulada. Esta versión se inicia desde el código fuente. El instalador para Windows se entregará en una etapa posterior. [Seguimiento de la edición](https://github.com/AgusFT/La-Montana/issues/229)
 
 ## Iniciar desde el código fuente
 
@@ -29,17 +29,12 @@ docker compose -p lamontana-demo -f compose.yaml --env-file .env stop
 
 Los puertos y el directorio de imágenes se pueden configurar con las variables `DEMO_*` de [.env.example](.env.example). El nombre de la cookie de sesión de Demo permite usarla en el mismo equipo que la aplicación completa.
 
-## Configuración inicial de esta base
+## Probar la imprenta Senderos
 
-Hasta que esté disponible el selector de roles, el alta inicial heredada está en `/instalacion`.
-
-1. Abrir `.env` localmente y copiar `DEMO_SETUP_TOKEN` al formulario `/instalacion`. Ingresar nombre, apellido, correo y contraseña propios, de 12 a 128 caracteres. No hay un administrador predeterminado. Un token manual debe tener al menos 32 caracteres.
-2. Entrar por `/acceso`. La primera alta se cierra definitivamente; reiniciar o conservar el token no permite crear otro propietario.
-3. Verificar el correo desde Seguridad de la cuenta. Mailpit recibe los códigos de verificación, recuperación y autorización; no se envían mensajes a proveedores externos.
-4. Crear sucursales y empleados. Cada empleado recibe una contraseña inicial elegida por el administrador, debe cambiarla al ingresar y sólo ve sus sucursales activas asignadas. Elegir expresamente sus permisos de revisión, producción, calidad, entrega, cierre y finanzas.
-5. Crear catálogo y completar las fases del configurador. Mientras no haya configuración activa utilizable, el cliente puede acceder a su cuenta pero no cotizar un trabajo ofrecible.
-
-El registro público `/registro` crea únicamente particulares. No inicia sesión ni verifica el correo automáticamente. `/recuperar` y `/cuenta/seguridad` permiten recuperar acceso, verificar correo y cambiar contraseña. Desactivar una cuenta o cambiar su correo revoca sus sesiones; las asignaciones y permisos se revalidan en cada operación.
+1. Abrí **http://localhost:3200** y elegí **Administrador**, **Empleado** o **Cliente**. Cada botón abre una cuenta ficticia con los permisos de ese rol.
+2. Como **Cliente**, abrí el pedido del afiche «Encuentro de caminantes». Incluye un PDF de una página, tres copias en blanco y negro y un cobro de muestra de $300 ya aplicado.
+3. Usá **Cambiar rol** y elegí **Empleado**. Entrá a **Ver sucursal**, abrí el pedido aprobado y seleccioná **Impresión simulada**. Elegí la impresora de Senderos, completá el motivo y confirmá el inicio. Después podés registrar la finalización y el control de calidad.
+4. Como **Administrador**, consultá el pedido y su historial. Las tres cuentas comparten los datos de esta instalación. Los cambios del visitante y la impresión registrada se conservan al reiniciar.
 
 ## Casa matriz por versión · V41
 
@@ -237,7 +232,7 @@ pnpm build
 
 Las pruebas utilizan PostgreSQL real aislado mediante una dependencia de test; no necesitan Docker ni usan H2 o la base de la demo. Requieren un usuario normal y un sistema compatible con esos binarios; las primeras descargas necesitan Internet. El inspector PDF es real; los tests automatizados de backend usan un servidor controlado del protocolo antivirus para respuestas limpias/rechazadas/incompletas. Los recorridos de navegador también se comprobaron con ClamAV real y firmas oficiales, incluido rechazo de EICAR en entregas anteriores.
 
-Para desarrollo sin contenedores se necesitan PostgreSQL, SMTP local y ClamAV con firmas actualizadas. Configurar `DB_URL`, `DB_USER`, `DB_PASSWORD`, `SETUP_TOKEN`, `FILES_DIR`, `SMTP_HOST`/`SMTP_PORT` y `CLAMAV_HOST`/`CLAMAV_PORT`. Para imágenes web, `WEB_SOURCE_DIR` es la entrada real del proceso, `WEB_SOURCE_HOST` su descripción visible y `WEB_LIBRARY_DIR` el almacenamiento persistente de copias. En Docker esas rutas internas las establece Compose. Empaquetar el backend y definir `PDF_INSPECTOR_JAR` como ruta absoluta al mismo jar al arrancar con `java -jar`. El frontend usa `BACKEND_INTERNAL_URL` y `pnpm dev`. No deshabilitar el antivirus para habilitar cargas. El piloto presupone una sola instancia del backend.
+Para desarrollo sin contenedores se necesitan PostgreSQL, SMTP local y ClamAV con firmas actualizadas. Configurar `DB_URL`, `DB_USER`, `DB_PASSWORD`, `FILES_DIR`, `SMTP_HOST`/`SMTP_PORT` y `CLAMAV_HOST`/`CLAMAV_PORT`. Para imágenes web, `WEB_SOURCE_DIR` es la entrada real del proceso, `WEB_SOURCE_HOST` su descripción visible y `WEB_LIBRARY_DIR` el almacenamiento persistente de copias. En Docker esas rutas internas las establece Compose. Empaquetar el backend y definir `PDF_INSPECTOR_JAR` como ruta absoluta al mismo jar al arrancar con `java -jar`. El frontend usa `BACKEND_INTERNAL_URL` y `pnpm dev`. No deshabilitar el antivirus para habilitar cargas. El piloto presupone una sola instancia del backend.
 
 Las contraseñas usan PBKDF2 con sal; sesiones JDBC persistentes, cookie HttpOnly/SameSite=Lax y 30 minutos de inactividad. Las mutaciones requieren CSRF, autorización vigente y controles de versión/operación; ningún secreto se guarda en almacenamiento del navegador. Los códigos de correo y entrega tienen límites de intentos/reenvío. El proxy no publica el token de instalación ni directorios privados. Archivos tienen controles de integridad; la inspección se ejecuta en proceso separado con memoria/tiempo limitados. El piloto es local; sus cookies HTTP y correo capturado no constituyen un despliegue público.
 
@@ -249,7 +244,7 @@ La instalación aislada nueva inició los cinco servicios y migró desde cero a 
 
 La landing funcionó en localhost y 127.0.0.1 sin solicitudes externas, con los contenedores en redes internas sin ruta de salida. La prueba usó imágenes/dependencias/firmas ya instaladas; no afirma que la primera descarga funcione sin Internet. Las evidencias originales de modelos manual/seña/pago previo, D2, permisos por sucursal, reimpresión y logística siguen identificadas por su fecha y versión en el plan; no se presentan como recorridos íntegramente repetidos en v6.
 
-## Recorrido manual del piloto
+## Recorrido de referencia del producto de origen
 
 1. Iniciar con el comando de arriba y crear el propietario desde `/instalacion`. Completar correo, dos sucursales, empleados y permisos expresos; usar Mailpit para los códigos.
 2. Ingresar el catálogo y las tarifas propias. Completar fases2–6 con recursos manuales y calendarios/franjas/cupos para las tres modalidades. Simular, revisar advertencias y activar con contraseña/código.

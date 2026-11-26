@@ -4,16 +4,16 @@
  * ARCHIVO: src/components/identity-forms.tsx
  * ========================================================================
  * FUNCIÓN
- * Implementa los formularios de inicio de sesión, registro de clientes e instalación del
- * propietario y el botón de cierre de sesión, con estados de envío y errores explicados.
+ * Implementa el selector de roles de Demo, el registro de clientes, la instalación del
+ * propietario y el cambio de rol mediante cierre de sesión.
  *
  * ------------------------------------------------------------------------
  * COMPONENTES, FUNCIONES Y MÉTODOS DECLARADOS
  * Incluye funciones nombradas, auxiliares anidadas y callbacks asignados a un nombre. Ámbito ::
  * firma identifica funciones internas; el retorno se muestra cuando está declarado explícitamente.
- * - [export] LoginForm()
+ * - [export] DemoRoleSelector()
  *   Componente de interfaz.
- * - [async] LoginForm :: submit(event: FormEvent<HTMLFormElement>)
+ * - [async] DemoRoleSelector :: enter(rol)
  * - [export] RegistrationForm()
  *   Componente de interfaz.
  * - [async] RegistrationForm :: submit(event: FormEvent<HTMLFormElement>)
@@ -35,39 +35,43 @@
 import {useConfirmNavigation} from "@/components/navigation-boundary";
 
 import { useState, type FormEvent } from "react";
-import { clearPreparedFiles } from "@/lib/prepared-files";
 import { useRouter } from "next/navigation";
+import { clearPreparedFiles } from "@/lib/prepared-files";
 
 import { secureMutation as post } from "@/lib/secure-mutation";
-import { isRole, sessionHome } from "@/lib/roles";
+import "@/app/access.css";
 
-export function LoginForm() {
+const demoRoles = [
+  { rol: "ADMINISTRADOR", nombre: "Administrador", descripcion: "Elena Senderos · Configuración y pedidos de la imprenta." },
+  { rol: "EMPLEADO", nombre: "Empleado", descripcion: "Mateo Tintas · Producción e impresión simulada." },
+  { rol: "CLIENTE", nombre: "Cliente", descripcion: "Lucía Papel · Cotizaciones y seguimiento de pedidos." },
+] as const;
+
+export function DemoRoleSelector() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const router = useRouter();
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+
+  async function enter(rol: typeof demoRoles[number]["rol"]) {
     if (busy) return;
-    const data = new FormData(event.currentTarget);
-    setBusy(true); setMessage("");
+    setBusy(true);
+    setMessage("");
     try {
-      await post("/api/auth/login", new URLSearchParams({ username: String(data.get("correo")).trim(), password: String(data.get("contrasena")) }), "application/x-www-form-urlencoded");
-      const response = await fetch("/api/auth/me", { cache: "no-store", credentials: "same-origin" });
-      if (!response.ok) throw new Error("No pudimos verificar tu sesión. Intentá ingresar nuevamente.");
-      const profile = await response.json();
-      if (!isRole(profile?.rol) || typeof profile.debeCambiarContrasena !== "boolean" || typeof profile.correoVerificado !== "boolean") throw new Error("Esta cuenta no tiene un acceso habilitado.");
-      router.replace(sessionHome(profile)); router.refresh();
-    } catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos iniciar sesión."); }
-    finally { setBusy(false); }
+      await post("/api/demo/sesion", JSON.stringify({ rol }), "application/json");
+      window.location.replace("/acceso");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No pudimos iniciar sesión.");
+      setBusy(false);
+    }
   }
-  return <form className="identity-form" onSubmit={submit}>
-    <label>Correo electrónico<input name="correo" type="email" autoComplete="username" required maxLength={254} /></label>
-    <label>Contraseña<input name="contrasena" type="password" autoComplete="current-password" required maxLength={128} /></label>
+
+  return <div className="identity-form demo-roles">
+    {demoRoles.map(({ rol, nombre, descripcion }) => <div className="demo-role" key={rol}>
+      <button type="button" className="refresh" disabled={busy} aria-describedby={`demo-rol-${rol}`} onClick={() => void enter(rol)}>{nombre}</button>
+      <p id={`demo-rol-${rol}`} className="empty-note">{descripcion}</p>
+    </div>)}
+    <div className="demo-role-status" role="status">{busy && "Ingresando…"}</div>
     {message && <p className="form-message error-message" role="alert">{message}</p>}
-    <button className="refresh" disabled={busy}>{busy ? "Ingresando…" : "Iniciar sesión"}</button>
-    <a className="secondary-link access-register" href="/registro">Crear una cuenta de cliente</a>
-    <a className="secondary-link access-recovery" href="/recuperar">Olvidé mi contraseña</a>
-  </form>;
+  </div>;
 }
 
 export function RegistrationForm() {
@@ -144,5 +148,5 @@ export function LogoutButton() {
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cerrar sesión."); }
     finally { setBusy(false); }
   }
-  return <div><button className="refresh" onClick={logout} disabled={busy}>{busy ? "Cerrando sesión…" : "Cerrar sesión"}</button>{message && <p className="form-message error-message" role="alert">{message}</p>}</div>;
+  return <div><button className="refresh" onClick={logout} disabled={busy}>{busy ? "Cerrando sesión…" : "Cambiar rol"}</button>{message && <p className="form-message error-message" role="alert">{message}</p>}</div>;
 }

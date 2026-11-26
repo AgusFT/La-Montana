@@ -21,11 +21,6 @@ compose=(docker compose -p lamontana-demo -f compose.yaml --env-file .env)
     printf '\nDEMO_DB_PASSWORD=%s\n' "$db_secret" >&9
     echo 'Se creó una credencial técnica aleatoria para el PostgreSQL de Demo en .env.'
   fi
-  if ! grep -q '^DEMO_SETUP_TOKEN=.' .env; then
-    setup_secret=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
-    printf '\nDEMO_SETUP_TOKEN=%s\n' "$setup_secret" >&9
-    echo 'Token de alta inicial creado en .env. Abrí ese archivo localmente para usarlo en /instalacion.'
-  fi
 )
 
 # Compose interpreta .env; no se ejecuta su contenido como código de shell.

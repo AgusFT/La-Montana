@@ -58,7 +58,7 @@ const sections=[
  {id:"pedido-resumen",label:"Resumen e historia"},
  {id:"pedido-revision",label:"Revisión",internal:true},
  {id:"pedido-correcciones",label:"Correcciones"},
- {id:"pedido-produccion",label:"Producción y calidad",internal:true},
+ {id:"pedido-produccion",label:"Impresión simulada",internal:true},
  {id:"pedido-entrega",label:"Entrega y cierre"},
  {id:"pedido-reprogramacion",label:"Reprogramación"},
  {id:"pedido-pdf",label:"Archivos PDF"},

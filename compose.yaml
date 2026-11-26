@@ -32,7 +32,6 @@ services:
       PDF_INSPECTOR_JAR: /app/app.jar
       CLAMAV_HOST: antivirus
       CLAMAV_PORT: "3310"
-      SETUP_TOKEN: ${DEMO_SETUP_TOKEN:-}
       SERVER_SERVLET_SESSION_COOKIE_NAME: LAMONTANA_DEMO_SESSION
       SESSION_COOKIE_SECURE: "false"
       SMTP_HOST: mailpit
