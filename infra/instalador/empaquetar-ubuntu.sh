@@ -25,7 +25,7 @@ cp -R "$paquete" "$temporal/entrada/paquete"
  --input "$temporal/entrada" --main-jar instalador.jar --main-class ar.com.lamontana.instalador.Main --java-options '-Xmx256m' --resource-dir "$base/empaquetado/ubuntu" \
  --add-modules java.desktop,java.net.http,jdk.httpserver,jdk.crypto.ec \
  --dest "$salida" --temp "$temporal/jpackage" --linux-package-name lamontana-instalador --linux-shortcut --linux-menu-group Utility \
- --license-file "$base/AVISOS-TERCEROS.txt"
+ --license-file "$temporal/entrada/paquete/AVISOS-TERCEROS.txt"
 for file in "$salida/"*.deb; do
  (( $(stat -c %s "$file") < 2147483648 )) || { echo 'Supera 2 GiB; revisar distribución antes de publicar.' >&2; exit 65; }
  (cd "$salida" && sha256sum -- "${file##*/}" > "${file##*/}.sha256")

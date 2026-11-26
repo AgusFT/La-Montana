@@ -1,31 +1,33 @@
-La Montaña Demo — herramientas de instalación de YG Soluciones
+La Montaña Demo para Windows · YG Soluciones
 
-Distribución local de prueba. Sin firma de editor ni publicación autorizada.
-El paquete nativo instala el asistente; el asistente prepara la app por separado.
+Al instalar la Demo se copian el asistente y los componentes que necesita
+para preparar la aplicación sin conexión. En la carpeta app/paquete están
+AVISOS-TERCEROS.zip, con textos originales de licencia y atribución, y
+release.properties, con los nombres, versiones y sumas SHA-256 de la carga.
 
-Componentes independientes:
-- Eclipse Temurin / OpenJDK 17: GPLv2 con Classpath Exception. El runtime
-  conserva su directorio legal. Fuente y binarios de la versión:
-  https://github.com/adoptium/temurin17-binaries/releases/tag/jdk-17.0.20.1%2B1
-  https://github.com/openjdk/jdk17u
-- Firefox 157.0.1: Mozilla Public License 2.0 y licencias de terceros incluidas.
-  Binario oficial sin modificar y código fuente de la misma versión:
-  https://archive.mozilla.org/pub/firefox/releases/157.0.1/
-- Ubuntu 26.04 y paquetes Debian: cada .deb contiene sus avisos en
-  usr/share/doc/<paquete>/copyright. Fuentes: https://archive.ubuntu.com/ubuntu/
-- Docker Engine, CLI, Compose, Buildx y containerd: licencias y código de cada
-  versión en https://github.com/moby/moby, https://github.com/docker/cli,
-  https://github.com/docker/compose, https://github.com/docker/buildx y
-  https://github.com/containerd/containerd. No se incluye Docker Desktop.
-- WSL 3.0.3: https://github.com/microsoft/WSL/releases/tag/3.0.3 y LICENSE
-  del repositorio. La instalación está sujeta a los términos del componente.
-- PostgreSQL: https://www.postgresql.org/about/licence/
-- Mailpit: https://github.com/axllent/mailpit/blob/develop/LICENSE
-- ClamAV y firmas oficiales: https://www.clamav.net/documents/copyright
+Firefox @FIREFOX@ para Windows x64 (es-AR)
+Se distribuye una copia intacta del instalador de Mozilla. Podés consultar
+las licencias en about:license dentro de Firefox y en AVISOS-TERCEROS.zip.
+Código fuente correspondiente a esta versión:
+https://archive.mozilla.org/pub/firefox/releases/@FIREFOX@/source/firefox-@FIREFOX@.source.tar.xz
 
-Los inventarios release.properties, versiones.properties y
- docker-descargas.properties fijan archivos, versiones, tamaños y SHA-256.
-Un SHA-256 no autentica por sí solo al editor. No confundir este paquete de
-prueba con una publicación firmada. Antes de redistribuir públicamente, YG
-Soluciones debe adjuntar los textos y fuentes/ofertas exigidos por las licencias
-exactas de todos los componentes, además de conservar los avisos incluidos.
+Eclipse Temurin / OpenJDK 17
+El runtime de Windows y el del servicio web incluyen sus textos en legal/.
+OpenJDK usa GPLv2 con Classpath Exception y licencias específicas para
+componentes individuales. Las versiones figuran en el inventario adjunto.
+https://github.com/adoptium/temurin17-binaries/releases
+
+Windows Subsystem for Linux, Ubuntu y Docker Engine
+El paquete MSI oficial de WSL conserva NOTICE.txt con las indicaciones
+de Microsoft para obtener las fuentes de sus componentes. La distribución
+Ubuntu y los paquetes .deb incorporan software bajo distintas licencias.
+AVISOS-TERCEROS.zip identifica los paquetes, sus versiones y los avisos
+recuperados. Incluye materiales de Docker Engine, CLI, Buildx, Compose y
+containerd. El archivo docker-descargas.properties identifica cada .deb.
+
+Servicios de la aplicación
+La aplicación utiliza PostgreSQL, Mailpit, ClamAV, Node.js, Next.js,
+React, PDF.js y bibliotecas Java, entre otros componentes. Las bases de
+firmas ClamAV conservan su archivo COPYING. En AVISOS-TERCEROS.zip se
+pueden consultar los inventarios, las atribuciones y las licencias de
+terceros que acompañan esta edición.

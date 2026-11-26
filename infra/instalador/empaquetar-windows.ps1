@@ -10,7 +10,7 @@ Get-Command candle.exe,light.exe -ErrorAction Stop | Out-Null
 
 # Copiar únicamente la carga aprobada. Otras carpetas o archivos de la máquina de construcción son ajenos al instalador.
 $locks=Get-Content -LiteralPath "$PSScriptRoot\dependencias\versiones.properties" -Raw | ConvertFrom-StringData
-$archivos=@('images.tar.gz','AVISOS-TERCEROS.txt','docker-descargas.properties')
+$archivos=@('images.tar.gz','AVISOS-TERCEROS.txt','AVISOS-TERCEROS.zip','docker-descargas.properties')
 foreach($dep in @('docker','navegador','ubuntu','wsl')){
  $key="dep.windows.$dep"; $nombre=$locks["$key.file"]
  if($manifest["$key.file"] -cne $nombre -or $manifest["sha256.$nombre"] -cne $locks["$key.sha256"]){throw "Dependencia de Windows incorrecta: $dep."}

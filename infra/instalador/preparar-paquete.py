@@ -2,10 +2,12 @@
 """Preparación de release (solo construcción; Python no se instala en el cliente)."""
 import argparse
 import hashlib
+import io
 import re
 from pathlib import Path
 import shutil
 import tempfile
+import zipfile
 
 
 def properties(path):
@@ -25,6 +27,7 @@ def main():
     parser.add_argument('dependencias', type=Path)
     parser.add_argument('salida', type=Path)
     parser.add_argument('--version-instalador', help='Versión del asistente; por defecto usa la versión de la app.')
+    parser.add_argument('--avisos-terceros', type=Path, help='ZIP de avisos de Windows; por defecto se busca AVISOS-TERCEROS.zip junto a las dependencias.')
     args = parser.parse_args()
     base = Path(__file__).resolve().parent
     manifest = properties(args.app / 'release.properties')
@@ -55,6 +58,28 @@ def main():
     for source, expected in files:
         if digest(source) != expected:
             raise SystemExit('SHA-256 incorrecto: ' + source.name)
+    if args.plataforma == 'windows':
+        avisos = args.avisos_terceros or args.dependencias / 'AVISOS-TERCEROS.zip'
+        if not avisos.is_file():
+            parser.error('Falta AVISOS-TERCEROS.zip para Windows.')
+        avisos_bytes = avisos.read_bytes()
+        with zipfile.ZipFile(io.BytesIO(avisos_bytes)) as archive:
+            nombres = archive.namelist()
+            required_notices = {'componentes.sha256', 'Firefox/origen.tsv', 'Firefox/toolkit-license.html',
+                                'Firefox/browser-license.html', 'Originales/WSL-3.0.3-NOTICE.txt',
+                                'Inventarios/paquetes-ubuntu-wsl.tsv', 'Inventarios/paquetes-docker.tsv',
+                                'Inventarios/imagenes.tsv', 'Inventarios/origen-atribuciones.tsv'}
+            expected = {source.name: sha for source, sha in files}
+            if len(nombres) != len(set(nombres)) or not required_notices.issubset(nombres) or archive.testzip():
+                parser.error('Los textos, inventarios o sumas del ZIP de avisos están incompletos o dañados.')
+            manifest_data = archive.read('componentes.sha256').decode('ascii').splitlines()
+            if sorted(manifest_data) != sorted(f'{sha}  {name}' for name, sha in expected.items()):
+                parser.error('Los avisos de terceros corresponden a otra carga.')
+        navegador = re.fullmatch(r'firefox-([0-9]+(?:\.[0-9]+){1,2})\.exe', lock['dep.windows.navegador.file'])
+        if not navegador:
+            parser.error('Nombre inesperado para Firefox de Windows.')
+    elif args.avisos_terceros:
+        parser.error('--avisos-terceros sólo se usa para Windows.')
     args.salida.parent.mkdir(parents=True, exist_ok=True)
     if args.salida.exists():
         parser.error('La salida ya existe.')
@@ -65,10 +90,22 @@ def main():
             shutil.copyfile(source, output / source.name)
             manifest['sha256.' + source.name] = expected
             manifest['size.' + source.name] = str(source.stat().st_size)
-        for source in [base / 'dependencias/docker-descargas.properties', base / 'AVISOS-TERCEROS.txt']:
+        recursos = [base / 'dependencias/docker-descargas.properties']
+        if args.plataforma == 'windows':
+            texto = (base / 'AVISOS-TERCEROS.txt').read_text().replace('@FIREFOX@', navegador[1])
+            (output / 'AVISOS-TERCEROS.txt').write_text(texto, encoding='utf-8')
+            (output / 'AVISOS-TERCEROS.zip').write_bytes(avisos_bytes)
+        else:
+            recursos.append(base / 'empaquetado/ubuntu/AVISOS-TERCEROS.txt')
+        for source in recursos:
             shutil.copyfile(source, output / source.name)
-            manifest['sha256.' + source.name] = digest(source)
-            manifest['size.' + source.name] = str(source.stat().st_size)
+        avisos_y_catalogo = ['AVISOS-TERCEROS.txt', 'docker-descargas.properties']
+        if args.plataforma == 'windows':
+            avisos_y_catalogo.append('AVISOS-TERCEROS.zip')
+        for nombre in avisos_y_catalogo:
+            recurso = output / nombre
+            manifest['sha256.' + nombre] = digest(recurso)
+            manifest['size.' + nombre] = str(recurso.stat().st_size)
         manifest['files'] = ','.join(sorted(p.name for p in output.iterdir()))
         manifest['offline.complete'] = 'true'
         manifest['platform'] = args.plataforma + '-x64'
