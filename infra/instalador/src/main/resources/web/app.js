@@ -1,11 +1,12 @@
 "use strict";
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const token=location.hash.slice(1);history.replaceState(null,"",location.pathname);
-const titulos={equipo:"Verificar equipo",destino:"Elegir instalación",opciones:"Acceso local",operacion:"Elegir operación",respaldo:"Respaldo",revision:"Revisar y ejecutar",resultado:"Resultado"};
+const titulos={equipo:"Verificar equipo",destino:"Elegir instalación",opciones:"Acceso local",operacion:"Elegir operación",respaldo:"Respaldo",firmas:"Protección de archivos",revision:"Revisar y ejecutar",resultado:"Resultado"};
 const completos=new Set();let actual="equipo",app=null,carpeta="",versionApp="",sistema="",flujo="nueva",ejecutado=false,ocupado=false,cerrado=false;
-let directorioEditado=false;
+let directorioEditado=false,firmasExternas=false;
 const nuevos=["opciones","revision"];
 function incompleta(){return app?.existe&&["PREPARADA","DESINSTALADA"].includes(app.estado);}
+function requiereFirmas(){return firmasExternas&&app?.firmasGuardadas!==true;}
 function ruta(){
  const pasos=["equipo","destino"];
  if(flujo==="nueva")pasos.push(...nuevos);
@@ -14,6 +15,9 @@ function ruta(){
   const op=$("#operacion-elegida").value;
   if(["reparar","actualizar"].includes(op))pasos.push("respaldo");
   if(op!=="ver")pasos.push("revision");
+ }
+ if(requiereFirmas()&&(flujo==="nueva"||["reparar","actualizar"].includes($("#operacion-elegida").value))){
+  pasos.splice(pasos.indexOf("revision"),0,"firmas");
  }
  pasos.push("resultado");return pasos;
 }
@@ -60,8 +64,13 @@ function validoFormulario(id){
 }
 function validar(){
  if(completos.has(actual)&&ejecutado&&nuevos.includes(actual))return true;
- if(["opciones","respaldo"].includes(actual)){
+ if(["opciones","respaldo","firmas"].includes(actual)){
+  if(actual==="firmas")$("#archivo-firmas").value=$("#archivo-firmas").value.trim().replace(/^"([^"]+)"$/,"$1");
   if(!validoFormulario(actual))return false;
+  if(actual==="firmas"&&$("#via-firmas").value==="archivo"&&!rutaAbsoluta($("#archivo-firmas").value)){
+   $("#archivo-firmas").setAttribute("aria-invalid","true");$("#archivo-firmas").focus();
+   throw new Error("Ingresá la ruta completa de bytecode.cvd en un disco de esta PC o en un USB.");
+  }
   if(actual==="respaldo"&&!rutaAbsoluta(datos("respaldo").respaldo))throw new Error("Ingresá la ruta completa de una carpeta de respaldos.");
   return true;
  }
@@ -85,6 +94,11 @@ function revision(){
  const acciones={instalar:"Instalar la Demo",iniciar:"Iniciar la Demo",desinstalar:"Desinstalar la Demo",reparar:"Reparar la Demo",actualizar:"Actualizar la Demo"};
  agregar("Operación",acciones[op]);
  if(op==="instalar")agregar("Dirección local","http://127.0.0.1:"+$("#puerto").value);
+ if(firmasExternas&&["instalar","reparar","actualizar"].includes(op)){
+  const origen=!requiereFirmas()?"Se reutilizará la copia verificada de esta instalación.":
+   $("#via-firmas").value==="archivo"?$("#archivo-firmas").value:"Descarga oficial de ClamAV con FreshClam.";
+  agregar("Firmas del antivirus",origen);
+ }
  if(["reparar","actualizar"].includes(op))agregar("Respaldo",datos("respaldo").respaldo);
  $("#ejecutar").textContent=ejecutado?"Operación completada":acciones[op];
  const avisos={instalar:"La imprenta de muestra incluye tres cuentas para entrar desde el selector.",iniciar:"Se iniciarán los servicios locales.",desinstalar:"Se retirarán los servicios de esta instalación. Los pedidos, archivos y fecha de vencimiento se conservarán para reinstalar. Después podés quitar el asistente desde Aplicaciones instaladas en Windows."};
@@ -142,22 +156,40 @@ function mostrarBusqueda(v){
   root.append(d);
  }
 }
-async function tareaCarpetas(path,data){
- await api("carpetas/"+path,data);const cancelar=$("#cancelar-carpetas");cancelar.hidden=false;cancelar.disabled=false;
+async function tareaCarpetas(path,data,cancelar=$("#cancelar-carpetas"),foco=$("#buscar-instalaciones")){
+ await api("carpetas/"+path,data);cancelar.hidden=false;cancelar.disabled=false;
  try{for(;;){
   const v=await api("carpetas/estado");
   if(v.tipo==="BUSQUEDA")mostrarBusqueda(v);mensaje(v.mensaje||"Comprobando carpetas…");
   if(v.estado==="ERROR")throw new Error(v.mensaje);
   if(v.estado!=="EJECUTANDO")return v;
   await new Promise(r=>setTimeout(r,250));
- }}finally{if(document.activeElement===cancelar)setTimeout(()=>$("#buscar-instalaciones").focus({preventScroll:true}),0);cancelar.hidden=true;cancelar.disabled=false;}
+ }}finally{if(document.activeElement===cancelar)setTimeout(()=>foco.focus({preventScroll:true}),0);cancelar.hidden=true;cancelar.disabled=false;}
 }
 $("#examinar-carpeta").onclick=()=>accion(async()=>{const v=await tareaCarpetas("examinar",{directorio:$("#directorio").value});if(v.estado==="COMPLETADO")elegirDirectorio(v.directorio);});
 $("#buscar-instalaciones").onclick=()=>accion(()=>tareaCarpetas("buscar",{}));
 $("#ampliar-busqueda").onclick=()=>accion(async()=>{const v=await tareaCarpetas("examinar",{directorio:$("#directorio").value});if(v.estado==="COMPLETADO")await tareaCarpetas("buscar",{raiz:v.directorio});});
-$("#cancelar-carpetas").onclick=async()=>{const b=$("#cancelar-carpetas");b.disabled=true;try{await api("carpetas/cancelar",{});}catch(e){mensaje(e.message,true);b.disabled=false;}};
+for(const b of [$("#cancelar-carpetas"),$("#cancelar-firmas")]){
+ b.onclick=async()=>{b.disabled=true;try{await api("carpetas/cancelar",{});}catch(e){mensaje(e.message,true);b.disabled=false;}};
+}
+$("#via-firmas").onchange=()=>{
+ const archivo=$("#via-firmas").value==="archivo";
+ $("#origen-archivo-firmas").hidden=!archivo;
+ $("#archivo-firmas").disabled=!archivo;$("#archivo-firmas").required=archivo;
+ $("#detalle-firmas").textContent=archivo
+  ?"Copiá bytecode.cvd desde un equipo con ClamAV actualizado por FreshClam. Podés elegir su carpeta o pegar la ruta del archivo. Esta opción funciona sin Internet."
+  :"FreshClam descargará las firmas al confirmar. Necesitás Internet sólo en ese momento. La descarga funciona sin cuenta y los datos de la imprenta quedan en tu PC.";
+};
+$("#examinar-firmas").onclick=()=>accion(async()=>{
+ const campo=$("#archivo-firmas"),inicial=campo.value.trim();
+ const v=await tareaCarpetas("examinar",{directorio:rutaAbsoluta(inicial)?inicial:""},$("#cancelar-firmas"),$("#examinar-firmas"));
+ if(v.estado==="COMPLETADO"){
+  campo.value=v.directorio.replace(/[\\/]+$/,"")+"\\bytecode.cvd";
+  invalidar("firmas");mensaje("Carpeta elegida. Revisá la ruta de bytecode.cvd.");
+ }
+});
 
-for(const id of ["opciones","operacion","respaldo"])$("#"+id).addEventListener("input",()=>invalidar(id));
+for(const id of ["opciones","operacion","respaldo","firmas"])$("#"+id).addEventListener("input",()=>invalidar(id));
 for(const f of $$("form[novalidate]"))f.onsubmit=e=>{e.preventDefault();siguiente();};
 $("#operacion-elegida").onchange=()=>{ejecutado=false;invalidar("operacion");};
 $("#verificar").onclick=()=>accion(verificar);
@@ -175,8 +207,19 @@ $("#ejecutar").onclick=()=>accion(async()=>{
   else if(op==="iniciar"){path="iniciar";data={};}
   else{path="mantener";data={operacion:op,...datos("respaldo")};}
  }
+ if(ruta().includes("firmas")){
+  if(!completos.has("firmas"))throw new Error("Elegí el origen de las firmas antes de continuar.");
+  Object.assign(data,datos("firmas"));
+ }
  try{await ejecutar(path,data);ejecutado=true;completos.add("revision");mensaje("Operación completada. Podés continuar con las comprobaciones finales.");}
- catch(e){await refrescar().catch(()=>{});throw e;}
+ catch(e){
+  await refrescar().catch(()=>{});
+  if(ruta().includes("firmas")){
+   actual="firmas";invalidar("firmas");$('[data-paso="firmas"] h2').focus();
+   throw new Error(e.message+" Revisá el origen de las firmas y volvé a intentar.");
+  }
+  throw e;
+ }
 });
 $("#actualizar-estado").onclick=()=>accion(async()=>{await refrescar();mensaje("Estado comprobado.");});
 $("#cerrar").onclick=()=>accion(async()=>{const v=await api("cerrar",{});cerrado=true;mensaje(v.mensaje);});
@@ -199,4 +242,4 @@ for(const lugar of $$('[data-ayuda]')){const b=document.createElement("button");
 $("#ayuda-ampliada").onmouseenter=()=>clearTimeout(temporizador);$("#ayuda-ampliada").onmouseleave=diferirCierre;
 document.addEventListener("keydown",e=>{if(e.key==="Escape")cerrarAyuda();});document.addEventListener("click",e=>{if(ayudaActiva&&!e.target.closest(".ayuda,#ayuda-ampliada"))cerrarAyuda();});window.addEventListener("resize",posicionarAyuda);window.addEventListener("scroll",posicionarAyuda);
 render();
-api("estado").then(v=>{versionApp=v.version;sistema=v.sistema;$("#versiones").textContent=`${sistema} · Instalador ${v.versionInstalador} · Aplicación incluida ${v.version}`;for(const n of $$('[data-windows]'))n.hidden=!sistema.startsWith("Windows");if(v.directorioRecomendado){$("#ruta-recomendada").textContent="Ruta recomendada: "+v.directorioRecomendado;if(!directorioEditado&&!$("#directorio").value)$("#directorio").value=v.directorioRecomendado;}mensaje("Listo para comenzar. La revisión del equipo es el primer paso.");}).catch(e=>mensaje(e.message,true));
+api("estado").then(v=>{versionApp=v.version;sistema=v.sistema;firmasExternas=v.firmasExternas===true;render();$("#versiones").textContent=`${sistema} · Instalador ${v.versionInstalador} · Aplicación incluida ${v.version}`;for(const n of $$('[data-windows]'))n.hidden=!sistema.startsWith("Windows");if(v.directorioRecomendado){$("#ruta-recomendada").textContent="Ruta recomendada: "+v.directorioRecomendado;if(!directorioEditado&&!$("#directorio").value)$("#directorio").value=v.directorioRecomendado;}mensaje("Listo para comenzar. La revisión del equipo es el primer paso.");}).catch(e=>mensaje(e.message,true));

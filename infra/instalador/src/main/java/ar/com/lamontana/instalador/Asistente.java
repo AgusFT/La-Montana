@@ -39,7 +39,7 @@ final class Asistente implements AutoCloseable {
                 }
                 if(path.equals("/api/seleccionar")&&x.getRequestMethod().equals("POST")){var v=formulario(x);synchronized(this){verificarLibre();var dir=Carpetas.ruta(Util.requerido(v,"directorio"));if(instalacion==null||!instalacion.raiz.equals(dir)){instalacion=new Instalacion(dir,equipo);}respuesta(x,200,instalacion.resumen());}return;}
                 if(path.equals("/api/instalacion")&&x.getRequestMethod().equals("GET")){if(instalacion==null)throw new IllegalArgumentException("Seleccioná una carpeta de instalación.");respuesta(x,200,instalacion.resumen());return;}
-                if(path.equals("/api/mantener")&&x.getRequestMethod().equals("POST")){var v=formulario(x);Instalacion i=seleccionada();iniciarTrabajo(()->i.mantener(Util.requerido(v,"operacion"),java.nio.file.Path.of(Util.requerido(v,"respaldo"))));respuesta(x,202,trabajo);return;}
+                if(path.equals("/api/mantener")&&x.getRequestMethod().equals("POST")){var v=formulario(x);Instalacion i=seleccionada();iniciarTrabajo(()->i.mantener(Util.requerido(v,"operacion"),java.nio.file.Path.of(Util.requerido(v,"respaldo")),v));respuesta(x,202,trabajo);return;}
                 if(path.equals("/api/desinstalar")&&x.getRequestMethod().equals("POST")){
                     var v=formulario(x);
                     if(!"DESINSTALAR".equals(v.get("confirmar")))throw new IllegalArgumentException("Confirmá el retiro de esta Demo.");
@@ -52,7 +52,7 @@ final class Asistente implements AutoCloseable {
                 if(path.equals("/api/dependencias")&&x.getRequestMethod().equals("GET")){respuesta(x,200,Map.of("dependencias",equipo.diagnostico()));return;}
                 if(path.equals("/api/trabajo")&&x.getRequestMethod().equals("GET")){respuesta(x,200,trabajo);return;}
                 if(path.equals("/api/dependencia")&&x.getRequestMethod().equals("POST")){var v=formulario(x);iniciarTrabajo(()->equipo.dependencia(Util.requerido(v,"accion"),Util.requerido(v,"via")));respuesta(x,202,trabajo);return;}
-                if(path.equals("/api/estado")&&x.getRequestMethod().equals("GET")){respuesta(x,200,Map.of("version",paquete.version(),"versionInstalador",paquete.manifiesto.getProperty("installer.version","sin-paquete"),"sistema",System.getProperty("os.name"),"directorioRecomendado",Objects.toString(Instalacion.ultima(),Carpetas.recomendada().toString()),"mensaje","Asistente local listo para verificar dependencias."));return;}
+                if(path.equals("/api/estado")&&x.getRequestMethod().equals("GET")){respuesta(x,200,Map.of("version",paquete.version(),"versionInstalador",paquete.manifiesto.getProperty("installer.version","sin-paquete"),"sistema",System.getProperty("os.name"),"firmasExternas",equipo.windows&&FirmasAntivirus.externas(paquete.manifiesto),"directorioRecomendado",Objects.toString(Instalacion.ultima(),Carpetas.recomendada().toString()),"mensaje","Asistente local listo para verificar dependencias."));return;}
                 if(path.equals("/api/cerrar")&&x.getRequestMethod().equals("POST")){if("EJECUTANDO".equals(trabajo.get("estado")))throw new IllegalArgumentException("Esperá a que termine la operación antes de cerrar.");respuesta(x,200,Map.of("mensaje","Asistente cerrado. La app continúa funcionando."));new Thread(this::close).start();return;}
                 respuesta(x,404,Map.of("error","Operación desconocida."));return;
             }

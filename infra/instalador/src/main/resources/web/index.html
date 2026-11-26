@@ -19,6 +19,27 @@
 <section data-paso="opciones" hidden><h2 tabindex="-1">Acceso a la Demo</h2><p class="intro">La web abre en tu navegador. Podés elegir Administrador, Empleado o Cliente para recorrer la imprenta de muestra.</p><form id="opciones" novalidate><label for="puerto">Puerto de la web en esta PC <span data-ayuda="puerto"></span></label><input id="puerto" name="puerto" type="number" min="1024" max="65535" value="3200" required><p class="pista">Usá 3200 si está disponible.</p></form></section>
 <section data-paso="operacion" hidden><h2 tabindex="-1">Tu instalación ya existe</h2><p class="intro">Podés consultar su estado o realizar mantenimiento conservando sus datos y configuración.</p><form id="operacion" novalidate><label for="operacion-elegida">¿Qué querés hacer? <span data-ayuda="mantenimiento"></span></label><select id="operacion-elegida" name="operacion"><option value="ver">Consultar estado y acceso</option><option value="iniciar">Iniciar la Demo</option><option value="reparar">Reparar la misma versión</option><option value="actualizar">Actualizar la aplicación</option><option value="desinstalar">Desinstalar la Demo y conservar sus datos</option></select></form><p id="comparacion" class="explicacion"></p><p>Antes de reparar o actualizar se detendrán los servicios y se creará un respaldo obligatorio. Todavía no se realiza ninguna operación.</p></section>
 <section data-paso="respaldo" hidden><h2 tabindex="-1">Prepará el respaldo previo</h2><p class="intro">Antes del mantenimiento guardamos una copia de los datos, archivos, configuración e imágenes de esta instalación. <span data-ayuda="respaldo"></span></p><form id="respaldo" novalidate><label>Carpeta local de respaldos<input name="respaldo" required placeholder="Ruta completa fuera de la carpeta de la app" autocomplete="off"></label></form><p class="aviso">La copia contiene datos y credenciales: elegí una carpeta privada de esta PC. Esta versión no incluye restauración ni recuperación automática.</p><p>Los servicios se detendrán al confirmar. Si falla la copia, el mantenimiento no continúa y la aplicación puede quedar detenida.</p></section>
+<section data-paso="firmas" hidden>
+<h2 tabindex="-1">Prepará la protección de archivos</h2>
+<p class="intro">ClamAV usa un archivo de firmas llamado <code>bytecode.cvd</code> para detectar amenazas en los adjuntos de los pedidos. Elegí cómo obtenerlo antes de iniciar la imprenta.</p>
+<form id="firmas" novalidate>
+<label for="via-firmas">Origen de las firmas</label>
+<select id="via-firmas" name="viaFirmas" aria-describedby="detalle-firmas">
+<option value="internet">Descargar desde el servicio oficial de ClamAV</option>
+<option value="archivo">Usar un archivo oficial de este equipo o de un USB</option>
+</select>
+<p id="detalle-firmas" class="pista">FreshClam descargará las firmas al confirmar. Necesitás Internet sólo en ese momento. La descarga funciona sin cuenta y los datos de la imprenta quedan en tu PC.</p>
+<div id="origen-archivo-firmas" hidden>
+<label for="archivo-firmas">Ruta completa de bytecode.cvd</label>
+<div class="elegir-carpeta">
+<input id="archivo-firmas" name="archivoFirmas" placeholder="E:\ClamAV\bytecode.cvd" autocomplete="off" aria-describedby="detalle-firmas" disabled>
+<button id="examinar-firmas" type="button" class="secundario">Elegir la carpeta del archivo…</button>
+</div>
+<button id="cancelar-firmas" type="button" class="secundario" hidden>Cancelar selección</button>
+</div>
+</form>
+<p class="explicacion">El asistente verifica las firmas y conserva una copia para los próximos arranques. Podés usar la Demo sin conexión una vez instalada.</p>
+</section>
 <section data-paso="revision" hidden><h2 tabindex="-1">Revisá antes de continuar</h2><p class="intro">Verificá los datos de la operación. Podés volver al paso correspondiente para corregirlos.</p><dl id="revision-datos" class="resumen-datos"></dl><p id="revision-aviso" class="aviso"></p><button id="ejecutar" type="button">Instalar la Demo</button><p id="acceso-listo"></p></section>
 <section data-paso="resultado" hidden><h2 tabindex="-1">Estado de tu instalación</h2><p class="intro">Este es el resultado de la última comprobación. Cerrar el asistente no detiene la aplicación.</p><div id="resultado" aria-live="polite"></div><button id="actualizar-estado" class="secundario" type="button">Volver a comprobar estado</button></section>
 <div id="error-paso" class="error-paso" role="alert" hidden></div>

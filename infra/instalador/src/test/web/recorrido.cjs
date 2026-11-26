@@ -4,23 +4,24 @@ const {createServer}=require('node:http');
 const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');
 const web=path.resolve(__dirname,'../../main/resources/web');
 let instance={existe:false},calls=[],badDocker=false,failInstall=false,slow=false,job=0,failCheck=false,selectorCancel=false,slowSearch=false;
+let firmasExternas=false;
 let folderState={estado:'LIBRE',tipo:''};const chosen='/tmp/La Montaña elegida';
 const server=createServer(async(req,res)=>{
  const url=new URL(req.url,'http://localhost');let chunks=[];for await(const c of req)chunks.push(c);const body=Object.fromEntries(new URLSearchParams(Buffer.concat(chunks).toString()));
  if(url.pathname.startsWith('/api/')){
   calls.push([url.pathname,body]);let data={};
-  if(url.pathname==='/api/estado')data={version:'0.2.2',versionInstalador:'0.2.7',sistema:'Linux',directorioRecomendado:'/home/prueba/LaMontanaDemo'};
+  if(url.pathname==='/api/estado')data={version:'0.2.2',versionInstalador:'0.2.7',sistema:firmasExternas?'Windows 11':'Linux',directorioRecomendado:firmasExternas?'C:\\LaMontanaDemo':'/home/prueba/LaMontanaDemo',firmasExternas};
   if(url.pathname==='/api/dependencias'&&failCheck){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'No se pudo verificar el equipo.'}));return;}
-  if(url.pathname==='/api/dependencias')data={dependencias:[['sistema','COMPATIBLE'],['docker',badDocker?'DETENIDO_O_INACCESIBLE':'DISPONIBLE'],['compose','DISPONIBLE'],['paquete','VERIFICADO']].map(([id,estado])=>({id,estado,detalle:'Comprobación de laboratorio.'}))};
-  if(url.pathname==='/api/carpetas/examinar')folderState={estado:selectorCancel?'CANCELADO':'COMPLETADO',tipo:'SELECTOR',directorio:selectorCancel?'':chosen,mensaje:selectorCancel?'Selección cancelada.':'Carpeta elegida.'};
+  if(url.pathname==='/api/dependencias')data={dependencias:[['sistema','COMPATIBLE'],['docker',badDocker?'DETENIDO_O_INACCESIBLE':'DISPONIBLE'],['compose','DISPONIBLE'],['paquete','VERIFICADO'],...(firmasExternas?[['wsl','WSL2_DISPONIBLE']]:[])].map(([id,estado])=>({id,estado,detalle:'Comprobación de laboratorio.'}))};
+  if(url.pathname==='/api/carpetas/examinar')folderState={estado:selectorCancel?'CANCELADO':'COMPLETADO',tipo:'SELECTOR',directorio:selectorCancel?'':(firmasExternas?'E:\\Copia USB':chosen),mensaje:selectorCancel?'Selección cancelada.':'Carpeta elegida.'};
   if(url.pathname==='/api/carpetas/buscar')folderState={estado:slowSearch?'EJECUTANDO':'COMPLETADO',tipo:'BUSQUEDA',mensaje:'Búsqueda terminada.',entradas:12,revisadas:[body.raiz||'/home/prueba'],omisiones:{},parcial:false,resultados:[{directorio:chosen,tipo:'IDENTIFICADA',elegible:true,version:'0.2.2',modo:'DEMO',detalle:'Estado guardado: LISTA.'},{directorio:'/tmp/script-anterior',tipo:'SCRIPT_ANTERIOR',elegible:false,detalle:'No se adopta automáticamente.'}]};
   if(url.pathname==='/api/carpetas/cancelar')folderState={...folderState,estado:'CANCELADO',parcial:true,mensaje:'Búsqueda cancelada.'};
   if(url.pathname==='/api/carpetas/estado')data=folderState;
   if(url.pathname==='/api/seleccionar')data=instance;
   if(url.pathname==='/api/instalacion')data=instance;
   if(url.pathname==='/api/instalar'){
-   assert.equal(body.modo,'DEMO');assert.deepEqual(Object.keys(body).sort(),['modo','puerto']);
-   job=0;if(!failInstall)instance={existe:true,modo:'DEMO',version:'0.2.2',estado:'LISTA',puerto:'3200',disponible:true,servicios:'cinco servicios saludables',url:'http://127.0.0.1:3200/acceso'};
+   assert.equal(body.modo,'DEMO');if(!firmasExternas)assert.deepEqual(Object.keys(body).sort(),['modo','puerto']);
+   job=0;if(!failInstall)instance={existe:true,modo:'DEMO',version:'0.2.2',estado:'LISTA',puerto:'3200',disponible:true,servicios:'cinco servicios saludables',url:'http://127.0.0.1:3200/acceso',firmasGuardadas:firmasExternas};
   }
   if(url.pathname==='/api/desinstalar'){assert.equal(body.confirmar,'DESINSTALAR');instance={...instance,estado:'DESINSTALADA',disponible:false};}
   if(url.pathname==='/api/trabajo')data={estado:slow&&job++===0?'EJECUTANDO':failInstall?'ERROR':'COMPLETADO',mensaje:failInstall?'Fallo controlado de laboratorio.':'Operación de laboratorio.'};
@@ -38,7 +39,7 @@ const server=createServer(async(req,res)=>{
  const active=async id=>{await page.locator(`[data-paso="${id}"]`).waitFor({state:'visible'});assert.equal(await page.locator('[data-paso]:visible').count(),1);};
  const next=()=>page.getByRole('button',{name:'Siguiente →',exact:true}).click();
  const open=async()=>{await page.goto("about:blank");await page.goto(url);await page.getByText('Instalador 0.2.7',{exact:false}).waitFor();};
- const folder=async()=>{await page.locator('#directorio').fill('/tmp/lamontana-prueba-ui');await page.locator('#seleccionar').click();await page.getByText('Carpeta examinada.',{exact:false}).waitFor();};
+ const folder=async()=>{await page.locator('#directorio').fill(firmasExternas?'C:\\La Montana Demo':'/tmp/lamontana-prueba-ui');await page.locator('#seleccionar').click();await page.getByText('Carpeta examinada.',{exact:false}).waitFor();};
  await open();await active('equipo');await next();await active('equipo');assert.match(await page.locator('#error-paso').innerText(),/Verificá/);
  const help=page.getByRole('button',{name:'Más información: Dependencias',exact:true});await help.hover();await page.locator('#ayuda-ampliada').waitFor({state:'visible'});await page.keyboard.press('Escape');assert.equal(await page.locator('#ayuda-ampliada').isVisible(),false);await help.focus();await page.locator('#ayuda-ampliada').waitFor({state:'visible'});await page.keyboard.press('Escape');
  badDocker=true;await page.locator('#verificar').click();await page.getByText('Hay componentes pendientes.',{exact:false}).first().waitFor();await next();await active('equipo');badDocker=false;
@@ -82,5 +83,43 @@ const server=createServer(async(req,res)=>{
  instance={existe:false};await open();await active('equipo');await page.screenshot({path:process.env.UI_SCREENSHOT||'/tmp/lamontana-v3-escritorio.png',fullPage:true});
  await page.setViewportSize({width:683,height:500});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'/tmp/lamontana-v3-zoom200.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await help.click();await page.locator('#ayuda-ampliada').waitFor({state:'visible'});const box=await page.locator('#ayuda-ampliada').boundingBox();assert.ok(box.x>=0&&box.x+box.width<=390);await page.screenshot({path:'/tmp/lamontana-v3-movil.png',fullPage:true});
- assert.deepEqual(errors,[]);await browser.close();server.close();console.log('OK: instalación Demo, acceso a los roles, mantenimiento, desinstalación, reinstalación, búsqueda, dependencias y accesibilidad.');
+ firmasExternas=true;
+ const abrirWindows=async registro=>{
+  instance=registro;await open();await page.locator('#verificar').click();await page.getByText('Equipo verificado.',{exact:false}).waitFor();
+  await next();await folder();await next();
+ };
+ const prepararWindows=async registro=>{await abrirWindows(registro);await active('opciones');await next();};
+ const finalizar=async()=>{await page.locator('#ejecutar').click();await page.getByText('Operación completada. Podés continuar',{exact:false}).waitFor();};
+ const ultimaInstalacion=()=>calls.filter(([p])=>p==='/api/instalar').at(-1)[1];
+ const usb='E:\\Copia USB\\bytecode.cvd';
+ await prepararWindows({existe:false,firmasGuardadas:false});await active('firmas');
+ assert.equal(await page.locator('#via-firmas').inputValue(),'internet');
+ await next();await active('revision');assert.match(await page.locator('#revision-datos').innerText(),/FreshClam/);
+ failInstall=true;await page.locator('#ejecutar').click();await active('firmas');await page.getByRole('alert').getByText(/volvé a intentar/).waitFor();
+ assert.deepEqual(ultimaInstalacion(),{modo:'DEMO',puerto:'3200',viaFirmas:'internet'});
+ await page.locator('#via-firmas').selectOption('archivo');await page.locator('#archivo-firmas').fill('bytecode.cvd');
+ await next();await active('firmas');assert.equal(await page.locator('#archivo-firmas').getAttribute('aria-invalid'),'true');
+ await page.locator('#examinar-firmas').click();await page.getByText('Revisá la ruta de bytecode.cvd.',{exact:false}).waitFor();
+ assert.equal(await page.locator('#archivo-firmas').inputValue(),usb);
+ selectorCancel=true;await page.locator('#examinar-firmas').click();await page.getByText('Selección cancelada.',{exact:true}).waitFor();
+ assert.equal(await page.locator('#archivo-firmas').inputValue(),usb);selectorCancel=false;
+ await next();await active('revision');assert.ok((await page.locator('#revision-datos').innerText()).includes(usb));
+ failInstall=false;await finalizar();assert.deepEqual(ultimaInstalacion(),{modo:'DEMO',puerto:'3200',viaFirmas:'archivo',archivoFirmas:usb});
+ for(const estado of ['PREPARADA','DESINSTALADA']){
+  const registro={existe:true,estado,puerto:'3200',version:'0.2.2',disponible:false};
+  await prepararWindows({...registro,firmasGuardadas:false});await active('firmas');
+  await page.locator('#via-firmas').selectOption('archivo');await page.locator('#archivo-firmas').fill('"'+usb+'"');
+  await page.locator('#via-firmas').selectOption('internet');await next();await active('revision');await finalizar();
+  assert.equal(ultimaInstalacion().viaFirmas,'internet');assert.equal(ultimaInstalacion().archivoFirmas,undefined);
+  await prepararWindows({...registro,firmasGuardadas:true});await active('revision');
+  assert.match(await page.locator('#revision-datos').innerText(),/reutilizará la copia verificada/);await finalizar();
+  assert.equal(ultimaInstalacion().viaFirmas,undefined);assert.equal(ultimaInstalacion().archivoFirmas,undefined);
+ }
+ await abrirWindows({existe:true,estado:'LISTA',version:'0.2.2',puerto:'3200',firmasGuardadas:false});await active('operacion');
+ await page.locator('#operacion-elegida').selectOption('reparar');await next();await active('respaldo');
+ await page.locator('[name=respaldo]').fill('D:\\Respaldos');await next();await active('firmas');
+ await page.locator('#via-firmas').selectOption('archivo');await page.locator('#archivo-firmas').fill('"'+usb+'"');
+ await next();await active('revision');await finalizar();
+ assert.deepEqual(calls.filter(([p])=>p==='/api/mantener').at(-1)[1],{operacion:'reparar',respaldo:'D:\\Respaldos',viaFirmas:'archivo',archivoFirmas:usb});
+ assert.deepEqual(errors,[]);await browser.close();server.close();console.log('OK: instalación Demo, mantenimiento, accesibilidad y firmas por Internet, archivo o reutilización.');
 })().catch(e=>{console.error(e);server.close();process.exit(1);});
