@@ -32,7 +32,8 @@ public class CuposDemoController {
 
     public record Panel(List<Cupo> cupos) {}
     public record Cupo(String tipo, int limite, long usados, List<Registro> registros) {}
-    public record Registro(String tipo, UUID codigo, String concepto, String detalle, Instant bajaEn, String bajaPor) {}
+    public record Registro(String tipo, UUID codigo, String concepto, String detalle, Instant bajaEn, String bajaPor,
+                           boolean reservado) {}
     public record Alta(@NotNull UUID operacion, @NotBlank @Size(max=100) String nombre,
                        @NotBlank @Size(max=100) String apellido) {}
     public record Ficha(UUID codigo) {}
@@ -44,6 +45,7 @@ public class CuposDemoController {
         jdbc.query("""
                 SELECT c.recurso, c.limite, c.ocupados, r.tipo, r.codigo_publico, r.baja_en,
                        actor.nombre || ' ' || actor.apellido AS baja_por,
+                       lamontana.es_ficha_reservada_demo(r.tipo, r.codigo_publico) AS reservado,
                        CASE r.tipo WHEN 'PEDIDO' THEN 'Pedido PED-' || p.id_pedido
                                    WHEN 'CLIENTE' THEN u.nombre || ' ' || u.apellido
                                    WHEN 'COBRO' THEN 'Cobro #' || pago.id_pago
@@ -78,7 +80,7 @@ public class CuposDemoController {
                 var baja = rs.getTimestamp("baja_en");
                 cupo.registros().add(new Registro(rs.getString("tipo"), rs.getObject("codigo_publico", UUID.class),
                         rs.getString("concepto"), rs.getString("detalle"), baja == null ? null : baja.toInstant(),
-                        rs.getString("baja_por")));
+                        rs.getString("baja_por"), rs.getBoolean("reservado")));
             }
         });
         return new Panel(List.copyOf(cupos.values()));

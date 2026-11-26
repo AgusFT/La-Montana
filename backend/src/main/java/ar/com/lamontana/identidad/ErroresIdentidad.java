@@ -50,7 +50,9 @@ public class ErroresIdentidad {
             "23D04", "La Demo admite hasta 2 impresoras simuladas.");
     private static final Map<String, String> MENSAJES_BAJA = Map.of(
             "23D11", "El pedido está dado de baja en la Demo. Elegí un pedido activo para iniciar una impresión.",
-            "23D14", "La impresora está dada de baja en la Demo. Elegí otra para iniciar la impresión.");
+            "23D12", "Esta ficha de cliente está dada de baja en la Demo. Podés consultar su historial.",
+            "23D14", "La impresora está dada de baja en la Demo. Elegí otra para iniciar la impresión.",
+            "23D15", "La ficha de Lucía Papel está reservada para el selector de Cliente. Elegí otra ficha para liberar un lugar.");
 
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     ResponseEntity<Map<String,String>> formato(org.springframework.http.converter.HttpMessageNotReadableException ex) {
