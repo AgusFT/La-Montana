@@ -54,3 +54,9 @@ El tráfico HTTP sin cifrar sólo está habilitado en `debug`; `release` exige H
 
 Referencia funcional: [`docs/mobile-android-alcance-y-flujos.md`](../docs/mobile-android-alcance-y-flujos.md).
 
+
+## Finanzas del punto de entrega
+
+Requiere V64 del backend en la rama pruebas. **Cobros** presenta Hoy, Ayer y 7 días. Desde la ficha se puede cobrar efectivo y entregar con código o informar una transferencia a una cuenta autorizada. Consultá y verificá los avisos propios desde el detalle del movimiento cuando la cuenta lo permita. **Rendiciones** muestra la deuda acumulada, los fondos reservados, los disponibles y los últimos informes. Al perder una respuesta, usá **Recuperar registro** para reenviar el mismo comando. El pago al punto por sus servicios se registra desde Caja Web.
+
+Para probar, actualizá primero el backend y después esta rama. En Android Studio ejecutá la variante debug contra `http://10.0.2.2:8180`. El build de comprobación usa `gradle :app:assembleDebug :app:testDebugUnitTest` con Gradle 9.6.1.

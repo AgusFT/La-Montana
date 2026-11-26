@@ -1,5 +1,7 @@
 package ar.com.lamontana.mobile
 
+import ar.com.lamontana.mobile.data.*
+import org.json.JSONObject
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import ar.com.lamontana.mobile.data.LaMontanaApi
@@ -34,6 +36,11 @@ data class AppUiState(
     val pointPage: PointPage = PointPage(emptyList(), 0, 0),
     val pointSection: PointSection = PointSection.READY,
     val pointQuery: String = "",
+    val finance: FinanceView? = null,
+    val remittances: Boolean = false,
+    val financePeriod: String = "HOY",
+    val financePage: Int = 0,
+    val pointUncertain: Boolean = false,
     val pointDetail: PointOrderDetail? = null,
     val riderRoutes: List<RiderRoute> = emptyList(),
     val branchContext: BranchContext? = null,
@@ -59,6 +66,7 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     private var retry: Pair<Any, String>? = null
     private data class PendingBranch(val command: BranchCommand, val branch: String, val order: BranchOrder)
     private var pendingBranch: PendingBranch? = null
+    private var pendingPoint: PointCommand? = null
     private var pendingAdmin: AdminCommand? = null
 
     fun selectAdminSection(section: AdminSection) {
@@ -150,6 +158,12 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     fun loadPointOrders(section: PointSection, text: String, page: Int) {
         val s = state.value
         if (s.loading) return
+        if(s.pointUncertain)return
+        if(section==PointSection.FINANCE){
+            mutableState.value=s.copy(pointSection=section,pointDetail=null)
+            loadFinance(s.remittances,s.financePeriod,if(section==s.pointSection)s.financePage else 0)
+            return
+        }
         val changed = section != s.pointSection || text != s.pointQuery
         mutableState.value = s.copy(
             pointSection = section,
@@ -158,8 +172,7 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
         )
         request({
             val context = api.pointContext()
-            val result = if (section == PointSection.FINANCE) PointPage(emptyList(), 0, 0)
-                else api.pointOrders(section, text, page)
+            val result = api.pointOrders(section, text, page)
             context to if (result.orders.isEmpty() && result.page > 0) api.pointOrders(section, text, 0) else result
         }) { (context, result) ->
             mutableState.value = state.value.copy(point = context, pointPage = result)
@@ -188,11 +201,57 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
 
     fun deliverPointOrder(code: String, payment: PointPayment?) {
         val detail = state.value.pointDetail ?: return
-        if (state.value.loading || !validCode(code)) return
-        val operation = operationFor(listOf(detail.order.pedido, detail.order.version, detail.order.saldo, payment, code))
-        request({ api.deliverAtPoint(operation, detail, code, payment) }) { result ->
-            if (result.accepted) closePointOrder()
-            actionFinished(result, ::refreshPoint)
+        if (state.value.loading || state.value.pointUncertain) return
+        val transfer = payment?.medio=="TRANSFERENCIA"
+        if(!transfer && !validCode(code))return
+        val action=when {transfer->"avisos";payment!=null->"cobro-entrega";else->"entregar"}
+        val body=JSONObject().put("operacion",UUID.randomUUID().toString()).put("version",detail.order.version)
+            .put("confirmado",true)
+        if(!transfer)body.put("codigo",code)
+        payment?.let{body.put("importe",detail.order.saldo).put("medio",it.medio).put("referencia",it.referencia)
+            if(transfer)body.put("cuenta",it.destino) else body.put("destino","PUNTO_ENTREGA")}
+        sendPoint(PointCommand("/api/punto/pedidos/${detail.order.pedido}/$action",body.toString(),
+            if(transfer)"Transferencia informada. Pendiente de acreditación." else "Entrega confirmada."))
+    }
+
+    fun loadFinance(remittances:Boolean,period:String,page:Int){
+        val s=state.value
+        if(s.loading||s.pointUncertain||s.pointSection!=PointSection.FINANCE)return
+        mutableState.value=s.copy(finance=null,remittances=remittances,financePeriod=period,financePage=page)
+        request({if(remittances)api.finance.remittances() else api.finance.collections(period,page)}){
+            mutableState.value=state.value.copy(finance=it)
+        }
+    }
+    fun sendPoint(command:PointCommand){
+        if(state.value.loading||pendingPoint!=null)return
+        pendingPoint=command
+        retryPoint()
+    }
+    fun retryPoint(){
+        val command=pendingPoint?:return
+        if(state.value.loading)return
+        mutableState.value=state.value.copy(loading=true,error=null,message=null)
+        viewModelScope.launch {
+            try{
+                val reply=withContext(Dispatchers.IO){api.secureRequest(command.path,"POST",command.body)}
+                if(command.path.endsWith("/entregar")||command.path.endsWith("/cobro-entrega")){
+                    val response=JSONObject(reply)
+                    if(!response.getBoolean("aceptado")){
+                        pendingPoint=null
+                        mutableState.value=state.value.copy(loading=false,pointUncertain=false,error=response.getString("mensaje"))
+                        return@launch
+                    }
+                }
+                pendingPoint=null
+                mutableState.value=state.value.copy(loading=false,pointUncertain=false,pointDetail=null,message=command.message)
+                refreshPoint()
+            }catch(e:CancellationException){throw e}
+            catch(e:Exception){
+                val uncertain=e !is ApiException || e.status>=500 || e.status==408
+                if(!uncertain)pendingPoint=null
+                mutableState.value=state.value.copy(loading=false,pointUncertain=uncertain,
+                    error=if(uncertain)"Respuesta incierta. Recuperá el mismo registro." else e.message)
+            }
         }
     }
 
@@ -216,7 +275,7 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     }
 
     fun refreshBranch() {
-        if (state.value.loading || state.value.branchUncertain || state.value.adminUncertain) return
+        if (state.value.loading || state.value.pointUncertain || state.value.branchUncertain || state.value.adminUncertain) return
         if (state.value.branchContext == null) {
             request({ api.branchDesk.context() }) { context ->
                 if (!context.canDeliver || context.branches.isEmpty()) {
@@ -324,7 +383,7 @@ class AppViewModel(private val api: LaMontanaApi = LaMontanaApi()) : ViewModel()
     }
 
     fun logout() {
-        if (state.value.loading || state.value.branchUncertain || state.value.adminUncertain) return
+        if (state.value.loading || state.value.pointUncertain || state.value.branchUncertain || state.value.adminUncertain) return
         mutableState.value = state.value.copy(loading = true)
         viewModelScope.launch {
             runCatching { withContext(Dispatchers.IO) { api.logout() } }

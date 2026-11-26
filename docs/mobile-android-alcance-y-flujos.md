@@ -63,11 +63,9 @@ Nombre del receptor y observaciones normales deben seguir siendo opcionales. Có
 
 ### Finanzas del punto
 
-Conservar lo implementado: pendientes de los pedidos disponibles, efectivo y transferencias efectivamente registrados por la cuenta, paginación y seis meses iniciales; movimientos con importe, medio, pedido, responsable, fecha/hora y referencias.
+**Cobros** abre en Hoy y permite Ayer o Últimos 7 días. Muestra efectivo y transferencias recibidos por el punto, transferencias directas a sucursal, el total gestionado y el saldo por cobrar de los pedidos disponibles. Cada movimiento abre su detalle. Un aviso admite adjuntar el comprobante. La verificación corresponde a quien tenga acceso a la cuenta.
 
-**Distinción funcional importante:** hoy este resumen **no es una rendición liquidada al propietario**, no calcula comisión ni determina qué efectivo ya se transfirió a la imprenta. La necesidad de «cuánto nos debe el punto, en efectivo o transferencia» fue planteada por el usuario: **agregarla como submódulo futuro pendiente de modelo contable**, no representar los totales brutos actuales como deuda neta.
-
-El futuro módulo de rendiciones deberá definir por separado movimientos recibidos, dinero rendido/transferido, ajustes, saldo a rendir, responsable, conciliación y auditoría; sin inventar comisiones automáticas ni movimientos bancarios.
+**Rendiciones** muestra la obligación acumulada, el importe reservado y el disponible. El responsable informa la entrega efectiva a un destinatario habilitado. Puede rendir el efectivo mediante transferencia. La recepción se confirma en Caja Web y el rechazo conserva su motivo. El teléfono actualiza los saldos desde el mismo backend al volver a la vista o al pulsar Actualizar.
 
 ## 4. Módulo móvil «Reparto» — nuevo actor
 
@@ -228,7 +226,6 @@ Los puntos 1–6 parten de funcionalidades web/backend existentes. La identidad 
 - Reasignación excepcional de un recorrido ya iniciado y devolución física a la imprenta.
 - Protocolo de confirmación de llegada por repartidor y recepción por punto, sin doble transición.
 - Cobro a domicilio por repartidor y su posible liquidación: **no habilitado por omisión**.
-- Rendiciones del punto y definición de «monto que debe a la imprenta»: separar efectivo recibido, pagos digitales, transferencias rendidas, ajustes y conciliación, sin asumir comisiones.
 - Estrategia de notificaciones móviles, prioridad y permisos; no prometer ubicación GPS en tiempo real.
 - Política operativa para repartos sin conexión, paquetes perdidos y devoluciones físicas.
 
@@ -239,7 +236,7 @@ No convertir estos temas pendientes en comportamiento «implementado» ni invent
 1. Convertir `CU-AND-003` a `CU-AND-006` en casos de uso y maquetas mobile del Mostrador, reutilizando el contrato real de `/punto-retiro`.
 2. Definir dominio «Reparto» y permisos con diagrama de estados, eventos y trazabilidad; crear `CU-AND-007` a `011`.
 3. Especificar pantallas mobile del repartidor y su interacción con el mostrador del punto y el seguimiento del cliente.
-4. Diseñar rendiciones/conciliación como módulo financiero propio sin confundirlo con totales brutos.
+4. Validar en emulador las rendiciones parciales y la actualización tras la confirmación Web.
 5. Actualizar requisitos, historias de usuario, matriz de trazabilidad y pruebas reales de API.
 6. Probar en `pruebas` escenarios de seis meses y teléfonos Android; mantener separados los resultados simulados y las integraciones reales.
 
@@ -249,7 +246,7 @@ No convertir estos temas pendientes en comportamiento «implementado» ni invent
 
 La rama `android` inicia la aplicación nativa con Jetpack Compose, sin registro ni administración de identidades. Incluye login contra el backend, lectura explícita de los perfiles de punto y rider, enrutamiento seguro y la base responsive del mostrador del punto. Una cuenta marcada como punto abre **Por llegar / Para retirar / Entregados / Finanzas**; sólo un empleado habilitado como rider puede abrir el recorrido que Administración le asignó.
 
-La primera referencia visual está en [`mockups/android-v0-login-punto.svg`](mockups/android-v0-login-punto.svg). Las tarjetas de pedidos que aparecen en el `@Preview` son únicamente demostrativas; no se presentan como datos recibidos del backend. El contexto y los contadores del punto sí utilizan el contrato real. Las listas, recepción, búsqueda, entrega/cobro y finanzas se conectarán de forma incremental sin crear reglas paralelas.
+La primera referencia visual está en [`mockups/android-v0-login-punto.svg`](mockups/android-v0-login-punto.svg). Las tarjetas de pedidos que aparecen en el `@Preview` son únicamente demostrativas; no se presentan como datos recibidos del backend. El contexto y los contadores del punto sí utilizan el contrato real. Las listas, recepción, búsqueda, entrega, cobros y rendiciones consultan el backend del entorno de pruebas.
 
 La referencia del rider está en [`mockups/android-v0-rider-recorrido.svg`](mockups/android-v0-rider-recorrido.svg). Representa el resultado de la asignación administrativa aquí definida; los recorridos reales requieren todavía persistencia, API y permisos de rider en el backend.
 

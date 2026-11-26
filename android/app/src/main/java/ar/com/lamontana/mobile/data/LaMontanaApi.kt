@@ -6,7 +6,6 @@ import ar.com.lamontana.mobile.model.OrderVersion
 import ar.com.lamontana.mobile.model.PointContext
 import ar.com.lamontana.mobile.model.PointOrder
 import ar.com.lamontana.mobile.model.PointOrderDetail
-import ar.com.lamontana.mobile.model.PointPayment
 import ar.com.lamontana.mobile.model.PointReceipt
 import ar.com.lamontana.mobile.model.PointPage
 import ar.com.lamontana.mobile.model.PointSection
@@ -28,6 +27,7 @@ class ApiException(message: String, val status: Int) : Exception(message)
 
 class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')) {
     private val cookies = CookieManager(null, CookiePolicy.ACCEPT_ORIGINAL_SERVER)
+    val finance = PointFinanceApi { request(it) }
     val branchDesk = BranchDeskApi(read = { request(it) }, post = { path, body -> secureRequest(path, "POST", body) })
     val admin = AdminApi(read = { request(it) }, mutate = { path, method, body -> secureRequest(path, method, body) })
 
@@ -110,6 +110,7 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
             },
             deliveryBlocks = List(blocks.length()) { blocks.getString(it) },
             paymentMethods = List(methods.length()) { methods.getString(it) },
+            accounts = (detail.optJSONArray("cuentas") ?: JSONArray()).accounts(),
             originBranch = detail.optString("sucursalOrigen"),
             receipts = List(payments.length()) {
                 val payment = payments.getJSONObject(it)
@@ -125,18 +126,6 @@ class LaMontanaApi(private val baseUrl: String = BuildConfig.API_BASE_URL.trimEn
     fun receiveAtPoint(operation: String, orders: List<OrderVersion>) {
         val body = ordersPayload(orders).put("operacion", operation)
         secureRequest("/api/punto/recibir", "POST", body.toString())
-    }
-
-    fun deliverAtPoint(operation: String, detail: PointOrderDetail, code: String, payment: PointPayment?): ActionResult {
-        val body = confirmedAction(operation, detail.order.version).put("codigo", code)
-        val action = if (payment == null) "entregar" else {
-            body.put("importe", detail.order.saldo)
-                .put("medio", payment.medio)
-                .put("destino", payment.destino)
-                .put("referencia", payment.referencia)
-            "cobro-entrega"
-        }
-        return actionResult(secureRequest("/api/punto/pedidos/${detail.order.pedido}/$action", "POST", body.toString()))
     }
 
     fun riderRoutes(): List<RiderRoute> {

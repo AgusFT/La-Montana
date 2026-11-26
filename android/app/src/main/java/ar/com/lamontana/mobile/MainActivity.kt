@@ -104,7 +104,7 @@ fun LaMontanaApp(vm: AppViewModel = viewModel()) {
         MobileDestination.LOGIN -> LoginScreen(state.loading, state.error, vm::login)
         MobileDestination.POINT -> PointDeskScreen(
             state, vm::refreshPoint, vm::loadPointOrders, vm::openPointOrder,
-            vm::closePointOrder, vm::receivePointOrders, vm::deliverPointOrder, vm::logout,
+            vm::closePointOrder, vm::receivePointOrders, vm::deliverPointOrder, vm::logout, vm::loadFinance,vm::sendPoint,vm::retryPoint,
         )
         MobileDestination.RIDER -> RiderDesk(state, vm::refreshRider, vm::presentRiderOrders, vm::riderAction, vm::logout)
         MobileDestination.BRANCH -> BranchDeskScreen(
@@ -188,10 +188,13 @@ private fun PointDeskScreen(
     onReceive: (Set<String>) -> Unit,
     onDeliver: (String, PointPayment?) -> Unit,
     onLogout: () -> Unit,
+    onFinance:(Boolean,String,Int)->Unit = {_,_,_->},
+    onCommand:(ar.com.lamontana.mobile.data.PointCommand)->Unit = {},
+    onRetry:()->Unit = {},
 ) {
     val section = state.pointSection
     val point = state.point
-    val loading = state.loading
+    val loading = state.loading || state.pointUncertain
     val page = state.pointPage
     Scaffold(
         topBar = { MobileHeader("RETIRO DE PEDIDOS", onRefresh, onLogout, loading) },
@@ -223,15 +226,16 @@ private fun PointDeskScreen(
             }
             if (state.pointDetail == null) state.error?.let { Notice(it, Color(0xFFFFE9E7), Color(0xFF9B1C1C)) }
             state.message?.let { Notice(it, Color(0xFFE5F5EA), Green) }
-            if (loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(24.dp))
+            if(state.pointUncertain) Button(enabled=!state.loading,onClick=onRetry){Text("Recuperar registro")}
+            if (state.loading) CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally).padding(24.dp))
             if (section == PointSection.FINANCE) {
-                EmptySection("Finanzas del punto", "Podés consultar los movimientos desde el mostrador web.")
+                PointFinanceScreen(state,onFinance,onCommand)
             } else {
                 OrdersSection(section, page, state.pointQuery, loading, onLoadOrders, onOpenOrder, onReceive)
             }
         }
     }
-    state.pointDetail?.let {
+    if(!state.pointUncertain)state.pointDetail?.let {
         PointOrderDialog(it, point?.nombre.orEmpty(), loading, state.error, onCloseOrder, onDeliver, onReceive)
     }
 }
@@ -348,14 +352,15 @@ private fun PointOrderDialog(
     val order = detail.order
     val collect = order.recorrido == "DISPONIBLE_PUNTO" && detail.paymentMethods.isNotEmpty()
     val canDeliver = order.recorrido == "DISPONIBLE_PUNTO" && (detail.deliveryBlocks.isEmpty() || collect)
-    val action = if (collect) "Confirmar cobro y entrega" else "Confirmar entrega"
+
     var code by remember(order.pedido) { mutableStateOf("") }
     var method by remember(order.pedido, detail.paymentMethods) {
         mutableStateOf(order.medio.takeIf { it in detail.paymentMethods } ?: detail.paymentMethods.firstOrNull().orEmpty())
     }
-    var destination by remember(order.pedido) { mutableStateOf("SUCURSAL_ORIGEN") }
+    var destination by remember(order.pedido) { mutableStateOf(detail.accounts.firstOrNull()?.id.orEmpty()) }
     var reference by remember(order.pedido) { mutableStateOf("") }
     val transfer = collect && method == "TRANSFERENCIA"
+    val action = if(transfer)"Informar transferencia" else if (collect) "Confirmar cobro y entrega" else "Confirmar entrega"
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text("PED-${order.numero} · ${order.cliente}") },
@@ -389,11 +394,8 @@ private fun PointOrderDialog(
                     if (transfer) {
                         Text("Cuenta que recibió la transferencia", fontWeight = FontWeight.Bold)
                         Column(Modifier.selectableGroup()) {
-                            PaymentOption("Sucursal de origen · ${detail.originBranch}", destination == "SUCURSAL_ORIGEN", !loading) {
-                                destination = "SUCURSAL_ORIGEN"
-                            }
-                            PaymentOption("Punto de entrega · $pointName", destination == "PUNTO_ENTREGA", !loading) {
-                                destination = "PUNTO_ENTREGA"
+                            detail.accounts.forEach { account->
+                                PaymentOption(account.name+" · "+account.instructions,destination==account.id,!loading){destination=account.id}
                             }
                         }
                         OutlinedTextField(
@@ -403,16 +405,12 @@ private fun PointOrderDialog(
                             enabled = !loading,
                             singleLine = true,
                         )
-                        Text(if (destination == "SUCURSAL_ORIGEN") {
-                            "Confirmá cuando la sucursal verifique la acreditación."
-                        } else {
-                            "Verificá la acreditación en la cuenta del punto antes de confirmar."
-                        })
+                        Text("La entrega queda pendiente hasta verificar la acreditación.")
                     } else {
                         Text("Confirmá después de recibir el efectivo en el punto.")
                     }
                 }
-                if (canDeliver) OutlinedTextField(
+                if (canDeliver && !transfer) OutlinedTextField(
                     value = code,
                     onValueChange = { code = it.uppercase().trim().take(8) },
                     label = { Text("Código de entrega") },
@@ -427,7 +425,7 @@ private fun PointOrderDialog(
                 Text(if (loading) "Registrando…" else "Confirmar recepción")
             }
             if (canDeliver) Button(
-                enabled = !loading && code.length == 8 && (!transfer || reference.isNotBlank()),
+                enabled = !loading && (if(transfer) destination.isNotBlank() && reference.isNotBlank() else code.length == 8),
                 onClick = {
                     val payment = if (!collect) null else PointPayment(
                         method,
