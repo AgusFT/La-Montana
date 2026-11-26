@@ -7,6 +7,7 @@ import {useNavigationGuard} from "./navigation-boundary";
 import "@/app/branch-cash.css";
 
 const labels = {
+  PAGO_PUNTO_ENTREGA:"Pago por servicios de un punto", RECEPCION_PUNTO:"Recepción de rendición de punto",
   COBRO:"Cobro de pedido", DEVOLUCION:"Devolución", PAGO_EMPLEADO:"Pago a empleado",
   PAGO_PROVEEDOR:"Pago a proveedor", RENDICION:"Rendición a administración",
 } as const;
@@ -59,6 +60,8 @@ function Pages({page,total,disabled,onPage}:{page:number;total:number;disabled:b
 }
 
 export function BranchCash({branch,admin=false}:{branch:string;admin?:boolean}) {
+  const [pointPayment,setPointPayment]=useState(false),[points,setPoints]=useState<{punto:string;nombre:string}[]>([]);
+  useEffect(()=>{let live=true;fetch(`/api/operacion/sucursales/${branch}/puntos-beneficiarios`,{cache:"no-store"}).then(r=>r.ok?r.json():[]).then(v=>{if(live&&Array.isArray(v))setPoints(v);}).catch(()=>{});return()=>{live=false;};},[branch]);
   const base=`/api/operacion/sucursales/${branch}/caja`;
   const [view,setView]=useState<View|null>(null),[mode,setMode]=useState<Mode|null>(null);
   const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[uncertain,setUncertain]=useState(false);
@@ -121,13 +124,13 @@ export function BranchCash({branch,admin=false}:{branch:string;admin?:boolean}) 
       }
       pending.current={path:`${base}/egresos`,body:JSON.stringify({
         operacion,tipo:mode==="rendicion"?"RENDICION":field("tipo"),medio:mode==="rendicion"?"EFECTIVO":field("medio"),
-        importe,destinatario:field("destinatario"),concepto:field("concepto"),comprobante,
+        ...(field("tipo")==="PAGO_PUNTO_ENTREGA"?{punto:field("punto"),referencia:field("referencia")} : {}),importe,destinatario:field("destinatario"),concepto:field("concepto"),comprobante,
       })};
     }
     await send();
   }
 
-  function choose(next:Mode) {setMode(next);setFormError("");setMessage("");}
+  function choose(next:Mode) {setPointPayment(false);setMode(next);setFormError("");setMessage("");}
   const zone=view?.zonaHoraria;
   const moment=(iso:string)=>new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short",timeZone:zone}).format(new Date(iso));
   return <section className="cash-ledger" aria-label="Movimientos y arqueos de caja">
@@ -147,8 +150,9 @@ export function BranchCash({branch,admin=false}:{branch:string;admin?:boolean}) 
       {mode&&<form className="client-form cash-editor" onSubmit={submit}>
         <h3>{modeTitles[mode]}</h3>
         <fieldset disabled={saving||uncertain||loading} className="cash-fields">
-          {mode==="egreso"&&<><label>Tipo de pago<select name="tipo"><option value="PAGO_PROVEEDOR">Pago a proveedor</option><option value="PAGO_EMPLEADO">Pago a empleado</option></select></label>
-            <label>Medio<select name="medio"><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option></select></label></>}
+          {mode==="egreso"&&<><label>Tipo de pago<select name="tipo" defaultValue="PAGO_PROVEEDOR" onChange={e=>setPointPayment(e.target.value==="PAGO_PUNTO_ENTREGA")}>{points.length>0&&<option value="PAGO_PUNTO_ENTREGA" hidden={false}>Pago por servicios de un punto</option>}<option value="PAGO_PROVEEDOR">Pago a proveedor</option><option value="PAGO_EMPLEADO">Pago a empleado</option></select></label>
+            {pointPayment&&<><label>Punto beneficiario<select name="punto" required>{points.map(p=><option key={p.punto} value={p.punto}>{p.nombre}</option>)}</select></label><label>Referencia bancaria<input name="referencia" required maxLength={160}/></label></>}
+            <label>Medio<select name="medio" key={String(pointPayment)}>{!pointPayment&&<option value="EFECTIVO">Efectivo</option>}<option value="TRANSFERENCIA">Transferencia</option></select></label></>}
           <label>{mode==="arqueo"?"Efectivo contado":"Importe en pesos"}<input name="importe" required inputMode="decimal" maxLength={20} pattern="[0-9]{1,17}([.,][0-9]{1,2})?"/></label>
           {mode==="arqueo"?<label>Observación (opcional)<input name="observacion" maxLength={300}/></label>:<>
             <label>{mode==="rendicion"?"Quién recibió el efectivo":"Persona o proveedor que recibió el pago"}<input name="destinatario" required maxLength={140}/></label>

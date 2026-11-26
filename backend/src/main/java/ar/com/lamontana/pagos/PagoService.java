@@ -126,7 +126,7 @@ public class PagoService {
     private record Asignacion(long id,long cotizacion,UUID codigo,BigDecimal neto){}
     // Preserve fingerprints for commands sent before the optional combined flow existed.
     private record RecepcionAnterior(UUID operacion,UUID intento,MedioPago medio,String importe,String referencia,Instant recibidoEn,boolean verificado,String motivo){}
-    public record Intento(UUID codigoPublico,UUID cotizacion,String importe,String referencia,String estado,Instant fecha){}
+    public record Intento(UUID codigoPublico,UUID cotizacion,String importe,String referencia,String estado,Instant fecha,String cuentaDestino){}
     public record Aplicacion(UUID cotizacion,long numero,String importe,String vigente,Instant fecha,String motivo){}
     public record Devolucion(UUID codigoPublico,String importe,String medio,String referencia,Instant fecha,String motivo){}
     public enum DestinoCobro { PUNTO_ENTREGA, SUCURSAL_ORIGEN }
@@ -178,6 +178,47 @@ public class PagoService {
         cobro.movimiento(q.id(),in.operacion(),a.id(),"INFORMAR",in.motivo());
         return leer(q,a,correo,false);
     }
+    @Transactional
+    public void informarDesdePunto(UUID quote, UUID pedido, long version, UUID cuenta, Informar in, String correo) {
+        bloquear();
+        var actor=actor(correo,true);
+        var q=autorizar(quote,actor,correo);
+        organizacion.exigirPermiso(correo,"REGISTRAR_COBRO");
+        String hash=huella(pedido,List.of(version,cuenta,in));
+        var previos=jdbc.query("SELECT huella,id_actor FROM lamontana.aviso_punto WHERE operacion=?",
+            (r,n)->r.getString(1).equals(hash)&&r.getLong(2)==actor.id(),in.operacion());
+        if(!previos.isEmpty()){
+            if(!previos.get(0))throw conflicto("La operación ya se utilizó con otros datos.");
+            return;
+        }
+        var punto=ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,correo);
+        boolean disponible=Boolean.TRUE.equals(jdbc.queryForObject("""
+            SELECT EXISTS(SELECT 1 FROM lamontana.instruccion_punto_actual i JOIN lamontana.pedido_actual p
+              ON p.codigo_publico=? AND p.id_cotizacion=? AND p.version=?
+              JOIN lamontana.cotizacion c ON c.id_cotizacion=p.id_cotizacion
+              WHERE i.operacion=? AND i.id_punto_entrega=? AND i.habilitada AND
+              (i.uso='COBRO_PUNTO' OR i.uso='COBRO_ORIGEN' AND i.id_sucursal=c.id_sucursal)
+              AND p.estado='LISTO_PARA_ENTREGA' AND lamontana.estado_logistico(p.id_pedido)='DISPONIBLE_PUNTO')
+            """,Boolean.class,pedido,q.id(),version,cuenta,punto));
+        if(!disponible)throw conflicto("El pedido o la cuenta cambió. Actualizá la ficha.");
+        exigir(admite(q,MedioPago.TRANSFERENCIA),"Esta oferta no admite transferencia.");
+        var cantidad=importe(in.importe());
+        if(cantidad.compareTo(new BigDecimal(q.datos().total()).subtract(cobertura.acreditado(q.id(),List.of(MedioPago.values()))))>0)
+            throw conflicto("El importe supera el saldo pendiente.");
+        if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pago WHERE clave_referencia=?)",Boolean.class,clave(q,MedioPago.TRANSFERENCIA,in.referencia())))
+            throw conflicto("Esta transferencia ya fue acreditada.");
+        Long intento=intentoDelCobro(q,cantidad,in.referencia());
+        if(intento==null){
+            long evento=evento(in.operacion(),q.id(),actor,"INFORMAR",hash,in.motivo());
+            intento=jdbc.queryForObject("INSERT INTO lamontana.intento_pago(codigo_publico,id_cotizacion,id_evento,importe_informado,referencia_informada) VALUES (?,?,?,?,?) RETURNING id_intento_pago",
+                Long.class,UUID.randomUUID(),q.id(),evento,cantidad,in.referencia().strip());
+            cobro.movimiento(q.id(),in.operacion(),actor.id(),"INFORMAR",in.motivo());
+        }
+        if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.aviso_punto WHERE id_intento_pago=?)",Boolean.class,intento))
+            throw conflicto("Esta transferencia ya está informada. Consultá su estado.");
+        jdbc.update("INSERT INTO lamontana.aviso_punto(id_intento_pago,instruccion,operacion,id_actor,huella) VALUES (?,?,?,?,?)",
+            intento,cuenta,in.operacion(),actor.id(),hash);
+    }
     @Transactional public Vista descartar(UUID quote,Descartar in,String correo,boolean interno){
         bloquear();var a=actor(correo,interno);var q=autorizar(quote,a,correo);if(interno)organizacion.exigirPermiso(correo,"ACREDITAR_PAGO");String hash=huella(quote,in);
         if(replay(in.operacion(),"DESCARTAR",hash,a))return leer(q,a,correo,interno);long intento=intentoPendiente(q,in.intento());texto(in.motivo());
@@ -223,8 +264,7 @@ public class PagoService {
         if(ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,correo)==null)
             throw error(HttpStatus.FORBIDDEN,"El cobro debe registrarse desde la cuenta del punto.");
         if(in.medio()==MedioPago.TRANSFERENCIA){
-            exigir(destino!=null,"Indicá en qué cuenta se acreditó la transferencia.");
-            texto(in.referencia());
+            throw conflicto("Informá la transferencia y verificá su acreditación antes de entregar.");
         }else{
             exigir(destino==null||destino==DestinoCobro.PUNTO_ENTREGA,"El efectivo se recibe en el punto de entrega.");
             destino=DestinoCobro.PUNTO_ENTREGA;
@@ -246,8 +286,36 @@ public class PagoService {
         exigir(admite(q,in.medio()),"El medio no corresponde a esta oferta ni a la configuración vigente.");
         Long intento=null;
         if(in.intento()!=null)intento=intentoPendiente(q,in.intento());
-        else if(destino!=null&&in.medio()==MedioPago.TRANSFERENCIA)
+        else if(in.medio()==MedioPago.TRANSFERENCIA)
             intento=intentoDelCobro(q,importe,referencia);
+        if(intento!=null){
+            var instrucciones=jdbc.query("""
+                SELECT i.uso,i.id_punto_entrega,pt.codigo,i.id_sucursal,ip.importe_informado,ip.referencia_informada,
+                 coalesce(actual.habilitada AND actual.verifica_punto AND actual.instrucciones=i.instrucciones,false) puede_verificar,
+                 coalesce(actual.habilitada AND actual.verifica_admin AND actual.instrucciones=i.instrucciones,false) verifica_admin
+                FROM lamontana.aviso_punto av JOIN lamontana.instruccion_punto i ON i.operacion=av.instruccion
+                JOIN lamontana.punto_entrega pt USING(id_punto_entrega) JOIN lamontana.intento_pago ip USING(id_intento_pago)
+                LEFT JOIN lamontana.instruccion_punto_actual actual ON actual.id_punto_entrega=i.id_punto_entrega
+                 AND actual.uso=i.uso AND actual.medio=i.medio AND actual.id_sucursal IS NOT DISTINCT FROM i.id_sucursal
+                WHERE av.id_intento_pago=?
+                """,(r,n)->new Object[]{r.getString(1),r.getLong(2),r.getString(3),r.getBigDecimal(5),r.getString(6),r.getBoolean(7),r.getBoolean(8)},intento);
+            if(!instrucciones.isEmpty()){
+                var info=instrucciones.get(0);
+                boolean propia="COBRO_PUNTO".equals(info[0]);
+                var cuentaPunto=ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,correo);
+                if(cuentaPunto!=null && !(propia && cuentaPunto.equals(info[1]) && (boolean)info[5]) ||
+                    cuentaPunto==null && propia && !a.rol().equals("ADMIN_ADMIN") ||
+                    a.rol().equals("ADMIN_ADMIN") && !(boolean)info[6])
+                    throw error(HttpStatus.FORBIDDEN,"Tu cuenta no puede verificar esta acreditación.");
+                if(importe.compareTo((BigDecimal)info[3])!=0 || !referenciaNormalizada(referencia).equals(referenciaNormalizada((String)info[4])))
+                    throw conflicto("El importe o la referencia difieren del aviso. Revisá la transferencia.");
+                exigir(Boolean.TRUE.equals(in.aplicarAlPedido()),"Acreditá y aplicá la transferencia al pedido.");
+                destino=propia?DestinoCobro.PUNTO_ENTREGA:DestinoCobro.SUCURSAL_ORIGEN;
+                punto=(String)info[2];
+            } else if(ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,correo)!=null && in.medio()==MedioPago.TRANSFERENCIA)
+                throw conflicto("Primero informá la transferencia y su cuenta de destino.");
+        } else if(ar.com.lamontana.puntos.CuentaPuntoAcceso.punto(jdbc,correo)!=null && in.medio()==MedioPago.TRANSFERENCIA)
+            throw conflicto("Primero informá la transferencia y su cuenta de destino.");
         String clave=retiro!=null&&in.medio()==MedioPago.EFECTIVO
             ?in.medio().name()+":"+retiro+":"+huella(null,referenciaNormalizada(referencia)):clave(q,in.medio(),referencia);
         if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pago WHERE clave_referencia=?)",Boolean.class,clave))throw conflicto("Ese movimiento o recibo ya fue registrado. Consultá el pago existente.");
@@ -292,9 +360,10 @@ public class PagoService {
         cobro.movimiento(q.id(),in.operacion(),a.id(),"APLICAR",in.motivo());
         return leer(q,a,correo,true);
     }
+    private record DevolucionAnterior(UUID operacion,UUID pago,long version,MedioPago medio,String importe,String referencia,Instant devueltoEn,boolean verificado,String motivo){}
     @Transactional public Vista devolver(UUID quote,Devolver in,String correo){
         bloquear();var a=actor(correo,true);var q=autorizar(quote,a,correo);var p=fondos(in.pago());var origen=autorizar(codigo(p.origen()),a,correo);organizacion.exigirPermiso(correo,"REGISTRAR_DEVOLUCION");
-        exigir(q.cliente()==origen.cliente()&&descendiente(q.id(),p.origen()),"El pago no pertenece a esta cotización ni a sus predecesoras.");String hash=huella(quote,in);
+        exigir(q.cliente()==origen.cliente()&&descendiente(q.id(),p.origen()),"El pago no pertenece a esta cotización ni a sus predecesoras.");String hash=huella(quote,in.fondosDelPunto()==null?new DevolucionAnterior(in.operacion(),in.pago(),in.version(),in.medio(),in.importe(),in.referencia(),in.devueltoEn(),in.verificado(),in.motivo()):in);
         if(replay(in.operacion(),"DEVOLVER",hash,a))return leer(q,a,correo,true);version(p,in.version());
         exigir(in.verificado(),"Confirmá la devolución efectivamente realizada.");BigDecimal cantidad=importe(in.importe());texto(in.motivo());texto(in.referencia());fecha(in.devueltoEn());
         if(in.devueltoEn().isBefore(jdbc.queryForObject("SELECT recibido_en FROM lamontana.pago WHERE id_pago=?",Timestamp.class,p.id()).toInstant()))throw conflicto("La devolución no puede ser anterior al cobro.");
@@ -302,7 +371,12 @@ public class PagoService {
         String clave=clave(origen,in.medio(),in.referencia());if(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.reembolso WHERE clave_referencia=?)",Boolean.class,clave))throw conflicto("Esa devolución ya fue registrada.");
         var asignaciones=asignaciones(p.id());for(var asignacion:asignaciones)autorizar(asignacion.codigo(),a,correo);
         if(cantidad.compareTo(p.disponible())>0&&asignaciones.stream().anyMatch(x->pedidoCerrado(oferta(x.codigo()))))throw conflicto("El pedido está cerrado. Sólo se puede devolver dinero no aplicado; la corrección administrativa de un cierre está en construcción.");
-        long e=evento(in.operacion(),q.id(),a,"DEVOLVER",hash,in.motivo());long id=jdbc.queryForObject("INSERT INTO lamontana.reembolso(codigo_publico,id_pago,id_evento,importe,medio,referencia,clave_referencia,devuelto_en) VALUES (?,?,?,?,?,?,?,?) RETURNING id_reembolso",Long.class,UUID.randomUUID(),p.id(),e,cantidad,in.medio().name(),in.referencia().strip(),clave,Timestamp.from(in.devueltoEn()));
+        Long pagador=null;
+        if(Boolean.TRUE.equals(in.fondosDelPunto())){
+            pagador=jdbc.query("SELECT m.id_punto_entrega FROM lamontana.movimiento_punto m JOIN lamontana.saldo_punto s USING(id_punto_entrega) WHERE m.codigo=? AND m.tipo='COBRO' AND s.pendiente-s.reservado>=?",
+                (r,n)->r.getLong(1),in.pago(),cantidad).stream().findFirst().orElseThrow(()->conflicto("El punto no dispone de fondos libres para esa devolución."));
+        }
+        long e=evento(in.operacion(),q.id(),a,"DEVOLVER",hash,in.motivo());long id=jdbc.queryForObject("INSERT INTO lamontana.reembolso(codigo_publico,id_pago,id_evento,importe,medio,referencia,clave_referencia,devuelto_en,id_punto_pagador) VALUES (?,?,?,?,?,?,?,?,?) RETURNING id_reembolso",Long.class,UUID.randomUUID(),p.id(),e,cantidad,in.medio().name(),in.referencia().strip(),clave,Timestamp.from(in.devueltoEn()),pagador);
         BigDecimal restar=cantidad.subtract(p.disponible()).max(BigDecimal.ZERO);
         for(var asignacion:asignaciones){if(restar.signum()==0)break;BigDecimal parte=restar.min(asignacion.neto());jdbc.update("INSERT INTO lamontana.reembolso_aplicacion(id_reembolso,id_aplicacion,importe) VALUES (?,?,?)",id,asignacion.id(),parte);restar=restar.subtract(parte);}
         cobro.movimiento(q.id(),in.operacion(),a.id(),"DEVOLVER",in.motivo());
@@ -324,7 +398,7 @@ public class PagoService {
         if(interno)permisoFinanciero(correo);var permisos=interno?organizacion.contexto(correo).permisos():List.<String>of();
         var asignado=cobertura.acreditado(q.id(),List.of(MedioPago.values()));var c=q.datos().condiciones();String anticipo=dinero(new BigDecimal(c.pagoPrevioRequerido()).add(new BigDecimal(c.senaRequerida())));
         var actual=condicionesFinales(q);
-        var intentos=jdbc.query("SELECT i.*,c.codigo_publico AS cotizacion,e.fecha,coalesce(r.resultado,'PENDIENTE') AS estado FROM lamontana.intento_pago i JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.evento_financiero e USING(id_evento) LEFT JOIN lamontana.resolucion_intento_pago r USING(id_intento_pago) WHERE i.id_cotizacion=? ORDER BY i.id_intento_pago DESC LIMIT 100",(r,n)->new Intento(r.getObject("codigo_publico",UUID.class),r.getObject("cotizacion",UUID.class),r.getBigDecimal("importe_informado").toPlainString(),r.getString("referencia_informada"),r.getString("estado"),r.getTimestamp("fecha").toInstant()),q.id());
+        var intentos=jdbc.query("SELECT i.*,(SELECT ins.uso||' · '||coalesce(sc.nombre,pt.codigo)||' · '||ins.instrucciones FROM lamontana.aviso_punto av JOIN lamontana.instruccion_punto ins ON ins.operacion=av.instruccion JOIN lamontana.punto_entrega pt USING(id_punto_entrega) LEFT JOIN lamontana.sucursal sc USING(id_sucursal) WHERE av.id_intento_pago=i.id_intento_pago) cuenta_destino,c.codigo_publico AS cotizacion,e.fecha,coalesce(r.resultado,'PENDIENTE') AS estado FROM lamontana.intento_pago i JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.evento_financiero e USING(id_evento) LEFT JOIN lamontana.resolucion_intento_pago r USING(id_intento_pago) WHERE i.id_cotizacion=? ORDER BY i.id_intento_pago DESC LIMIT 100",(r,n)->new Intento(r.getObject("codigo_publico",UUID.class),r.getObject("cotizacion",UUID.class),r.getBigDecimal("importe_informado").toPlainString(),r.getString("referencia_informada"),r.getString("estado"),r.getTimestamp("fecha").toInstant(),r.getString("cuenta_destino")),q.id());
         var pagos=new ArrayList<Pago>();var ids=jdbc.query("SELECT p.codigo_publico FROM lamontana.pago p WHERE lamontana.cotizacion_descendiente(?,p.id_cotizacion) ORDER BY p.id_pago",(r,n)->r.getObject(1,UUID.class),q.id());
         for(var id:ids){var p=fondos(id);var origen=oferta(codigo(p.origen()));if(interno&&!acceso(origen,a,correo))continue;
             var apps=jdbc.query("SELECT c.codigo_publico,c.id_cotizacion,a.importe,a.neto,e.fecha,e.motivo FROM lamontana.aplicacion_pago_neta a JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.evento_financiero e USING(id_evento) WHERE a.id_pago=? ORDER BY a.id_aplicacion",(r,n)->new Aplicacion(r.getObject(1,UUID.class),r.getLong(2),r.getBigDecimal(3).toPlainString(),r.getBigDecimal(4).toPlainString(),r.getTimestamp(5).toInstant(),r.getString(6)),p.id());
@@ -406,7 +480,8 @@ public class PagoService {
             WHERE i.id_cotizacion=? AND i.importe_informado=? AND r.id_intento_pago IS NULL
             """,(r,n)->Map.entry(r.getLong(1),r.getString(2)),q.id(),importe).stream()
             .filter(i->referenciaNormalizada(i.getValue()).equals(normalizada)).map(Map.Entry::getKey).toList();
-        return ids.size()==1?ids.get(0):null;
+        if(ids.size()>1)throw conflicto("Hay más de un aviso coincidente. Revisá los avisos pendientes.");
+        return ids.isEmpty()?null:ids.get(0);
     }
     private String referenciaNormalizada(String ref){return ref.strip().toUpperCase(Locale.ROOT).replaceAll("\\s+"," ");}
     private String clave(Oferta q,MedioPago medio,String ref){return medio.name()+":"+(medio==MedioPago.EFECTIVO?q.sucursal()+":":"")+huella(null,referenciaNormalizada(ref));}

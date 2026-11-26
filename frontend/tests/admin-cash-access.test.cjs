@@ -18,9 +18,10 @@ test('la caja administrativa exige administrador y permite recorrer todas las su
 });
 
 test('el menú operativo y la pantalla usan la caja asignada por el servidor',()=>{
- assert.match(shell,/context\?\.cajaSucursal&&<GuidedNavLink[^\n]+href="\/operacion\/caja"/);
+ assert.match(shell,/context\?\.cajaSucursal\|\|context\?\.permisos\.some\(p=>p==="CONFIRMAR_RENDICION_PUNTO"\|\|p==="INFORMAR_RENDICION_PUNTO"\)\)&&<GuidedNavLink[^\n]+href="\/operacion\/caja"/);
  assert.match(operation,/getOperationContext\(\)/);
  assert.match(operation,/s\.codigoPublico===context\.cajaSucursal/);
  assert.match(operation,/<BranchCash branch=\{branch\.codigoPublico\}\/>/);
+ assert.match(operation,/context\.sucursales\.map\(s=><RemittanceInbox/);
  assert.doesNotMatch(operation,/searchParams/);
 });

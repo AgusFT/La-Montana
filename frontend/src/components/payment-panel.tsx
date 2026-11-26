@@ -57,6 +57,7 @@ export function PaymentPanel({quote,internal=false,onChange,compact=false,title,
  function choose(a:Action){if(locked)return;setAction(a);setError("");setSuccess("");if(!["recibir","informar"].includes(a.type))setTimeout(()=>{formRef.current?.scrollIntoView({behavior:"smooth",block:"center"});formRef.current?.querySelector<HTMLInputElement>("input:not([type=hidden])")?.focus();},0);}
  async function receive(body:Record<string,unknown>){if(locked||sending.current)return;command.current={path:`${base}/recibir`,body:JSON.stringify({operacion:crypto.randomUUID(),...body})};await execute();}
  async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();if(locked||!action)return;const f=new FormData(e.currentTarget);const body:Record<string,unknown>={operacion:crypto.randomUUID(),motivo:f.get("motivo")};
+  if(action.type==="devolver"&&action.payment?.destinoCobro)body.fondosDelPunto=f.get("fondos")==="PUNTO";
   if(action.type!=="descartar")body.importe=f.get("importe");
   if(["informar","recibir","devolver"].includes(action.type))body.referencia=f.get("referencia");
   if(action.intento)body.intento=action.intento;
@@ -78,9 +79,9 @@ export function PaymentPanel({quote,internal=false,onChange,compact=false,title,
  {loading&&<p role="status">Consultando pagos…</p>}{error&&<p role="alert" className="client-warning">{error}</p>}{success&&<p role="status" className="client-success">{success}</p>}
  {data&&<>{internal&&pendingTransfers.length>0&&<section className="client-card" aria-label="Transferencias por verificar">
  <h3>Transferencias por verificar ({pendingTransfers.length})</h3>
- <p>El cliente informó un pago. El saldo sigue pendiente hasta que confirmes la recepción en el banco o la billetera.</p>
+ <p>Hay una transferencia informada. El saldo sigue pendiente hasta que confirmes la recepción en el banco o la billetera.</p>
  {pendingTransfers.map(i=><article key={i.codigoPublico} className="client-note">
-  <strong>{money(i.importe)} informados</strong> · {date(i.fecha)}
+  <strong>{money(i.importe)} informados</strong> · {date(i.fecha)} · {i.referencia}{i.cuentaDestino&&<p>Verificar en la cuenta autorizada · {i.cuentaDestino}</p>}
   <div className="client-actions">
    <button type="button" className="client-button secondary" disabled={locked} onClick={()=>setEvidence({quote:i.cotizacion,parent:i.codigoPublico,kind:"intento"})}>Consultar comprobante</button>
    {permission("ACREDITAR_PAGO")&&<><button type="button" className="client-button payment-confirm" disabled={locked} onClick={()=>choose({type:"recibir",intento:i.codigoPublico,medio:"TRANSFERENCIA"})}>Confirmar recepción</button><button type="button" className="client-button secondary" disabled={locked} onClick={()=>choose({type:"descartar",intento:i.codigoPublico})}>Rechazar aviso</button></>}
@@ -106,6 +107,7 @@ export function PaymentPanel({quote,internal=false,onChange,compact=false,title,
  {action.type==="aplicar"&&<p className="client-warning">Se aplicará a COT-{data.numero}, por {money(data.total)}; pendiente {money(data.pendiente)}. Si cubría una oferta anterior vencida o sustituida, la operación liberará esa aplicación y conservará su historia. El excedente queda disponible para devolución. Máximo aplicable ahora: {money(action.payment?.maximoAplicable??"0")}.</p>}
  {action.type==="devolver"&&<p className="client-warning">{data.pedidoCerrado?"Registrá sólo dinero ya devuelto que estuviera disponible como excedente; el importe aplicado al pedido cerrado se conserva.":"Registrá sólo dinero que ya devolviste. Primero se descuenta del disponible y luego de las aplicaciones; esto puede volver a bloquear aprobación, producción y entrega; no elimina el PDF ni bloquea su carga."}</p>}
  {action.type!=="descartar"&&<label>Importe en pesos<input name="importe" required inputMode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" maxLength={20} placeholder="Ingresá el importe; decimales con punto"/></label>}
+ {action.type==="devolver"&&action.payment?.destinoCobro&&<label>Quién entregó los fondos<select name="fondos" required defaultValue=""><option value="" disabled>Seleccionar</option><option value="PUNTO">El punto de entrega</option><option value="SUCURSAL">La sucursal</option></select></label>}
  {action.type==="devolver"&&<label>Medio de devolución<select name="medio" required defaultValue=""><option value="" disabled>Seleccioná el medio</option><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option></select></label>}
  {action.type==="devolver"&&<label>{action.medio==="EFECTIVO"?"Número de recibo único en la sucursal":"Referencia única: banco, cuenta y movimiento"}<input name="referencia" required maxLength={160}/></label>}
  {action.type==="devolver"&&<label>Fecha y hora del movimiento (hora de tu dispositivo)<input name="fecha" type="datetime-local" required/></label>}

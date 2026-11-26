@@ -55,6 +55,8 @@ public class SeguridadConfiguration {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/publico/pagina-web", "/api/publico/pagina-web/imagenes/*", "/api/publico/pagina-web/imagenes/*/miniatura", "/api/sistema/estado", "/actuator/health", "/actuator/health/**", "/api/setup/estado", "/api/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/setup/propietario", "/api/auth/login", "/api/auth/registro", "/api/auth/recuperacion/solicitar", "/api/auth/recuperacion/confirmar").permitAll()
+                        .requestMatchers("/api/admin/finanzas-puntos","/api/admin/finanzas-puntos/**").hasRole("ADMIN_ADMIN")
+                        .requestMatchers("/api/operacion/sucursales/*/rendiciones-puntos","/api/operacion/sucursales/*/rendiciones-puntos/**","/api/operacion/sucursales/*/puntos-beneficiarios").hasAnyRole("ADMIN_ADMIN","EMPLEADO")
                         .requestMatchers("/api/punto/**").hasRole("EMPLEADO")
                         .requestMatchers(HttpMethod.GET,"/api/rider/recorridos","/api/rider/recorridos/activo").hasAnyRole("ADMIN_ADMIN","EMPLEADO")
                         .requestMatchers(HttpMethod.POST,"/api/rider/pedidos/*/parada","/api/rider/pedidos/*/entregar","/api/rider/recorridos/*/presentar").hasAnyRole("ADMIN_ADMIN","EMPLEADO")

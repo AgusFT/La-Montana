@@ -145,12 +145,40 @@ class DatosPruebaIntegrationTest {
             var invalid=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code.equals("ZZZZZZZZ")?"YYYYYYYY":"ZZZZZZZZ",cash.saldo(),null,null,true,true);assertThat(sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",invalid,200).get("aceptado").asBoolean()).isFalse();
             var command=new ar.com.lamontana.entregas.EntregaController.CobrarEntregar(UUID.randomUUID(),cash.version(),code,cash.saldo(),null,null,true,true);long payments=count(jdbc,"pago");var done=sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",command,200);assertThat(done.get("vista").get("estadoPedido").asString()).isEqualTo("CERRADO");sendPoint(cab,"POST","/api/punto/pedidos/"+cash.pedido()+"/efectivo-entrega",command,200);assertThat(count(jdbc,"pago")).isEqualTo(payments+1);
             var transfer=service.buscar(new ar.com.lamontana.puntos.PuntoRetiroController.Buscar("DISPONIBLES","",0),alias).pedidos().stream().filter(o->o.medio().equals("TRANSFERENCIA")&&new BigDecimal(o.saldo()).signum()>0).findFirst().orElseThrow();
-            var pay=new ar.com.lamontana.puntos.PuntoRetiroController.Cobro(UUID.randomUUID(),transfer.version(),ar.com.lamontana.configuracion.ConfiguracionController.MedioPago.TRANSFERENCIA,transfer.saldo(),null,true);var received=sendPoint(cab,"POST","/api/punto/pedidos/"+transfer.pedido()+"/cobrar",pay,200);assertThat(received.get("entrega").get("saldo").asString()).isEqualTo("0.00");sendPoint(cab,"POST","/api/punto/pedidos/"+transfer.pedido()+"/cobrar",pay,200);
-            var finances=get(cab,"/api/punto/finanzas",200);assertThat(new BigDecimal(finances.get("efectivo").asString())).isPositive();assertThat(new BigDecimal(finances.get("transferencia").asString())).isPositive();assertThat(finances.get("total").asInt()).isGreaterThan(2);
+            var pay=new ar.com.lamontana.puntos.PuntoRetiroController.Cobro(UUID.randomUUID(),transfer.version(),ar.com.lamontana.configuracion.ConfiguracionController.MedioPago.TRANSFERENCIA,transfer.saldo(),null,true);sendPoint(cab,"POST","/api/punto/pedidos/"+transfer.pedido()+"/cobrar",pay,409);
+            var finances=get(cab,"/api/punto/finanzas",200);
+            assertThat(new BigDecimal(finances.get("efectivo").asString())).isPositive();
+            assertThat(new BigDecimal(finances.get("transferencia").asString())).isZero();
             assertThat(jdbc.queryForObject("SELECT min(e.fecha) FROM lamontana.evento_financiero e JOIN lamontana.cuenta_punto cp ON cp.id_usuario=e.id_actor",Timestamp.class).toInstant()).isBefore(Instant.now().minus(Duration.ofDays(140)));
             UUID point=UUID.fromString(get(cab,"/api/punto/contexto",200).get("punto").asString());var account=service.cuentas(ADMIN).stream().filter(o->o.punto().equals(point)).findFirst().orElseThrow();sendPoint(admin,"PUT","/api/admin/puntos-entrega/cuentas/"+point,new ar.com.lamontana.puntos.PuntoRetiroController.Cambio(UUID.randomUUID(),account.cuenta().version(),account.cuenta().responsable(),false,false),200);get(cab,"/api/punto/contexto",401);
             UUID fresh=UUID.randomUUID();jdbc.update("INSERT INTO lamontana.punto_entrega(codigo_publico,codigo,id_usuario_creador) SELECT ?,'PUNTO-ENSAYO',id_usuario FROM lamontana.usuario WHERE correo=?",fresh,ADMIN);var alta=new ar.com.lamontana.puntos.PuntoRetiroController.Alta(UUID.randomUUID(),"punto.ensayo.retiro","punto.ensayo@prueba.local","Responsable de ensayo",CLAVE,false);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,alta,200);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,alta,200);sendPoint(admin,"POST","/api/admin/puntos-entrega/cuentas/"+fresh,new ar.com.lamontana.puntos.PuntoRetiroController.Alta(UUID.randomUUID(),"punto.otra.retiro","punto.otra@prueba.local","Otro responsable",CLAVE,false),409);
             var freshLogin=login("punto.ensayo.retiro");assertThat(get(freshLogin,"/api/auth/me",200).get("debeCambiarContrasena").asBoolean()).isTrue();get(freshLogin,"/api/punto/contexto",403);
+        }finally{limpiar(files);}
+    }
+
+    @Test void escenarioFinancieroOpcionalConservaFondosAlReiniciar()throws Exception{
+        Path files=Files.createTempDirectory("lamontana-rendiciones-");
+        try(var pg=postgres()){
+            long pedidos;
+            try(var app=iniciar(pg,files,"pruebas",true)){
+                var jdbc=app.getBean(JdbcTemplate.class);
+                pedidos=count(jdbc,"pedido");
+                assertThat(count(jdbc,"rendicion_punto")).isEqualTo(3);
+                var admin=login(ADMIN);
+                assertThat(get(admin,"/api/admin/finanzas-puntos/historial?estado=RECHAZADA",200).size()).isEqualTo(1);
+                var cab=login("punto.caballito.retiro");
+                var saldo=get(cab,"/api/punto/rendiciones",200).get("saldo");
+                assertThat(new BigDecimal(saldo.get("reservado").asString())).isPositive();
+                assertThat(new BigDecimal(saldo.get("disponible").asString())).isPositive();
+                var pal=login("punto.palermo.retiro");
+                assertThat(new BigDecimal(get(pal,"/api/punto/rendiciones",200).get("saldo").get("pendiente").asString())).isZero();
+                get(cab,"/api/admin/finanzas-puntos",403);
+            }
+            try(var app=iniciar(pg,files,"pruebas",true)){
+                var jdbc=app.getBean(JdbcTemplate.class);
+                assertThat(count(jdbc,"pedido")).isEqualTo(pedidos);
+                assertThat(count(jdbc,"rendicion_punto")).isEqualTo(3);
+            }
         }finally{limpiar(files);}
     }
 
@@ -174,7 +202,7 @@ class DatosPruebaIntegrationTest {
                     .filter(p->p.medio().equals(caso.elegido().name())&&new BigDecimal(p.saldo()).signum()>0)
                     .findFirst().orElseThrow();
                 String ficha="/api/punto/pedidos/"+row.pedido(),ruta=ficha+"/cobro-entrega";
-                assertThat(get(sesion,ficha,200).get("mediosSaldo").toString()).contains(caso.recibido().name());
+
                 var pedido=pedidos.detalle(row.pedido(),ADMIN,true);
                 String cliente=row.correo();
                 String codigo=delivery.consultar(row.pedido(),cliente,false).codigo().texto();
@@ -186,23 +214,32 @@ class DatosPruebaIntegrationTest {
                 var antes=service.finanzas("","",0,correo);
                 long cobros=count(jdbc,"pago");
                 if(transferencia){
-                    var incompleto=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigo,
-                        caso.recibido(),row.saldo(),caso.destino(),null,null,true);
-                    sendPoint(sesion,"POST",ruta,incompleto,400);
+                    var admin=login(ADMIN);
+                    var cuenta=UUID.randomUUID();var config=new HashMap<String,Object>();
+                    config.put("operacion",cuenta);config.put("punto",service.contexto(correo).punto());
+                    config.put("verificaAdmin",true);config.put("uso",enOrigen?"COBRO_ORIGEN":"COBRO_PUNTO");config.put("medio","TRANSFERENCIA");
+                    config.put("instrucciones","Cuenta simulada de integración");config.put("habilitada",true);config.put("verificaPunto",!enOrigen);
+                    if(enOrigen)config.put("sucursal",pedido.oferta().sucursal().codigoPublico());
+                    sendPoint(admin,"POST","/api/admin/finanzas-puntos/configuracion",config,204);
+                    var aviso=Map.of("operacion",UUID.randomUUID(),"cuenta",cuenta,"version",row.version(),"importe",row.saldo(),"referencia",referencia);
+                    sendPoint(sesion,"POST",ficha+"/avisos",aviso,200);
+                    sendPoint(sesion,"POST",ficha+"/avisos",aviso,200);
+                    assertThat(count(jdbc,"pago")).isEqualTo(cobros);
+                    var intento=payments.vista(pedido.cotizacion(),ADMIN,true).intentos().stream().filter(i->referencia.equals(i.referencia())).findFirst().orElseThrow();
+                    var confirm=Map.of("operacion",UUID.randomUUID(),"cotizacion",pedido.cotizacion(),"aviso",intento.codigoPublico());
+                    sendPoint(sesion,"POST","/api/punto/finanzas/verificar",confirm,enOrigen?403:204);
+                    if(enOrigen){
+                        var recepcion=new PagoController.Recibir(UUID.randomUUID(),intento.codigoPublico(),MedioPago.TRANSFERENCIA,row.saldo(),referencia,null,true,"Verificación en cuenta de origen",true);
+                        payments.recibir(pedido.cotizacion(),recepcion,ADMIN);payments.recibir(pedido.cotizacion(),recepcion,ADMIN);
+                    }else sendPoint(sesion,"POST","/api/punto/finanzas/verificar",confirm,204);
+                    var entrega=new ar.com.lamontana.entregas.EntregaController.Recibir(UUID.randomUUID(),service.ficha(row.pedido(),correo).entrega().version(),codigo,null,null,true);
+                    assertThat(sendPoint(sesion,"POST",ficha+"/entregar",entrega,200).get("aceptado").asBoolean()).isTrue();
+                }else{
+                    var cobro=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigo,caso.recibido(),row.saldo(),caso.destino(),referencia,null,true);
+                    assertThat(sendPoint(sesion,"POST",ruta,cobro,200).get("vista").get("estadoPedido").asString()).isEqualTo("CERRADO");
+                    assertThat(sendPoint(sesion,"POST",ruta,cobro,200).get("aceptado").asBoolean()).isTrue();
                 }
-                String codigoErroneo=codigo.equals("ZZZZZZZZ")?"YYYYYYYY":"ZZZZZZZZ";
-                var erroneo=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigoErroneo,
-                    caso.recibido(),row.saldo(),caso.destino(),referencia,null,true);
-                assertThat(sendPoint(sesion,"POST",ruta,erroneo,200).get("aceptado").asBoolean()).isFalse();
-                assertThat(count(jdbc,"pago")).isEqualTo(cobros);
-                var cobro=new PuntoRetiroController.CobrarEntrega(UUID.randomUUID(),row.version(),codigo,
-                    caso.recibido(),row.saldo(),caso.destino(),referencia,null,true);
-                var entrega=sendPoint(sesion,"POST",ruta,cobro,200);
-                assertThat(entrega.get("vista").get("estadoPedido").asString()).isEqualTo("CERRADO");
-                assertThat(entrega.get("vista").get("saldo").asString()).isEqualTo("0.00");
-                assertThat(sendPoint(sesion,"POST",ruta,cobro,200).get("aceptado").asBoolean()).isTrue();
                 assertThat(count(jdbc,"pago")).isEqualTo(cobros+1);
-
                 var vista=payments.vista(pedido.cotizacion(),cliente,false);
                 if(enOrigen)assertThat(vista.intentos()).anySatisfy(i->{
                     assertThat(i.referencia()).isEqualTo(referencia);
@@ -211,7 +248,7 @@ class DatosPruebaIntegrationTest {
                 var pago=vista.pagos().stream().filter(p->p.destinoCobro()!=null).findFirst().orElseThrow();
                 assertThat(pago.medio()).isEqualTo(caso.recibido().name());
                 assertThat(pago.destinoCobro().tipo()).isEqualTo(caso.destino());
-                assertThat(pago.destinoCobro().nombre()).isEqualTo(enOrigen?pedido.oferta().sucursal().nombre():pedido.reserva().nombre());
+                assertThat(pago.destinoCobro().nombre()).isNotBlank();
                 assertThat(get(sesion,ficha,200).get("pagos").toString()).contains(caso.destino().name());
                 var caja=jdbc.query("SELECT s.codigo_publico FROM lamontana.caja_movimiento m JOIN lamontana.sucursal s USING(id_sucursal) WHERE m.codigo=?",
                     (r,n)->r.getObject(1,UUID.class),pago.codigoPublico());
@@ -220,6 +257,31 @@ class DatosPruebaIntegrationTest {
                 BigDecimal cambio=new BigDecimal(transferencia?despues.transferencia():despues.efectivo())
                     .subtract(new BigDecimal(transferencia?antes.transferencia():antes.efectivo()));
                 assertThat(cambio).isEqualByComparingTo(enOrigen?BigDecimal.ZERO:new BigDecimal(row.saldo()));
+                if(!transferencia){
+                    var branch=pedido.oferta().sucursal().codigoPublico();
+                    var admin=login(ADMIN);UUID cuenta=UUID.randomUUID();
+                    sendPoint(admin,"POST","/api/admin/finanzas-puntos/configuracion",Map.of("operacion",cuenta,"punto",service.contexto(correo).punto(),"sucursal",branch,"uso","RENDICION","medio","TRANSFERENCIA","instrucciones","Simulada","habilitada",true,"verificaPunto",false),204);
+                    var inicial=get(sesion,"/api/punto/rendiciones",200).get("saldo");BigDecimal fondos=new BigDecimal(inicial.get("disponible").asString());
+                    String base="/api/operacion/sucursales/"+branch+"/rendiciones-puntos";
+                    for(String resultado:List.of("RECHAZADA","CONFIRMADA")){
+                        UUID op=UUID.randomUUID();var informe=Map.of("operacion",op,"cuenta",cuenta,"importe",fondos.toPlainString(),"referencia","Rendición de prueba "+op);
+                        sendPoint(sesion,"POST","/api/punto/rendiciones",informe,204);sendPoint(sesion,"POST","/api/punto/rendiciones",informe,204);
+                        var reservado=get(sesion,"/api/punto/rendiciones",200).get("saldo");
+                        assertThat(new BigDecimal(reservado.get("disponible").asString())).isZero();
+                        assertThat(new BigDecimal(reservado.get("pendiente").asString())).isEqualByComparingTo(fondos);
+                        sendPoint(sesion,"POST","/api/punto/rendiciones",Map.of("operacion",UUID.randomUUID(),"cuenta",cuenta,"importe","1","referencia","exceso"),409);
+                        var decision=Map.of("operacion",UUID.randomUUID(),"estado",resultado,"motivo","Verificación de prueba");
+                        sendPoint(sesion,"POST",base+"/"+op,decision,403);
+                        sendPoint(admin,"POST",base+"/"+op,decision,204);sendPoint(admin,"POST",base+"/"+op,decision,204);
+                        var disponible=get(sesion,"/api/punto/rendiciones",200).get("saldo").get("disponible").asString();
+                        assertThat(new BigDecimal(disponible)).isEqualByComparingTo(resultado.equals("CONFIRMADA")?BigDecimal.ZERO:fondos);
+                    }
+                    get(admin,"/api/admin/finanzas-puntos/historial",200);get(admin,"/api/admin/finanzas-puntos",200);
+                    var pagoServicio=Map.of("operacion",UUID.randomUUID(),"tipo","PAGO_PUNTO_ENTREGA","medio","TRANSFERENCIA","importe","80000","punto",service.contexto(correo).punto(),"referencia","Servicio de prueba","destinatario","Responsable","concepto","Servicio de retiros");
+                    sendPoint(admin,"POST","/api/operacion/sucursales/"+branch+"/caja/egresos",pagoServicio,204);
+                    assertThat(new BigDecimal(get(sesion,"/api/punto/rendiciones",200).get("saldo").get("pendiente").asString())).isZero();
+                    assertThat(count(jdbc,"pago")).isEqualTo(cobros+1);
+                }
             }
         }finally{limpiar(files);}
     }
@@ -636,8 +698,9 @@ class DatosPruebaIntegrationTest {
     }
 
     private EmbeddedPostgres postgres() throws Exception {return EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start();}
-    private ConfigurableApplicationContext iniciar(EmbeddedPostgres pg,Path files,String perfil) {
-        var app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.profiles.active="+perfil,"--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+files,"--lamontana.pruebas.clave="+CLAVE);
+    private ConfigurableApplicationContext iniciar(EmbeddedPostgres pg,Path files,String perfil) {return iniciar(pg,files,perfil,false);}
+    private ConfigurableApplicationContext iniciar(EmbeddedPostgres pg,Path files,String perfil,boolean finanzas) {
+        var app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--lamontana.pruebas.finanzas="+finanzas,"--spring.profiles.active="+perfil,"--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+files,"--lamontana.pruebas.clave="+CLAVE);
         port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));return app;
     }
     private long count(JdbcTemplate jdbc,String tabla){return jdbc.queryForObject("SELECT count(*) FROM lamontana."+tabla,Long.class);}

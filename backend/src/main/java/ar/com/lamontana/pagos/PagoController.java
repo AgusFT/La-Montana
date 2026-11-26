@@ -75,7 +75,11 @@ public class PagoController {
         @NotBlank @Pattern(regexp="[0-9]{1,17}(\\.[0-9]{1,2})?") String importe,@NotBlank @Size(max=300) String motivo){}
     public record Devolver(@NotNull UUID operacion,@NotNull UUID pago,@Min(1) long version,@NotNull MedioPago medio,
         @NotBlank @Pattern(regexp="[0-9]{1,17}(\\.[0-9]{1,2})?") String importe,@NotBlank @Size(max=160) String referencia,
-        @NotNull @PastOrPresent Instant devueltoEn,@AssertTrue boolean verificado,@NotBlank @Size(max=300) String motivo){}
+        @NotNull @PastOrPresent Instant devueltoEn,@AssertTrue boolean verificado,@NotBlank @Size(max=300) String motivo,Boolean fondosDelPunto){
+        public Devolver(UUID operacion,UUID pago,long version,MedioPago medio,String importe,String referencia,Instant devueltoEn,boolean verificado,String motivo){
+            this(operacion,pago,version,medio,importe,referencia,devueltoEn,verificado,motivo,null);
+        }
+    }
     @GetMapping({"/api/cliente/cotizaciones/{quote}/pagos","/api/operacion/cotizaciones/{quote}/pagos"})
     PagoService.Vista vista(@PathVariable UUID quote,Principal actor,HttpServletRequest req){return pagos.vista(quote,actor.getName(),interno(req));}
     @GetMapping("/api/operacion/sucursales/{branch}/pagos")

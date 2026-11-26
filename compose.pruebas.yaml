@@ -5,6 +5,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: pruebas
       LAMONTANA_PRUEBAS_CLAVE: ${TEST_USER_PASSWORD:-MontanaPrueba2026!}
+      LAMONTANA_PRUEBAS_FINANZAS: ${LAMONTANA_PRUEBAS_FINANZAS:-false}
   frontend:
     build:
       args:

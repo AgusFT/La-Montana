@@ -80,7 +80,13 @@ final class PedidosPrueba {
     }
     private Actor responsablePunto(Pedido p){if(p.punto==null)return actor(ADMIN);var users=jdbc.query("SELECT u.correo FROM lamontana.cuenta_punto cp JOIN lamontana.punto_entrega pt USING(id_punto_entrega) JOIN lamontana.usuario u USING(id_usuario) WHERE pt.codigo_publico=?",(rs,n)->rs.getString(1),p.punto);return users.isEmpty()?actor(ADMIN):actor(users.get(0));}
 
-    private void crear(Instant fecha,String destino,int caso,boolean actual) {
+    UUID pedidoFinanciero(UUID punto,MedioPago medio){
+        puntoForzado=punto;medioForzado=medio;
+        try{return crear(Instant.now().minusSeconds(3700),"LISTO_PARA_ENTREGA",10,true);}
+        finally{puntoForzado=null;medioForzado=null;}
+    }
+
+    private UUID crear(Instant fecha,String destino,int caso,boolean actual) {
         int indice=secuencia++;
         var ctx=operativa.leer();var b=ctx.configuracion();
         var p=new Pedido();p.fecha=fecha;p.publico=UUID.randomUUID();p.cliente=actor("cliente"+(indice%4+1)+"@prueba.local");
@@ -189,6 +195,7 @@ final class PedidosPrueba {
         }
         if(indice%3==0)jdbc.update("INSERT INTO lamontana.observacion_interna(codigo_publico,id_pedido,id_autor,autor_nombre,id_operacion,huella,importancia,texto,fecha) VALUES (?,?,?,?,?,?,'INFORMATIVA',?,?)",UUID.randomUUID(),p.id,actor(ADMIN).id(),actor(ADMIN).nombre(),UUID.randomUUID(),HUELLA,"Cliente habitual. Controlar orden de páginas y terminación al preparar el retiro.",ts(fecha.plusSeconds(60)));
         comprobarRestricciones(jdbc);
+        return p.publico;
     }
 
     private Item item(Pedido p,CotizacionService.ItemCotizado i,int orden,UUID pdf,ArchivosPrivados.Recibido bytes) {

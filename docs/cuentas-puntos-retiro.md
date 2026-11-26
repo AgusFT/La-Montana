@@ -4,21 +4,21 @@ Cada punto tiene una única cuenta, vinculada permanentemente a ese punto y con 
 
 La cuenta ingresa por **Usuario o correo** y abre `/punto-retiro`. Tiene tres bandejas: **Por llegar**, **Para retirar** y **Entregados**, más **Finanzas del punto**. Sólo aparecen pedidos cuyo destino es ese punto; no accede a producción, configuración, clientes de otros destinos ni descarga de PDF. El servidor comprueba el alcance en cada consulta y operación, además de las restricciones de pantalla.
 
-La misma cuenta se utilizará en PC, tablet o teléfono. Para kioscos sin computadora, la vista responsive es la primera solución operativa y la futura aplicación Android reutilizará exactamente el mismo alcance: no se crea otra cuenta mobile ni se replica la lógica de negocio. El flujo conjunto con el repartidor se define en [Android Mobile: alcance y flujos de puntos de retiro y reparto](https://github.com/AgusFT/La-Montana/blob/android/docs/mobile-android-alcance-y-flujos.md).
+La misma cuenta se utilizará en PC, tablet o teléfono. Para kioscos sin computadora, la vista responsive es la primera solución operativa y la aplicación Android reutiliza exactamente el mismo alcance: no se crea otra cuenta mobile ni se replica la lógica de negocio. El flujo conjunto con el repartidor se define en [Android Mobile: alcance y flujos de puntos de retiro y reparto](https://github.com/AgusFT/La-Montana/blob/android/docs/mobile-android-alcance-y-flujos.md).
 
 ## Recepción y entrega
 
 - **Por llegar** permite marcar hasta 25 pedidos de la página y registrar juntos su recepción física. La operación es atómica: un pedido inválido revierte el lote completo. Sólo recibe pedidos enviados a ese punto y en viaje.
 - **Para retirar** busca por nombre, correo, número de pedido o código de entrega. El código se envía en el cuerpo de la consulta, no en la URL, y no se revela en las respuestas. El detalle muestra al cliente, todos los trabajos del pedido, el saldo y el historial.
 - Si el saldo está pagado, se ingresa el código y se confirma la entrega. No se exige teléfono, nombre del receptor ni observación. Si corresponde efectivo, **Cobrar [saldo] y entregar** usa el importe completo y el código en una sola acción; un código incorrecto no cobra nada.
-- **Registrar efectivo o transferencia** trae el saldo autocompletado, admite un importe parcial positivo y una referencia opcional. Transferencia significa acreditación ya verificada por el responsable con permiso de cobro. No equivale al aviso de pago del cliente.
+- Una transferencia se informa con destinatario autorizado y referencia. La verificación por quien tiene acceso a la cuenta precede a la aplicación del pago y a la entrega.
 - Se reutilizan las reglas vigentes de pagos, códigos, disponibilidad, calidad y conciliación. El pedido sólo se entrega si los controles habilitan la entrega y se cierra cuando la conciliación está completa. Los reintentos conservan la operación original para evitar duplicar dinero o recepciones.
 
 ## Finanzas
 
-El período inicial comprende los últimos seis meses; permite fechas y paginación. Muestra el pendiente de los pedidos actualmente disponibles, el efectivo recibido por esa cuenta y las transferencias verificadas por esa cuenta en el período. El historial incluye recepción, aplicación y devolución de pagos de pedidos de ese punto, incluso anticipos de una cotización anterior vinculada. Distingue **Cuenta del punto** de **Administración / caja**: una seña recibida antes en la imprenta no se suma al dinero recibido por el punto.
+El mostrador y Android comparten **Cobros** y **Rendiciones**. Cobros muestra hoy por defecto, ayer o los últimos siete días. Rendiciones conserva la obligación acumulada desde la recepción efectiva, incluyendo cobros anteriores al período visible. El responsable puede informar entregas parciales o totales. La imprenta confirma la recepción o registra el motivo del rechazo.
 
-Cada movimiento conserva pedido, medio, importe, referencia, usuario responsable y fecha/hora. Los totales de recepción son importes brutos registrados; no representan una rendición de efectivo a la imprenta, una comisión del punto ni un cierre de caja. Las devoluciones se muestran como movimientos separados. No se agregaron integraciones bancarias ni telemetría.
+Los contratos, reglas de imputación, permisos y pasos de prueba están en [Finanzas de puntos de entrega](finanzas-puntos.md).
 
 ## PRUEBAS
 

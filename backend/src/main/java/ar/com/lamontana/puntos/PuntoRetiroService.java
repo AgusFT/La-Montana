@@ -33,13 +33,13 @@ public class PuntoRetiroService {
  public record Trabajo(String nombre,int paginas,int copias){}
  public record PagoRegistrado(String medio,String importe,String referencia,PagoService.CobroEnPunto destinoCobro){}
  public record Ficha(Fila pedido,List<Trabajo> trabajos,EntregaService.Vista entrega,List<MedioPago> medios,
-  List<MedioPago> mediosSaldo,String sucursalOrigen,List<PagoRegistrado> pagos){}
- public record Movimiento(long pedido,String tipo,String importe,String medio,String referencia,String responsable,Instant fecha,boolean enPunto,String destinoCobro){}
- public record Finanzas(String pendiente,String efectivo,String transferencia,long total,List<Movimiento> movimientos,int pagina,String desde,String hasta){}
- private record Acceso(long punto,long usuario,UUID publico,String nombre,String responsable,boolean cobros){}
+  List<MedioPago> mediosSaldo,String sucursalOrigen,List<PagoRegistrado> pagos,List<FinanzasPunto.Cuenta> cuentas){}
+ public record Movimiento(long pedido,String tipo,String importe,String medio,String referencia,String responsable,Instant fecha,boolean enPunto,String destinoCobro,String estado,UUID codigo,UUID cotizacion,String verificador,boolean puedeVerificar){}
+ public record Finanzas(String pendiente,String efectivo,String transferencia,long total,List<Movimiento> movimientos,int pagina,String desde,String hasta,String directa,String recibido,String gestionado){}
+ record Acceso(long punto,long usuario,UUID publico,String nombre,String responsable,boolean cobros){}
  private void locks(){for(long l:new long[]{764003,764001,764002,764004})jdbc.execute("SELECT pg_advisory_xact_lock("+l+")");}
- private long admin(String correo){var ids=jdbc.query("SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.correo=? AND u.estado='ACTIVO' AND r.codigo='ADMIN_ADMIN' AND r.activo",(r,n)->r.getLong(1),correo);if(ids.isEmpty())throw error(HttpStatus.FORBIDDEN,"Sólo administración puede gestionar estas cuentas.");return ids.get(0);}
- private static final String NOMBRE="coalesce((SELECT v.definicion->>'nombre' FROM lamontana.red_punto_actual a JOIN lamontana.version_red_punto v USING(id_version_red_punto) WHERE a.id_punto_entrega=pt.id_punto_entrega),(SELECT d.nombre FROM lamontana.configuracion_definicion_punto d JOIN lamontana.configuracion_version v USING(id_configuracion_version) WHERE d.id_punto_entrega=pt.id_punto_entrega AND v.estado IN ('ACTIVA','HISTORICA') ORDER BY (v.estado='ACTIVA') DESC,v.numero_version DESC LIMIT 1),pt.codigo)";
+ long admin(String correo){var ids=jdbc.query("SELECT u.id_usuario FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.correo=? AND u.estado='ACTIVO' AND r.codigo='ADMIN_ADMIN' AND r.activo",(r,n)->r.getLong(1),correo);if(ids.isEmpty())throw error(HttpStatus.FORBIDDEN,"Sólo administración puede gestionar estas cuentas.");return ids.get(0);}
+ static final String NOMBRE="coalesce((SELECT v.definicion->>'nombre' FROM lamontana.red_punto_actual a JOIN lamontana.version_red_punto v USING(id_version_red_punto) WHERE a.id_punto_entrega=pt.id_punto_entrega),(SELECT d.nombre FROM lamontana.configuracion_definicion_punto d JOIN lamontana.configuracion_version v USING(id_configuracion_version) WHERE d.id_punto_entrega=pt.id_punto_entrega AND v.estado IN ('ACTIVA','HISTORICA') ORDER BY (v.estado='ACTIVA') DESC,v.numero_version DESC LIMIT 1),pt.codigo)";
  @Transactional(readOnly=true) public List<Punto> cuentas(String correo){admin(correo);return jdbc.query("SELECT pt.codigo_publico,pt.codigo,"+NOMBRE+" AS nombre,u.alias_acceso,u.correo,cp.* FROM lamontana.punto_entrega pt LEFT JOIN lamontana.cuenta_punto cp USING(id_punto_entrega) LEFT JOIN lamontana.usuario u USING(id_usuario) ORDER BY pt.codigo",(r,n)->new Punto(r.getObject("codigo_publico",UUID.class),r.getString("codigo"),r.getString("nombre"),r.getString("alias_acceso")==null?null:new Cuenta(r.getString("alias_acceso"),r.getString("correo"),r.getString("responsable"),r.getBoolean("activa"),r.getBoolean("cobros"),r.getLong("version"),r.getTimestamp("creada_en").toInstant())));}
  private Punto punto(UUID id,String correo){return cuentas(correo).stream().filter(p->p.punto().equals(id)).findFirst().orElseThrow(()->error(HttpStatus.NOT_FOUND,"Punto inexistente."));}
  @Transactional public Punto crear(UUID id,Alta in,String correo){locks();long actor=admin(correo);String hash=hash(List.of(id,in.usuario(),in.correo().strip().toLowerCase(Locale.ROOT),in.responsable().strip(),in.cobros()));
@@ -55,7 +55,7 @@ public class PuntoRetiroService {
  }
  private boolean replay(UUID op,UUID point,long actor,String hash){var rows=jdbc.query("SELECT pt.codigo_publico,e.id_actor,e.huella FROM lamontana.evento_cuenta_punto e JOIN lamontana.punto_entrega pt USING(id_punto_entrega) WHERE e.id_operacion=?",(r,n)->new Object[]{r.getObject(1,UUID.class),r.getLong(2),r.getString(3)},op);if(rows.isEmpty())return false;var row=rows.get(0);if(!row[0].equals(point)||(long)row[1]!=actor||!row[2].equals(hash))throw error(HttpStatus.CONFLICT,"La operación ya se utilizó con otros datos.");return true;}
  private void evento(UUID op,UUID point,long actor,String action,String hash){jdbc.update("INSERT INTO lamontana.evento_cuenta_punto(id_operacion,id_punto_entrega,id_actor,accion,huella) SELECT ?,id_punto_entrega,?,?,? FROM lamontana.punto_entrega WHERE codigo_publico=?",op,actor,action,hash,point);}
- private Acceso acceso(String correo){var rows=jdbc.query("SELECT cp.*,pt.codigo_publico,"+NOMBRE+" AS nombre FROM lamontana.cuenta_punto cp JOIN lamontana.usuario u USING(id_usuario) JOIN lamontana.punto_entrega pt USING(id_punto_entrega) WHERE u.correo=? AND u.estado='ACTIVO' AND cp.activa",(r,n)->new Acceso(r.getLong("id_punto_entrega"),r.getLong("id_usuario"),r.getObject("codigo_publico",UUID.class),r.getString("nombre"),r.getString("responsable"),r.getBoolean("cobros")),correo);if(rows.isEmpty())throw error(HttpStatus.FORBIDDEN,"No hay un punto activo asignado a esta cuenta.");return rows.get(0);}
+ Acceso acceso(String correo){var rows=jdbc.query("SELECT cp.*,pt.codigo_publico,"+NOMBRE+" AS nombre FROM lamontana.cuenta_punto cp JOIN lamontana.usuario u USING(id_usuario) JOIN lamontana.punto_entrega pt USING(id_punto_entrega) WHERE u.correo=? AND u.estado='ACTIVO' AND cp.activa",(r,n)->new Acceso(r.getLong("id_punto_entrega"),r.getLong("id_usuario"),r.getObject("codigo_publico",UUID.class),r.getString("nombre"),r.getString("responsable"),r.getBoolean("cobros")),correo);if(rows.isEmpty())throw error(HttpStatus.FORBIDDEN,"No hay un punto activo asignado a esta cuenta.");return rows.get(0);}
  private static final String FROM=" FROM lamontana.pedido_actual p JOIN lamontana.destinatario_cotizacion u USING(id_cotizacion) JOIN lamontana.cotizacion c USING(id_cotizacion) JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.punto_entrega pt ON pt.codigo_publico=r.destino_publico WHERE pt.id_punto_entrega=? AND r.modalidad='RETIRO_PUNTO_ENTREGA' AND r.estado IN ('ACTIVA','CUMPLIDA') ";
  private static final String TRANSIT="p.estado='LISTO_PARA_ENTREGA' AND lamontana.estado_logistico(p.id_pedido)='EN_VIAJE'",READY="p.estado='LISTO_PARA_ENTREGA' AND lamontana.estado_logistico(p.id_pedido)='DISPONIBLE_PUNTO'",DONE="p.estado IN ('ENTREGADO','CERRADO')";
  private static final String SIN_PRESENTAR="EXISTS(SELECT 1 FROM lamontana.recorrido_reparto_pedido rp WHERE rp.id_pedido=p.id_pedido AND rp.presentado_en IS NULL)";
@@ -78,6 +78,8 @@ public class PuntoRetiroService {
   var d=entregas.consultar(id,correo,true);
   var pago=a.cobros()?pagos.vista(p.cotizacion(),correo,true):null;
   var medios=pago==null?List.<MedioPago>of():pago.mediosRecepcion();
+  var cuentas=FinanzasPunto.cuentas(jdbc,a.punto(),p.oferta().sucursal().codigoPublico(),false);
+  if(cuentas.isEmpty())medios=medios.stream().filter(m->m!=MedioPago.TRANSFERENCIA).toList();
   List<MedioPago> mediosSaldo;
   if(!"DISPONIBLE_PUNTO".equals(row.recorrido())||new BigDecimal(d.saldo()).signum()<=0)mediosSaldo=List.of();
   else mediosSaldo=medios.stream().filter(m->entregas.bloqueoCobroPunto(p,m,correo)==null).toList();
@@ -85,7 +87,7 @@ public class PuntoRetiroService {
     .filter(x->x.destinoCobro()!=null)
     .map(x->new PagoRegistrado(x.medio(),x.importe(),x.referencia(),x.destinoCobro())).toList();
   return new Ficha(row,p.oferta().items().stream().map(i->new Trabajo(i.documento().nombre(),i.trabajo().paginas(),i.trabajo().copias())).toList(),
-    d,medios,mediosSaldo,p.oferta().sucursal().nombre(),registrados);
+    d,medios,mediosSaldo,p.oferta().sucursal().nombre(),registrados,cuentas);
  }
  @Transactional public Bandeja recibir(Recepcion in,String correo){locks();var a=acceso(correo);if(in.pedidos().stream().map(PedidoLote::pedido).distinct().count()!=in.pedidos().size())throw error(HttpStatus.BAD_REQUEST,"No repitas pedidos.");String hash=hash(in.pedidos().stream().sorted(Comparator.comparing(PedidoLote::pedido)).toList());var old=jdbc.query("SELECT id_usuario,huella FROM lamontana.recepcion_lote_punto WHERE id_operacion=?",(r,n)->new Object[]{r.getLong(1),r.getString(2)},in.operacion());if(!old.isEmpty()){if((long)old.get(0)[0]!=a.usuario()||!old.get(0)[1].equals(hash))throw error(HttpStatus.CONFLICT,"La operación ya tiene otros datos.");return buscar(new Buscar("POR_LLEGAR","",0),correo);}
   for(var p:in.pedidos()){
@@ -109,16 +111,41 @@ public class PuntoRetiroService {
   if(!replay){if(p.version()!=in.version()||!p.estadoLogistico().equals("DISPONIBLE_PUNTO"))throw error(HttpStatus.CONFLICT,"El pedido cambió o todavía no llegó al punto.");BigDecimal amount=new BigDecimal(in.importe()),pending=new BigDecimal(pagos.vista(p.cotizacion(),correo,true).pendiente());if(amount.signum()<=0||amount.compareTo(pending)>0)throw error(HttpStatus.CONFLICT,"El importe supera el saldo pendiente. Actualizá el pedido.");}
   String motivo=in.destino()==null?"Cobro recibido en "+a.nombre()+" para PED-"+p.numero()+".":"Cobro registrado desde "+a.nombre()+" para PED-"+p.numero()+".";
   var cobro=new PagoController.Recibir(operation,null,in.medio(),in.importe(),in.referencia(),null,true,motivo,true);
-  if(in.destino()==null)pagos.recibir(p.cotizacion(),cobro,correo);
+  if(in.destino()==null && replay && Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.pago p JOIN lamontana.evento_financiero e USING(id_evento) WHERE e.id_operacion=? AND p.destino_cobro_punto IS NULL)",Boolean.class,operation)))pagos.recibir(p.cotizacion(),cobro,correo);
   else pagos.recibirEnPunto(p.cotizacion(),cobro,correo,in.destino(),a.nombre());
   return ficha(id,correo);
  }
- @Transactional(readOnly=true) public Finanzas finanzas(String desde,String hasta,int pagina,String correo){var a=acceso(correo);if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");var zone=ZoneId.of("America/Argentina/Buenos_Aires");LocalDate start,end;try{start=desde.isBlank()?LocalDate.now(zone).minusMonths(6):LocalDate.parse(desde);end=hasta.isBlank()?LocalDate.now(zone):LocalDate.parse(hasta);}catch(Exception e){throw error(HttpStatus.BAD_REQUEST,"Fechas inválidas.");}if(start.isAfter(end)||start.isBefore(end.minusYears(2)))throw error(HttpStatus.BAD_REQUEST,"Elegí un período de hasta dos años.");var lower=Timestamp.from(start.atStartOfDay(zone).toInstant());var upper=Timestamp.from(end.plusDays(1).atStartOfDay(zone).toInstant());
-  String financial=" FROM lamontana.evento_financiero e LEFT JOIN lamontana.pago pa ON pa.id_evento=e.id_evento LEFT JOIN lamontana.aplicacion_pago_cotizacion ap ON ap.id_evento=e.id_evento LEFT JOIN lamontana.reembolso re ON re.id_evento=e.id_evento LEFT JOIN lamontana.pago origin ON origin.id_pago=coalesce(ap.id_pago,re.id_pago) JOIN lamontana.pedido_actual p ON lamontana.cotizacion_descendiente(p.id_cotizacion,e.id_cotizacion) JOIN lamontana.reserva_entrega r USING(id_pedido) JOIN lamontana.punto_entrega pt ON pt.codigo_publico=r.destino_publico WHERE pt.id_punto_entrega=? AND r.modalidad='RETIRO_PUNTO_ENTREGA' AND r.estado IN ('ACTIVA','CUMPLIDA') AND e.tipo IN ('RECIBIR','APLICAR','DEVOLVER') AND e.fecha>=? AND e.fecha<?";Object[] args={a.punto(),lower,upper};
-  var sumArgs=new ArrayList<Object>();sumArgs.add(a.usuario());sumArgs.add(a.usuario());sumArgs.addAll(Arrays.asList(args));
-  var sums=jdbc.queryForObject("SELECT coalesce(sum(pa.importe) FILTER(WHERE pa.medio='EFECTIVO' AND e.id_actor=?),0),coalesce(sum(pa.importe) FILTER(WHERE pa.medio='TRANSFERENCIA' AND e.id_actor=? AND pa.destino_cobro_punto IS DISTINCT FROM 'SUCURSAL_ORIGEN'),0),count(*)"+financial,(r,n)->new Object[]{r.getBigDecimal(1).toPlainString(),r.getBigDecimal(2).toPlainString(),r.getLong(3)},sumArgs.toArray());
-  var parameters=new ArrayList<Object>();parameters.add(a.usuario());parameters.addAll(Arrays.asList(args));parameters.add(pagina*25);var moves=jdbc.query("SELECT p.id_pedido,e.tipo,coalesce(pa.importe,ap.importe,re.importe) AS importe,coalesce(pa.medio,re.medio,origin.medio) AS medio,coalesce(pa.referencia,re.referencia,origin.referencia) AS referencia,e.actor_nombre,e.fecha,e.id_actor=? AS en_punto,coalesce(pa.nombre_destino_cobro,origin.nombre_destino_cobro) AS destino_cobro"+financial+" ORDER BY e.fecha DESC,e.id_evento DESC LIMIT 25 OFFSET ?",(r,n)->new Movimiento(r.getLong(1),r.getString(2),r.getBigDecimal(3).toPlainString(),r.getString(4),r.getString(5),r.getString(6),r.getTimestamp(7).toInstant(),r.getBoolean(8),r.getString(9)),parameters.toArray());
-  String pending=jdbc.queryForObject("SELECT coalesce(sum(greatest(p.total-coalesce((SELECT sum(n.neto) FROM lamontana.aplicacion_pago_neta n WHERE n.id_cotizacion=p.id_cotizacion),0),0)),0)"+FROM+" AND ("+READY+")",BigDecimal.class,a.punto()).toPlainString();return new Finanzas(pending,(String)sums[0],(String)sums[1],(long)sums[2],moves,pagina,start.toString(),end.toString());
+ @Transactional(readOnly=true,isolation=org.springframework.transaction.annotation.Isolation.REPEATABLE_READ)
+ public Finanzas finanzas(String desde,String hasta,int pagina,String correo){
+  var a=acceso(correo);
+  if(pagina<0||pagina>100000)throw error(HttpStatus.BAD_REQUEST,"Página inválida.");
+  var zone=ZoneId.of("America/Argentina/Buenos_Aires");
+  var hoy=LocalDate.now(zone);
+  LocalDate start,end;
+  try{start=desde.isBlank()?hoy:LocalDate.parse(desde);end=hasta.isBlank()?hoy:LocalDate.parse(hasta);}
+  catch(java.time.format.DateTimeParseException e){throw error(HttpStatus.BAD_REQUEST,"Fechas inválidas.");}
+  if(start.isAfter(end)||start.isBefore(hoy.minusDays(6))||end.isAfter(hoy))throw error(HttpStatus.BAD_REQUEST,"Elegí hasta siete días recientes.");
+  var inicio=Timestamp.from(start.atStartOfDay(zone).toInstant());var fin=Timestamp.from(end.plusDays(1).atStartOfDay(zone).toInstant());
+  String filtro=" FROM lamontana.movimiento_punto m WHERE id_punto_entrega=? AND fecha>=? AND fecha<?";
+  var totales=jdbc.queryForObject("""
+   SELECT coalesce(sum(importe) FILTER(WHERE tipo='COBRO' AND destino='PUNTO_ENTREGA' AND medio='EFECTIVO'),0),
+    coalesce(sum(importe) FILTER(WHERE tipo='COBRO' AND destino='PUNTO_ENTREGA' AND medio='TRANSFERENCIA'),0),
+    coalesce(sum(importe) FILTER(WHERE tipo='COBRO' AND destino='SUCURSAL_ORIGEN'),0),count(*)
+   """+filtro,(r,n)->new BigDecimal[]{r.getBigDecimal(1),r.getBigDecimal(2),r.getBigDecimal(3),r.getBigDecimal(4)},a.punto(),inicio,fin);
+  var movimientos=jdbc.query("""
+    SELECT m.*,c.codigo_publico cotizacion,EXISTS(SELECT 1 FROM lamontana.intento_pago i JOIN lamontana.aviso_punto av USING(id_intento_pago)
+      JOIN lamontana.instruccion_punto orig ON orig.operacion=av.instruccion JOIN lamontana.instruccion_punto_actual vigente ON vigente.id_punto_entrega=orig.id_punto_entrega
+      AND vigente.uso=orig.uso AND vigente.instrucciones=orig.instrucciones WHERE i.codigo_publico=m.codigo AND vigente.verifica_punto AND vigente.habilitada AND m.estado='PENDIENTE') autorizado,(SELECT p.id_pedido FROM lamontana.pedido_actual p
+      WHERE lamontana.cotizacion_descendiente(p.id_cotizacion,c.id_cotizacion) LIMIT 1) pedido
+    FROM lamontana.movimiento_punto m JOIN lamontana.cotizacion c USING(id_cotizacion)
+    WHERE id_punto_entrega=? AND fecha>=? AND fecha<? ORDER BY fecha DESC,id_evento DESC LIMIT 25 OFFSET ?
+    """,(r,n)->new Movimiento(r.getLong("pedido"),r.getString("tipo"),r.getBigDecimal("importe").toPlainString(),r.getString("medio"),
+     r.getString("referencia"),r.getString("responsable"),r.getTimestamp("fecha").toInstant(),"PUNTO_ENTREGA".equals(r.getString("destino")),
+     r.getString("destinatario"),r.getString("estado"),r.getObject("codigo",UUID.class),r.getObject("cotizacion",UUID.class),r.getString("verificador"),a.cobros()&&r.getBoolean("autorizado")),
+     a.punto(),inicio,fin,pagina*25);
+  String pendiente=jdbc.queryForObject("SELECT coalesce(sum(greatest(p.total-coalesce((SELECT sum(n.neto) FROM lamontana.aplicacion_pago_neta n WHERE n.id_cotizacion=p.id_cotizacion),0),0)),0)"+FROM+" AND ("+READY+")",BigDecimal.class,a.punto()).toPlainString();
+  var recibido=totales[0].add(totales[1]);
+  return new Finanzas(pendiente,totales[0].toPlainString(),totales[1].toPlainString(),totales[3].longValueExact(),movimientos,pagina,start.toString(),end.toString(),totales[2].toPlainString(),recibido.toPlainString(),recibido.add(totales[2]).toPlainString());
  }
  private String hash(Object value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(json.writeValueAsString(value).getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
  private ResponseStatusException error(HttpStatus s,String m){return new ResponseStatusException(s,m);}

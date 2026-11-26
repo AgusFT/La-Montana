@@ -43,6 +43,8 @@ const allowed: Record<string, readonly string[]> = {
   "admin/puntos-entrega/disponibilidad": ["GET"],
   "admin/red-puntos": ["GET","POST"],
   "admin/configuracion": ["GET"], "admin/configuracion/borradores": ["POST"],
+  "punto/rendiciones":["GET","POST"],"punto/finanzas/verificar":["POST"],"admin/finanzas-puntos":["GET"],
+  "admin/finanzas-puntos/revisiones":["POST"],"admin/finanzas-puntos/historial":["GET"],"admin/finanzas-puntos/configuracion":["GET","POST"],
   "punto/contexto":["GET"],"punto/finanzas":["GET"],"punto/pedidos/buscar":["POST"],"punto/recibir":["POST"],"admin/puntos-entrega/cuentas":["GET"],
   "operacion/contexto": ["GET"], "auth/contrasena": ["POST"],
   "operacion/impresoras": ["GET"], "operacion/puntos-entrega/disponibilidad": ["GET"],
@@ -121,7 +123,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const dailyPrinter=path[0]==="operacion"&&path[1]==="impresoras"&&uuidPattern.test(path[2]??"")?(path.length===3?["POST"]:path.length===4&&path[3]==="historial"?["GET"]:null):null;
   const dailyPoint=["admin","operacion"].includes(path[0])&&path[1]==="puntos-entrega"&&path[2]==="disponibilidad"&&uuidPattern.test(path[3]??"")?(path.length===4?["PUT"]:path.length===5&&path[4]==="historial"?["GET"]:null):null;
   const accountPoint=path.length===4&&path[0]==="admin"&&path[1]==="puntos-entrega"&&path[2]==="cuentas"&&uuidPattern.test(path[3])?["POST","PUT"]:null;
-  const counterOrder=path[0]==="punto"&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")?(path.length===3?["GET"]:path.length===4&&["entregar","efectivo-entrega","cobrar","cobro-entrega"].includes(path[3])?["POST"]:null):null;
+  const counterOrder=path[0]==="punto"&&path[1]==="pedidos"&&uuidPattern.test(path[2]??"")?(path.length===3?["GET"]:path.length===4&&["avisos","entregar","efectivo-entrega","cobrar","cobro-entrega"].includes(path[3])?["POST"]:null):null;
   const riderAction=path.length===4&&path[0]==="rider"&&uuidPattern.test(path[2])&&(
     path[1]==="pedidos"&&["parada","entregar"].includes(path[3])||path[1]==="recorridos"&&path[3]==="presentar")?["POST"]:null;
   const cashRoute=path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2]??"")&&path[3]==="caja";
@@ -130,7 +132,12 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
   const cashMethods=cashRoute&&(path.length===4||cashReceipt)?["GET"]:
     cashExpense||cashRoute&&path.length===5&&path[4]==="arqueos"?["POST"]:null;
   const pointNetwork=path.length===3&&path[0]==="admin"&&path[1]==="red-puntos"&&uuidPattern.test(path[2])?["PUT"]:null;
-  const methods = pointNetwork ?? cashMethods ?? branchPickupMethods ?? riderAction ?? accountPoint ?? counterOrder ?? dailyPrinter ?? dailyPoint ?? preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
+  const remittance=path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2]??"")&&path[3]==="rendiciones-puntos";
+  const remittanceProof=remittance&&path.length===6&&uuidPattern.test(path[4])&&path[5]==="comprobante";
+  const remittanceMethods=remittance&&(path.length===4||remittanceProof||path.length===5&&path[4]==="cuentas")?["GET"]:remittance&&(path.length===5&&uuidPattern.test(path[4])||path.length===6&&path[4]==="informes"&&uuidPattern.test(path[5]))?["POST"]:null;
+  const beneficiaryMethods=path.length===4&&path[0]==="operacion"&&path[1]==="sucursales"&&uuidPattern.test(path[2])&&path[3]==="puntos-beneficiarios"?["GET"]:null;
+  const pointProof=path[0]==="punto"&&path[1]==="avisos"&&uuidPattern.test(path[2]??"")&&path.length===4&&path[3]==="comprobante";
+  const methods = (pointProof?["POST"]:null) ?? beneficiaryMethods ?? remittanceMethods ?? pointNetwork ?? cashMethods ?? branchPickupMethods ?? riderAction ?? accountPoint ?? counterOrder ?? dailyPrinter ?? dailyPoint ?? preparedMethods ?? collectionResolution ?? catalogServiceMethods ?? branchDeletion ?? websiteMethods ?? rescheduleMethods ?? fulfillmentMethods ?? productionMethods ?? correctionMethods ?? orderAction ?? orderReview ?? orderMethods ?? orderQueue ?? proofMethods ?? paymentMethods ?? paymentQueue ?? receivedMethods ?? fileMethods ?? quoteMethods ?? rollbackMethods ?? copyMethods ?? historyMethods ?? scheduledReview ?? scheduledActivation ?? scheduleCancellation ?? activationMethods ?? reviewMethods ?? availabilityMethods ?? pointMethods ?? deliveryMethods ?? resourceMethods ?? ( (path.length === 2 || path.length === 3 || route === "admin/catalogo/papeles-predefinidos/habilitar-todos") && Object.hasOwn(allowed, route) ? allowed[route]
     : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "admin" && ["empleados", "sucursales"].includes(path[1]) ? ["PUT"]
       : path.length === 3 && uuidPattern.test(path[2]) && path[0] === "operacion" && path[1] === "sucursales" ? ["GET"]
         : path.length === 4 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "revisiones" && uuidPattern.test(path[3]) ? ["GET"] : path.length === 5 && path[0] === "admin" && path[1] === "catalogo" && path[2] === "programaciones" && uuidPattern.test(path[3]) && path[4] === "cancelar" ? ["POST"] : path.length === 5 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ["modelo", "pagos"].includes(path[4]) ? ["PUT"] : path.length === 6 && path[0] === "admin" && path[1] === "configuracion" && path[2] === "borradores" && uuidPattern.test(path[3]) && ((path[4] === "cancelacion" && ["solicitar", "confirmar", "revocar"].includes(path[5])) || (path[4] === "pagos" && path[5] === "simular")) ? ["POST"] : null);
@@ -179,9 +186,9 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       // fetch agrega Content-Type: text/plain si recibe una cadena, incluso vacía.
       body = (await request.text()) || undefined;
     }
-    const maxBytes = cashExpense?2_810_000:route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointNetwork || route==="admin/red-puntos" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
+    const maxBytes = cashExpense||pointProof||remittance||route==="punto/rendiciones"?2_810_000:route==="admin/pagina-web/borrador"?1048576:(route === "admin/catalogo/revisiones" || pointNetwork || route==="admin/red-puntos" || pointMethods || quoteMethods || correctionQuote || preparedMethods) ? 131072 : 16384;
     if (typeof body==="string" && new TextEncoder().encode(body).length > maxBytes) return error(413, "Los datos enviados son demasiado extensos.");
-    const query = cashRoute&&path.length===4 || branchPickupMethods || route==="punto/finanzas" || route==="admin/pedidos" || websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
+    const query = cashRoute&&path.length===4 || branchPickupMethods || route==="punto/finanzas" || route==="admin/finanzas-puntos/historial" || route==="admin/pedidos" || websiteMethods || rescheduleMethods || orderMethods || orderQueue || historyMethods || quoteMethods || receivedMethods || paymentQueue || proofRoute ? new URL(request.url).search : "";
     const response = await fetch(`${base.replace(/\/+$/, "")}/api/${route}${query}`, {
       method: request.method, headers, body, redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(binaryUpload?90000:binaryDownload||websiteMethods?30000:8000),
     });
@@ -203,7 +210,7 @@ async function proxy(request: Request, context: { params: Promise<{ path: string
       resultHeaders.set("X-Content-Type-Options","nosniff");resultHeaders.set("Content-Security-Policy","default-src 'none'; sandbox");
       return new Response(response.body,{status:response.status,headers:resultHeaders});
     }
-    if(cashReceipt&&response.ok&&contentType==="application/octet-stream"){
+    if((cashReceipt||remittanceProof)&&response.ok&&contentType==="application/octet-stream"){
       resultHeaders.set("X-Content-Type-Options","nosniff");
       resultHeaders.set("Content-Security-Policy","default-src 'none'; sandbox");
       resultHeaders.set("Content-Disposition",response.headers.get("Content-Disposition")??"attachment");
