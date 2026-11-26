@@ -1,4 +1,4 @@
-La Montaña — herramientas de instalación de YG Soluciones
+La Montaña Demo — herramientas de instalación de YG Soluciones
 
 Distribución local de prueba. Sin firma de editor ni publicación autorizada.
 El paquete nativo instala el asistente; el asistente prepara la app por separado.
@@ -20,7 +20,6 @@ Componentes independientes:
 - WSL 3.0.3: https://github.com/microsoft/WSL/releases/tag/3.0.3 y LICENSE
   del repositorio. La instalación está sujeta a los términos del componente.
 - PostgreSQL: https://www.postgresql.org/about/licence/
-- Caddy: https://github.com/caddyserver/caddy/blob/master/LICENSE
 - Mailpit: https://github.com/axllent/mailpit/blob/develop/LICENSE
 - ClamAV y firmas oficiales: https://www.clamav.net/documents/copyright
 

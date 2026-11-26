@@ -5,6 +5,7 @@ import hashlib
 import re
 from pathlib import Path
 import shutil
+import tempfile
 
 
 def properties(path):
@@ -27,6 +28,19 @@ def main():
     args = parser.parse_args()
     base = Path(__file__).resolve().parent
     manifest = properties(args.app / 'release.properties')
+    if manifest.get('edition') != 'DEMO' or manifest.get('files') != 'images.tar.gz':
+        parser.error('Se requiere el archivo de imágenes de la edición Demo.')
+    services = {'postgres', 'backend', 'frontend', 'antivirus', 'mailpit'}
+    if {key for key in manifest if key.startswith('image.')} != {
+            key for service in services for key in (f'image.{service}', f'image.{service}.id')}:
+        parser.error('Las imágenes no corresponden a los cinco servicios de Demo.')
+    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', manifest['app.version']):
+        parser.error('Versión de la aplicación inválida.')
+    for service in services:
+        if not re.fullmatch(r'sha256:[0-9a-f]{64}', manifest[f'image.{service}.id']):
+            parser.error(f'Identidad de imagen inválida para {service}.')
+        if service in {'backend', 'frontend', 'antivirus'} and manifest[f'image.{service}'] != f"lamontana-demo-{service}:{manifest['app.version']}":
+            parser.error(f'El servicio {service} requiere una imagen de Demo.')
     installer_version = args.version_instalador or manifest['app.version']
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', installer_version):
         parser.error('La versión del instalador debe tener formato mayor.menor.parche.')
@@ -41,20 +55,26 @@ def main():
     for source, expected in files:
         if digest(source) != expected:
             raise SystemExit('SHA-256 incorrecto: ' + source.name)
-    args.salida.mkdir(parents=True, exist_ok=False)
-    for source, expected in files:
-        shutil.copyfile(source, args.salida / source.name)
-        manifest['sha256.' + source.name] = expected
-        manifest['size.' + source.name] = str(source.stat().st_size)
-    for source in [base / 'dependencias/docker-descargas.properties', base / 'AVISOS-TERCEROS.txt']:
-        shutil.copyfile(source, args.salida / source.name)
-        manifest['sha256.' + source.name] = digest(source)
-        manifest['size.' + source.name] = str(source.stat().st_size)
-    manifest['files'] = ','.join(sorted(p.name for p in args.salida.iterdir()))
-    manifest['offline.complete'] = 'true'
-    manifest['platform'] = args.plataforma + '-x64'
-    manifest['installer.version'] = installer_version
-    (args.salida / 'release.properties').write_text(''.join(f'{k}={v}\n' for k, v in sorted(manifest.items())))
+    args.salida.parent.mkdir(parents=True, exist_ok=True)
+    if args.salida.exists():
+        parser.error('La salida ya existe.')
+    with tempfile.TemporaryDirectory(dir=args.salida.parent) as tmp:
+        output = Path(tmp) / 'paquete'
+        output.mkdir()
+        for source, expected in files:
+            shutil.copyfile(source, output / source.name)
+            manifest['sha256.' + source.name] = expected
+            manifest['size.' + source.name] = str(source.stat().st_size)
+        for source in [base / 'dependencias/docker-descargas.properties', base / 'AVISOS-TERCEROS.txt']:
+            shutil.copyfile(source, output / source.name)
+            manifest['sha256.' + source.name] = digest(source)
+            manifest['size.' + source.name] = str(source.stat().st_size)
+        manifest['files'] = ','.join(sorted(p.name for p in output.iterdir()))
+        manifest['offline.complete'] = 'true'
+        manifest['platform'] = args.plataforma + '-x64'
+        manifest['installer.version'] = installer_version
+        (output / 'release.properties').write_text(''.join(f'{k}={v}\n' for k, v in sorted(manifest.items())))
+        output.rename(args.salida)
     size = sum(p.stat().st_size for p in args.salida.iterdir())
     print(f'Paquete completo preparado: {size / 1024**2:.1f} MiB. Falta medir el instalador nativo con su runtime.')
 

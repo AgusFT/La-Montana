@@ -2,6 +2,8 @@
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 JDK_BIN="${JAVA_HOME:+$JAVA_HOME/bin/}"
+# Una compilación nueva también retira clases y recursos eliminados de esta edición.
+rm -rf -- target/classes target/test-classes
 mkdir -p target/classes target/test-classes
 find src/main/java -name '*.java' -print > target/sources.txt
 "${JDK_BIN}javac" -J-Xmx256m --release 17 --add-modules jdk.httpserver -encoding UTF-8 -d target/classes @target/sources.txt
