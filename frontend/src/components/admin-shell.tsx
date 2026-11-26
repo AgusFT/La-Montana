@@ -29,7 +29,7 @@
 //#endregion
 
 import {NavigationBoundary} from "./navigation-boundary";
-import {DemoPremiumNav} from "./demo-premium-nav";
+import {DemoSidebarMore} from "./demo-premium-nav";
 import {MountainMark} from "./mountain-brand";
 import { LogoutButton } from "@/components/identity-forms";
 import "@/app/admin.css";
@@ -45,7 +45,28 @@ export async function AdminShell({ title, description, name, children, active="c
   const preparation=administration?await getPreparation():null;
   return <InstallationProvider initial={preparation} enabled={administration}><NavigationBoundary><div className={`admin-layout${active==="configuracion"?" configuration-mode":""}`}>
     <aside className="admin-sidebar"><a href={administration?"/administracion":"/operacion"} className="admin-brand"><MountainMark sun/><span>La Montaña<small>IMPRESIONES</small></span></a><p className="admin-nav-label">{administration?"ADMINISTRACIÓN":"OPERACIÓN"}</p>
-      <nav aria-label={administration?"Navegación administrativa":"Navegación operativa"}>{administration&&<><GuidedNavLink area="dashboard" href="/administracion" current={active==="dashboard"}><AdminIcon kind="home"/>Dashboard</GuidedNavLink><GuidedNavLink area="catalogo" href="/administracion/catalogo" current={active==="catalogo"}><AdminIcon kind="catalog"/>Servicios y precios</GuidedNavLink><GuidedNavLink area="configuracion" href="/administracion/configuracion" current={active==="configuracion"}><AdminIcon kind="lock"/>Configurador</GuidedNavLink><GuidedNavLink area="web" href="/administracion/pagina-web" current={active==="web"}><AdminIcon kind="home"/>Configurador de página web</GuidedNavLink><a className="demo-preview-link" href="/administracion/puntos-entrega" aria-current={active==="puntos"?"page":undefined}><AdminIcon kind="lock"/>Puntos de entrega</a><a className="demo-preview-link" href="/administracion/riders" aria-current={active==="riders"?"page":undefined}><AdminIcon kind="lock"/>Riders</a><GuidedNavLink area="sucursales" href="/administracion/sucursales" current={active==="sucursales"}><AdminIcon kind="branch"/>Sucursales</GuidedNavLink><a className="demo-preview-link" href="/administracion/empleados" aria-current={active==="empleados"?"page":undefined}><AdminIcon kind="lock"/>Administración de usuarios</a></>}<GuidedNavLink area="operacion" href={administration?"/administracion/pedidos":"/operacion"} current={active==="operacion"}><AdminIcon kind="branch"/>Operación y cobros</GuidedNavLink>{administration&&<><a href="/administracion/cupos" aria-current={active==="cupos"?"page":undefined}><AdminIcon kind="catalog"/>Cupos de la Demo</a><a href="/administracion/soporte"><AdminIcon kind="lock"/>Asistencia de YG Soluciones</a></>}<DemoPremiumNav/><a href="/cuenta/seguridad"><AdminIcon kind="lock"/>Seguridad de la cuenta</a></nav>
+      <div className="demo-sidebar-tools">
+        <DemoSidebarMore>
+          {administration && <>
+            <a className="demo-preview-link" href="/administracion/riders" aria-current={active==="riders"?"page":undefined}><AdminIcon kind="lock"/>Riders</a>
+            <a href="/administracion/cupos" aria-current={active==="cupos"?"page":undefined}><AdminIcon kind="catalog"/>Cupos de la Demo</a>
+          </>}
+        </DemoSidebarMore>
+      </div>
+      <nav aria-label={administration?"Navegación administrativa":"Navegación operativa"}>
+        {administration && <>
+          <GuidedNavLink area="dashboard" href="/administracion" current={active==="dashboard"}><AdminIcon kind="home"/>Dashboard</GuidedNavLink>
+          <GuidedNavLink area="catalogo" href="/administracion/catalogo" current={active==="catalogo"}><AdminIcon kind="catalog"/>Servicios y precios</GuidedNavLink>
+          <GuidedNavLink area="configuracion" href="/administracion/configuracion" current={active==="configuracion"}><AdminIcon kind="lock"/>Configurador</GuidedNavLink>
+          <GuidedNavLink area="web" href="/administracion/pagina-web" current={active==="web"}><AdminIcon kind="home"/>Configurador de página web</GuidedNavLink>
+          <a className="demo-preview-link" href="/administracion/puntos-entrega" aria-current={active==="puntos"?"page":undefined}><AdminIcon kind="branch"/>Puntos de entrega</a>
+          <GuidedNavLink area="sucursales" href="/administracion/sucursales" current={active==="sucursales"}><AdminIcon kind="branch"/>Sucursales</GuidedNavLink>
+          <a className="demo-preview-link" href="/administracion/empleados" aria-current={active==="empleados"?"page":undefined}><AdminIcon kind="people"/>Empleados</a>
+        </>}
+        <GuidedNavLink area="operacion" href={administration?"/administracion/pedidos":"/operacion"} current={active==="operacion"}><AdminIcon kind="branch"/>Operación y cobros</GuidedNavLink>
+        {administration && <a href="/administracion/soporte"><AdminIcon kind="lock"/>Asistencia de YG Soluciones</a>}
+        <a href="/cuenta/seguridad"><AdminIcon kind="lock"/>Seguridad de la cuenta</a>
+      </nav>
       <div className="admin-sidebar-pending"><span>CUPS, pagos en línea y reclamos</span><small>En construcción</small></div><ThemeSwitch/><p className="admin-sidebar-version">La Montaña</p>
     </aside>
     <div className="admin-main"><header className="admin-topbar"><span>{administration?"Administración de la imprenta":"Operación de sucursal"}</span><div className="admin-user"><span className="admin-avatar" aria-hidden="true">{name.slice(0,1).toUpperCase()}</span><div><strong>{name}</strong><small>{userRole}</small></div><LogoutButton/></div></header>

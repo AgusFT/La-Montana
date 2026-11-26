@@ -17,6 +17,6 @@ export async function DemoModulePreview({ area, title, description, children }: 
   if (session.profile.rol !== "ADMIN_ADMIN") redirect(roleHome(session.profile.rol));
   return <AdminShell title={title} active={area} name={`${session.profile.nombre} ${session.profile.apellido}`} description={description}>
     <p className="demo-preview-notice">Vista previa de la versión completa · Acciones deshabilitadas en la Demo</p>
-    <fieldset className="demo-module-preview" aria-label={title} disabled>{children}</fieldset>
+    <fieldset className={`demo-module-preview demo-preview-${area}`} aria-label={title} disabled>{children}</fieldset>
   </AdminShell>;
 }

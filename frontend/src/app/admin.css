@@ -288,7 +288,8 @@
 
 .admin-sidebar nav a.demo-preview-link{color:#c5cfda}
 .admin-sidebar nav a.demo-preview-link[aria-current=page]{background:#384b5f;color:#fff}
-.admin-sidebar .demo-premium-nav{display:flex;align-items:center;gap:.55rem;padding:4px 10px;background:none;border:0;color:#c5cfda;text-align:left;font:inherit;cursor:not-allowed}
-.demo-premium-nav span{display:flex;flex-wrap:wrap;align-items:baseline;gap:.35rem}.demo-premium-nav small{font-size:.72em}
-@media(min-width:761px){.admin-sidebar nav{overflow-y:auto;grid-auto-rows:minmax(32px,auto);max-height:none}.admin-sidebar .demo-premium-nav{font-size:clamp(12px,1.9dvh,14px)}}
-@media(max-width:760px){.demo-premium-nav span{white-space:nowrap;flex-wrap:nowrap}.admin-sidebar .demo-premium-nav{font-size:12px}}
+
+.demo-sidebar-tools{position:relative}
+.demo-sidebar-tools .demo-menu-trigger{position:absolute;right:0;bottom:5px}
+@media(max-width:760px){.demo-sidebar-tools .demo-menu-trigger{bottom:20px}}
+@media(min-width:761px) and (max-height:480px){.demo-sidebar-tools{position:static}.demo-sidebar-tools .demo-menu-trigger{bottom:3px;right:15px}}

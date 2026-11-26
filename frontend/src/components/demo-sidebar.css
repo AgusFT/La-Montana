@@ -1,0 +1,52 @@
+.demo-menu-trigger {
+  anchor-name: --demo-menu;
+  padding: 3px 6px;
+  border: 1px solid #ffffff55;
+  border-radius: 5px;
+  background: transparent;
+  color: #fff;
+  font: 12px/1.2 Arial, sans-serif;
+  cursor: pointer;
+}
+.demo-menu-trigger::after {content: " ▾"}
+.demo-sidebar-options:popover-open {
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+  padding: 6px;
+  border: 1px solid var(--ui-border, #7292a8);
+  border-radius: 8px;
+  background: var(--ui-overlay, #04243f);
+  color: #fff;
+  box-shadow: 0 4px 12px #0004;
+}
+@supports (top: anchor(bottom)) {
+  @media(min-width:761px) and (min-height:481px) {
+    .demo-sidebar-options:popover-open {
+      position-anchor: --demo-menu;
+      inset: auto;
+      top: anchor(bottom);
+      right: anchor(right);
+      margin: 3px 0;
+      position-try-fallbacks: flip-block, flip-inline;
+    }
+  }
+}
+.admin-sidebar .demo-sidebar-options a, .demo-premium-nav {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #fff;
+  font: 14px/1.25 Arial, sans-serif;
+  text-align: left;
+  text-decoration: none;
+}
+.admin-sidebar .demo-sidebar-options a:is(:hover,[aria-current=page]) {background: #ffffff26}
+.admin-sidebar .demo-sidebar-options .demo-preview-link, .demo-premium-nav:disabled {color: #ccc}
+.demo-premium-nav:disabled {cursor: not-allowed}
+.demo-sidebar-options .demo-premium-nav small {display:inline;font-size:.75em;color:inherit}
