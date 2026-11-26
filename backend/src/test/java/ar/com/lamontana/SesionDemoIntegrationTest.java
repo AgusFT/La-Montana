@@ -180,7 +180,8 @@ class SesionDemoIntegrationTest {
         var borrador = app.getBean(CopiaConfiguracionService.class).copiar(muestra.configuracion(),
                 new CopiaConfiguracionController.Crear(UUID.randomUUID()), "administracion@demo.invalid");
         var cuerpo = Map.of("operacion",UUID.randomUUID(), "version",borrador.version(), "preparacionHoras","1",
-                "trasladoHoras","1", "modalidades",List.of("RETIRO_PUNTO_ENTREGA"), "horariosPorSucursal",List.of());
+                "trasladoHoras","1", "modalidades",List.of("RETIRO_PUNTO_ENTREGA"), "horariosPorSucursal",List.of(),
+                "matrizConfirmada",false);
         var guardar = request("/api/admin/configuracion/borradores/" + borrador.codigoPublico() + "/entrega")
                 .header("Content-Type", "application/json").header("X-CSRF-TOKEN", csrf(navegador))
                 .PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(cuerpo)));
