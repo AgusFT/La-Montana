@@ -1,16 +1,18 @@
 # Demo de La Montaña para Windows
 
-La Demo permite probar el trabajo diario de una imprenta ficticia en la
-aplicación web de La Montaña. Está prevista para Windows 11 x64 y podrá usarse
-sin conexión después de instalarla.
+La Demo permite probar el trabajo diario de **Senderos**, una imprenta ficticia,
+durante 15 días. Las tres cuentas comparten los pedidos, el catálogo y la caja
+en la misma computadora.
 
-**Estado de la entrega.** La web ya permite recorrer la imprenta Senderos desde
-el código fuente. El instalador para Windows y su descarga pública se entregarán
-en etapas posteriores. [Backlog y pruebas](backlog.md) · [Guía de distribución](distribucion.md)
+La versión 0.1.0 pasó las pruebas de Windows 11 x64 con Ethernet desconectado.
+Podés probarla con el instalador local o desde el código fuente. La descarga
+pública desde YG Soluciones está prevista para la etapa de distribución. [Guía de instalación y distribución](distribucion.md) · [Backlog y pruebas](backlog.md)
 
 ## Entrar a la imprenta
 
-Abrí la web local y elegí una de las tres cuentas. El selector está en la
+En Windows, abrí **LaMontanaDemo** desde Inicio. La primera vez abre el
+asistente. Al terminar, elegí **Abrir la Demo y elegir rol**. En los siguientes
+arranques, el mismo acceso abre la web local en el navegador. El selector está en la
 portada y en `/acceso`. **Cambiar rol** cierra la sesión actual y permite volver a
 elegir. Las tres cuentas comparten los datos de la misma imprenta.
 

@@ -14,8 +14,8 @@ se completan a medida que se validan las etapas.
 | 3. Cupos y bajas | [#234](https://github.com/AgusFT/La-Montana/issues/234) Cupos transaccionales y baja lógica | 3 h | #232 | Por cada cupo, verificar el último lugar, el primer exceso, dos altas simultáneas por un lugar, el reintento, la reversión y el alta después de una baja. Ejecutar las mutaciones desde la interfaz y por API, verificar el cómputo de caja y la conservación de vínculos e historial. | `97babc27` reserva los lugares y conserva las bajas. `c8cbc25a` incorpora la operación por rol, `4de97b19` reserva la ficha del selector y `3c2f2a06` incorpora los controles en la web. La matriz de PostgreSQL y HTTP está en `362a85f4`. |
 | 4. Exclusiones y vencimiento | [#235](https://github.com/AgusFT/La-Montana/issues/235) Módulos de presentación | 1 h | #230, #233 | Verificar los módulos en gris, las etiquetas prémium y la ausencia de las rutas excluidas mediante inventario y llamadas directas. Conservar capturas de la interfaz. | `c6d8b65c` excluye las operaciones del servidor y conserva los destinos históricos. `bba8f177` presenta los paneles y `13913212` actualiza la guía de preparación. En Chromium se comprobaron los controles en gris, el acceso por rol y las dos etiquetas prémium. Las siete operaciones retiradas quedaron fuera del inventario de rutas. |
 | 4. Exclusiones y vencimiento | [#236](https://github.com/AgusFT/La-Montana/issues/236) Vigencia sin conexión | 2 h | #230, #233 | Comprobar el banner en todas las vistas, que el servidor permite operar a las 359 h 59 min 59 s y que bloquea a las 360 h. Probar sesión abierta, reloj atrasado y corregido, reinicio y red desconectada. Verificar el mensaje de vencimiento y la integridad de los archivos. | `4f85d13c` comprueba las 360 horas en el servidor, `a65d786d` conserva la fecha en el equipo y `bba8f177` incorpora el banner y el cierre de las vistas abiertas. PostgreSQL y HTTP verificaron el último segundo, el vencimiento, el retroceso y la corrección del reloj y la conservación del PDF. |
-| 5. Instalador y prueba Windows | [#237](https://github.com/AgusFT/La-Montana/issues/237) Paquete para Windows 11 x64 | 2 h | #234, #235, #236 | Construir el `.exe` con identidad de instalación y actualización, directorios y volúmenes propios de Demo. Registrar versión, tamaño y SHA-256. | Pendiente. |
-| 5. Instalador y prueba Windows | [#238](https://github.com/AgusFT/La-Montana/issues/238) Validación del paquete | 2 h | #237 | En Windows 11 x64, instalar en una máquina sin La Montaña, operar sin conexión, reparar, desinstalar y reinstalar. Verificar el plazo original y el aislamiento de una instalación del producto completo. Registrar las pruebas de Windows y la regresión del servidor, la interfaz y el instalador. | Pendiente. |
+| 5. Instalador y prueba Windows | [#237](https://github.com/AgusFT/La-Montana/issues/237) Paquete para Windows 11 x64 | 2 h | #234, #235, #236 | Construir el `.exe` con identidad de instalación y actualización, directorios y volúmenes propios de Demo. Registrar versión, tamaño y SHA-256. | `8b708a6f` prepara el paquete offline de cinco servicios, `f4c88dc0` separa la distribución de WSL2 y `ce01431c` integra el asistente de instalación y mantenimiento. `ccf36c6b` permite retirar los servicios desde Windows y `b3b5fcfa` fija el directorio del programa por usuario. La versión, el tamaño y la huella del ejecutable se registran en la [ficha de distribución](distribucion.md#verificar-el-archivo). |
+| 5. Instalador y prueba Windows | [#238](https://github.com/AgusFT/La-Montana/issues/238) Validación del paquete | 2 h | #237 | En Windows 11 x64, instalar en una máquina sin La Montaña, operar sin conexión, reparar, desinstalar y reinstalar. Verificar el plazo original y el aislamiento de una instalación del producto completo. Registrar las pruebas de Windows y la regresión del servidor, la interfaz y el instalador. | Windows 11 x64 completó instalación, reparación, retiro y reinstalación con el mismo ejecutable y con Ethernet desconectado. Se conservaron la base, el pedido, el PDF y las 360 horas originales. La edición completa mantuvo su instalador, distribución y fichas. [Resultados en Windows](#verificación-del-instalador-en-windows) |
 | 6. Distribución | [#239](https://github.com/AgusFT/La-Montana/issues/239) Descarga pública | 1 h | #231, #238 | Enlazar el archivo versionado desde YG Soluciones. Descargarlo de forma anónima y comparar su tamaño y SHA-256 con el artefacto probado. Verificar los permisos de las entregas privadas y documentar URL, fecha y retiro. | Pendiente. |
 
 ## Verificación de los cupos
@@ -58,5 +58,30 @@ En otra copia, la sesión se recuperó cuando el reloj alcanzó la última hora 
 La actualización conservó la fecha inicial, los cuatro cupos, el pedido, el
 cobro y el contenido del PDF. El PDF seguía intacto después de vencer. Al
 reinstalar el servicio con una base nueva en el mismo equipo, la copia vencida
-conservó su fecha de inicio y siguió vencida. La prueba del instalador nativo
-en Windows corresponde a la etapa 5. [Tarea #236](https://github.com/AgusFT/La-Montana/issues/236)
+conservó su fecha de inicio y siguió vencida. El ensayo de Windows de la etapa 5 volvió a comprobar el plazo original. [Tarea #236](https://github.com/AgusFT/La-Montana/issues/236)
+
+## Verificación del instalador en Windows
+
+La versión 0.1.0 se instaló para el usuario de Windows 11 x64 en un equipo de
+prueba con Ethernet desconectado y sin registros ni distribuciones de La
+Montaña. El asistente preparó su distribución WSL2 con Ubuntu y Docker desde
+el paquete. El selector mostró los tres roles. Desde la sesión de cliente se
+consultó el pedido aprobado y se descargó el PDF de muestra de 2.463 bytes.
+
+Con la edición completa 0.2.7 instalada en paralelo, la reparación generó y
+verificó un respaldo de 632.378.816 bytes. Al quitar la Demo desde Windows
+se retiraron sus cinco servicios y se conservó la marca del equipo. Tras
+reinstalar el mismo archivo en la carpeta original, coincidieron la identidad
+de la base, el pedido, el SHA-256 del PDF, el inicio de la prueba y su vencimiento.
+La instalación y la distribución WSL2 de la edición completa siguieron
+registradas y las huellas de sus dos fichas permanecieron iguales.
+
+Con los cinco servicios detenidos se comprobó que el acceso web había caído.
+Al abrir **LaMontanaDemo** desde el menú Inicio, se recuperaron los cinco
+servicios y el selector devolvió los tres roles con el vencimiento original
+en 84 segundos en el equipo de prueba.
+
+Pasaron las tres baterías del instalador para acceso HTTP, selección de carpetas
+y ejecución con Docker Compose real. También pasaron las 59 pruebas del frontend.
+La imagen del backend coincide con la
+validada en la etapa 4, con 275 pruebas aprobadas en 41 clases. [Ficha del ejecutable](distribucion.md#verificar-el-archivo)
