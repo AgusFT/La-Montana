@@ -50,7 +50,8 @@ public class MigracionesDeInstalacion implements FlywayConfigurationCustomizer {
             if (!m.correcta()) throw new IllegalStateException("Migración fallida en el historial: " + m.script());
             if (m.version() != null && (!m.script().startsWith("V" + m.version() + "__")
                     || m.script().contains("/") || m.script().contains("\\")
-                    || config.getClassLoader().getResource("db/migration/" + m.script()) == null)) {
+                    || (config.getClassLoader().getResource("db/migration/" + m.script()) == null
+                     && config.getClassLoader().getResource("db/imprenta/" + m.script()) == null))) {
                 throw new IllegalStateException("Historial de migraciones incompatible en V" + m.version() + ": " + m.script());
             }
         }

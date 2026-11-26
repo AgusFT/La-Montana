@@ -49,6 +49,7 @@ spring:
     hikari:
       connection-timeout: 5000
   flyway:
+    locations: classpath:db/migration,classpath:db/imprenta
     default-schema: lamontana
     schemas: lamontana
     clean-disabled: true

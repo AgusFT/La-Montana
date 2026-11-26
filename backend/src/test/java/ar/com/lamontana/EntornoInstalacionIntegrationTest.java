@@ -24,7 +24,10 @@ class EntornoInstalacionIntegrationTest {
                 assertThat(app.getBean(EntornoInstalacion.class).estado())
                         .containsEntry("modo", "DEMO").containsEntry("simulacionesPermitidas", true)
                         .containsEntry("correoDePrueba", true);
-                assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario", Integer.class)).isZero();
+                assertThat(jdbc.queryForList("""
+                        SELECT r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
+                        WHERE u.estado='ACTIVO'
+                        """, String.class)).containsExactlyInAnyOrder("ADMIN_ADMIN", "EMPLEADO", "CLIENTE");
             }
             var antes = jdbc.queryForMap(identidad);
             try (var app = iniciar(pg, "--lamontana.instalacion.modo=DEMO")) {

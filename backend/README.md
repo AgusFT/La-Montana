@@ -21,3 +21,7 @@ Al agregar, quitar o modificar una declaración, actualizar también su entrada 
 Dockerfile, `.dockerignore`, `pom.xml` y `application.yaml` describen su función y sus secciones con comentarios de su propio formato. El plegado en esos formatos depende del soporte de lenguaje del editor; los marcadores Java se usan sólo en `.java`.
 
 Las [migraciones SQL](src/main/resources/db/migration/README.md) tienen un índice separado. V1–V38 se conservan intactas; V39 incorpora el estado del servicio base. Ninguna migración ya aplicada debe editarse, para conservar sus checksums de Flyway. La [imagen WebP de prueba](src/test/resources/web/README.md) también se conserva intacta porque es binaria.
+
+La edición Demo aplica también las migraciones de `db/imprenta`. V48 crea las tres cuentas ficticias, la imprenta Senderos y el pedido de muestra en una sola transacción. El reinicio conserva el avance del visitante. [Precarga de Senderos](src/main/resources/db/imprenta/V48__imprenta_ficticia_demo.sql)
+
+Las pruebas de primera instalación que crean sus propios datos usan el perfil de prueba `imprenta-vacia`. Este perfil aplica las migraciones de esquema. Las pruebas de la imprenta Demo y del selector arrancan con la configuración completa de la aplicación.
