@@ -4,8 +4,8 @@
  * ARCHIVO: BaseTecnicaIntegrationTest.java
  * ========================================================================
  * FUNCIÓN
- * Comprueba el arranque y las migraciones en PostgreSQL real, la ausencia de datos de negocio
- * precargados y los estados públicos de salud e instalación.
+ * Comprueba la instalación de la imprenta de muestra en PostgreSQL real, su estado operativo
+ * inicial y los límites del acceso anónimo.
  *
  * ------------------------------------------------------------------------
  * MÉTODOS DECLARADOS
@@ -13,9 +13,9 @@
  * automáticamente no se enumeran.
  * - [paquete, static] void propiedades(DynamicPropertyRegistry properties)
  *   Registra las propiedades del entorno de prueba.
- * - [paquete] void migraPostgresRealSinPrecargarElNegocio()
+ * - [paquete] void migraPostgresRealConLaImprentaDeMuestra()
  *   Caso de prueba.
- * - [paquete] void estadoYSaludPublicosNoHabilitanOperacion() throws Exception
+ * - [paquete] void informaEstadoOperativoYExigeSesionParaLosPedidos() throws Exception
  *   Caso de prueba.
  * - [private] HttpResponse<String> get(String path) throws Exception
  * - [paquete, static] void limpiar() throws IOException
@@ -42,6 +42,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -52,12 +53,12 @@ import org.springframework.test.context.DynamicPropertySource;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class BaseTecnicaIntegrationTest {
     static final EmbeddedPostgres POSTGRES;
-    static final Path FILES;
+    @TempDir
+    static Path FILES;
 
     static {
         try {
             POSTGRES = EmbeddedPostgres.builder().start();
-            FILES = Files.createTempDirectory("lamontana-test-");
         } catch (IOException e) {
             throw new ExceptionInInitializerError(e);
         }
@@ -78,18 +79,21 @@ class BaseTecnicaIntegrationTest {
     JdbcTemplate jdbc;
 
     @Test
-    void migraPostgresRealSinPrecargarElNegocio() {
+    void migraPostgresRealConLaImprentaDeMuestra() {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.flyway_schema_history WHERE version='1' AND success", Integer.class)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario", Integer.class)).isZero();
-        assertThat(jdbc.queryForObject("SELECT completada_en IS NULL FROM lamontana.inicializacion_sistema", Boolean.class)).isTrue();
+        assertThat(jdbc.queryForList("""
+                SELECT r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING (id_rol)
+                WHERE u.estado='ACTIVO'
+                """, String.class)).containsExactlyInAnyOrder("ADMIN_ADMIN", "EMPLEADO", "CLIENTE");
+        assertThat(jdbc.queryForObject("SELECT completada_en IS NOT NULL FROM lamontana.inicializacion_sistema", Boolean.class)).isTrue();
         assertThat(Files.isWritable(FILES)).isTrue();
     }
 
     @Test
-    void estadoYSaludPublicosNoHabilitanOperacion() throws Exception {
+    void informaEstadoOperativoYExigeSesionParaLosPedidos() throws Exception {
         var response = get("/api/sistema/estado");
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains("\"etapa\":\"IDENTIDAD_INICIAL\"", "\"configuracionDisponible\":false", "\"operacionDisponible\":false");
+        assertThat(response.body()).contains("\"etapa\":\"OPERATIVA\"", "\"configuracionDisponible\":true", "\"operacionDisponible\":true");
         var readiness = get("/actuator/health/readiness");
         assertThat(readiness.statusCode()).isEqualTo(200);
         assertThat(readiness.body()).contains("\"status\":\"UP\"").doesNotContain("jdbc", "password", "components");
@@ -104,6 +108,5 @@ class BaseTecnicaIntegrationTest {
     @AfterAll
     static void limpiar() throws IOException {
         POSTGRES.close();
-        Files.deleteIfExists(FILES);
     }
 }
