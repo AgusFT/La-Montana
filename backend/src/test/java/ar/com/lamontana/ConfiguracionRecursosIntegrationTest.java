@@ -16,7 +16,7 @@
  * - [paquete] void cerrar() throws Exception
  *   Limpieza después de cada prueba.
  * - [private] void arrancar()
- * - [paquete] void recursosVaciosCicloDeImpresoraServiciosPorSucursalYDesactivacion() throws
+ * - [paquete] void recursosVaciosCicloGlobalUbicacionOpcionalYDesactivacion() throws
  *   Exception
  *   Caso de prueba.
  * - [paquete] void capacidadesReferenciasDuplicadosPermisosYCsrfNoAlteranBorrador() throws
@@ -37,6 +37,8 @@
  * - [private] Map<String, Object> estadoComando(String estado)
  * - [private] JsonNode recursos()
  * - [private] String impresora(String nombre, String sucursal)
+ * - [private] void darDeBajaImpresora(String codigo) throws Exception
+ * - [private] int impresorasEnCupo()
  * - [private] JsonNode porCodigo(String codigo)
  * - [private] String ruta(String sufijo)
  * - [private] int contar(String tabla)
@@ -127,6 +129,7 @@ class ConfiguracionRecursosIntegrationTest {
         assertThat(recurso.get("admiteColor").asBoolean()).isTrue();assertThat(recurso.get("formatos").get(0).asString()).isEqualTo(f);
         // La ubicación es informativa: desactivar la sucursal no limita altas ni estados productivos.
         var suc=JSON.readValue(JSON.writeValueAsString(sucursalActual(a)),Map.class);suc.remove("codigoPublico");suc.put("estado","DESACTIVADA");status(put(admin,"/api/admin/sucursales/"+a,suc),200);
+        darDeBajaImpresora(otro);
         aceptar(post(admin,ruta("impresoras"),alta(a,"Otra","DESHABILITADA")));
         aceptar(post(admin,ruta("impresoras/"+equipo+"/estado"),estadoComando("OPERATIVA")));
         aceptar(put(admin,ruta("recursos"),recursosComando(List.of(grupo(a,s,t),grupo(b,t)))));
@@ -136,6 +139,7 @@ class ConfiguracionRecursosIntegrationTest {
         assertThat(porCodigo(equipo).get("sucursal").isNull()).isTrue();
         aceptar(post(admin,ruta("impresoras/"+equipo+"/retirar"),motivo()));var retirada=porCodigo(equipo);
         assertThat(retirada.get("estado").asString()).isEqualTo("RETIRADA");assertThat(retirada.get("retiradaEn").isNull()).isFalse();assertThat(retirada.get("motivoRetiro").asString()).isEqualTo("Motivo documentado");
+        assertThat(impresorasEnCupo()).isEqualTo(2);
         assertThat(retirada.get("formatos").size()).isEqualTo(1);assertThat(contar("impresora")).isEqualTo(3);
         assertThat(jdbc.query("SELECT coalesce(estado_anterior,'ALTA')||'→'||estado_nuevo FROM lamontana.evento_configuracion WHERE codigo_recurso=? AND estado_nuevo IS NOT NULL ORDER BY id_evento_configuracion",(rs,n)->rs.getString(1),UUID.fromString(equipo)))
                 .containsExactly("ALTA→OPERATIVA","OPERATIVA→DESHABILITADA","DESHABILITADA→OPERATIVA","OPERATIVA→DESHABILITADA","DESHABILITADA→RETIRADA");
@@ -180,6 +184,7 @@ class ConfiguracionRecursosIntegrationTest {
         assertThat(List.of(rx.statusCode(),ry.statusCode())).containsExactlyInAnyOrder(200,409);borrador=estado().get("borrador");var ganador=rx.statusCode()==200?editA:editB;
         assertThat(JSON.readTree(put(admin,ruta("impresoras/"+equipo),ganador).body())).isEqualTo(borrador);
         status(put(admin,ruta("impresoras/"+otro),ganador),409);assertThat(JSON.readTree(post(admin,ruta("impresoras"),alta).body())).isEqualTo(borrador);
+        darDeBajaImpresora(otro);
         UUID autorizacion=UUID.randomUUID();jdbc.update("""
                 INSERT INTO lamontana.autorizacion_configuracion(id_operacion,proposito,id_configuracion_version,version_configuracion,id_actor,version_acceso,correo_destino,hash_solicitud,hash_codigo,fecha_vencimiento)
                 SELECT ?,'CANCELAR_BORRADOR',c.id_configuracion_version,c.version,u.id_usuario,u.version_acceso,u.correo,?, ?,clock_timestamp()+interval '15 minutes'
@@ -188,13 +193,20 @@ class ConfiguracionRecursosIntegrationTest {
         var fallida=alta(a,"Rollback","OPERATIVA");var tipada=JSON.readValue(JSON.writeValueAsString(fallida),RecursosConfiguracionController.CrearImpresora.class);int comprobantes=contar("comprobante_configuracion");
         jdbc.execute("CREATE FUNCTION lamontana.fallar_recursos_test() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.tipo='IMPRESORA_CREADA' THEN RAISE EXCEPTION 'fallo transaccional de prueba'; END IF; RETURN NEW; END $$");
         jdbc.execute("CREATE TRIGGER fallo_recursos_test BEFORE INSERT ON lamontana.evento_configuracion FOR EACH ROW EXECUTE FUNCTION lamontana.fallar_recursos_test()");
-        assertThatThrownBy(()->app.getBean(RecursosConfiguracionService.class).crear(UUID.fromString(id),tipada,EMAIL)).isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(()->app.getBean(RecursosConfiguracionService.class).crear(UUID.fromString(id),tipada,EMAIL))
+                .isInstanceOf(DataAccessException.class).rootCause().hasMessageContaining("fallo transaccional de prueba");
+        assertThat(impresorasEnCupo()).isOne();
         assertThat(estado().get("borrador")).isEqualTo(borrador);assertThat(contar("impresora")).isEqualTo(2);assertThat(contar("configuracion_impresora_formato")).isEqualTo(2);assertThat(contar("comprobante_configuracion")).isEqualTo(comprobantes);
         assertThat(jdbc.queryForObject("SELECT fecha_revocacion IS NULL FROM lamontana.autorizacion_configuracion WHERE id_operacion=?",Boolean.class,autorizacion)).isTrue();
         jdbc.execute("DROP TRIGGER fallo_recursos_test ON lamontana.evento_configuracion");jdbc.execute("DROP FUNCTION lamontana.fallar_recursos_test()");
         aceptar(post(admin,ruta("impresoras"),fallida));assertThat(jdbc.queryForObject("SELECT fecha_revocacion IS NOT NULL FROM lamontana.autorizacion_configuracion WHERE id_operacion=?",Boolean.class,autorizacion)).isTrue();
         var retiro=motivo();aceptar(post(admin,ruta("impresoras/"+equipo+"/retirar"),retiro));var retirada=porCodigo(equipo);
-        aceptar(post(admin,ruta("impresoras"),alta(a,"Equipo","DESHABILITADA")));assertThat(contar("impresora")).isEqualTo(4);
+        var reemplazo=alta(a,"Equipo","DESHABILITADA");
+        var sinLugar=post(admin,ruta("impresoras"),reemplazo);
+        status(sinLugar,409);
+        assertThat(JSON.readTree(sinLugar.body()).get("codigo").asString()).isEqualTo("CUPO_DEMO");
+        darDeBajaImpresora(equipo);
+        aceptar(post(admin,ruta("impresoras"),reemplazo));assertThat(contar("impresora")).isEqualTo(4);
         assertThat(JSON.readTree(post(admin,ruta("impresoras/"+equipo+"/retirar"),retiro).body())).isEqualTo(borrador);assertThat(porCodigo(equipo)).isEqualTo(retirada);
         String antes=estado().toString();app.close();arrancar();assertThat(estado().toString()).isEqualTo(antes);
         assertThat(JSON.readTree(post(admin,ruta("impresoras"),alta).body())).isEqualTo(borrador);
@@ -214,6 +226,12 @@ class ConfiguracionRecursosIntegrationTest {
     private Map<String,Object> estadoComando(String estado){var c=motivo();c.put("estado",estado);return c;}
     private JsonNode recursos(){return borrador.get("recursos");}
     private String impresora(String nombre,String sucursal){for(var p:recursos().get("impresoras"))if(p.get("nombre").asString().equals(nombre)&&p.get("sucursal").asString().equals(sucursal)&&!p.get("estado").asString().equals("RETIRADA"))return p.get("codigoPublico").asString();throw new AssertionError("Impresora ausente");}
+    private void darDeBajaImpresora(String codigo) throws Exception {
+        status(post(admin,"/api/demo/cupos/IMPRESORA/"+codigo+"/baja",Map.of()),204);
+    }
+    private int impresorasEnCupo() {
+        return jdbc.queryForObject("SELECT ocupados FROM lamontana.demo_cupo WHERE recurso='IMPRESORAS'",Integer.class);
+    }
     private JsonNode porCodigo(String codigo){for(var p:recursos().get("impresoras"))if(p.get("codigoPublico").asString().equals(codigo))return p;throw new AssertionError("Impresora ausente");}
     private String ruta(String sufijo){return "/api/admin/configuracion/borradores/"+id+"/"+sufijo;}
     private int contar(String tabla){return jdbc.queryForObject("SELECT count(*) FROM lamontana."+tabla,Integer.class);}

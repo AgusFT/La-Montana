@@ -715,8 +715,10 @@ class ActivacionConfiguracionIntegrationTest {
             var bad=new HashMap<String,Object>(policy);bad.put("politicaArchivos",invalida);var comandoInvalido=comando();comandoInvalido.put("pagos",bad);status(put(admin,base()+"/pagos",comandoInvalido),400);
         }
         aceptar(put(admin,base()+"/pagos",cfg));
+        // El equipo global reemplaza a uno local. El original sigue en la configuración e historial.
+        darDeBajaImpresoraDemo(impresoraPorNombre("Impresora " + b));
         var equipo=comando();equipo.putAll(Map.of("nombre","Global sin ubicación","formatos",List.of(formato),"admiteColor",false,"admiteDobleFaz",true,"capacidadHojas",500,"estado","OPERATIVA"));
-        aceptar(post(admin,base()+"/impresoras",equipo));String global=borrador.get("recursos").get("impresoras").get(2).get("codigoPublico").asString();activar();
+        aceptar(post(admin,base()+"/impresoras",equipo));String global=impresoraPorNombre("Global sin ubicación");activar();
         var c=particularCotizacion("pagos-v42");
         var primero=pedidoPagoV42(c);String q1=primero.get("cotizacion").asString();
         assertThat(primero.get("estado").asString()).isEqualTo("PENDIENTE_REVISION");
@@ -1226,7 +1228,20 @@ class ActivacionConfiguracionIntegrationTest {
     }
     private JsonNode revision()throws Exception{var r=get(admin,base()+"/revision");status(r,200);return JSON.readTree(r.body());}
     private Set<String> codigos(JsonNode r){var c=new HashSet<String>();for(var h:r.get("hallazgos"))c.add(h.get("codigo").asString());return c;}
-    private void preparar()throws Exception{
+    private String impresoraPorNombre(String nombre) {
+        for (var equipo : borrador.get("recursos").get("impresoras")) {
+            if (nombre.equals(equipo.get("nombre").asString())) return equipo.get("codigoPublico").asString();
+        }
+        throw new AssertionError("Falta la impresora " + nombre);
+    }
+
+    private void darDeBajaImpresoraDemo(String codigo) throws Exception {
+        status(post(admin, "/api/demo/cupos/IMPRESORA/" + codigo + "/baja", Map.of()), 204);
+    }
+
+    private void preparar() throws Exception { preparar(false); }
+
+    private void preparar(boolean conImpresoraHistorica) throws Exception {
         status(post(admin,"/api/admin/catalogo/formatos",Map.of("codigo","F","nombre","Formato","anchoMm","210","altoMm","297")),201);
         status(post(admin,"/api/admin/catalogo/papeles",Map.of("codigo","P","nombre","Papel","gramaje","80","terminacion","Mate")),201);
         status(post(admin,"/api/admin/catalogo/servicios",Map.of("codigo","TERM","nombre","Acabado","tipo","TERMINACION")),201);
@@ -1236,6 +1251,17 @@ class ActivacionConfiguracionIntegrationTest {
         var m=comando();m.putAll(Map.of("modelo","CONDICIONAL","criterio","MONTO_TOTAL"));aceptar(put(admin,base()+"/modelo",m));
         var p=comando();p.put("pagos",Map.of("medios",List.of("TRANSFERENCIA","EFECTIVO"),"instruccionesTransferencia","Cuenta de prueba","vigenciaCotizacionMinutos",90,"exigirSena",true,"condicionSena","SUPERAR_UMBRAL_APROBACION","tipoSena","PORCENTAJE","valorSena","25","umbralAprobacion","30","politicaArchivos",Map.of("plazoMinutos",60,"recordatorioMinutos",15,"retencionHoras",72)));aceptar(put(admin,base()+"/pagos",p));
         var r=comando();r.put("metodoAsignacion","MANUAL");r.put("serviciosPorSucursal",List.of(Map.of("sucursal",a,"servicios",List.of(servicio,terminacion)),Map.of("sucursal",b,"servicios",List.of(servicio))));aceptar(put(admin,base()+"/recursos",r));
+        if (conImpresoraHistorica) {
+            var equipo = comando();
+            equipo.putAll(Map.of("sucursal", a, "nombre", "Retirada histórica", "formatos", List.of(formato),
+                    "admiteColor", true, "admiteDobleFaz", false, "capacidadHojas", 30, "estado", "DESHABILITADA"));
+            aceptar(post(admin, base() + "/impresoras", equipo));
+            String retirada = impresoraPorNombre("Retirada histórica");
+            var retirar = comando();
+            retirar.put("motivo", "Retirada declarada");
+            aceptar(post(admin, base() + "/impresoras/" + retirada + "/retirar", retirar));
+            darDeBajaImpresoraDemo(retirada);
+        }
         for(String origen:List.of(a,b)){var i=comando();i.putAll(Map.of("sucursal",origen,"nombre","Impresora "+origen,"formatos",List.of(formato),"admiteColor",false,"admiteDobleFaz",true,"capacidadHojas",2,"estado","OPERATIVA"));aceptar(post(admin,base()+"/impresoras",i));}
         guardar("1","1",List.of("RETIRO_SUCURSAL","ENVIO_DOMICILIO"),List.of(horario(a,semana("09:00","18:00")),horario(b,semana("09:00","18:00"))));
         var z=comando();z.putAll(Map.of("codigo","CENTRO","nombre","Centro","zonaHoraria","America/Argentina/Buenos_Aires","costo","12.50","habilitada",true,"territorios",List.of(territorio()),"franjas",List.of(Map.of("dia",1,"apertura","09:00","cierre","18:00","capacidadPedidos",2,"habilitada",true))));aceptar(post(admin,ruta()+"/zonas",z));
@@ -1298,8 +1324,7 @@ class ActivacionConfiguracionIntegrationTest {
         adoptarCopia(restored);status(post(admin,base()+"/impresoras/recuperar-vigentes",comando()),409);
     }
     @Test void baseCopiaIntegraIdentidadesOrigenYBarridoSinDuplicarNiReactivar()throws Exception{
-        preparar();var p=comando();p.putAll(Map.of("codigo","PUNTO","nombre","Punto central","calle","Prueba","numero","10","localidad","Localidad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(Map.of("sucursal",a,"costo","2.50","habilitado",true,"franjas",List.of(Map.of("dia",2,"apertura","09:00","cierre","12:00","capacidadPedidos",3,"habilitada",true))),Map.of("sucursal",b,"costo","0.00","habilitado",true,"franjas",List.of(Map.of("dia",3,"apertura","15:00","cierre","18:00","capacidadPedidos",0,"habilitada",false))))));aceptar(post(admin,ruta()+"/puntos",p));
-        var i=comando();i.putAll(Map.of("sucursal",a,"nombre","Retirada histórica","formatos",List.of(formato),"admiteColor",true,"admiteDobleFaz",false,"capacidadHojas",30,"estado","DESHABILITADA"));aceptar(post(admin,base()+"/impresoras",i));String retirada=null;for(var printer:borrador.get("recursos").get("impresoras"))if(printer.get("nombre").asString().equals("Retirada histórica"))retirada=printer.get("codigoPublico").asString();var retirar=comando();retirar.put("motivo","Retirada declarada");aceptar(post(admin,base()+"/impresoras/"+retirada+"/retirar",retirar));
+        preparar(true);var p=comando();p.putAll(Map.of("codigo","PUNTO","nombre","Punto central","calle","Prueba","numero","10","localidad","Localidad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires","sucursales",List.of(Map.of("sucursal",a,"costo","2.50","habilitado",true,"franjas",List.of(Map.of("dia",2,"apertura","09:00","cierre","12:00","capacidadPedidos",3,"habilitada",true))),Map.of("sucursal",b,"costo","0.00","habilitado",true,"franjas",List.of(Map.of("dia",3,"apertura","15:00","cierre","18:00","capacidadPedidos",0,"habilitada",false))))));aceptar(post(admin,ruta()+"/puntos",p));
         var activa=activar();String origen=id;int impresoras=contar("impresora"),puntos=contar("punto_entrega"),zonas=contar("zona_entrega"),catalogo=contar("catalogo_revision"),desafios=contar("autorizacion_configuracion");UUID op=UUID.randomUUID();var copia=copiarBase(origen,op);assertThat(copia.get("copia").get("origen").asString()).isEqualTo(origen);assertThat(copia.get("copia").get("fasesConfirmadas").size()).isZero();assertThat(copia.get("copia").get("barridoInicial").size()).isPositive();
         assertEntregaHeredada(copia.get("entrega"),activa.get("configuracion").get("entrega"));
         for(String field:List.of("modelo","criterio","pagos","recursos"))assertThat(copia.get(field)).as(field).isEqualTo(activa.get("configuracion").get(field));assertThat(copia.get("estado").asString()).isEqualTo("EN_PREPARACION");assertThat(estado().get("activa")).isEqualTo(activa);assertThat(contar("impresora")).isEqualTo(impresoras);assertThat(contar("punto_entrega")).isEqualTo(puntos);assertThat(contar("zona_entrega")).isEqualTo(zonas);assertThat(contar("catalogo_revision")).isEqualTo(catalogo);assertThat(contar("autorizacion_configuracion")).isEqualTo(desafios);assertThat(contar("activacion_configuracion")).isEqualTo(1);assertThat(contar("programacion_configuracion")).isZero();assertThat(copiarBase(origen,op)).isEqualTo(copia);
