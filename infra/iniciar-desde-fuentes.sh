@@ -35,6 +35,17 @@ mkdir -p -- "$web_source_path"
 export DEMO_WEB_SOURCE_DIR="$web_source_path"
 echo "Carpeta de entrada de imágenes web: $web_source_path"
 
+# Compartido por las instalaciones de la Demo del equipo e independiente de la base y del checkout.
+if [[ -n "${WSL_INTEROP:-}" ]] || grep -qi microsoft /proc/sys/kernel/osrelease; then
+  program_data=$(powershell.exe -NoProfile -NonInteractive -Command '[Environment]::GetFolderPath("CommonApplicationData")' | tr -d '\r')
+  [[ -n "$program_data" ]] || { echo 'Falta la ruta de ProgramData para guardar la vigencia de la Demo.' >&2; exit 1; }
+  DEMO_VIGENCIA_ALMACEN="$(wslpath -u "$program_data")/YG-Soluciones/LaMontanaDemo/vigencia"
+  mkdir -p -- "$DEMO_VIGENCIA_ALMACEN"
+else
+  docker volume create lamontana-demo-vigencia >/dev/null
+  DEMO_VIGENCIA_ALMACEN=vigencia_equipo
+fi
+export DEMO_VIGENCIA_ALMACEN
 "${compose[@]}" config --quiet
 "${compose[@]}" up --build --detach --wait
 echo 'Demo iniciada. Consultá los puertos publicados con: docker compose -p lamontana-demo ps'

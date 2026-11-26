@@ -22,6 +22,7 @@ services:
     build: ./backend
     environment:
       LAMONTANA_MODO: DEMO
+      DEMO_VIGENCIA_DIR: /app/vigencia
       DB_URL: jdbc:postgresql://postgres:5432/lamontana_demo
       DB_USER: lamontana_demo
       DB_PASSWORD: ${DEMO_DB_PASSWORD:?Falta DEMO_DB_PASSWORD}
@@ -43,6 +44,7 @@ services:
     volumes:
       - archivos_data:/app/archivos
       - imagenes_web_data:/app/imagenes-web
+      - ${DEMO_VIGENCIA_ALMACEN:-vigencia_equipo}:/app/vigencia
       - type: bind
         source: ${DEMO_WEB_SOURCE_DIR:-./datos/demo/imagenes-web/entrada}
         target: /app/web-entrada
@@ -100,6 +102,9 @@ services:
     restart: unless-stopped
 
 volumes:
+  vigencia_equipo:
+    name: lamontana-demo-vigencia
+    external: true
   postgres_data:
   archivos_data:
   imagenes_web_data:
