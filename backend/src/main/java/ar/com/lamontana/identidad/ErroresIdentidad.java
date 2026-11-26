@@ -61,6 +61,10 @@ public class ErroresIdentidad {
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     ResponseEntity<Map<String, String>> conflicto(org.springframework.dao.DataIntegrityViolationException ex) {
         if (ex.getMostSpecificCause() instanceof SQLException sql && sql.getSQLState() != null) {
+            if ("23D16".equals(sql.getSQLState())) {
+                return ResponseEntity.status(409).body(Map.of("codigo", "MODULO_DEMO",
+                        "mensaje", ar.com.lamontana.configuracion.PuntosRepositorio.EXCLUSION_DEMO));
+            }
             String mensaje = MENSAJES_CUPO.get(sql.getSQLState());
             if (mensaje != null) {
                 return ResponseEntity.status(409).body(Map.of("codigo", "CUPO_DEMO",

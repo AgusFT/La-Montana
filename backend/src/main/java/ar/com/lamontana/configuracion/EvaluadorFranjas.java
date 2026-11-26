@@ -12,13 +12,13 @@
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
  * - [public] Ventana siguiente(Instant llegada, String zonaHoraria,
- *   List<PuntoEntregaController.Franja> franjas, Instant limite)
+ *   List<PuntosRepositorio.Franja> franjas, Instant limite)
  * - [public] Ventana siguiente(Instant llegada, String zonaHoraria,
- *   List<PuntoEntregaController.Franja> franjas, Instant limite,
+ *   List<PuntosRepositorio.Franja> franjas, Instant limite,
  *   java.util.function.Predicate<Ventana> disponible)
  * - [public] List<Ventana> dia(LocalDate fecha, String zonaHoraria,
- *   List<PuntoEntregaController.Franja> franjas)
- * - [private] List<Ventana> ventanas(LocalDate fecha, ZoneId zona, PuntoEntregaController.Franja
+ *   List<PuntosRepositorio.Franja> franjas)
+ * - [private] List<Ventana> ventanas(LocalDate fecha, ZoneId zona, PuntosRepositorio.Franja
  *   franja)
  *
  * ------------------------------------------------------------------------
@@ -41,10 +41,10 @@ import org.springframework.web.server.ResponseStatusException;
 @Component
 public class EvaluadorFranjas {
     public record Ventana(LocalDate fecha,String apertura,String cierre,Instant desde,Instant hasta,int cupoConfigurado){}
-    public Ventana siguiente(Instant llegada,String zonaHoraria,List<PuntoEntregaController.Franja> franjas,Instant limite){
+    public Ventana siguiente(Instant llegada,String zonaHoraria,List<PuntosRepositorio.Franja> franjas,Instant limite){
         return siguiente(llegada,zonaHoraria,franjas,limite,v->true);
     }
-    public Ventana siguiente(Instant llegada,String zonaHoraria,List<PuntoEntregaController.Franja> franjas,Instant limite,java.util.function.Predicate<Ventana> disponible){
+    public Ventana siguiente(Instant llegada,String zonaHoraria,List<PuntosRepositorio.Franja> franjas,Instant limite,java.util.function.Predicate<Ventana> disponible){
         ZoneId zona=ZoneId.of(zonaHoraria);LocalDate fecha=llegada.atZone(zona).toLocalDate();
         while(!fecha.atStartOfDay(zona).toInstant().isAfter(limite)){
             var ventanas=new ArrayList<Ventana>();
@@ -55,11 +55,11 @@ public class EvaluadorFranjas {
         }
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"No hay una franja utilizable dentro del horizonte técnico de cinco años. Revisá el calendario del destino.");
     }
-    public List<Ventana> dia(LocalDate fecha,String zonaHoraria,List<PuntoEntregaController.Franja> franjas){
+    public List<Ventana> dia(LocalDate fecha,String zonaHoraria,List<PuntosRepositorio.Franja> franjas){
         return franjas.stream().filter(f->Boolean.TRUE.equals(f.habilitada())&&f.capacidadPedidos()>0&&f.dia()==fecha.getDayOfWeek().getValue())
             .flatMap(f->ventanas(fecha,ZoneId.of(zonaHoraria),f).stream()).sorted(Comparator.comparing(Ventana::desde).thenComparing(Ventana::hasta)).toList();
     }
-    private List<Ventana> ventanas(LocalDate fecha,ZoneId zona,PuntoEntregaController.Franja franja){
+    private List<Ventana> ventanas(LocalDate fecha,ZoneId zona,PuntosRepositorio.Franja franja){
         return VentanasLocales.calcular(fecha,zona,franja.apertura(),franja.cierre()).stream()
             .map(v->new Ventana(fecha,franja.apertura(),franja.cierre(),v.desde(),v.hasta(),franja.capacidadPedidos())).toList();
     }

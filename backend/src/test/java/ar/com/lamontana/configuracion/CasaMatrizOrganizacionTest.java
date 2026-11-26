@@ -6,7 +6,6 @@ import ar.com.lamontana.organizacion.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 class CasaMatrizOrganizacionTest {
     @Test void bajaLogicaNoPuedeDesactivarMatrizVigenteOProgramada(){
@@ -17,7 +16,7 @@ class CasaMatrizOrganizacionTest {
             if(call.getMethod().getName().equals("queryForObject")&&call.getArgument(1)==Boolean.class)return true;
             return RETURNS_DEFAULTS.answer(call);
         });
-        var servicio=new OrganizacionService(jdbc,mock(PasswordEncoder.class),mock(ar.com.lamontana.identidad.CredencialService.class));
+        var servicio=new OrganizacionService(jdbc);
         assertThatThrownBy(()->servicio.eliminarSucursal(codigo,3L,"admin")).hasMessageContaining("casa matriz vigente o programada");
         verify(jdbc,never()).update(anyString(),any(Object[].class));
         verify(jdbc).execute("SELECT pg_advisory_xact_lock(764003)");

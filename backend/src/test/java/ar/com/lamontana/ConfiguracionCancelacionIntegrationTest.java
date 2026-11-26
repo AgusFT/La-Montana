@@ -122,7 +122,7 @@ class ConfiguracionCancelacionIntegrationTest {
     }
     @AfterEach void cerrar() throws Exception {if(app!=null)app.close();if(pg!=null)pg.close();if(smtp!=null)smtp.close();if(archivos!=null)Files.deleteIfExists(archivos);}
     private void arrancar() {
-        app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),
+        app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia","historia-organizacion").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),
                 "--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN,
                 "--spring.mail.host=127.0.0.1","--spring.mail.port="+smtp.port(),"--lamontana.correo.remitente=noreply@example.test");
         port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);
@@ -141,7 +141,7 @@ class ConfiguracionCancelacionIntegrationTest {
         status(entrega,200);borrador=JSON.readTree(entrega.body());
         var definicionPunto=new HashMap<String,Object>(Map.of("operacion",UUID.randomUUID().toString(),"version",4,"codigo","PUNTO","nombre","Punto conservado","calle","Calle","numero","456","localidad","Ciudad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires"));
         definicionPunto.put("sucursales",List.of(Map.of("sucursal",JSON.readTree(sucursal.body()).get("codigoPublico").asString(),"costo","0","habilitado",true,"franjas",List.of(Map.of("dia",1,"apertura","17:00","cierre","18:00","capacidadPedidos",3,"habilitada",true)))));
-        var punto=post(admin,"/api/admin/configuracion/borradores/"+id+"/entrega/puntos",definicionPunto);status(punto,200);borrador=JSON.readTree(punto.body());
+        var punto=post(admin,"/fixture/api/admin/configuracion/borradores/"+id+"/entrega/puntos",definicionPunto);status(punto,200);borrador=JSON.readTree(punto.body());
         var solicitud=solicitud(5,CLAVE);var emitida=post(admin,ruta(id,"solicitar"),solicitud);status(emitida,200);
         var mensaje=smtp.recibir();String codigo=mensaje.token();
         assertThat(mensaje.destino()).isEqualTo(EMAIL);assertThat(mensaje.remitente()).isEqualTo("noreply@example.test");
@@ -173,7 +173,7 @@ class ConfiguracionCancelacionIntegrationTest {
         var modificarCancelada=enviar(admin,"PUT","/api/admin/configuracion/borradores/"+id+"/recursos",Map.of("operacion",UUID.randomUUID().toString(),"version",6,"metodoAsignacion","MANUAL","serviciosPorSucursal",List.of()));status(modificarCancelada,409);
         status(enviar(admin,"PUT","/api/admin/configuracion/borradores/"+id+"/entrega",Map.of("operacion",UUID.randomUUID().toString(),"version",6,"matrizConfirmada",false,"preparacionHoras","3","modalidades",List.of("RETIRO_SUCURSAL"),"horariosPorSucursal",List.of())),409);
         var editarPunto=new HashMap<>(definicionPunto);editarPunto.remove("codigo");editarPunto.put("operacion",UUID.randomUUID().toString());editarPunto.put("version",6);
-        status(enviar(admin,"PUT","/api/admin/configuracion/borradores/"+id+"/entrega/puntos/"+cancelada.get("entrega").get("puntos").get(0).get("codigoPublico").asString(),editarPunto),409);
+        status(enviar(admin,"PUT","/fixture/api/admin/configuracion/borradores/"+id+"/entrega/puntos/"+cancelada.get("entrega").get("puntos").get(0).get("codigoPublico").asString(),editarPunto),409);
         jdbc.update("UPDATE lamontana.autorizacion_configuracion SET fecha_emision=clock_timestamp()-interval '20 minutes',fecha_vencimiento=clock_timestamp()-interval '1 minute'");
         assertThat(post(admin,ruta(id,"confirmar"),confirmar).body()).isEqualTo(ra.body());
         assertThat(estado().get("borrador")).isEqualTo(nuevo);assertThat(eventos("BORRADOR_CANCELADO")).isEqualTo(1);

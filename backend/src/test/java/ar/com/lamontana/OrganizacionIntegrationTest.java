@@ -71,7 +71,7 @@ class OrganizacionIntegrationTest {
     void empleadosPermisosAislamientoBajasYEdicionConcurrente() throws Exception {
         var files = Files.createTempDirectory("lamontana-organizacion-");
         try (var pg = EmbeddedPostgres.builder().start();
-             var app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0",
+             var app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia","historia-organizacion").run("--server.port=0",
                      "--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"), "--spring.datasource.username=postgres",
                      "--spring.datasource.password=", "--lamontana.archivos.directorio="+files, "--lamontana.instalacion.token="+TOKEN)) {
             port = Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));
@@ -81,13 +81,13 @@ class OrganizacionIntegrationTest {
             var jdbc = app.getBean(JdbcTemplate.class);
             String a = creado(enviar(admin,"POST","/api/admin/sucursales",sucursal("A")));
             String b = creado(enviar(admin,"POST","/api/admin/sucursales",sucursal("B")));
-            assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("alice",List.of(),List.of())),400);
-            assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("alice",List.of(UUID.randomUUID().toString()),List.of())),400);
-            assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("alice",List.of(a),List.of("ADMIN_ADMIN"))),400);
-            assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("alice",List.of(a,a),List.of())),400);
-            String aliceId = creado(enviar(admin,"POST","/api/admin/empleados",alta("alice",List.of(a),List.of("ACREDITAR_PAGO"))));
-            String bobId = creado(enviar(admin,"POST","/api/admin/empleados",alta("bob",List.of(b),List.of())));
-            assertStatus(enviar(admin,"POST","/api/admin/empleados",alta("ALICE",List.of(b),List.of())),409);
+            assertStatus(enviar(admin,"POST","/fixture/api/admin/empleados",alta("alice",List.of(),List.of())),400);
+            assertStatus(enviar(admin,"POST","/fixture/api/admin/empleados",alta("alice",List.of(UUID.randomUUID().toString()),List.of())),400);
+            assertStatus(enviar(admin,"POST","/fixture/api/admin/empleados",alta("alice",List.of(a),List.of("ADMIN_ADMIN"))),400);
+            assertStatus(enviar(admin,"POST","/fixture/api/admin/empleados",alta("alice",List.of(a,a),List.of())),400);
+            String aliceId = creado(enviar(admin,"POST","/fixture/api/admin/empleados",alta("alice",List.of(a),List.of("ACREDITAR_PAGO"))));
+            String bobId = creado(enviar(admin,"POST","/fixture/api/admin/empleados",alta("bob",List.of(b),List.of())));
+            assertStatus(enviar(admin,"POST","/fixture/api/admin/empleados",alta("ALICE",List.of(b),List.of())),409);
             var alice = cliente(); var bob = cliente();
             loginEmpleado(alice,"ALICE@example.test"); loginEmpleado(bob,"bob@example.test");
             assertThat(get(alice,"/api/auth/me").body()).contains("EMPLEADO").doesNotContain(CLAVE,"hash_contrasena");
@@ -95,10 +95,10 @@ class OrganizacionIntegrationTest {
             assertThat(get(bob,"/api/operacion/contexto").body()).contains(b).doesNotContain(a,"ACREDITAR_PAGO");
             assertStatus(get(alice,"/api/operacion/sucursales/"+a),200);
             assertStatus(get(alice,"/api/operacion/sucursales/"+b),403);
-            assertStatus(get(alice,"/api/admin/empleados"),403);
+            assertStatus(get(alice,"/fixture/api/admin/empleados"),403);
             assertStatus(get(alice,"/api/admin/sucursales"),403);
-            assertStatus(enviar(alice,"POST","/api/admin/empleados",alta("no",List.of(a),List.of())),403);
-            assertStatus(enviar(alice,"PUT","/api/admin/empleados/"+aliceId,editarEmpleado(admin,aliceId)),403);
+            assertStatus(enviar(alice,"POST","/fixture/api/admin/empleados",alta("no",List.of(a),List.of())),403);
+            assertStatus(enviar(alice,"PUT","/fixture/api/admin/empleados/"+aliceId,editarEmpleado(admin,aliceId)),403);
             // Nueva alta: horario explícito, provincia argentina y zona resuelta en servidor.
             assertStatus(get(alice,"/api/admin/sucursales/ubicaciones"),403);
             var ubicaciones=get(admin,"/api/admin/sucursales/ubicaciones");assertStatus(ubicaciones,200);
@@ -150,15 +150,15 @@ class OrganizacionIntegrationTest {
             assertStatus(enviar(admin,"PUT","/api/admin/sucursales/"+a,bajaA),409);
             var editAlice = editarEmpleado(admin,aliceId);
             var sinAsignacion = new HashMap<>(editAlice); sinAsignacion.put("sucursales",List.of());
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,sinAsignacion),400);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+aliceId,sinAsignacion),400);
             editAlice.put("sucursales",List.of(b)); editAlice.put("permisos",List.of());
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,editAlice),200);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+aliceId,editAlice),200);
             // Se usa la misma cookie: asignaciones y permisos se consultan con su vigencia actual.
             assertStatus(get(alice,"/api/operacion/sucursales/"+a),403);
             assertStatus(get(alice,"/api/operacion/sucursales/"+b),200);
             assertThat(get(alice,"/api/operacion/contexto").body()).doesNotContain("ACREDITAR_PAGO");
             assertThatThrownBy(()->org.exigirPermiso("alice@example.test","ACREDITAR_PAGO")).isInstanceOf(ResponseStatusException.class);
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,editAlice),409);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+aliceId,editAlice),409);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_permiso WHERE fecha_revocacion IS NOT NULL",Integer.class)).isEqualTo(1);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.usuario_sucursal WHERE NOT activa",Integer.class)).isEqualTo(1);
 
@@ -179,12 +179,12 @@ class OrganizacionIntegrationTest {
             assertThat(List.of(r1.get().statusCode(),r2.get().statusCode())).containsExactlyInAnyOrder(200,409);
 
             var editBob = editarEmpleado(admin,bobId); editBob.put("estado","DESACTIVADO"); editBob.put("sucursales",List.of());
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+bobId,editBob),200);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+bobId,editBob),200);
             assertStatus(get(bob,"/api/auth/me"),401); login(cliente(),"bob@example.test",401);
             var reactivar = editarEmpleado(admin,bobId); reactivar.put("estado","ACTIVO");
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+bobId,reactivar),400);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+bobId,reactivar),400);
             editAlice = editarEmpleado(admin,aliceId); editAlice.put("sucursales",List.of(a,b));
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,editAlice),200);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+aliceId,editAlice),200);
             // Bajas simultáneas de las dos sucursales: una queda activa para la empleada.
             bajaA = editarSucursal(admin,a); bajaA.put("estado","DESACTIVADA");
             var bajaB = editarSucursal(admin,b); bajaB.put("estado","DESACTIVADA");
@@ -196,17 +196,17 @@ class OrganizacionIntegrationTest {
             assertThat(JSON.readTree(get(alice,"/api/operacion/contexto").body()).get("sucursales").size()).isEqualTo(1);
             // La baja de sucursal no borra asignaciones históricas; se pueden conservar al editar si hay otra activa.
             editAlice = editarEmpleado(admin,aliceId); editAlice.put("nombre","Alice actualizada");
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+aliceId,editAlice),200);
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+aliceId,editAlice),200);
             assertThat(jdbc.queryForObject("SELECT count(*) FROM lamontana.evento_organizacion",Integer.class)).isGreaterThanOrEqualTo(8);
-            assertThat(get(admin,"/api/admin/empleados").body()).doesNotContain(CLAVE,"hash_contrasena");
+            assertThat(get(admin,"/fixture/api/admin/empleados").body()).doesNotContain(CLAVE,"hash_contrasena");
 
             var publico=cliente();
             assertStatus(enviar(publico,"POST","/api/auth/registro",Map.of("nombre","Cliente","apellido","Test","correo","cliente@example.test","contrasena",CLAVE)),201);
             login(publico,"cliente@example.test",200);
             assertStatus(get(publico,"/api/operacion/contexto"),403);
             assertStatus(enviar(publico,"PUT","/api/admin/sucursales/"+a,bajaA),403);
-            assertStatus(enviar(admin,"PUT","/api/admin/empleados/"+JSON.readTree(get(publico,"/api/auth/me").body()).get("codigoPublico").asString(),editarEmpleado(admin,aliceId)),404);
-            var noCsrf=HttpRequest.newBuilder(uri("/api/admin/empleados/"+aliceId)).header("Content-Type","application/json").PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(editarEmpleado(admin,aliceId)))).build();
+            assertStatus(enviar(admin,"PUT","/fixture/api/admin/empleados/"+JSON.readTree(get(publico,"/api/auth/me").body()).get("codigoPublico").asString(),editarEmpleado(admin,aliceId)),404);
+            var noCsrf=HttpRequest.newBuilder(uri("/fixture/api/admin/empleados/"+aliceId)).header("Content-Type","application/json").PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(editarEmpleado(admin,aliceId)))).build();
             assertStatus(admin.send(noCsrf,HttpResponse.BodyHandlers.ofString()),403);
         } finally { Files.deleteIfExists(files); }
     }
@@ -219,7 +219,7 @@ class OrganizacionIntegrationTest {
         return new HashMap<>(Map.of("nombre",nombre,"apellido","Prueba","correo",nombre+"@example.test","contrasena",CLAVE,"sucursales",sucursales,"permisos",permisos));
     }
     @SuppressWarnings("unchecked")
-    private Map<String,Object> editarEmpleado(HttpClient admin,String id) throws Exception { return editable(admin,"/api/admin/empleados",id); }
+    private Map<String,Object> editarEmpleado(HttpClient admin,String id) throws Exception { return editable(admin,"/fixture/api/admin/empleados",id); }
     private Map<String,Object> editarSucursal(HttpClient admin,String id) throws Exception { return editable(admin,"/api/admin/sucursales",id); }
     @SuppressWarnings("unchecked")
     private Map<String,Object> editable(HttpClient admin,String path,String id) throws Exception {

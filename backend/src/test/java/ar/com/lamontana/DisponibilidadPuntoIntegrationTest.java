@@ -101,9 +101,9 @@ class DisponibilidadPuntoIntegrationTest {
         aceptar(post(admin,ruta(),alta("P",List.of())));aceptar(post(admin,ruta(),alta("Q",List.of())));
     }
     @AfterEach void cerrar()throws Exception{if(app!=null)app.close();if(pg!=null)pg.close();if(archivos!=null)Files.deleteIfExists(archivos);}
-    private void arrancar(){app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
+    private void arrancar(){app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia","historia-organizacion").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
 
-    private String op(){return "/api/admin/puntos-entrega/disponibilidad";}
+    private String op(){return "/fixture/api/admin/puntos-entrega/disponibilidad";}
     private JsonNode panel()throws Exception{var r=get(admin,op());status(r,200);return JSON.readTree(r.body());}
     private Map<String,Object> cambio(long version,String estado){return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"version",version,"estado",estado));}
     private String punto(){return puntos().get(0).get("codigoPublico").asString();}
@@ -159,7 +159,7 @@ class DisponibilidadPuntoIntegrationTest {
     private String sucursal(String codigo)throws Exception{var r=post(admin,"/api/admin/sucursales",Map.of("codigo",codigo,"nombre","Sucursal "+codigo,"calle","Calle","numero","123","localidad","Ciudad","provincia","Provincia","codigoPostal","1234","zonaHoraria","America/Argentina/Buenos_Aires"));status(r,201);return JSON.readTree(r.body()).get("codigoPublico").asString();}
     private Map<String,Object> comando(){return new HashMap<>(Map.of("operacion",UUID.randomUUID().toString(),"version",borrador.get("version").asLong()));}
     private String base(){return "/api/admin/configuracion/borradores/"+id;}
-    private String ruta(){return base()+"/entrega/puntos";}
+    private String ruta(){return "/fixture"+base()+"/entrega/puntos";}
     private int contar(String tabla){return jdbc.queryForObject("SELECT count(*) FROM lamontana."+tabla,Integer.class);}
     private JsonNode estado()throws Exception{var r=get(admin,"/api/admin/configuracion");status(r,200);return JSON.readTree(r.body());}
     private void aceptar(HttpResponse<String> r){status(r,200);borrador=JSON.readTree(r.body());}

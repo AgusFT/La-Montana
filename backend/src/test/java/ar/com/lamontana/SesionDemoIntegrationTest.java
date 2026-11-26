@@ -2,6 +2,14 @@ package ar.com.lamontana;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ar.com.lamontana.configuracion.CopiaConfiguracionController;
+import ar.com.lamontana.configuracion.CopiaConfiguracionService;
+import ar.com.lamontana.configuracion.EntregaConfiguracionController.Modalidad;
+import ar.com.lamontana.cotizaciones.CotizacionController;
+import ar.com.lamontana.pedidos.PedidoService;
+import java.util.Map;
+import java.util.UUID;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -122,6 +130,61 @@ class SesionDemoIntegrationTest {
         } finally {
             jdbc.update("UPDATE lamontana.rol SET activo=true WHERE codigo='CLIENTE'");
         }
+    }
+
+    @Test void elServidorConservaLasRutasDeTrabajoYExcluyeLasDeLosModulosDePresentacion() throws Exception {
+        var mappings = app.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class)
+                .getHandlerMethods().keySet().stream().flatMap(m -> m.getPatternValues().stream()).toList();
+        assertThat(mappings).contains("/api/operacion/contexto", "/api/operacion/sucursales/{codigo}",
+                "/api/demo/clientes", "/api/demo/sesion", "/api/admin/configuracion/borradores/{borrador}/entrega");
+        assertThat(mappings).noneMatch(ruta -> ruta.startsWith("/fixture/") || ruta.contains("/empleados")
+                || ruta.contains("/usuarios") || ruta.contains("/permisos") || ruta.contains("/puntos-entrega")
+                || ruta.contains("/entrega/puntos") || ruta.contains("/riders"));
+
+        var navegador = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
+        comprobar(elegir(navegador, "ADMINISTRADOR", csrf(navegador)), 200);
+        var token = csrf(navegador);
+        String id = UUID.randomUUID().toString();
+        String puntos = "/api/admin/configuracion/borradores/" + id + "/entrega/puntos";
+        var excluidas = Map.of(
+                "GET", List.of("/api/admin/empleados", "/api/admin/puntos-entrega/disponibilidad", "/api/admin/riders"),
+                "POST", List.of("/api/admin/empleados", puntos),
+                "PUT", List.of("/api/admin/empleados/" + id, "/api/admin/puntos-entrega/disponibilidad/" + id,
+                        puntos + "/" + id));
+        for (var verbo : excluidas.entrySet()) {
+            for (String ruta : verbo.getValue()) {
+                var intento = request(ruta).header("X-CSRF-TOKEN", token).method(verbo.getKey(), HttpRequest.BodyPublishers.noBody());
+                comprobar(enviar(navegador, intento), 403);
+            }
+        }
+    }
+
+    @Test void losPuntosMovilesNoSeOfrecenNiSeActivanDesdeLosFormulariosCompartidos() throws Exception {
+        var navegador = HttpClient.newBuilder().cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL)).build();
+        comprobar(elegir(navegador, "CLIENTE", csrf(navegador)), 200);
+        var opciones = JSON.readTree(comprobar(get(navegador, "/api/cliente/cotizaciones/opciones"), 200));
+        assertThat(opciones.get("modalidades").valueStream().map(n -> n.asString()))
+                .contains("RETIRO_SUCURSAL").doesNotContain("RETIRO_PUNTO_ENTREGA");
+        assertThat(opciones.get("puntos").size()).isZero();
+
+        var muestra = app.getBean(PedidoService.class).detalle(
+                UUID.fromString("4d9fdf39-1f90-4d08-b7b6-0c77fc9f0078"), "cliente@demo.invalid", false).oferta();
+        var item = muestra.items().get(0);
+        var solicitud = new CotizacionController.Crear(UUID.randomUUID(), muestra.configuracion(), muestra.revisionComercial(),
+                muestra.sucursal().codigoPublico(), List.of(new CotizacionController.Item(item.documento(), item.trabajo())),
+                Modalidad.RETIRO_PUNTO_ENTREGA, UUID.randomUUID(), null, muestra.medioPago(), null);
+        assertThat(comprobar(post(navegador, "/api/cliente/cotizaciones", JSON.writeValueAsString(solicitud), csrf(navegador)), 409))
+                .contains("puntos de entrega móviles");
+
+        comprobar(elegir(navegador, "ADMINISTRADOR", csrf(navegador)), 200);
+        var borrador = app.getBean(CopiaConfiguracionService.class).copiar(muestra.configuracion(),
+                new CopiaConfiguracionController.Crear(UUID.randomUUID()), "administracion@demo.invalid");
+        var cuerpo = Map.of("operacion",UUID.randomUUID(), "version",borrador.version(), "preparacionHoras","1",
+                "trasladoHoras","1", "modalidades",List.of("RETIRO_PUNTO_ENTREGA"), "horariosPorSucursal",List.of());
+        var guardar = request("/api/admin/configuracion/borradores/" + borrador.codigoPublico() + "/entrega")
+                .header("Content-Type", "application/json").header("X-CSRF-TOKEN", csrf(navegador))
+                .PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(cuerpo)));
+        assertThat(comprobar(enviar(navegador, guardar),409)).contains("puntos de entrega móviles");
     }
 
     private String csrf(HttpClient navegador) throws Exception {

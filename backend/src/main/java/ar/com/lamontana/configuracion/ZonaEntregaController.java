@@ -45,7 +45,7 @@ import jakarta.validation.constraints.*;
 import java.security.Principal;
 import java.util.*;
 import org.springframework.web.bind.annotation.*;
-import ar.com.lamontana.configuracion.PuntoEntregaController.Franja;
+import ar.com.lamontana.configuracion.PuntosRepositorio.Franja;
 
 @RestController
 @RequestMapping("/api/admin/configuracion/borradores/{borrador}/entrega/zonas")

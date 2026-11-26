@@ -32,7 +32,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import ar.com.lamontana.configuracion.PuntoEntregaController.Franja;
+import ar.com.lamontana.configuracion.PuntosRepositorio.Franja;
 
 @Repository
 public class ZonasRepositorio {

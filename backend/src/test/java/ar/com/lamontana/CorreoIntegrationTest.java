@@ -142,7 +142,7 @@ class CorreoIntegrationTest {
         archivos = Files.createTempDirectory("lamontana-correo-");
         smtp = new CapturaSmtp();
         pg = EmbeddedPostgres.builder().start();
-        app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run(
+        app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia","historia-organizacion").run(
                 "--server.port=0", "--spring.datasource.url=" + pg.getJdbcUrl("postgres", "postgres"),
                 "--spring.datasource.username=postgres", "--spring.datasource.password=",
                 "--lamontana.archivos.directorio=" + archivos, "--lamontana.instalacion.token=" + TOKEN_INSTALACION,
@@ -362,7 +362,7 @@ class CorreoIntegrationTest {
         assertStatus(sucursal, 201);
         String sucursalId = JSON.readTree(sucursal.body()).get("codigoPublico").asString();
         String email = "empleado@example.test";
-        var alta = post(propietario, "/api/admin/empleados", Map.of("nombre", "Empleado", "apellido", "Correo", "correo", email, "contrasena", CLAVE, "sucursales", List.of(sucursalId), "permisos", List.of()));
+        var alta = post(propietario, "/fixture/api/admin/empleados", Map.of("nombre", "Empleado", "apellido", "Correo", "correo", email, "contrasena", CLAVE, "sucursales", List.of(sucursalId), "permisos", List.of()));
         assertStatus(alta, 201);
         String empleadoId = JSON.readTree(alta.body()).get("codigoPublico").asString();
         var empleado = cliente(); login(empleado, email, CLAVE, 200);
@@ -374,7 +374,7 @@ class CorreoIntegrationTest {
         String recuperarViejo = smtp.recibir().token();
         String nuevoEmail = "empleado.nuevo@example.test";
         var editado = editarEmpleado(empleadoId); editado.put("correo", nuevoEmail);
-        assertStatus(enviar(propietario, "PUT", "/api/admin/empleados/" + empleadoId, editado), 200);
+        assertStatus(enviar(propietario, "PUT", "/fixture/api/admin/empleados/" + empleadoId, editado), 200);
         assertThat(sesiones(email)).isZero();
         assertStatus(get(empleado, "/api/auth/me"), 401);
         assertThat(verificado(nuevoEmail)).isFalse();
@@ -390,7 +390,7 @@ class CorreoIntegrationTest {
         assertStatus(post(anonimo, "/api/auth/recuperacion/solicitar", Map.of("correo", nuevoEmail)), 200);
         String recuperarActual = smtp.recibir().token();
         var baja = editarEmpleado(empleadoId); baja.put("estado", "DESACTIVADO"); baja.put("sucursales", List.of());
-        assertStatus(enviar(propietario, "PUT", "/api/admin/empleados/" + empleadoId, baja), 200);
+        assertStatus(enviar(propietario, "PUT", "/fixture/api/admin/empleados/" + empleadoId, baja), 200);
         assertThat(sesiones(nuevoEmail)).isZero();
         assertStatus(get(empleado, "/api/auth/me"), 401);
         assertRevocados(empleadoId);
@@ -459,7 +459,7 @@ class CorreoIntegrationTest {
     }
     @SuppressWarnings("unchecked")
     private Map<String, Object> editarEmpleado(String id) throws Exception {
-        var response = get(propietario, "/api/admin/empleados"); assertStatus(response, 200);
+        var response = get(propietario, "/fixture/api/admin/empleados"); assertStatus(response, 200);
         for (var node : JSON.readTree(response.body())) if (node.get("codigoPublico").asString().equals(id)) {
             Map<String, Object> data = new HashMap<>(JSON.readValue(node.toString(), Map.class)); data.remove("codigoPublico"); return data;
         }

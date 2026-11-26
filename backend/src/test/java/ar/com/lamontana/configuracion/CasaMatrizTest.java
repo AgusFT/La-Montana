@@ -35,9 +35,9 @@ class CasaMatrizTest {
     private final EntregaConfiguracionService service=new EntregaConfiguracionService(jdbc,configuracion,new EvaluadorCalendario(),new EvaluadorFranjas());
     private List<Dia> semana(boolean abierta){return IntStream.rangeClosed(1,7).mapToObj(d->new Dia(d,abierta&&d<=5,abierta&&d<=5?"09:00":null,abierta&&d<=5?"17:00":null)).toList();}
     private EntregaRepositorio.Entrega datos(UUID principal,boolean confirmada,String traslado){
-        var retiro=new PuntoEntregaController.Franja(1,"19:00","20:00",10,true);
+        var retiro=new PuntosRepositorio.Franja(1,"19:00","20:00",10,true);
         return new EntregaRepositorio.Entrega("2",traslado,List.of(Modalidad.RETIRO_SUCURSAL),List.of(
-            new EntregaRepositorio.Horario(matriz,"UTC",semana(true),List.of(new PuntoEntregaController.Franja(1,"09:00","17:00",10,true))),
+            new EntregaRepositorio.Horario(matriz,"UTC",semana(true),List.of(new PuntosRepositorio.Franja(1,"09:00","17:00",10,true))),
             new EntregaRepositorio.Horario(destino,"UTC",semana(false),List.of(retiro))),List.of(),List.of(),principal,confirmada);
     }
     private void preparar(EntregaRepositorio.Entrega entrega,String estado){

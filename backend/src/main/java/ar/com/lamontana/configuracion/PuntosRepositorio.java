@@ -27,7 +27,8 @@
 
 package ar.com.lamontana.configuracion;
 
-import static ar.com.lamontana.configuracion.PuntoEntregaController.*;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +40,18 @@ public class PuntosRepositorio {
     private static final DateTimeFormatter HORA=DateTimeFormatter.ofPattern("HH:mm");
     private final JdbcTemplate jdbc;
     public PuntosRepositorio(JdbcTemplate jdbc){this.jdbc=jdbc;}
+    public static final String EXCLUSION_DEMO = "El retiro en puntos de entrega móviles no está disponible en la Demo. Elegí retiro en sucursal o envío a domicilio.";
+    public static boolean admitePuntosMoviles(JdbcTemplate jdbc) {
+        return Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT EXISTS (SELECT FROM lamontana.modalidades_entrega_demo WHERE modalidad='RETIRO_PUNTO_ENTREGA')",
+                Boolean.class));
+    }
+    public record Franja(@NotNull @Min(1) @Max(7) Integer dia,
+                         @NotNull @Pattern(regexp="(?:[01][0-9]|2[0-3]):[0-5][0-9]") String apertura,
+                         @NotNull @Pattern(regexp="(?:[01][0-9]|2[0-3]):[0-5][0-9]") String cierre,
+                         @NotNull @PositiveOrZero Integer capacidadPedidos,@NotNull Boolean habilitada) {}
+    public record SucursalPunto(@NotNull UUID sucursal,@NotNull Boolean habilitado,@NotNull @Size(max=15) String costo,
+                                @NotNull @Size(max=100) List<@NotNull @Valid Franja> franjas) {}
     public record Punto(UUID codigoPublico,String codigo,String nombre,String calle,String numero,String localidad,String provincia,String codigoPostal,
                         String referencias,String zonaHoraria,List<SucursalPunto> sucursales){}
     public List<Punto> leer(long config) {

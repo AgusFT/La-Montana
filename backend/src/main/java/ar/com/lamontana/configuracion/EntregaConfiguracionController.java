@@ -38,7 +38,7 @@
 
 package ar.com.lamontana.configuracion;
 
-import ar.com.lamontana.configuracion.PuntoEntregaController.Franja;
+import ar.com.lamontana.configuracion.PuntosRepositorio.Franja;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.security.Principal;

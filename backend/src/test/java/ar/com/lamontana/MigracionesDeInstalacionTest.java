@@ -32,6 +32,53 @@ class MigracionesDeInstalacionTest {
     }
 
     @Test
+    void conservaElHistorialDePuntosAlActualizarLaDemoYRechazaOperacionesNuevas() throws Exception {
+        try (var pg = EmbeddedPostgres.builder().start()) {
+            var ds = pg.getPostgresDatabase();
+            var v50 = Flyway.configure().dataSource(ds).schemas("lamontana").defaultSchema("lamontana")
+                    .locations("classpath:db/migration", "classpath:db/imprenta").target("50");
+            new MigracionesDeInstalacion("DEMO").customize(v50);
+            v50.load().migrate();
+            var jdbc = new JdbcTemplate(ds);
+            jdbc.update("""
+                    INSERT INTO lamontana.punto_entrega(codigo_publico,codigo,id_usuario_creador)
+                    SELECT gen_random_uuid(),'MOVIL',id_usuario FROM lamontana.usuario WHERE es_administrador_propietario
+                    """);
+            jdbc.update("""
+                    INSERT INTO lamontana.disponibilidad_punto_entrega
+                    SELECT id_punto_entrega,'HABILITADO',1,id_usuario_creador,now() FROM lamontana.punto_entrega
+                    """);
+            String cotizar = """
+                    INSERT INTO lamontana.cotizacion(codigo_publico,id_usuario_creador,id_sucursal,id_configuracion_version,
+                        id_catalogo_revision,estado,generada_en,vigente_hasta,subtotal,costo_entrega,total,oferta)
+                    SELECT gen_random_uuid(),c.id_usuario_creador,id_sucursal,id_configuracion_version,id_catalogo_revision,
+                        'VIGENTE',now(),now()+interval '1 day',subtotal,costo_entrega,total,
+                        oferta || jsonb_build_object('modalidad','RETIRO_PUNTO_ENTREGA','punto',p.codigo_publico)
+                    FROM lamontana.cotizacion c CROSS JOIN lamontana.punto_entrega p WHERE estado='CONFIRMADA'
+                    """;
+            assertThat(jdbc.update(cotizar)).isEqualTo(1);
+            String historia = """
+                    SELECT to_jsonb(c)::text AS cotizacion,to_jsonb(d)::text AS disponibilidad
+                    FROM lamontana.cotizacion c CROSS JOIN lamontana.disponibilidad_punto_entrega d
+                    WHERE c.oferta->>'modalidad'='RETIRO_PUNTO_ENTREGA'
+                    """;
+            var anterior = jdbc.queryForMap(historia);
+            arrancar(pg);
+            assertThat(jdbc.queryForMap(historia)).isEqualTo(anterior);
+            assertThat(jdbc.queryForList("SELECT modalidad FROM lamontana.modalidades_entrega_demo", String.class))
+                    .containsExactlyInAnyOrder("RETIRO_SUCURSAL", "ENVIO_DOMICILIO");
+            for (String insertar : java.util.List.of(cotizar,
+                    "INSERT INTO lamontana.reserva_entrega(modalidad) VALUES ('RETIRO_PUNTO_ENTREGA')",
+                    "INSERT INTO lamontana.propuesta_reprogramacion(franja_nueva) VALUES (jsonb_build_object('modalidad','RETIRO_PUNTO_ENTREGA'))")) {
+                assertThatThrownBy(() -> jdbc.update(insertar)).rootCause()
+                        .isInstanceOfSatisfying(java.sql.SQLException.class,
+                                error -> assertThat(error.getSQLState()).isEqualTo("23D16"));
+            }
+            assertThat(jdbc.queryForMap(historia)).isEqualTo(anterior);
+        }
+    }
+
+    @Test
     void rechazaProductoV43YV45ConservandoPedidosPagosYSoporte() throws Exception {
         try (var remoto = EmbeddedPostgres.builder().start(); var v45 = EmbeddedPostgres.builder().start()) {
             preparar(remoto.getPostgresDatabase(), 43);

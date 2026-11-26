@@ -11,10 +11,10 @@
  * MÉTODOS DECLARADOS
  * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
  * automáticamente no se enumeran.
- * - [private] PuntoEntregaController.Franja franja(int dia, String a, String c, int cupo, boolean
+ * - [private] PuntosRepositorio.Franja franja(int dia, String a, String c, int cupo, boolean
  *   habilitada)
  * - [private] EvaluadorFranjas.Ventana calcular(String llegada, String zona,
- *   List<PuntoEntregaController.Franja> franjas)
+ *   List<PuntosRepositorio.Franja> franjas)
  * - [paquete] void aperturaInclusivaCierreExclusivoContiguasCupoCeroYFinDeSemana()
  *   Caso de prueba.
  * - [paquete] void saltoDstOmiteHorasInexistentesSinDesplazarArtificialmenteLaApertura()
@@ -44,8 +44,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 class EvaluadorFranjasTest {
     private final EvaluadorFranjas evaluador=new EvaluadorFranjas();
-    private PuntoEntregaController.Franja franja(int dia,String a,String c,int cupo,boolean habilitada){return new PuntoEntregaController.Franja(dia,a,c,cupo,habilitada);}
-    private EvaluadorFranjas.Ventana calcular(String llegada,String zona,List<PuntoEntregaController.Franja> franjas){return evaluador.siguiente(Instant.parse(llegada),zona,franjas,Instant.parse(llegada).plus(Duration.ofDays(366*5)));}
+    private PuntosRepositorio.Franja franja(int dia,String a,String c,int cupo,boolean habilitada){return new PuntosRepositorio.Franja(dia,a,c,cupo,habilitada);}
+    private EvaluadorFranjas.Ventana calcular(String llegada,String zona,List<PuntosRepositorio.Franja> franjas){return evaluador.siguiente(Instant.parse(llegada),zona,franjas,Instant.parse(llegada).plus(Duration.ofDays(366*5)));}
     @Test void retirosIndependientesNoAgreganHorasDeProduccion(){
         String zona="America/Argentina/Buenos_Aires";
         var dias=List.of(new EntregaConfiguracionController.Dia(1,true,"09:00","18:00"),new EntregaConfiguracionController.Dia(3,false,null,null));

@@ -1,90 +1,26 @@
-//#region ENCABEZADO · OrganizacionService.java
-/*
- * ========================================================================
- * ARCHIVO: OrganizacionService.java
- * ========================================================================
- * FUNCIÓN
- * Administra sucursales y empleados, sus horarios, asignaciones y permisos. Valida cambios
- * concurrentes, audita modificaciones y resuelve el contexto autorizado de operación.
- *
- * ------------------------------------------------------------------------
- * CONSTRUCTORES DECLARADOS
- * - [public] OrganizacionService(JdbcTemplate jdbc, PasswordEncoder encoder,
- *   ar.com.lamontana.identidad.CredencialService credenciales)
- *
- * ------------------------------------------------------------------------
- * MÉTODOS DECLARADOS
- * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
- * automáticamente no se enumeran.
- * - [private] void bloquearOrganizacion()
- * - [public] List<Sucursal> sucursales()
- * - [public] UUID crearSucursal(NuevaSucursal in, String actor)
- * - [public] Sucursal actualizarSucursal(UUID codigo, EdicionSucursal in, String actor)
- * - [public] void eliminarSucursal(UUID codigo, long version, String actor): baja lógica.
- * - [private] void validarDesactivacion(UUID codigo)
- * - [public] List<Empleado> empleados()
- * - [public] UUID crearEmpleado(NuevoEmpleado in, String actor)
- * - [public] Empleado actualizarEmpleado(UUID codigo, EdicionEmpleado in, String actor)
- * - [public] Contexto contexto(String actor)
- * - [public] Sucursal sucursalAutorizada(String actor, UUID codigo)
- * - [public] void exigirPermiso(String actor, String permiso)
- * - [private] void validarAsignaciones(List<UUID> sucursales, List<String> permisos, String
- *   estado, List<UUID> existentes)
- * - [private] void asignar(Long usuario, List<UUID> nuevasSucursales, List<String> nuevosPermisos,
- *   String actor)
- * - [private] List<UUID> asignaciones(Long id)
- * - [private] List<String> permisos(Long id)
- * - [private] List<String> permisosDisponibles()
- * - [private] Long idUsuario(String correo)
- * - [private] Empleado buscarEmpleado(UUID codigo)
- * - [private] Sucursal buscarSucursal(UUID codigo)
- * - [private] Empleado empleado(ResultSet rs, int row) throws SQLException
- * - [private] Sucursal sucursal(ResultSet rs, int row) throws SQLException
- * - [private] void auditar(String actor, String tipo, UUID codigo, long version)
- * - [private] List<HorarioAtencion.Dia> horario(long sucursal)
- * - [private] void guardarHorario(UUID codigo, List<HorarioAtencion.Dia> dias)
- * - [private] String opcional(String value)
- * - [private] String correo(String value)
- * - [private] ResponseStatusException desactualizado()
- * - [private] ResponseStatusException error(HttpStatus status, String mensaje)
- *   Construye un error HTTP controlado.
- *
- * ------------------------------------------------------------------------
- * TIPOS DECLARADOS
- * - OrganizacionService (clase).
- * - OrganizacionService.Contexto (record).
- * ========================================================================
- */
-//#endregion
-
 package ar.com.lamontana.organizacion;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.time.LocalTime;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import ar.com.lamontana.organizacion.EmpleadoController.*;
 import ar.com.lamontana.organizacion.SucursalController.*;
 
 @Service
 public class OrganizacionService {
     private final JdbcTemplate jdbc;
-    private final PasswordEncoder encoder;
-    private final ar.com.lamontana.identidad.CredencialService credenciales;
-    public OrganizacionService(JdbcTemplate jdbc, PasswordEncoder encoder, ar.com.lamontana.identidad.CredencialService credenciales) { this.jdbc = jdbc; this.encoder = encoder; this.credenciales=credenciales; }
+    public OrganizacionService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     // Ordena cambios de asignaciones y bajas para conservar al menos una sucursal activa por empleado.
-    private void bloquearOrganizacion() {
+    void bloquearOrganizacion() {
         // Mismo orden para cambios de organización, guardado y activación del motor.
         jdbc.execute("SELECT pg_advisory_xact_lock(764003)");
         jdbc.execute("SELECT pg_advisory_xact_lock(764001)");
@@ -176,50 +112,6 @@ public class OrganizacionService {
         jdbc.update("UPDATE lamontana.sucursal SET propuesta_matriz=true WHERE codigo_publico=?",codigo);
     }
 
-    public List<Empleado> empleados() {
-        return jdbc.query("""
-                SELECT u.* FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
-                WHERE r.codigo='EMPLEADO' ORDER BY u.apellido,u.nombre,u.codigo_publico
-                """, this::empleado);
-    }
-
-    @Transactional
-    public UUID crearEmpleado(NuevoEmpleado in, String actor) {
-        bloquearOrganizacion(); validarAsignaciones(in.sucursales(), in.permisos(), "ACTIVO", List.of());
-        UUID codigo = UUID.randomUUID();
-        var ids = jdbc.query("""
-                INSERT INTO lamontana.usuario(codigo_publico,id_rol,correo,hash_contrasena,nombre,apellido,estado,debe_cambiar_contrasena)
-                VALUES (?,(SELECT id_rol FROM lamontana.rol WHERE codigo='EMPLEADO'),?,?,?,?,'ACTIVO',true)
-                ON CONFLICT DO NOTHING RETURNING id_usuario
-                """, (rs,row)->rs.getLong(1), codigo, correo(in.correo()), encoder.encode(in.contrasena()), in.nombre().strip(), in.apellido().strip());
-        if (ids.isEmpty()) throw error(HttpStatus.CONFLICT, "Ya existe una cuenta con ese correo.");
-        asignar(ids.get(0), in.sucursales(), in.permisos(), actor);
-        auditar(actor, "ALTA_EMPLEADO", codigo, 0);
-        return codigo;
-    }
-
-    @Transactional
-    public Empleado actualizarEmpleado(UUID codigo, EdicionEmpleado in, String actor) {
-        bloquearOrganizacion();
-        Empleado actual = buscarEmpleado(codigo);
-        if (actual.version() != in.version()) throw desactualizado();
-        validarAsignaciones(in.sucursales(), in.permisos(), in.estado(), actual.sucursales());
-        Long id = idUsuario(actual.correo());
-        jdbc.update("""
-                UPDATE lamontana.usuario SET nombre=?,apellido=?,correo=?,estado=?,version=version+1,
-                correo_verificado_en=CASE WHEN correo=? THEN correo_verificado_en ELSE NULL END,
-                fecha_desactivacion=CASE WHEN ?='DESACTIVADO' THEN COALESCE(fecha_desactivacion,now()) ELSE NULL END
-                WHERE id_usuario=?
-                """, in.nombre().strip(), in.apellido().strip(), correo(in.correo()), in.estado(), correo(in.correo()), in.estado(), id);
-        asignar(id, in.sucursales(), in.permisos(), actor);
-        if ("DESACTIVADO".equals(in.estado()) || !actual.correo().equals(correo(in.correo()))) {
-            credenciales.revocar(id);
-            jdbc.update("DELETE FROM lamontana.sesion_http WHERE principal_name=?", actual.correo());
-        }
-        auditar(actor, "EDICION_EMPLEADO", codigo, actual.version()+1);
-        return buscarEmpleado(codigo);
-    }
-
     public Contexto contexto(String actor) {
         String rol = jdbc.queryForObject("""
                 SELECT r.codigo FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol)
@@ -244,62 +136,19 @@ public class OrganizacionService {
         if (!contexto(actor).permisos().contains(permiso)) throw error(HttpStatus.FORBIDDEN, "No tenés el permiso requerido.");
     }
 
-    private void validarAsignaciones(List<UUID> sucursales, List<String> permisos, String estado, List<UUID> existentes) {
-        if (new HashSet<>(sucursales).size() != sucursales.size() || new HashSet<>(permisos).size() != permisos.size()) {
-            throw error(HttpStatus.BAD_REQUEST, "Las sucursales y los permisos no pueden repetirse.");
-        }
-        if ("ACTIVO".equals(estado) && sucursales.isEmpty()) throw error(HttpStatus.BAD_REQUEST, "Un empleado activo necesita al menos una sucursal activa.");
-        int activas = 0;
-        for (UUID sucursal : sucursales) {
-            boolean activa = Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')", Boolean.class, sucursal));
-            if (activa) activas++;
-            else if (!existentes.contains(sucursal)) throw error(HttpStatus.BAD_REQUEST, "Las nuevas asignaciones requieren sucursales activas existentes.");
-        }
-        if ("ACTIVO".equals(estado) && activas == 0) throw error(HttpStatus.BAD_REQUEST, "Un empleado activo necesita al menos una sucursal activa.");
-        if (!permisosDisponibles().containsAll(permisos)) throw error(HttpStatus.BAD_REQUEST, "Hay permisos no admitidos.");
-    }
-
-    private void asignar(Long usuario, List<UUID> nuevasSucursales, List<String> nuevosPermisos, String actor) {
-        List<UUID> actuales = asignaciones(usuario);
-        for (UUID sucursal : actuales) if (!nuevasSucursales.contains(sucursal)) {
-            jdbc.update("UPDATE lamontana.usuario_sucursal SET activa=false,fecha_hasta=now() WHERE id_usuario=? AND activa AND id_sucursal=(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?)", usuario, sucursal);
-        }
-        for (UUID sucursal : nuevasSucursales) if (!actuales.contains(sucursal)) {
-            jdbc.update("INSERT INTO lamontana.usuario_sucursal(id_usuario,id_sucursal) VALUES (?,(SELECT id_sucursal FROM lamontana.sucursal WHERE codigo_publico=?))", usuario, sucursal);
-        }
-        List<String> anteriores = permisos(usuario);
-        for (String permiso : anteriores) if (!nuevosPermisos.contains(permiso)) {
-            jdbc.update("UPDATE lamontana.usuario_permiso SET fecha_revocacion=now() WHERE id_usuario=? AND fecha_revocacion IS NULL AND id_permiso=(SELECT id_permiso FROM lamontana.permiso WHERE codigo=?)", usuario, permiso);
-        }
-        for (String permiso : nuevosPermisos) if (!anteriores.contains(permiso)) {
-            jdbc.update("INSERT INTO lamontana.usuario_permiso(id_usuario,id_permiso,id_usuario_otorgante) VALUES (?,(SELECT id_permiso FROM lamontana.permiso WHERE codigo=?),?)", usuario, permiso, idUsuario(actor));
-        }
-    }
-
-    private List<UUID> asignaciones(Long id) {
-        return jdbc.query("SELECT s.codigo_publico FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal) WHERE us.id_usuario=? AND us.activa ORDER BY s.codigo", (rs,row)->rs.getObject(1, UUID.class), id);
-    }
-    private List<String> permisos(Long id) {
+    List<String> permisos(Long id) {
         return jdbc.query("SELECT p.codigo FROM lamontana.usuario_permiso up JOIN lamontana.permiso p USING(id_permiso) WHERE up.id_usuario=? AND up.fecha_revocacion IS NULL AND p.activo ORDER BY p.codigo", (rs,row)->rs.getString(1), id);
     }
-    private List<String> permisosDisponibles() { return jdbc.queryForList("SELECT codigo FROM lamontana.permiso WHERE activo ORDER BY codigo", String.class); }
-    private Long idUsuario(String correo) { return jdbc.queryForObject("SELECT id_usuario FROM lamontana.usuario WHERE correo=?", Long.class, correo); }
-    private Empleado buscarEmpleado(UUID codigo) {
-        return jdbc.query("SELECT u.* FROM lamontana.usuario u JOIN lamontana.rol r USING(id_rol) WHERE u.codigo_publico=? AND r.codigo='EMPLEADO'", this::empleado, codigo)
-                .stream().findFirst().orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Empleado inexistente."));
-    }
+    List<String> permisosDisponibles() { return jdbc.queryForList("SELECT codigo FROM lamontana.permiso WHERE activo ORDER BY codigo", String.class); }
+    Long idUsuario(String correo) { return jdbc.queryForObject("SELECT id_usuario FROM lamontana.usuario WHERE correo=?", Long.class, correo); }
     private Sucursal buscarSucursal(UUID codigo) {
         return jdbc.query("SELECT * FROM lamontana.sucursal WHERE codigo_publico=?", this::sucursal, codigo)
                 .stream().findFirst().orElseThrow(() -> error(HttpStatus.NOT_FOUND, "Sucursal inexistente."));
     }
-    private Empleado empleado(ResultSet rs, int row) throws SQLException {
-        long id = rs.getLong("id_usuario");
-        return new Empleado(rs.getObject("codigo_publico", UUID.class), rs.getString("nombre"), rs.getString("apellido"), rs.getString("correo"), rs.getString("estado"), rs.getLong("version"), asignaciones(id), permisos(id));
-    }
     private Sucursal sucursal(ResultSet rs, int row) throws SQLException {
         return new Sucursal(rs.getObject("codigo_publico", UUID.class), rs.getString("codigo"), rs.getString("nombre"), rs.getString("calle"), rs.getString("numero"), rs.getString("localidad"), rs.getString("provincia"), rs.getString("codigo_postal"), rs.getString("correo"), rs.getString("telefono"), rs.getString("zona_horaria"), rs.getString("estado"), rs.getLong("version"), horario(rs.getLong("id_sucursal")),rs.getBoolean("propuesta_matriz"),Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.configuracion_entrega e JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE e.id_sucursal_matriz=? AND c.estado='ACTIVA')",Boolean.class,rs.getLong("id_sucursal"))));
     }
-    private void auditar(String actor, String tipo, UUID codigo, long version) {
+    void auditar(String actor, String tipo, UUID codigo, long version) {
         jdbc.update("INSERT INTO lamontana.evento_organizacion(id_usuario_actor,tipo,codigo_publico_objeto,version) VALUES (?,?,?,?)", idUsuario(actor), tipo, codigo, version);
     }
     private List<HorarioAtencion.Dia> horario(long sucursal) {
@@ -314,8 +163,7 @@ public class OrganizacionService {
             id, dia.dia(), dia.habilitado(), dia.apertura()==null?null:Time.valueOf(LocalTime.parse(dia.apertura())), dia.cierre()==null?null:Time.valueOf(LocalTime.parse(dia.cierre())));
     }
     private String opcional(String value) { return value == null || value.isBlank() ? null : value.strip(); }
-    private String correo(String value) { return value.strip().toLowerCase(Locale.ROOT); }
-    private ResponseStatusException desactualizado() { return error(HttpStatus.CONFLICT, "Los datos cambiaron. Actualizá el listado antes de guardar nuevamente."); }
-    private ResponseStatusException error(HttpStatus status, String mensaje) { return new ResponseStatusException(status, mensaje); }
+    ResponseStatusException desactualizado() { return error(HttpStatus.CONFLICT, "Los datos cambiaron. Actualizá el listado antes de guardar nuevamente."); }
+    ResponseStatusException error(HttpStatus status, String mensaje) { return new ResponseStatusException(status, mensaje); }
     public record Contexto(List<Sucursal> sucursales, List<String> permisos) {}
 }

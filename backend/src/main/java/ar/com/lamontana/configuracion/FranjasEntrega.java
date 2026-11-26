@@ -32,7 +32,7 @@ import java.time.LocalTime;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
-import ar.com.lamontana.configuracion.PuntoEntregaController.Franja;
+import ar.com.lamontana.configuracion.PuntosRepositorio.Franja;
 final class FranjasEntrega {
     private FranjasEntrega(){}
     static void validar(List<Franja> franjas) {

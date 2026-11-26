@@ -135,7 +135,7 @@ public class PedidoService {
   return new Revision(null,q.version(),b.codigoPublico(),b.numero(),hash,bloqueos.isEmpty(),List.copyOf(bloqueos),condiciones,franja,files);
  }
  private Franja disponible(CotizacionService.Oferta o,EntregaRepositorio.Entrega e,EvaluadorCalendario.Simulacion estimacion,Instant ahora,OfertaOperativaService.Sucursal sucursalActual,Long excluirPedido){
-  UUID branch=o.sucursal().codigoPublico(),dest;String zona,nombre;List<PuntoEntregaController.Franja> slots;
+  UUID branch=o.sucursal().codigoPublico(),dest;String zona,nombre;List<PuntosRepositorio.Franja> slots;
   if(o.modalidad()==Modalidad.RETIRO_SUCURSAL){UUID retiro=o.origenGlobal()?o.entrega().destinoSucursal().sucursal():branch;var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(retiro)).findFirst().orElseThrow();dest=retiro;zona=h.zonaHoraria();slots=h.franjasRetiro();nombre=sucursalActual.nombre()+" · "+sucursalActual.direccion();}
   else if(o.modalidad()==Modalidad.RETIRO_PUNTO_ENTREGA){var p=e.puntos().stream().filter(x->x.codigoPublico().equals(o.punto())).findFirst().orElseThrow();dest=p.codigoPublico();zona=p.zonaHoraria();slots=p.sucursales().stream().filter(x->x.sucursal().equals(e.casaMatriz()==null?branch:e.casaMatriz())).findFirst().orElseThrow().franjas();nombre=p.nombre()+" · "+p.calle()+" "+p.numero()+", "+p.localidad()+", "+p.provincia();}
   else{var d=estimacion.destinoZona();var z=e.zonas().stream().filter(x->x.codigoPublico().equals(d.zona())).findFirst().orElseThrow();dest=z.codigoPublico();zona=z.zonaHoraria();slots=z.franjas();nombre=o.destino();}

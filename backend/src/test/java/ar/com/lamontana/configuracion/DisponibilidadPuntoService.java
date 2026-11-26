@@ -1,39 +1,3 @@
-//#region ENCABEZADO · DisponibilidadPuntoService.java
-/*
- * ========================================================================
- * ARCHIVO: DisponibilidadPuntoService.java
- * ========================================================================
- * FUNCIÓN
- * Gestiona la disponibilidad cotidiana de los puntos de entrega y su auditoría. Verifica
- * identidad, contenido y reintentos de cada cambio sin modificar las versiones de configuración.
- *
- * ------------------------------------------------------------------------
- * CONSTRUCTORES DECLARADOS
- * - [public] DisponibilidadPuntoService(JdbcTemplate jdbc, ConfiguracionService configuracion)
- *
- * ------------------------------------------------------------------------
- * MÉTODOS DECLARADOS
- * Incluye métodos privados, sobrecargas y métodos de tipos internos; los accesores generados
- * automáticamente no se enumeran.
- * - [public] Panel listar(String correo)
- * - [public] Disponibilidad cambiar(UUID codigo, DisponibilidadPuntoController.Cambiar input,
- *   String correo)
- * - [private] Disponibilidad estado(long id, UUID codigo)
- * - [private] ResponseStatusException conflicto(String message)
- *   Construye un error HTTP controlado.
- *
- * ------------------------------------------------------------------------
- * TIPOS DECLARADOS
- * - DisponibilidadPuntoService (clase).
- * - DisponibilidadPuntoService.Disponibilidad (record).
- * - DisponibilidadPuntoService.Punto (record).
- * - DisponibilidadPuntoService.Panel (record).
- * - DisponibilidadPuntoService.Comprobante (record).
- * - DisponibilidadPuntoService.Destino (record).
- * ========================================================================
- */
-//#endregion
-
 package ar.com.lamontana.configuracion;
 
 import java.time.Instant;
@@ -45,6 +9,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+@org.springframework.context.annotation.Profile("historia-organizacion")
 @Service
 public class DisponibilidadPuntoService {
     private final JdbcTemplate jdbc;

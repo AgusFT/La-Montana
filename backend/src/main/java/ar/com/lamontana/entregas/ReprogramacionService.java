@@ -94,6 +94,7 @@ public class ReprogramacionService {
  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ) public Disponibilidad disponibilidad(UUID pedido,LocalDate fecha,String correo){var p=pedidos.detalle(pedido,correo,true);organizacion.exigirPermiso(correo,"GESTIONAR_ENTREGAS");exigirEtapa(p);return ventanas(p,fecha);}
  private Vista vista(PedidoService.Detalle p,String correo,boolean interno){
   boolean permiso=interno&&organizacion.contexto(correo).permisos().contains("GESTIONAR_ENTREGAS");String bloqueo=!ESTADOS.contains(p.estado())?"La reprogramación requiere un pedido sin corrección pendiente, cancelación, entrega ni cierre.":!p.estadoReserva().equals("ACTIVA")?"El pedido ya no tiene una reserva activa.":null;
+  if(bloqueo==null && puntoExcluido(p)) bloqueo=PuntosRepositorio.EXCLUSION_DEMO;
   var list=jdbc.query("SELECT p.*,c.codigo_publico AS configuracion FROM lamontana.propuesta_reprogramacion p JOIN lamontana.configuracion_version c USING(id_configuracion_version) WHERE p.id_pedido=? ORDER BY p.id_propuesta_reprogramacion DESC",(r,n)->{
    var registro=mapear(r);var reason=invalida(p,registro);var decisions=jdbc.query("SELECT resultado,actor_nombre,motivo,fecha FROM lamontana.resolucion_reprogramacion WHERE id_propuesta_reprogramacion=?",(d,i)->new Decision(d.getString(1),interno?d.getString(2):d.getString(1).equals("RETIRADA")?"La imprenta":"Cliente",d.getString(1).equals("RETIRADA")&&!interno?"La imprenta retiró la propuesta; se conserva la reserva anterior.":d.getString(3),d.getTimestamp(4).toInstant()),registro.id());
    return new Propuesta(registro.codigo(),registro.estado(),reason==null,reason,leerReserva(registro.reserva()),registro.nueva(),registro.configuracion(),interno?r.getString("actor_nombre"):"La imprenta",interno?r.getString("motivo_interno"):null,r.getString("mensaje_cliente"),r.getTimestamp("fecha").toInstant(),decisions.isEmpty()?null:decisions.get(0));
@@ -102,19 +103,24 @@ public class ReprogramacionService {
   String msg=bloqueo!=null?bloqueo:pendiente!=null?"Resolvé o retirá la propuesta pendiente antes de enviar otra.":interno&&!permiso?"Se requiere permiso de gestión de entregas.":null;
   return new Vista(p.version(),p.estado(),permiso&&msg==null,permiso&&pendiente!=null,msg,pendiente,list);
  }
+ private boolean puntoExcluido(PedidoService.Detalle p) {
+  return p.reserva().modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_PUNTO_ENTREGA && !PuntosRepositorio.admitePuntosMoviles(jdbc);
+ }
  private String invalida(PedidoService.Detalle p,Registro r){
   if(!r.estado().equals("PENDIENTE"))return "La propuesta ya fue resuelta.";
   if(!ESTADOS.contains(p.estado()))return "El estado actual del pedido no admite aceptar esta reprogramación.";
   if(!p.estadoReserva().equals("ACTIVA")||reserva(p)!=r.reserva())return "La reserva cambió; esta propuesta ya no puede reemplazarla.";
+  if(puntoExcluido(p))return PuntosRepositorio.EXCLUSION_DEMO;
   if(!clock.instant().isBefore(r.nueva().hasta()))return "La franja propuesta ya terminó.";
   UUID actual=jdbc.query("SELECT codigo_publico FROM lamontana.configuracion_version WHERE estado='ACTIVA'",(x,n)->x.getObject(1,UUID.class)).stream().findFirst().orElse(null);
   if(!r.configuracion().equals(actual))return "La configuración cambió. La imprenta debe proponer una franja con la versión actual.";
   return null;
  }
  private Disponibilidad ventanas(PedidoService.Detalle p,LocalDate fecha){
+  if(puntoExcluido(p))throw conflicto(PuntosRepositorio.EXCLUSION_DEMO);
   var b=operativa.configuracionActiva();if(b==null)throw conflicto("No hay configuración operativa activa.");var e=b.entrega();var old=p.reserva();UUID branch=old.origen();
   if(!jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.sucursal WHERE codigo_publico=? AND estado='ACTIVA')",Boolean.class,branch)||!e.modalidades().contains(old.modalidad()))throw conflicto("La sucursal o modalidad ya no está habilitada para reprogramar.");
-  String zona,nombre;List<PuntoEntregaController.Franja> templates;
+  String zona,nombre;List<PuntosRepositorio.Franja> templates;
   if(old.modalidad()==EntregaConfiguracionController.Modalidad.RETIRO_SUCURSAL){
    var h=e.horariosPorSucursal().stream().filter(x->x.sucursal().equals(p.oferta().origenGlobal()?old.destino():branch)).findFirst().orElseThrow(()->conflicto("El destino no tiene horarios de retiro configurados."));zona=h.zonaHoraria();
    nombre=jdbc.queryForObject("SELECT nombre||' · '||calle||' '||numero||', '||localidad||', '||provincia FROM lamontana.sucursal WHERE codigo_publico=?",String.class,p.oferta().origenGlobal()?old.destino():branch);
