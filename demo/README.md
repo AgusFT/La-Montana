@@ -4,9 +4,11 @@ La Demo permite probar el trabajo diario de **Senderos**, una imprenta ficticia,
 durante 15 días. Las tres cuentas comparten los pedidos, el catálogo y la caja
 en la misma computadora.
 
-La versión 0.1.0 pasó las pruebas de Windows 11 x64 con Ethernet desconectado.
-Podés probarla con el instalador local o desde el código fuente. La descarga
-pública desde YG Soluciones está prevista para la etapa de distribución. [Guía de instalación y distribución](distribucion.md) · [Backlog y pruebas](backlog.md)
+El instalador para Windows 11 x64 prepara el antivirus ClamAV antes de abrir la
+imprenta. Podés descargar sus firmas desde el servicio oficial o usar una copia
+guardada en un disco o USB. Después de instalar, la Demo funciona sin conexión.
+La guía de distribución indica qué versiones se probaron y cuándo se habilita
+su descarga desde YG Soluciones. [Guía de instalación y distribución](distribucion.md) · [Backlog y pruebas](backlog.md)
 
 ## Entrar a la imprenta
 

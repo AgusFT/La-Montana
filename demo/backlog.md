@@ -16,7 +16,7 @@ se completan a medida que se validan las etapas.
 | 4. Exclusiones y vencimiento | [#236](https://github.com/AgusFT/La-Montana/issues/236) Vigencia sin conexión | 2 h | #230, #233 | Comprobar el banner en todas las vistas, que el servidor permite operar a las 359 h 59 min 59 s y que bloquea a las 360 h. Probar sesión abierta, reloj atrasado y corregido, reinicio y red desconectada. Verificar el mensaje de vencimiento y la integridad de los archivos. | `4f85d13c` comprueba las 360 horas en el servidor, `a65d786d` conserva la fecha en el equipo y `bba8f177` incorpora el banner y el cierre de las vistas abiertas. PostgreSQL y HTTP verificaron el último segundo, el vencimiento, el retroceso y la corrección del reloj y la conservación del PDF. |
 | 5. Instalador y prueba Windows | [#237](https://github.com/AgusFT/La-Montana/issues/237) Paquete para Windows 11 x64 | 2 h | #234, #235, #236 | Construir el `.exe` con identidad de instalación y actualización, directorios y volúmenes propios de Demo. Registrar versión, tamaño y SHA-256. | `8b708a6f` prepara el paquete offline de cinco servicios, `f4c88dc0` separa la distribución de WSL2 y `ce01431c` integra el asistente de instalación y mantenimiento. `ccf36c6b` permite retirar los servicios desde Windows y `b3b5fcfa` fija el directorio del programa por usuario. La versión, el tamaño y la huella del ejecutable se registran en la [ficha de distribución](distribucion.md#verificar-el-archivo). |
 | 5. Instalador y prueba Windows | [#238](https://github.com/AgusFT/La-Montana/issues/238) Validación del paquete | 2 h | #237 | En Windows 11 x64, instalar en una máquina sin La Montaña, operar sin conexión, reparar, desinstalar y reinstalar. Verificar el plazo original y el aislamiento de una instalación del producto completo. Registrar las pruebas de Windows y la regresión del servidor, la interfaz y el instalador. | Windows 11 x64 completó instalación, reparación, retiro y reinstalación con el mismo ejecutable y con Ethernet desconectado. Se conservaron la base, el pedido, el PDF y las 360 horas originales. La edición completa mantuvo su instalador, distribución y fichas. [Resultados en Windows](#verificación-del-instalador-en-windows) |
-| 6. Distribución | [#239](https://github.com/AgusFT/La-Montana/issues/239) Descarga pública | 1 h | #231, #238 | Enlazar el archivo versionado desde YG Soluciones. Descargarlo de forma anónima y comparar su tamaño y SHA-256 con el artefacto probado. Verificar los permisos de las entregas privadas y documentar URL, fecha y retiro. | Pendiente. |
+| 6. Distribución | [#239](https://github.com/AgusFT/La-Montana/issues/239) Descarga pública | 1 h | #231, #238 | Enlazar el archivo versionado desde YG Soluciones. Descargarlo de forma anónima y comparar su tamaño y SHA-256 con el artefacto probado. Verificar los permisos de las entregas privadas y documentar URL, fecha y retiro. | La landing incorpora el botón en `7f0345e` y el índice de fuentes en `eec99bd`. `6fb57de0` comprueba Firefox contra Mozilla. `220b0142`, `7088c2bc` y `4a1ae59e` permiten obtener o importar las firmas oficiales de ClamAV durante la instalación. Se comprobó el botón en escritorio y móvil con una descarga de prueba. Pasaron las ocho pruebas del canal privado en emuladores. La publicación y la descarga anónima de la 0.1.2 están pendientes. [Distribución](distribucion.md#publicación-y-retiro) |
 
 ## Verificación de los cupos
 
@@ -85,3 +85,26 @@ Pasaron las tres baterías del instalador para acceso HTTP, selección de carpet
 y ejecución con Docker Compose real. También pasaron las 59 pruebas del frontend.
 La imagen del backend coincide con la
 validada en la etapa 4, con 275 pruebas aprobadas en 41 clases. [Ficha del ejecutable](distribucion.md#verificar-el-archivo)
+
+### Instalador 0.1.2
+
+En Windows 11 x64 sin conexión, el asistente rechazó un archivo de firmas
+incorrecto antes de iniciar los servicios o consumir tiempo de la Demo.
+Luego aceptó la base oficial de ClamAV desde un USB. Una vez retirado el
+USB, se abrió el pedido del cliente y se descargó su PDF de 2.463 bytes.
+
+Con la edición completa 0.2.7 instalada en paralelo, la Demo se reparó con
+respaldo y se desinstaló desde Windows. Al reinstalar el mismo ejecutable
+en la carpeta original, coincidieron el identificador de la base, el pedido,
+el SHA-256 del PDF y las fechas de inicio y vencimiento. La edición completa
+conservó su instalador, su distribución WSL2 y sus fichas.
+
+Al abrir **LaMontanaDemo** desde el menú Inicio, volvieron los cinco servicios
+y Firefox mostró el selector de roles. Se envió el PDF descargado al motor
+ClamAV de esa instalación. El análisis terminó con cero infecciones y cero
+errores.
+
+En una carpeta nueva del mismo equipo, sin el USB, se eligió la descarga
+desde el asistente. FreshClam obtuvo del servicio oficial la base de
+bytecode 339 (281.702 bytes). La segunda instalación abrió la imprenta y
+conservó la misma fecha de inicio de la prueba.
