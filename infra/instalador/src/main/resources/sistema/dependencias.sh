@@ -36,7 +36,7 @@ case "$accion" in
   iniciar) systemctl start docker ;;
   navegador)
     [[ -f $recurso ]] || exit 66
-    destino=/opt/lamontana-firefox
+    destino=/opt/lamontana-demo-firefox
     [[ ! -e $destino ]] || exit 73
     mkdir -m 755 "$destino"
     tar --no-same-owner -xf "$recurso" -C "$destino" --strip-components=1

@@ -1,10 +1,17 @@
 param([ValidateSet('wsl','ubuntu','docker','iniciar','navegador')][string]$Accion,[string]$Recurso)
 $ErrorActionPreference='Stop'
-$distro='LaMontana-Ubuntu'
+$distro='LaMontanaDemo-Ubuntu'
 try {
   switch ($Accion) {
     'wsl' {
       $feature=Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -All -NoRestart
+      if (Get-Command wsl.exe -ErrorAction SilentlyContinue) {
+        & wsl.exe --version | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+          if ($feature.RestartNeeded) {exit 3010}
+          exit 0
+        }
+      }
       $p=Start-Process msiexec.exe -ArgumentList @('/i',('"'+$Recurso+'"'),'/passive','/norestart') -Wait -PassThru
       if ($p.ExitCode -notin @(0,3010)) {exit $p.ExitCode}
       if ($feature.RestartNeeded -or $p.ExitCode -eq 3010) {exit 3010}
@@ -12,9 +19,14 @@ try {
     'ubuntu' {
       $existing=(& wsl.exe --list --quiet | Out-String).Replace([string][char]0,'')
       if (($existing -split '\r?\n').Trim() -contains $distro) {throw 'La distribución ya existe; no se reemplaza.'}
-      $dest=Join-Path $env:LOCALAPPDATA 'LaMontana\WSL'
-      if (Test-Path $dest) {throw 'Existe un directorio WSL previo; se necesita revisión manual.'}
-      New-Item -ItemType Directory -Path $dest | Out-Null
+      $dest=Join-Path $env:LOCALAPPDATA 'YG-Soluciones\LaMontanaDemo\WSL'
+      if (Test-Path -LiteralPath $dest) {
+        if (-not (Test-Path -LiteralPath $dest -PathType Container) -or
+            ((Get-Item -LiteralPath $dest).Attributes -band [IO.FileAttributes]::ReparsePoint) -or
+            (Get-ChildItem -LiteralPath $dest -Force | Select-Object -First 1)) {
+          throw 'El destino WSL de la Demo debe ser una carpeta propia y vacía.'
+        }
+      } else {New-Item -ItemType Directory -Path $dest -Force | Out-Null}
       & wsl.exe --import $distro $dest $Recurso --version 2
       if ($LASTEXITCODE -ne 0) {exit $LASTEXITCODE}
     }
