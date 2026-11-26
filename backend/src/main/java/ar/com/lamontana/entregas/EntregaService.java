@@ -341,7 +341,8 @@ public class EntregaService {
   if(in.cerrar()&&!offer.puedeCerrar())throw conflicto("Hay movimientos financieros pendientes. Revisá cobros antes de cerrar.");
   var check=validar(pedido,new Validar(derivada(in.operacion(),"codigo"),p.version(),codigoPresentado(p,in.codigo())),correo,hash,false,retiro);if(!check.aceptado())return check;
   var cobro=new PagoController.Recibir(derivada(in.operacion(),"efectivo"),null,MedioPago.EFECTIVO,offer.importe(),"Entrega PED-"+p.numero()+" · "+in.operacion(),null,true,"Efectivo recibido al entregar el pedido PED-"+p.numero()+".",true);
-  if(retiro==null)pagos.recibir(p.cotizacion(),cobro,correo);
+  if(CuentaPuntoAcceso.punto(jdbc,correo)!=null)pagos.recibirEnPunto(p.cotizacion(),cobro,correo,ar.com.lamontana.pagos.PagoService.DestinoCobro.PUNTO_ENTREGA,p.reserva().nombre());
+  else if(retiro==null)pagos.recibir(p.cotizacion(),cobro,correo);
   else pagos.recibirEfectivoRetiro(p.cotizacion(),cobro,correo,retiro);
   String receptor=in.receptor()==null||in.receptor().isBlank()?receptorRegistrado(p):in.receptor().strip();
   var out=registrarEntrega(pedido,new Entregar(in.operacion(),p.version(),check.vista().validacion().codigoPublico(),receptor,in.motivo(),true),correo,hash,false,retiro);

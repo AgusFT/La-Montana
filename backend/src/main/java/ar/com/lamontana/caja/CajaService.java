@@ -31,7 +31,8 @@ public class CajaService {
 
     public CajaService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    public enum Tipo { PAGO_EMPLEADO, PAGO_PROVEEDOR, RENDICION }
+    public enum Tipo { PAGO_EMPLEADO, PAGO_PROVEEDOR, PAGO_PUNTO_ENTREGA, RENDICION }
+    private record EgresoAnterior(UUID operacion,Tipo tipo,Medio medio,String importe,String destinatario,String concepto,byte[] comprobante) {}
     public enum Medio { EFECTIVO, TRANSFERENCIA }
     private record Acceso(long sucursal, long actor, String nombre, ZoneId zona, boolean admin, boolean activa) {}
     private record Periodo(LocalDate hoy, LocalDate desde, LocalDate hasta, Timestamp inicio, Timestamp fin) {}
@@ -99,16 +100,24 @@ public class CajaService {
         String destinatario = in.destinatario().strip(), concepto = in.concepto().strip();
         if (in.tipo() == Tipo.RENDICION && in.medio() != Medio.EFECTIVO)
             throw invalido("Una rendición de caja se registra en efectivo.");
+        Long beneficiario=null;
+        if(in.tipo()==Tipo.PAGO_PUNTO_ENTREGA){
+            if(in.medio()!=Medio.TRANSFERENCIA||in.punto()==null||in.referencia()==null||in.referencia().isBlank())
+                throw invalido("Seleccioná el punto e indicá la referencia de la transferencia realizada.");
+            if(!acceso.admin()&&!Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM lamontana.usuario_permiso up JOIN lamontana.permiso p USING(id_permiso) WHERE id_usuario=? AND fecha_revocacion IS NULL AND p.activo AND p.codigo='PAGAR_PUNTO')",Boolean.class,acceso.actor())))
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Falta permiso para registrar pagos al punto.");
+            beneficiario=jdbc.query("SELECT id_punto_entrega FROM lamontana.punto_entrega WHERE codigo_publico=?",(r,n)->r.getLong(1),in.punto()).stream().findFirst().orElseThrow(()->invalido("Punto inexistente."));
+        }else if(in.punto()!=null||in.referencia()!=null)throw invalido("El beneficiario y su referencia corresponden al pago a un punto.");
         String extension = extension(in.comprobante());
-        String huella = huella(in);
+        String huella = in.tipo()==Tipo.PAGO_PUNTO_ENTREGA?huella(in):huella(new EgresoAnterior(in.operacion(),in.tipo(),in.medio(),in.importe(),in.destinatario(),in.concepto(),in.comprobante()));
         if (yaRegistrado("caja_egreso", in.operacion(), acceso, huella)) return;
         jdbc.update("""
             INSERT INTO lamontana.caja_egreso(id_operacion,id_sucursal,id_actor,actor_nombre,tipo,medio,importe,
-                destinatario,concepto,fecha,huella,comprobante_tipo,comprobante)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+                destinatario,concepto,fecha,huella,comprobante_tipo,comprobante,id_punto_beneficiario,referencia)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, in.operacion(), acceso.sucursal(), acceso.actor(), acceso.nombre(), in.tipo().name(),
             in.medio().name(), importe, destinatario, concepto, Timestamp.from(clock.instant()),
-            huella, extension, in.comprobante());
+            huella, extension, in.comprobante(),beneficiario,in.referencia());
     }
 
     @Transactional

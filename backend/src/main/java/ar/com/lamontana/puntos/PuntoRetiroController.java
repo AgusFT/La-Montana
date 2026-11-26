@@ -39,5 +39,11 @@ public class PuntoRetiroController {
  @PostMapping("/api/punto/pedidos/{pedido}/efectivo-entrega") public EntregaService.Validacion efectivo(@PathVariable UUID pedido,@Valid @RequestBody CobrarEntregar in,Principal p){return service.efectivo(pedido,in,p.getName());}
  @PostMapping("/api/punto/pedidos/{pedido}/cobro-entrega") public EntregaService.Validacion cobrarEntrega(@PathVariable UUID pedido,@Valid @RequestBody CobrarEntrega in,Principal p){return service.cobrarEntrega(pedido,in,p.getName());}
  @PostMapping("/api/punto/pedidos/{pedido}/cobrar") public PuntoRetiroService.Ficha cobrar(@PathVariable UUID pedido,@Valid @RequestBody Cobro in,Principal p){return service.cobrar(pedido,in,p.getName());}
- @GetMapping("/api/punto/finanzas") public PuntoRetiroService.Finanzas finanzas(@RequestParam(defaultValue="") String desde,@RequestParam(defaultValue="") String hasta,@RequestParam(defaultValue="0") int pagina,Principal p){return service.finanzas(desde,hasta,pagina,p.getName());}
+ @GetMapping("/api/punto/finanzas") public PuntoRetiroService.Finanzas finanzas(@RequestParam(defaultValue="") String desde,@RequestParam(defaultValue="") String hasta,@RequestParam(defaultValue="0") int pagina,@RequestParam(required=false) String periodo,Principal p){
+  if(periodo!=null){
+   var hoy=java.time.LocalDate.now(java.time.ZoneId.of("America/Argentina/Buenos_Aires"));
+   var inicio=switch(periodo){case "HOY"->hoy;case "AYER"->hoy.minusDays(1);case "SEMANA"->hoy.minusDays(6);default->throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,"Período inválido.");};
+   desde=inicio.toString();hasta=("AYER".equals(periodo)?inicio:hoy).toString();
+  }
+  return service.finanzas(desde,hasta,pagina,p.getName());}
 }

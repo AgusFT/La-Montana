@@ -24,6 +24,7 @@ public class DatosPruebaConfiguration {
     static final ZoneId ZONA=ZoneId.of("America/Argentina/Buenos_Aires");
 
     @Bean
+    @org.springframework.core.annotation.Order(0)
     ApplicationRunner cargarDatosDePrueba(JdbcTemplate jdbc,PasswordEncoder encoder,TransactionTemplate tx,
             CatalogoService catalogo,OfertaOperativaService operativa,EvaluadorPrecioItem precios,
             EvaluadorFinanciero finanzas,ArchivosPrivados archivos,

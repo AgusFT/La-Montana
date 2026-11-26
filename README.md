@@ -412,3 +412,7 @@ Esta decisión reemplaza la restricción anterior que obligaba a ubicar todos lo
 - La estimación termina la preparación usando horas de producción y después busca una franja de retiro disponible, sin esperar innecesariamente otra apertura de producción. La confirmación del pedido sigue verificando y reservando cupo; cotizar o simular no reserva plazas.
 - Ejemplo: producción lunes 09:00–18:00, retiro 18:00–20:00. Un trabajo que termina a las 18:00 puede retirarse esa tarde. Si la próxima franja es el miércoles 11:00–13:00 y ese día no se produce, el pedido listo puede retirarse el miércoles. Un pedido nuevo recibido el miércoles espera a la próxima apertura para comenzar su preparación.
 - Se conservan las validaciones de horas, franjas sin superposición, capacidad positiva y calendario de producción completo. No cambian los pedidos ya aceptados ni sus condiciones guardadas.
+
+## Caja y finanzas de los puntos de entrega
+
+La guía de operación, permisos, migración V64 y ejemplos para el emulador está en [Finanzas de puntos de entrega](docs/finanzas-puntos.md).

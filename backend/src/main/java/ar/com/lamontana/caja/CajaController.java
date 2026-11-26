@@ -23,7 +23,11 @@ public class CajaController {
     public record NuevoEgreso(@NotNull UUID operacion, @NotNull CajaService.Tipo tipo,
         @NotNull CajaService.Medio medio, @NotNull @Pattern(regexp=IMPORTE) String importe,
         @NotBlank @Size(max=140) String destinatario, @NotBlank @Size(max=300) String concepto,
-        @Size(min=1,max=2097152) byte[] comprobante) {}
+        @Size(min=1,max=2097152) byte[] comprobante, UUID punto,@Size(max=160) String referencia) {
+        public NuevoEgreso(UUID operacion,CajaService.Tipo tipo,CajaService.Medio medio,String importe,String destinatario,String concepto,byte[] comprobante){
+            this(operacion,tipo,medio,importe,destinatario,concepto,comprobante,null,null);
+        }
+    }
 
     public record NuevoArqueo(@NotNull UUID operacion, @NotNull @Pattern(regexp=IMPORTE) String contado,
         @NotNull @Pattern(regexp="-?[0-9]{1,25}(\\.[0-9]{1,2})?") String esperado,
