@@ -106,7 +106,7 @@ class ConfiguracionRecursosIntegrationTest {
         f=publico("formato","A4");s=publico("servicio","IMP");t=publico("servicio","TER");
     }
     @AfterEach void cerrar()throws Exception{if(app!=null)app.close();if(pg!=null)pg.close();if(archivos!=null)Files.deleteIfExists(archivos);}
-    private void arrancar(){app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
+    private void arrancar(){app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);}
 
     @Test void recursosVaciosCicloGlobalUbicacionOpcionalYDesactivacion()throws Exception {
         assertThat(recursos().get("metodoAsignacion").isNull()).isTrue();assertThat(recursos().get("impresoras").size()).isZero();assertThat(recursos().has("serviciosPorSucursal")).isFalse();

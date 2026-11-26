@@ -110,7 +110,7 @@ class CatalogoProgramacionIntegrationTest {
         if(app!=null) app.close(); if(pg!=null) pg.close(); if(archivos!=null) Files.deleteIfExists(archivos);
     }
     private void arrancar(boolean scheduler) {
-        app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0",
+        app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0",
                 "--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=",
                 "--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN,
                 "--lamontana.catalogo.reconciliacion-inicio-ms="+(scheduler?50:3600000),

@@ -142,7 +142,7 @@ class CorreoIntegrationTest {
         archivos = Files.createTempDirectory("lamontana-correo-");
         smtp = new CapturaSmtp();
         pg = EmbeddedPostgres.builder().start();
-        app = new SpringApplicationBuilder(LaMontanaApplication.class).run(
+        app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run(
                 "--server.port=0", "--spring.datasource.url=" + pg.getJdbcUrl("postgres", "postgres"),
                 "--spring.datasource.username=postgres", "--spring.datasource.password=",
                 "--lamontana.archivos.directorio=" + archivos, "--lamontana.instalacion.token=" + TOKEN_INSTALACION,

@@ -154,7 +154,7 @@ class IdentidadIntegrationTest {
     }
 
     private ConfigurableApplicationContext iniciar(EmbeddedPostgres pg, Path files) {
-        var app = new SpringApplicationBuilder(LaMontanaApplication.class).run(
+        var app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run(
                 "--server.port=0", "--spring.datasource.url=" + pg.getJdbcUrl("postgres", "postgres"),
                 "--spring.datasource.username=postgres", "--spring.datasource.password=",
                 "--lamontana.archivos.directorio=" + files, "--lamontana.instalacion.token=" + TOKEN);

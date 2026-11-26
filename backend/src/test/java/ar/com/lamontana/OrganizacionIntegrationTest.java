@@ -71,7 +71,7 @@ class OrganizacionIntegrationTest {
     void empleadosPermisosAislamientoBajasYEdicionConcurrente() throws Exception {
         var files = Files.createTempDirectory("lamontana-organizacion-");
         try (var pg = EmbeddedPostgres.builder().start();
-             var app = new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0",
+             var app = new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0",
                      "--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"), "--spring.datasource.username=postgres",
                      "--spring.datasource.password=", "--lamontana.archivos.directorio="+files, "--lamontana.instalacion.token="+TOKEN)) {
             port = Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));

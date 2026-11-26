@@ -10,7 +10,7 @@ class SoporteIntegrationTest {
     static final String TOKEN="token-de-prueba-local-solo-en-test-12345678",PASSWORD="SoloPruebasContrasena123";
     static final JsonMapper JSON=JsonMapper.builder().build();int port;
     @Test void altaLocalPermisoTemporalYRevocacionEfectiva() throws Exception {
-        try(var pg=EmbeddedPostgres.builder().start();var app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.instalacion.token="+TOKEN)){
+        try(var pg=EmbeddedPostgres.builder().start();var app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.instalacion.token="+TOKEN)){
             port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));var admin=cliente();var soporte=cliente();
             String cuentas=JSON.writeValueAsString(Map.of("propietario",cuenta("admin@example.test"),"soporte",cuenta("soporte@example.test")));
             assertThat(instalar(cuentas,"incorrecto").statusCode()).isEqualTo(403);
@@ -38,7 +38,7 @@ class SoporteIntegrationTest {
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
     void soporteOpcionalYAltaPosterior(boolean usarOtroAdministrador) throws Exception {
-        try(var pg=EmbeddedPostgres.builder().start();var app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.instalacion.token="+TOKEN)){
+        try(var pg=EmbeddedPostgres.builder().start();var app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),"--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.instalacion.token="+TOKEN)){
             port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));var jdbc=app.getBean(JdbcTemplate.class);
             var propietario=cuenta("admin@example.test");
             assertThat(instalar(JSON.writeValueAsString(Map.of("propietario",propietario,"soporte",Map.of("correo","invalido"))),TOKEN).statusCode()).isEqualTo(400);

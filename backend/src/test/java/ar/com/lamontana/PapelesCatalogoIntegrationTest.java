@@ -134,7 +134,7 @@ class PapelesCatalogoIntegrationTest {
         }
     }
     private HttpResponse<String> put(HttpClient c,String path,Object data)throws Exception{return c.send(HttpRequest.newBuilder(uri(path)).header("Content-Type","application/json").header("X-CSRF-TOKEN",csrf(c)).PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(data))).build(),HttpResponse.BodyHandlers.ofString());}
-    private ConfigurableApplicationContext iniciar(String[] props) {var app=new SpringApplicationBuilder(LaMontanaApplication.class).run(props);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));return app;}
+    private ConfigurableApplicationContext iniciar(String[] props) {var app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run(props);port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));return app;}
     private int count(JdbcTemplate jdbc,String tabla){return jdbc.queryForObject("SELECT count(*) FROM lamontana."+tabla,Integer.class);}
     private HttpClient cliente(){return HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).connectTimeout(Duration.ofSeconds(5)).build();}
     private URI uri(String path){return URI.create("http://127.0.0.1:"+port+path);}

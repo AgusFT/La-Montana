@@ -122,7 +122,7 @@ class ConfiguracionCancelacionIntegrationTest {
     }
     @AfterEach void cerrar() throws Exception {if(app!=null)app.close();if(pg!=null)pg.close();if(smtp!=null)smtp.close();if(archivos!=null)Files.deleteIfExists(archivos);}
     private void arrancar() {
-        app=new SpringApplicationBuilder(LaMontanaApplication.class).run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),
+        app=new SpringApplicationBuilder(LaMontanaApplication.class).profiles("imprenta-vacia").run("--server.port=0","--spring.datasource.url="+pg.getJdbcUrl("postgres","postgres"),
                 "--spring.datasource.username=postgres","--spring.datasource.password=","--lamontana.archivos.directorio="+archivos,"--lamontana.instalacion.token="+TOKEN,
                 "--spring.mail.host=127.0.0.1","--spring.mail.port="+smtp.port(),"--lamontana.correo.remitente=noreply@example.test");
         port=Integer.parseInt(app.getEnvironment().getProperty("local.server.port"));jdbc=app.getBean(JdbcTemplate.class);
