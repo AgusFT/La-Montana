@@ -1,7 +1,10 @@
 La Montaña Demo para Windows · YG Soluciones
 
-Al instalar la Demo se copian el asistente y los componentes que necesita
-para preparar la aplicación sin conexión. En la carpeta app/paquete están
+La Demo incluye el asistente y los componentes de la aplicación. Al preparar
+el antivirus, podés obtener su base de bytecode directamente del canal oficial
+de ClamAV o seleccionar una copia oficial guardada en tu equipo o en un USB.
+Después del primer arranque podés usar la Demo sin conexión.
+En la carpeta app/paquete están
 AVISOS-TERCEROS.zip, con textos originales de licencia y atribución, y
 release.properties, con los nombres, versiones y sumas SHA-256 de la carga.
 

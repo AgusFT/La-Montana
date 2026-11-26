@@ -5,7 +5,16 @@ version=${1:?Indicar version mayor.menor.parche}
 firmas=${2:?Indicar carpeta con firmas ClamAV verificadas}
 destino=${3:?Indicar carpeta nueva de salida}
 [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 64
-[[ $# -eq 3 || ( $# -eq 4 && $4 == --desde-demo-en-ejecucion ) ]] || exit 64
+shift 3
+usar_instalacion=false
+bytecode_externo=0
+for opcion in "$@"; do
+  case "$opcion" in
+    --desde-demo-en-ejecucion) usar_instalacion=true ;;
+    --para-windows) bytecode_externo=1 ;;
+    *) echo "Opción desconocida: $opcion" >&2; exit 64 ;;
+  esac
+done
 [[ ! -e $destino ]] || { echo 'La salida ya existe; no se sobrescribe.' >&2; exit 73; }
 mkdir -p -- "$(dirname -- "$destino")"
 contexto=$(mktemp -d)
@@ -14,7 +23,7 @@ trap 'rm -rf -- "$contexto" "$salida"' EXIT
 
 for servicio in backend frontend; do
   etiqueta="lamontana-demo-$servicio:$version"
-  if [[ ${4:-} == --desde-demo-en-ejecucion ]]; then
+  if [[ $usar_instalacion == true ]]; then
     # Copiar la imagen exacta que sirve la Demo, sin volúmenes, datos ni entorno del contenedor.
     id=$(docker ps -q --filter label=com.docker.compose.project=lamontana-demo --filter "label=com.docker.compose.service=$servicio" --filter health=healthy)
     [[ -n $id && $id != *$'\n'* ]] || { echo "Se necesita un único $servicio sano de Demo." >&2; exit 1; }
@@ -26,11 +35,13 @@ done
 cp "$base/infra/instalador/antivirus/Dockerfile" "$base/infra/instalador/antivirus/arrancar.sh" "$contexto/"
 cp "$base/infra/antivirus/clamd.conf" "$contexto/clamd.conf"
 mkdir "$contexto/firmas"
-for nombre in main daily bytecode; do
+bases=(main daily)
+if [[ $bytecode_externo == 0 ]]; then bases+=(bytecode); fi
+for nombre in "${bases[@]}"; do
   if [[ -f "$firmas/$nombre.cld" ]]; then extension=cld; else extension=cvd; fi
   cp -- "$firmas/$nombre.$extension" "$contexto/firmas/"
 done
-docker build --platform linux/amd64 -t "lamontana-demo-antivirus:$version" "$contexto"
+docker build --platform linux/amd64 --build-arg "BYTECODE_EXTERNO=$bytecode_externo" -t "lamontana-demo-antivirus:$version" "$contexto"
 services=(postgres backend frontend antivirus mailpit)
 images=(postgres:18.6-alpine "lamontana-demo-backend:$version" "lamontana-demo-frontend:$version" "lamontana-demo-antivirus:$version" axllent/mailpit:v1.31.0)
 for image in "${images[@]}"; do
@@ -39,6 +50,7 @@ done
 docker save "${images[@]}" | gzip -1 > "$salida/images.tar.gz"
 {
   printf 'edition=DEMO\napp.version=%s\ninstaller.version=%s\noffline.complete=false\nfiles=images.tar.gz\n' "$version" "$version"
+  if [[ $bytecode_externo == 1 ]]; then printf 'antivirus.bytecode=externo\n'; fi
   printf 'sha256.images.tar.gz=%s\n' "$(sha256sum "$salida/images.tar.gz" | cut -d' ' -f1)"
   for i in "${!images[@]}"; do
     printf 'image.%s=%s\n' "${services[$i]}" "${images[$i]}"

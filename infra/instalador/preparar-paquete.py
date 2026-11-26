@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import zipfile
+from comprobar_firmas_imagenes import comprobar_firmas_externas
 
 
 def properties(path):
@@ -33,6 +34,11 @@ def main():
     manifest = properties(args.app / 'release.properties')
     if manifest.get('edition') != 'DEMO' or manifest.get('files') != 'images.tar.gz':
         parser.error('Se requiere el archivo de imágenes de la edición Demo.')
+    bytecode_externo = manifest.get('antivirus.bytecode') == 'externo'
+    if args.plataforma == 'windows' and not bytecode_externo:
+        parser.error('Generá las imágenes con crear-paquete.sh --para-windows para obtener las firmas al instalar.')
+    if args.plataforma == 'ubuntu' and bytecode_externo:
+        parser.error('La entrega de Ubuntu requiere el paquete de imágenes con sus tres bases de firmas.')
     services = {'postgres', 'backend', 'frontend', 'antivirus', 'mailpit'}
     if {key for key in manifest if key.startswith('image.')} != {
             key for service in services for key in (f'image.{service}', f'image.{service}.id')}:
@@ -59,6 +65,7 @@ def main():
         if digest(source) != expected:
             raise SystemExit('SHA-256 incorrecto: ' + source.name)
     if args.plataforma == 'windows':
+        comprobar_firmas_externas(args.app / 'images.tar.gz', manifest['image.antivirus'])
         avisos = args.avisos_terceros or args.dependencias / 'AVISOS-TERCEROS.zip'
         if not avisos.is_file():
             parser.error('Falta AVISOS-TERCEROS.zip para Windows.')
@@ -107,13 +114,13 @@ def main():
             manifest['sha256.' + nombre] = digest(recurso)
             manifest['size.' + nombre] = str(recurso.stat().st_size)
         manifest['files'] = ','.join(sorted(p.name for p in output.iterdir()))
-        manifest['offline.complete'] = 'true'
+        manifest['offline.complete'] = 'false' if bytecode_externo else 'true'
         manifest['platform'] = args.plataforma + '-x64'
         manifest['installer.version'] = installer_version
         (output / 'release.properties').write_text(''.join(f'{k}={v}\n' for k, v in sorted(manifest.items())))
         output.rename(args.salida)
     size = sum(p.stat().st_size for p in args.salida.iterdir())
-    print(f'Paquete completo preparado: {size / 1024**2:.1f} MiB. Falta medir el instalador nativo con su runtime.')
+    print(f'Carga de instalación preparada: {size / 1024**2:.1f} MiB. Falta medir el instalador nativo con su runtime.')
 
 
 if __name__ == '__main__':

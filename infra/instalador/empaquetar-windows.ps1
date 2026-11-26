@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $Paquete=(Resolve-Path -LiteralPath $Paquete).Path
 if(Test-Path -LiteralPath $Salida){throw 'La salida ya existe; no se reemplaza.'}
 $manifest=Get-Content -LiteralPath (Join-Path $Paquete 'release.properties') -Raw | ConvertFrom-StringData
-if($manifest['edition'] -cne 'DEMO' -or $manifest['platform'] -ne 'windows-x64' -or $manifest['offline.complete'] -ne 'true'){throw 'Se requiere el paquete completo de La Montaña Demo para Windows.'}
+if($manifest['edition'] -cne 'DEMO' -or $manifest['platform'] -ne 'windows-x64' -or $manifest['antivirus.bytecode'] -ne 'externo' -or $manifest['offline.complete'] -ne 'false'){throw 'Se requiere la carga de Windows que obtiene las firmas de bytecode al instalar la Demo.'}
 $version=$manifest['installer.version'];if($version -notmatch '^\d+\.\d+\.\d+$'){throw 'Versión inválida.'}
 if(-not $env:JAVA_HOME){throw 'Indicar JAVA_HOME con JDK 17.'}
 Get-Command candle.exe,light.exe -ErrorAction Stop | Out-Null
