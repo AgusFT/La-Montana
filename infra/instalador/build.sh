@@ -14,6 +14,7 @@ if [[ ${1:-} == test || ${1:-} == test-docker ]]; then
   "${JDK_BIN}javac" -J-Xmx256m --release 17 --add-modules jdk.httpserver -encoding UTF-8 -cp target/classes -d target/test-classes @target/tests.txt
   "${JDK_BIN}java" -Xmx256m -ea --add-modules jdk.httpserver -cp target/classes:target/test-classes ar.com.lamontana.instalador.InstaladorTest
   "${JDK_BIN}java" -Xmx256m -ea --add-modules jdk.httpserver -cp target/classes:target/test-classes ar.com.lamontana.instalador.CarpetasTest
+  "${JDK_BIN}java" -Xmx256m -ea --add-modules jdk.httpserver -cp target/classes:target/test-classes ar.com.lamontana.instalador.FirmasAntivirusTest
   if [[ ${1:-} == test-docker ]]; then
     "${JDK_BIN}java" -Xmx256m -ea --add-modules jdk.httpserver -cp target/classes:target/test-classes ar.com.lamontana.instalador.InstaladorDockerTest
   fi

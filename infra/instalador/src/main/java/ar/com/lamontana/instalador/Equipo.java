@@ -69,6 +69,16 @@ class Equipo {
         }
         return Path.of(System.getProperty("user.home"),".local","state","YG-Soluciones","LaMontanaDemo","vigencia");
     }
+    boolean discoLocal(Path archivo) throws IOException {
+        Path real = archivo.toRealPath();
+        if (Carpetas.red(Files.getFileStore(real))) return false;
+        if (!windows) return true;
+        String unidad = real.getRoot().toString().replace("'", "''");
+        var tipo = run(List.of("powershell.exe","-NoProfile","-NonInteractive","-Command",
+                "([IO.DriveInfo]::new('" + unidad + "')).DriveType.ToString()"));
+        return tipo.ok() && Set.of("Fixed","Removable","CDRom").contains(tipo.salida().strip());
+    }
+
     String rutaLinux(Path path) throws Exception {if(!windows)return path.toAbsolutePath().toString();var r=run(List.of("wsl.exe","-d",DISTRO,"-u","root","--exec","wslpath","-u",path.toAbsolutePath().toString()));if(!r.ok())throw new IOException("No se pudo traducir la ruta para WSL2.");return r.salida().strip();}
     List<Map<String,String>> diagnostico(){
         var rows=new ArrayList<Map<String,String>>();
@@ -88,7 +98,15 @@ class Equipo {
             var anterior=run(docker("ps","-a","--filter","label=com.docker.compose.project=lamontana-demo","--format","{{.Names}} | {{.Label `com.docker.compose.project.working_dir`}}"));
             if(anterior.ok()&&!anterior.salida().isBlank())rows.add(row("instalacionAnterior","REQUIERE_IDENTIFICACION","Se detectó una instalación del script anterior. No se adopta ni sobrescribe automáticamente: "+anterior.salida()));
         }
-        try{paquete.verificar();rows.add(row("paquete",Boolean.parseBoolean(paquete.manifiesto.getProperty("offline.complete","false"))?"VERIFICADO":"SOLO_APP","Versión "+paquete.version()+"; integridad comprobada. "+(Boolean.parseBoolean(paquete.manifiesto.getProperty("offline.complete","false"))?"Dependencias incluidas.":"Paquete para pruebas con dependencias previamente instaladas; todavía no es un instalador offline completo.")));}catch(Exception e){rows.add(row("paquete","INCOMPLETO",e.getMessage()));}
+        try {
+            paquete.verificar();
+            boolean completo = Boolean.parseBoolean(paquete.manifiesto.getProperty("offline.complete","false"));
+            boolean externas = FirmasAntivirus.externas(paquete.manifiesto);
+            String detalle = externas ? "En la primera instalación se necesita obtener la base oficial de ClamAV por Internet o desde un disco o USB."
+                    : completo ? "Dependencias incluidas." : "Paquete para pruebas con dependencias previamente instaladas.";
+            rows.add(row("paquete", completo || externas ? "VERIFICADO" : "SOLO_APP",
+                    "Versión " + paquete.version() + "; integridad comprobada. " + detalle));
+        } catch (Exception e) { rows.add(row("paquete","INCOMPLETO",e.getMessage())); }
         return rows;
     }
     boolean sistemaCompatible(){

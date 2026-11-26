@@ -72,6 +72,7 @@ final class Instalacion {
     Map<String,Object> resumen() throws Exception {
         var m = new LinkedHashMap<String,Object>();
         m.put("existe", existe());
+        if (FirmasAntivirus.externas(paquete.manifiesto)) m.put("firmasGuardadas", FirmasAntivirus.guardadas(this));
         m.put("directorio", raiz.toString());
         if (existe()) {
             m.put("version", estado.getProperty("version"));
@@ -100,8 +101,11 @@ final class Instalacion {
     }
 
     void instalar(Map<String,String> datos) throws Exception {
-        if (!"DEMO".equals(datos.getOrDefault("modo","DEMO")) || !Set.of("modo","puerto").containsAll(datos.keySet()))
+        boolean externas = FirmasAntivirus.externas(paquete.manifiesto);
+        Set<String> campos = externas ? Set.of("modo","puerto","viaFirmas","archivoFirmas") : Set.of("modo","puerto");
+        if (!"DEMO".equals(datos.getOrDefault("modo","DEMO")) || !campos.containsAll(datos.keySet()))
             throw new IllegalArgumentException("La Demo se instala en modo local con las cuentas de muestra.");
+        String viaFirmas = externas ? FirmasAntivirus.via(datos) : null;
         int port = puerto(datos.getOrDefault("puerto","3200"));
         leerEstado();
         if (!existe() && Files.exists(raiz)) verificarCarpetaNueva();
@@ -144,7 +148,7 @@ final class Instalacion {
                 Util.guardar(raiz.resolve("secretos.properties"),secretos);
             }
             Files.createDirectories(raiz.resolve("entrada"));
-            desplegar();
+            desplegar(viaFirmas, datos.get("archivoFirmas"));
         });
     }
 
@@ -158,6 +162,11 @@ final class Instalacion {
     }
 
     void mantener(String operacion, Path destino) throws Exception {
+        mantener(operacion, destino, Map.of());
+    }
+
+    void mantener(String operacion, Path destino, Map<String,String> datos) throws Exception {
+        String viaFirmas = FirmasAntivirus.externas(paquete.manifiesto) ? FirmasAntivirus.via(datos) : null;
         if (!Set.of("actualizar","reparar").contains(operacion) || !existe()) throw new IllegalArgumentException("Operación de mantenimiento inválida.");
         equipo.validarMotor();
         paquete.verificar();
@@ -172,7 +181,7 @@ final class Instalacion {
             }
             estado.setProperty("ultimo.respaldo",copia.toString());
             estado.setProperty("estado","MANTENIMIENTO_EN_CURSO");persistir();
-            try {desplegar();} catch (Exception e) {
+            try {desplegar(viaFirmas, datos.get("archivoFirmas"));} catch (Exception e) {
                 estado.setProperty("estado","MANTENIMIENTO_FALLIDO");persistir();throw e;
             }
         });
@@ -203,6 +212,8 @@ final class Instalacion {
             if (!"LISTA".equals(estado.getProperty("estado"))) throw new IOException("La instalación necesita atención. Abrí el asistente de mantenimiento de la Demo.");
             equipo.validarMotor();
             verificarUbicacion();
+            if (FirmasAntivirus.externas(Util.properties(raiz.resolve("version.properties"))))
+                FirmasAntivirus.preparar(this, "guardada", null);
             iniciarServicios();
         });
     }
@@ -212,7 +223,7 @@ final class Instalacion {
         if(equipo.windows)equipo.mantenerWsl();
     }
 
-    private void desplegar() throws Exception {
+    private void desplegar(String viaFirmas, String archivoFirmas) throws Exception {
         var carga=Util.ejecutar(equipo.docker("load","--input",equipo.rutaLinux(paquete.archivo("images.tar.gz"))),null,Duration.ofMinutes(20),null);
         if (!carga.ok()) throw new IOException("No se pudieron cargar las imágenes incluidas.");
         for (String s: SERVICIOS) {
@@ -243,6 +254,7 @@ final class Instalacion {
         var env=new StringBuilder();
         for(String key:new TreeSet<>(vars.stringPropertyNames())) env.append(key).append('=').append(dotenv(vars.getProperty(key))).append('\n');
         Path p=raiz.resolve(".env");Files.writeString(p,env);Util.privado(p,false);
+        if (viaFirmas != null) FirmasAntivirus.preparar(this, viaFirmas, archivoFirmas);
         iniciarServicios();
         estado.setProperty("version",paquete.version());estado.setProperty("estado","LISTA");persistir();
         recordar();
