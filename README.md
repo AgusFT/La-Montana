@@ -4,7 +4,7 @@ La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como
 
 ## Instalar en Windows 11 x64
 
-Ejecutá `LaMontanaDemo-0.1.5.exe` y abrí **La Montaña Demo** desde Inicio. En el primer arranque, descargá la base de bytecode oficial de ClamAV o elegí una copia de `bytecode.cvd` de tu equipo o USB. El panel abre el selector de roles en tu navegador. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
+Ejecutá `LaMontanaDemo-0.1.6.exe` y abrí **La Montaña Demo** desde Inicio. El panel abre el selector de roles en tu navegador. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
 
 ## Iniciar desde el código fuente
 

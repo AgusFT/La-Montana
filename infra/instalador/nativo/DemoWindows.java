@@ -24,6 +24,7 @@ public final class DemoWindows {
     final JButton open = new JButton("Abrir la demo");
     final boolean browser;
     final Path source;
+    Thread actualizacion;
     boolean postgres;
     volatile boolean closing;
     URI address;
@@ -124,23 +125,6 @@ public final class DemoWindows {
         buttons.add(close);
         body.add(message, java.awt.BorderLayout.CENTER);
         body.add(buttons, java.awt.BorderLayout.SOUTH);
-        // La desinstalación también puede solicitar el cierre durante un diálogo de firmas.
-        var poll = new javax.swing.Timer(400, e -> {
-            if (closing || Files.exists(data.resolve("cerrar"))) {
-                closing = true;
-                for (var window : java.awt.Window.getWindows()) {
-                    if (window instanceof JDialog) {
-                        window.dispose();
-                    }
-                }
-            }
-        });
-        panel.addWindowListener(new WindowAdapter() {
-            public void windowClosed(WindowEvent e) {
-                poll.stop();
-            }
-        });
-        poll.start();
         panel.setContentPane(body);
         panel.setSize(500, 145);
         panel.setLocationRelativeTo(null);
@@ -285,13 +269,23 @@ public final class DemoWindows {
         Set<Integer> used = new HashSet<>();
         int web = port(used, 3200), api = port(used, 8280), pg = port(used, 55433), av = port(used, 13310), smtp = port(used, 11025), inbox = port(used, 8225);
         address = URI.create("http://127.0.0.1:" + web + "/acceso");
-        status("Preparando el análisis de archivos…");
-        Path db = FirmasWindows.preparar(app, data, panel, source,
+        status("Preparando La Montaña…");
+        Path db = FirmasWindows.preparar(app, data, source,
                                          (name, dir, seconds, args) -> command(true, name, dir, seconds, args));
         check();
         Path config = data.resolve("clamd.conf");
-        Files.writeString(config, "DatabaseDirectory \"" + db + "\"\nTCPAddr 127.0.0.1\nTCPSocket " + av + "\nForeground yes\nStreamMaxLength 10M\nMaxFileSize 10M\nMaxScanSize 128M\nMaxScanTime 15000\nMaxThreads 2\nAlertExceedsMax yes\nAlertEncrypted yes\nConcurrentDatabaseReload no\n");
+        Files.writeString(config, "DatabaseDirectory \"" + db + "\"\nTCPAddr 127.0.0.1\nTCPSocket " + av + "\nForeground yes\nStreamMaxLength 10M\nMaxFileSize 10M\nMaxScanSize 128M\nMaxScanTime 15000\nMaxThreads 2\nAlertExceedsMax yes\nAlertEncrypted yes\nConcurrentDatabaseReload no\nSelfCheck 60\n");
         service("antivirus", Map.of(), data, clam.toString(), "--config-file=" + config);
+        actualizacion = new Thread(() -> {
+            try {
+                FirmasWindows.actualizar(app, data, this::command);
+            } catch (InterruptedException cierre) {
+                Thread.currentThread().interrupt();
+            } catch (Exception error) {
+                FirmasWindows.guardarAviso(data, error);
+            }
+        }, "actualizar-firmas");
+        actualizacion.start();
         service("correo", Map.of("MP_SMTP_BIND_ADDR", "127.0.0.1:" + smtp, "MP_UI_BIND_ADDR", "127.0.0.1:" + inbox, "MP_DATABASE", data.resolve("correo.db").toString()), data, mail.toString());
         status("Preparando la base de datos…");
         Path secret = data.resolve("postgres.key");
@@ -310,7 +304,7 @@ public final class DemoWindows {
         }
         command("postgres", data, 90, pgCtl(), "start", "-w", "-t", "75", "-D", cluster.toString(), "-l", log.resolve("servidor-pg.log").toString(), "-o", "-h 127.0.0.1 -p " + pg);
         postgres = true;
-        status("Iniciando La Montaña y comprobando el antivirus…");
+        status("Iniciando La Montaña…");
         Path entrada = Files.createDirectories(data.resolve("entrada"));
         var env = new HashMap<String, String>();
         env.put("DB_URL", "jdbc:postgresql://127.0.0.1:" + pg + "/postgres");
@@ -358,6 +352,10 @@ public final class DemoWindows {
     }
     void stop() throws Exception {
         status("Cerrando la demo…");
+        if (actualizacion != null) {
+            actualizacion.interrupt();
+            actualizacion.join();
+        }
         Collections.reverse(children);
         try {
             for (var p : children) {

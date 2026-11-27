@@ -1,6 +1,6 @@
 # Instalador de La Montaña Demo para Windows 11 x64
 
-La versión 0.1.5 instala el panel de Inicio para el usuario actual. Java, PostgreSQL, Node.js, ClamAV y Mailpit se ejecutan localmente mientras el panel está abierto. La interfaz usa el navegador predeterminado. Las dependencias vienen en el EXE, salvo la base firmada `bytecode.cvd` que ClamAV obtiene del canal oficial o de una copia local elegida en el primer arranque.
+La versión 0.1.6 instala el panel de Inicio para el usuario actual. Java, PostgreSQL, Node.js, ClamAV y Mailpit se ejecutan localmente mientras el panel está abierto. La interfaz usa el navegador predeterminado. El EXE incluye las bases principal y diaria para analizar archivos desde el primer inicio. El panel busca la base adicional de bytecode mediante FreshClam en segundo plano. Verifica su firma y compatibilidad antes de activarla. Si no puede obtenerla, el análisis continúa con las bases locales.
 
 ## Construcción
 

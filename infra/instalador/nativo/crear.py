@@ -12,7 +12,7 @@ import zipfile
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-VERSION = '0.1.5'
+VERSION = '0.1.6'
 
 
 def digest(path):
