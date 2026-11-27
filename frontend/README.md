@@ -59,3 +59,7 @@ Archivo vacío que permite conservar el directorio de recursos públicos en Git.
 `theme.css` define la paleta semántica oscura (`--ui-surface`, `--ui-text`, `--ui-border` y familias de estado). Las cinco hojas internas usan `var(--ui-…, colorClaroOriginal)` para conservar su apariencia clara sin reemplazar dimensiones ni estructura. Al agregar un estado o componente, usá el token de fondo y texto correspondiente y verificá contraste en ambos modos; no apliques filtros de inversión a imágenes o documentos.
 
 `ThemeSwitch` ofrece controles accesibles de sol/luna. `theme.ts` centraliza la clave local `lamontana-apariencia`, la normalización y el inicio anterior al pintado. La preferencia sólo afecta este navegador; no crea una configuración comercial ni cambia la identidad de la web pública. Los archivos nuevos conservan encabezados plegables y los modificados describen su responsabilidad actualizada.
+
+## Manual de la aplicación
+
+La ruta `/manual-de-usuario` incluye el contenido y las capturas de la aplicación principal publicados por YG Soluciones. Para actualizar la copia offline, ejecutá `python3 scripts/sincronizar-manual.py /ruta/al/repositorio/YG-Soluciones` desde esta carpeta. La introducción de Windows, las indicaciones por edición y el regreso al panel se mantienen en la demo.

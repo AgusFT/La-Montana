@@ -1,0 +1,235 @@
+import type { Capitulo } from './tipos';
+
+export const cliente: Capitulo[] = [
+  {
+    id: 'cli-cuenta',
+    titulo: 'Acceso y seguridad de la cuenta',
+    temas: [
+      {
+        id: 'cli-ingresar',
+        titulo: 'Entrar al espacio que te corresponde',
+        paraQue: 'La misma pantalla de acceso atiende a clientes, propietarios, empleados, responsables de puntos y repartidores. La cuenta con la que entrás determina qué pedidos y herramientas vas a ver.',
+        pasos: [
+          'Abrí la dirección de La Montaña que te dio tu imprenta. En la página pública de la imprenta o en la pantalla de inicio, elegí «Iniciar sesión».',
+          'En «Usuario o correo», escribí el identificador que te asignaron o el correo de tu cuenta. Ingresá tu contraseña y pulsá «Iniciar sesión».',
+          'Esperá a que aparezca tu espacio. Como cliente verás tus pedidos. El propietario entra a administración, el personal a operación y las cuentas de reparto o de punto a sus respectivas bandejas.',
+          'Si el sistema te pide cambiar la contraseña inicial, completá el cambio en «Seguridad de la cuenta» y volvé a ingresar. Al terminar en un equipo compartido, elegí «Cerrar sesión».',
+        ],
+        nota: 'Si ves «Preparar instalación», avisale al propietario. Hace falta completar el alta inicial de esa imprenta. Si aparece un error de conexión, reintentá cuando vuelva el servicio.',
+      },
+      {
+        id: 'cli-registro',
+        titulo: 'Crear una cuenta de cliente particular',
+        paraQue: 'Con una cuenta podés guardar tu trabajo, retomar un presupuesto y consultar tus pedidos desde otro dispositivo.',
+        pasos: [
+          'Desde el acceso, elegí «Crear una cuenta de cliente». También podés usar «Crear cuenta» en la página pública de la imprenta.',
+          'Completá nombre, apellido y un correo que puedas consultar. Escribí una contraseña de entre 12 y 128 caracteres y repetila en el segundo campo.',
+          'Pulsá «Crear cuenta de cliente». Si las dos contraseñas difieren, corregí el campo y volvé a enviarlo.',
+          'Cuando veas «Cuenta de cliente creada», elegí «Iniciar sesión». Después, verificá el correo desde «Seguridad de la cuenta».',
+        ],
+        nota: 'Las cuentas para trabajar en la imprenta, en reparto o en un punto las habilita administración. Usá el registro público cuando vayas a comprar como cliente.',
+      },
+      {
+        id: 'cli-seguridad',
+        titulo: 'Verificar el correo o cambiar la contraseña',
+        paraQue: 'La verificación comprueba que recibís mensajes en la dirección de la cuenta. Desde el mismo espacio podés reemplazar tu contraseña y cerrar las sesiones abiertas.',
+        pasos: [
+          'Abrí «Seguridad de la cuenta». En «Verificar correo», comprobá la dirección y elegí «Enviar código de verificación».',
+          'Buscá el mensaje en tu bandeja de entrada o en correo no deseado. Copiá el último código completo en «Código de verificación» y pulsá «Verificar correo». Dura 15 minutos. Podés pedir otro después de un minuto.',
+          'Para cambiar la clave, completá «Contraseña actual», «Nueva contraseña» y «Repetir nueva contraseña». Elegí una distinta de la actual, de entre 12 y 128 caracteres.',
+          'Pulsá «Cambiar contraseña y cerrar sesiones». Volvé a iniciar sesión con la nueva contraseña en cada dispositivo que uses.',
+        ],
+        resultado: 'La pantalla identifica el correo verificado. Si sólo verificaste tu correo, «Volver a mi espacio» te permite seguir trabajando.',
+      },
+      {
+        id: 'cli-recuperar',
+        titulo: 'Recuperar el acceso si olvidaste la contraseña',
+        paraQue: 'Podés definir una contraseña nueva con un código enviado a la dirección de tu cuenta.',
+        pasos: [
+          'En la pantalla de acceso, elegí «Olvidé mi contraseña». En «Solicitar código», escribí tu correo y pulsá «Enviar código de recuperación».',
+          'Consultá tu correo, incluida la carpeta de spam. Si la cuenta está habilitada, llegará un código. El aviso de la pantalla es el mismo para las distintas direcciones.',
+          'En «Elegir nueva contraseña», comprobá el correo, pegá el código de recuperación y escribí la nueva contraseña en ambos campos. Usá el código más reciente antes de que venzan sus 15 minutos.',
+          'Pulsá «Guardar nueva contraseña» e iniciá sesión de nuevo. Si el código venció o ya se consumió, volvé a «Solicitar código».',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'cli-preparacion',
+    titulo: 'Preparar y presupuestar un trabajo',
+    temas: [
+      {
+        id: 'cli-inicio',
+        titulo: 'Orientarte en Inicio y retomar un trabajo',
+        paraQue: 'Inicio reúne el pedido actual, la entrega prevista y los pedidos activos recientes. Desde el menú también podés preparar un trabajo o recuperar uno que dejaste a medias.',
+        pasos: [
+          'En «Pedido actual», leé el número PED, el estado y el próximo paso. «Ver detalle del pedido» abre ese trabajo. «Actualizar seguimiento» consulta los últimos movimientos.',
+          'Usá «Consultar entrega» para ver adónde va ese pedido. Para uno anterior, abrí «Ver todos» en «Pedidos activos recientes» o «Ver historial» en «Resumen general».',
+          'Para empezar, elegí «Crear pedido». Si tenías una preparación abierta, se recuperan sus PDF y las opciones que ya presupuestaste.',
+          'En las etapas de preparación, confirmación y seguimiento, el botón de ayuda vuelve a abrir la guía de esa pantalla. Podés cerrarla y continuar con la tarea.',
+        ],
+      },
+      {
+        id: 'cli-archivos',
+        titulo: 'Subir uno o varios PDF y resolver una carga rechazada',
+        paraQue: 'Cada PDF se guarda como un archivo privado y se analiza antes de calcular las páginas y ofrecer opciones de impresión. Podés incluir hasta 20 PDF en un mismo trabajo.',
+        pasos: [
+          'Abrí «Crear pedido». En «Tus archivos», arrastrá los documentos o pulsá «Seleccionar PDF». Cada archivo debe ser un PDF con contenido y pesar hasta 10 MiB.',
+          'Esperá a que termine «Analizando seguridad…». La fila del archivo válido muestra sus páginas y «Falta configurar». Usá «Agregar PDF» si querés incorporar otro.',
+          'Si aparece «PDF no admitido» o «No se pudo analizar», seleccioná su fila y leé el motivo. Usá «Quitar este PDF», corregí el documento de origen o exportá una copia imprimible y cargala de nuevo. Si persiste el error de análisis con un PDF válido, informalo a la imprenta.',
+          'Para sustituir un archivo válido, seleccionalo por nombre en la lista, pulsá «Quitar» y subí la nueva versión. Al incorporar o quitar archivos tenés que volver a revisar el presupuesto.',
+        ],
+        nota: 'Para esta etapa, convertí los documentos y las imágenes a PDF antes de subirlos. Si una carga queda sin respuesta y aparece «Recuperar la misma operación», usá ese botón para conocer el resultado del envío.',
+      },
+      {
+        id: 'cli-impresion',
+        titulo: 'Elegir papel, caras, copias y adicionales por archivo',
+        paraQue: 'Cada fila tiene su propia configuración. Por ejemplo, podés pedir dos copias a color de una portada y una copia en blanco y negro del interior dentro del mismo pedido.',
+        pasos: [
+          'Seleccioná un PDF en «Tus archivos» y verificá el nombre que figura en «Detalles de impresión». Si hay varios servicios, empezá por «Servicio de impresión». Un único servicio se aplica automáticamente.',
+          'Elegí «Tamaño de hoja», «Papel y gramaje» e «Impresión» en ese orden. En «Cantidad de copias» escribí cuántos ejemplares completos querés de ese PDF, entre 1 y 10.000.',
+          'En «Caras», elegí «Simple faz» o, cuando la combinación lo admita, «Doble faz». En «Adicionales», marcá las terminaciones que quieras para ese archivo. Por ejemplo, elegí anillado si aparece entre los disponibles.',
+          'Repetí para los demás PDF. Si cambiás formato, papel o impresión, revisá otra vez caras y adicionales: las opciones dependen de su compatibilidad.',
+          'Comprobá que todos figuren como «Configurado» y pulsá «Revisar presupuesto». Para excluir un PDF sin configurar, quitalo del trabajo.',
+        ],
+        resultado: 'Se guardan las opciones y se abre el resumen con el subtotal de impresión y servicios. En el siguiente paso se suma la entrega. Si cerrás antes de presupuestar, al volver revisá los campos que todavía estabas editando.',
+      },
+      {
+        id: 'cli-entrega',
+        titulo: 'Elegir dónde recibir el pedido',
+        paraQue: 'La modalidad y el destino determinan el costo de entrega y la franja disponible. Podés comparar el total al cambiar de opción antes de confirmar.',
+        pasos: [
+          'En el resumen, revisá «Tu trabajo». Si hay que corregir el papel, las copias o el archivo, elegí «Editar trabajo» y volvé a presupuestar.',
+          'Para retirar en una planta de la imprenta, elegí «Retiro en sucursal» y completá «Destino de retiro». Para retirar en un local de la red, elegí «Retiro en punto de entrega» y seleccioná el punto concreto.',
+          'Para «Envío a domicilio», ingresá calle, número, código postal, localidad y provincia. Agregá referencias si ayudan a encontrar el lugar. Antes de confirmar tendrás que completar «Quién recibe» y «Teléfono».',
+          'Elegí un medio de pago y esperá el recálculo. Revisá el nombre del destino y la estimación. Consultá «Cómo se estima la entrega» para leer horarios, zona horaria y advertencias.',
+        ],
+        nota: 'Las modalidades dependen de la imprenta. Si un lugar figura fuera de servicio o falta una ruta compatible para ese trabajo, probá otro destino habilitado o consultá a la imprenta.',
+        revision: 'En «Envío a domicilio», la ayuda menciona la planta compatible de mayor prioridad. La asignación vigente usa la casa matriz para domicilios y aplica las prioridades a los puntos de entrega. Desarrollo debe ajustar ese mensaje. Como cliente, comprobá la dirección de entrega elegida.',
+      },
+      {
+        id: 'cli-confirmar',
+        titulo: 'Revisar el total y crear el pedido',
+        paraQue: 'Esta es la decisión de compra. Hasta que se genera el número PED, todavía estás revisando un presupuesto.',
+        pasos: [
+          'Elegí «Efectivo» o «Transferencia» entre los medios disponibles. Esperá a que aparezca «Total de tu pedido». Compará impresión y servicios, entrega y total final. Por ejemplo, al pasar de retiro a domicilio comprobá el nuevo importe de entrega.',
+          'Abrí «Ver condiciones del pedido». Revisá si se exige seña, pago previo o revisión humana. La reserva de la franja se vuelve a comprobar al crear el pedido.',
+          'Si la pantalla indica «Vista previa opcional», desplegá «Archivos adjuntos» y elegí «Ver mis PDF» cuando quieras consultar o descargar el original. Volvé al resumen.',
+          'Si la pantalla muestra un contador de archivos aceptados, abrí «Revisar archivos». En cada PDF seleccioná «Ver páginas», recorré todas con «Página siguiente», marcá que revisaste el contenido y pulsá «Aceptar vista previa». Volvé al resumen, comprobá que todos estén aceptados y marcá la casilla del total, el destino y las condiciones vigentes.',
+          'Con los datos y el total correctos, pulsá «Crear pedido» o «Confirmar / Crear pedido» según tu pantalla, una sola vez. Si el total quedó desactualizado, usá «Actualizar entrega y total» y revisalo otra vez. Si aparece «Recuperar la misma operación», seguí ese enlace antes de enviar otra solicitud.',
+        ],
+        resultado: 'Se abre «Tu pedido PED-…» con los archivos, el precio y el destino confirmados. Guardá el número para consultas. El avance a producción depende de la aprobación y de los pagos exigidos.',
+      },
+      {
+        id: 'cli-cotizaciones',
+        titulo: 'Consultar una cotización guardada o vencida',
+        paraQue: 'El número COT identifica una oferta con importe y vigencia. Podés retomar desde allí una preparación o consultar precios anteriores relacionados con tu pedido.',
+        pasos: [
+          'Entrá en «Mis pedidos» y elegí «Consultar cotizaciones guardadas». Si tu menú tiene «Mis cotizaciones», ese acceso te lleva directamente a la lista. Buscá el número COT y compará estado, vencimiento y total. Hay botones «Anteriores» y «Siguientes» para recorrer la lista.',
+          'Abrí «Ver COT-…». Si aparece «Continuar / consultar el trabajo», usalo para regresar al resumen de la preparación. Si se venció el total, pedí su actualización y revisá importe, disponibilidad y franja.',
+          'En una cotización anterior o de corrección pueden aparecer pasos separados. Leé el resumen, marcá que revisaste trabajo, precio, entrega y condiciones, y pulsá «Aceptar resumen y continuar». Atendé los requisitos que indique la pantalla para ese trabajo.',
+          'Si la oferta fue reemplazada, elegí «Abrir resumen actualizado». Cuando la pantalla lo ofrezca, «Modificar trabajo» permite preparar una cotización nueva. Para desistir de una oferta aún vigente, «Revisar presupuesto y otras acciones» permite cancelar ese presupuesto indicando el motivo.',
+        ],
+        nota: 'Si ya transferiste y una oferta venció, conservá el comprobante y consultá a la imprenta antes de volver a pagar. El personal verifica la operación y la aplicación del importe a la cotización que corresponda.',
+      },
+    ],
+  },
+  {
+    id: 'cli-pedido',
+    titulo: 'Seguir, pagar y recibir un pedido',
+    temas: [
+      {
+        id: 'cli-buscar',
+        titulo: 'Encontrar un pedido actual o anterior',
+        paraQue: '«Mis pedidos» agrupa los trabajos confirmados según lo que está pasando con ellos.',
+        pasos: [
+          'Desde el menú, abrí «Mis pedidos». Elegí «En curso» para trabajos en preparación, «En viaje» para traslados o «Listos para retirar» para los que ya podés buscar.',
+          'Para trabajos anteriores, elegí «Historial». Si tu lista tiene el selector «Filtrar por estado», elegí un estado concreto o «Todos los pedidos» para ampliar la búsqueda. Revisá número PED, estado, modalidad de entrega, fecha de confirmación y total. Si hay más de una página, usá «Anteriores» o «Siguientes».',
+          'Pulsá «Ver PED-…» en la fila correcta. Si esperabas un movimiento reciente, elegí «Actualizar pedidos» en la lista o «Actualizar pedido» en el detalle.',
+        ],
+      },
+      {
+        id: 'cli-seguimiento',
+        titulo: 'Interpretar el estado, la fecha y el recorrido',
+        paraQue: 'El seguimiento te permite distinguir cuándo hace falta tu intervención y cuándo corresponde esperar a que la imprenta termine una tarea.',
+        pasos: [
+          'En el detalle PED, desplegá «Ver seguimiento del pedido». Si el detalle tiene pestañas, empezá por «Resumen» para ver el recorrido y pasá a «Archivos PDF», «Pagos» o «Entrega y cierre» para consultar esos datos. Leé el texto de la etapa actual. Una revisión pendiente, un pago pendiente y una corrección solicitada requieren acciones distintas.',
+          'Consultá «Información del pedido» para conocer la fecha y franja estimadas. Para ir a retirar, esperá a que el seguimiento muestre la disponibilidad en el destino. Un pedido en viaje hacia un punto aún debe llegar allí.',
+          'En «Detalles del trabajo», revisá páginas, copias y papel. Si hay varios documentos, elegí «Archivo del trabajo» para ver el detalle y subtotal de cada uno. «Ver páginas del PDF» o «Descargar archivo» aparecen cuando el contenido está disponible.',
+          'Desplegá «Historial y condiciones del pedido» para ver las fechas y los motivos de los cambios. «Entregado» indica la recepción física. «Finalizado» indica que la imprenta también completó el cierre.',
+        ],
+        nota: 'Si el archivo dejó de estar disponible, todavía podés consultar los datos históricos que muestra el pedido. Conservá tus originales si vas a necesitarlos para otro trabajo.',
+      },
+      {
+        id: 'cli-saldo',
+        titulo: 'Leer la seña, el saldo y los vencimientos',
+        paraQue: 'Podés saber cuánto corresponde pagar ahora y cuánto dinero ya aplicó la imprenta a ese pedido.',
+        pasos: [
+          'En «Método de pago», leé el medio elegido y compará «Acreditado y aplicado» con «Saldo pendiente». Un aviso de transferencia indica que la imprenta está verificando la recepción.',
+          'Desplegá «Ver pagos y comprobantes» para consultar los movimientos. Si hay seña o pago total previo, revisá el importe pendiente de ese requisito. Un pedido sin anticipo puede conservar un saldo que se cobra antes de entregarlo.',
+          'Si se muestra «Plazo comercial», anotá la fecha. Ante un vencimiento recuperable, revisá el plazo de conservación indicado. Si ya transferiste, informalo en el pedido y seguí las indicaciones de la imprenta.',
+          'Si el pago figura recibido pero el saldo sigue pendiente, indicá a la imprenta el PED y el movimiento que ves para que compruebe su aplicación. Si el pedido se canceló con dinero registrado, coordiná la devolución con el personal.',
+        ],
+      },
+      {
+        id: 'cli-transferencia',
+        titulo: 'Informar una transferencia y adjuntar el comprobante',
+        paraQue: 'Usá el aviso después de transferir dinero. La imprenta compara el importe con el ingreso bancario y registra su acreditación.',
+        pasos: [
+          'Abrí el pedido correspondiente y elegí «Informar transferencia» cuando esté disponible. Si en tu pantalla aparece «Ver pagos y saldo» o la pestaña «Pagos», entrá ahí y elegí «Informar pago». Si aparece «Importe transferido (ARS)», comprobá la cifra sugerida y escribí la que efectivamente transferiste.',
+          'Si el formulario muestra «Referencia informada», copiá el identificador de la operación bancaria. Completá el importe y el detalle que te pide la pantalla. En el campo «Importe en pesos» los centavos se escriben con punto. Confirmá con «Informar transferencia» y revisá que el aviso figure una sola vez.',
+          'Si tenés el comprobante y el formulario ofrece «Adjuntar comprobante (opcional)», elegí un PDF de hasta 10 MiB. Podés informar ahora y adjuntar el documento después.',
+          'En la ventana que ofrece el adjunto, pulsá «Confirmar transferencia informada». Al ver «Transferencia informada», elegí «Aceptar». Mientras el aviso esté pendiente de verificación, consultá su estado en «Ver pagos y comprobantes».',
+          'Para completar un aviso sin comprobante, abrí sus comprobantes, seleccioná el PDF y pulsá «Adjuntar comprobante». Si la carga falla luego de registrar el aviso, usá «Reintentar comprobante» o «Finalizar sin comprobante». Ante una respuesta incierta, usá «Recuperar aviso y comprobante».',
+        ],
+        resultado: 'El aviso y el comprobante quedan vinculados al pedido. Cuando la imprenta acredite y aplique el dinero, vas a ver el nuevo saldo.',
+      },
+      {
+        id: 'cli-retiro',
+        titulo: 'Retirar en sucursal o punto, o recibir en el domicilio',
+        paraQue: 'El código de entrega identifica el pedido al entregártelo. El detalle reúne el destino, la disponibilidad y el saldo para que sepas cuándo y dónde presentarte.',
+        pasos: [
+          'Abrí el pedido y buscá «Lugar de retiro», «Punto de entrega» o «Dirección de entrega», según tu elección. En «Información del pedido», buscá «Tu código para recibir el pedido».',
+          'Si en «Entrega y cierre» ves «Generar código de entrega», pulsalo cuando se habilite. Anotá el código y su vencimiento mientras están visibles. Dura 30 minutos en ese formulario. Si lo perdiste o venció, consultá a partir de cuándo se habilita «Generar nuevo código» y usá el nuevo para recibir. En las pantallas que generan el código automáticamente, aparece cuando se habilita la entrega.',
+          'Para retiro, esperá a que el destino figure disponible. Podés anotar el código y presentarlo en el mostrador. En un punto que todavía figura «En viaje», esperá la recepción del traslado.',
+          'Para un envío a domicilio, compartí el código con la persona que va a recibir. Si el repartidor registra una ausencia, coordiná el próximo intento con la imprenta y conservá el código. La ausencia deja la entrega pendiente.',
+          'Si hay saldo para pagar en efectivo al recibir, prepará el importe indicado. Si transferiste, comprobá la acreditación con la imprenta. Después de recibir el trabajo, podés consultar la entrega registrada desde el mismo pedido.',
+        ],
+      },
+      {
+        id: 'cli-corregir',
+        titulo: 'Responder a una corrección de la imprenta',
+        paraQue: 'Permite corregir el archivo o las condiciones de un trabajo que ya tiene número PED. El personal necesita recibir tu respuesta para volver a revisarlo.',
+        pasos: [
+          'En el pedido, desplegá «Corrección solicitada · Revisar y responder» o elegí la pestaña «Correcciones». Leé el mensaje y los nombres de los PDF señalados. Si solamente cambió el contenido de un archivo, usá el control de ese ítem para subir su reemplazo.',
+          'Si cambian cantidad de páginas, opciones de impresión o entrega, elegí «Cotizar cambios de páginas, opciones o entrega». Completá archivos, impresión, entrega y medio de pago. Pulsá «Revisar resumen y precio», revisá el nuevo total y aceptá la cotización.',
+          'Volvé a «Responder corrección» en el pedido. En «Revisar y responder», compará importe anterior, propuesto, diferencia y franja. Si se indica un bloqueo, completá lo solicitado y pulsá «Actualizar revisión de la respuesta».',
+          'Escribí «Respuesta a la imprenta» y verificá quién recibe y el teléfono si se solicitan. Si la pantalla exige la aceptación de vistas previas, aceptá cada PDF solicitado y marcá la casilla de los archivos, el importe y las condiciones de la respuesta. Pulsá «Enviar respuesta de corrección». Si el sistema no pudo confirmar la respuesta, usá «Recuperar corrección».',
+        ],
+        resultado: 'El mismo pedido vuelve a revisión humana y conserva sus versiones anteriores. La diferencia de precio se consulta junto con los pagos efectivamente aplicados.',
+      },
+      {
+        id: 'cli-reprogramar',
+        titulo: 'Aceptar o rechazar otra fecha de entrega',
+        paraQue: 'Cuando la imprenta te propone una franja distinta, decidís si te sirve antes de cambiar la reserva.',
+        pasos: [
+          'En la tarjeta de destino, buscá «La imprenta propone otra fecha». Si el detalle tiene pestañas, elegí «Reprogramación». Leé el mensaje y compará «Reserva anterior» con «Fecha propuesta», incluidos día, horas y zona horaria.',
+          'Elegí «Aceptar nueva fecha» o «Rechazar propuesta». En el formulario, escribí el motivo de tu decisión, marcá la confirmación y pulsá «Confirmar decisión». «Volver sin guardar» cierra el formulario.',
+          'Actualizá el pedido y comprobá la franja registrada. Al aceptar se vuelve a verificar el cupo. Si ya se ocupó, o si rechazás la propuesta, sigue vigente la reserva anterior.',
+        ],
+        nota: 'Si se confirma el cambio, consultá otra vez el código de entrega. El anterior pierde validez. En «Cambios de fecha anteriores» podés revisar las decisiones tomadas.',
+      },
+      {
+        id: 'cli-cancelar',
+        titulo: 'Cancelar antes de que comience la producción',
+        paraQue: 'Si desistís del trabajo y el estado lo admite, podés cancelar desde su detalle y liberar la reserva de entrega.',
+        pasos: [
+          'Abrí «Ver PED-…» y comprobá el número y los archivos. Si la cancelación directa está disponible, elegí «Cancelar pedido».',
+          'Leé la advertencia y, si querés explicar el motivo, escribilo en el campo opcional. Para conservar el trabajo, elegí «Conservar pedido». Para confirmar la baja, pulsá «Sí, cancelar pedido». Si aparece «Motivo de cancelación» como campo obligatorio, completalo, marcá que confirmás la liberación de la reserva y elegí «Confirmar: cancelar pedido».',
+          'Verificá que el estado cambió a «Cancelado». Si la pantalla ofrece «Recuperar operación del pedido», usá esa opción para comprobar qué ocurrió.',
+        ],
+        nota: 'Si la producción ya empezó, consultá a la imprenta. Para importes pagados, coordiná con el personal el trámite de devolución.',
+      },
+    ],
+  },
+];

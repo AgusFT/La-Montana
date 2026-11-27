@@ -1,0 +1,113 @@
+:global(html):has(.manual) { scroll-behavior: auto; scroll-padding-top: 0; }
+.manual {
+  --ink: #122740; --muted: #425773; --line: #9ba9bc; --soft: #edf3f9;
+  color: var(--ink); background: #fff; min-height: 100dvh; box-sizing: border-box;
+  padding: clamp(20px, 4vw, 60px) max(1rem, calc((100vw - 72rem) / 2)) clamp(48px, 7vw, 100px);
+}
+.heading h1 {
+  margin: 0 0 24px;
+  font-size: clamp(38px, 5.4vw, 76px);
+  line-height: 1.02;
+}
+.ediciones {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.ediciones a {
+  padding: 10px 0 13px;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+  font-size: 15px;
+  text-decoration: none;
+}
+.ediciones [aria-current] { border-color: var(--ink); color: var(--ink); font-weight: 700; }
+.ediciones a:hover, .volver:hover { text-decoration: underline; }
+.columnas {
+  display: grid;
+  grid-template-columns: minmax(200px, 265px) minmax(0, 800px);
+  gap: clamp(30px, 5vw, 78px);
+  padding-top: clamp(24px, 3.5vw, 48px);
+}
+.rail { min-width: 0; }
+.indice { position: sticky; top: 14px; max-height: calc(100dvh - 28px); overflow: auto; scrollbar-width: thin; padding-right: 14px; }
+.indiceTitulo { margin: 0 0 16px; font-size: 23px; }
+.indiceMovil { display: none; }
+.buscar { display: grid; gap: 6px; margin: 0 0 16px; font-size: 13px; font-weight: 650; }
+.buscar input { width: 100%; min-height: 40px; border: 1px solid #aaa; padding: 8px 10px; background: #fff; color: var(--ink); border-radius: 0; font: inherit; font-weight: 400; }
+.grupo { border-top: 1px solid var(--line); }
+.tituloGrupo, .indiceMovil {
+  width: 100%; border: none; margin: 0; background: none; color: var(--ink); font: inherit; font-weight: 650; text-align: left;
+}
+.tituloGrupo { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 12px 2px; font-size: 14px; line-height: 1.35; }
+.tituloGrupo span, .indiceMovil span { font-size: 18px; flex: none; line-height: 1; }
+.grupo ul { margin: 0 0 10px; padding: 0; list-style: none; }
+.grupo a { display: block; border-left: 2px solid var(--line); padding: 6px 10px; font-size: 13px; line-height: 1.4; text-decoration: none; color: var(--muted); }
+.grupo a:hover, .tituloGrupo:hover { color: #111; background: var(--soft); }
+.grupo a[aria-current] { background: #f5f6dc; border-color: #8f9810; color: #171717; font-weight: 650; }
+.sinTemas { color: var(--muted); font-size: 14px; }
+.portada > h2, .mobileInfo h2 { margin: 0; font-size: clamp(34px, 4.2vw, 60px); line-height: 1.05; }
+.portada > p, .mobileInfo p { margin: 14px 0 22px; max-width: 64ch; font-size: clamp(17px, 1.4vw, 20px); line-height: 1.55; }
+.entradas { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); border: 1px solid var(--line); }
+.entradas a { position: relative; display: block; padding: 15px 28px 16px 15px; text-decoration: none; line-height: 1.35; }
+.entradas a + a { border-left: 1px solid var(--line); }
+.entradas a:hover { background: var(--soft); }
+.entradas strong { display: block; font-size: 14px; }
+.entradas span { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }
+.entradas a > [aria-hidden="true"] { margin: 0; position: absolute; right: 8px; top: 15px; width: 16px; height: 16px; }
+.capitulo { margin-top: clamp(52px, 6vw, 84px); border-top: 3px solid var(--ink); padding-top: 18px; }
+.capitulo > h2 { margin: 0; font-size: clamp(30px, 3.5vw, 44px); line-height: 1.12; }
+.tema { padding: 25px 0 10px; }
+.tema + .tema { margin-top: 24px; border-top: 1px solid var(--line); }
+.tema h3 { margin: 0 0 10px; font-size: clamp(23px, 2.1vw, 30px); line-height: 1.16; }
+.articulo :is([data-capitulo], [id^="revision-"], [id="revisiones"]) { scroll-margin-top: 18px; }
+.tema > p, .tema ol, .revision p { font-size: 16px; line-height: 1.62; }
+.tema > p { margin: 0 0 14px; }
+.tema ol { padding-inline-start: 1.6em; margin: 15px 0; }
+.tema li { padding-left: 0.35em; }
+.tema li + li { margin-top: 7px; }
+.tema li::marker { font-weight: 700; }
+.tema .nota { border-left: 3px solid #aaa; padding: 4px 0 4px 13px; margin-top: 16px; }
+.revision { background: #f6f3e8; border-left: 3px solid #94783f; padding: 14px 17px; margin: 16px 0 0; }
+.revision strong { font-size: 14px; }
+.revision p { margin: 3px 0 0; }
+.figura { margin: 20px 0; max-width: 100%; }
+.figura a { display: grid; justify-items: end; gap: 4px; text-decoration: none; cursor: zoom-in; }
+.figura img { display: block; width: 100%; height: auto; border: 1px solid var(--line); }
+.figura a span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; background: #141414; color: white; font: 600 12px/1.35 Arial,sans-serif; }
+.figura a svg { width: 15px; height: 15px; }
+.figura figcaption { margin-top: 7px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.volver { display: inline-block; margin-top: 30px; font-weight: 650; }
+.mobileInfo { padding: 54px 0; }
+.mobileInfo a { text-underline-offset: 3px; }
+@media (max-width: 800px) {
+  .columnas { display: block; padding-top: 15px; }
+  .rail { position: sticky; top: 0; z-index: 3; background: white; margin-bottom: 24px; }
+  .indice { position: static; max-height: none; overflow: visible; padding: 0; }
+  .indiceTitulo { display: none; }
+  .indiceMovil { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; min-height: 46px; color: #fff; background: #171717; }
+  .temario { display: none; }
+  .temario.visible { display: block; position: absolute; top: 100%; left: 0; width: 100%; max-height: min(65dvh,540px); overflow: auto; background: #fff; border: 1px solid var(--line); box-shadow: 0 7px 15px #0002; padding: 13px; }
+  .articulo :is([data-capitulo], [id^="revision-"], [id="revisiones"]) { scroll-margin-top: 56px; }
+  .capitulo { margin-top: 44px; }
+}
+@media (max-width: 510px) {
+  .entradas { grid-template-columns: 1fr; }
+  .entradas a { padding: 10px 32px 10px 12px; }
+  .entradas a + a { border-left: 0; border-top: 1px solid var(--line); }
+  .entradas svg { top: 18px; right: 12px; }
+  .tema > p, .tema ol, .revision p { font-size: 15px; }
+}
+.siguientes { margin: 18px 0 0; font-size: 14px; line-height: 1.5; }
+.siguientes ul { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 4px 0 0; padding: 0; list-style: none; }
+.siguientes li, .siguientes li + li { padding: 0; margin: 0; }
+.siguientes a, .mobileInfo a { text-decoration: underline; text-underline-offset: 3px; }
+
+.indiceRevision { display: block; padding: 12px 2px; font-size: 13px; border-top: 1px solid var(--line); text-underline-offset: 3px; }
+.enlacesRevision { padding-left: 20px; line-height: 1.55; }
+.enlacesRevision li + li { margin-top: 5px; }
+.enlacesRevision a { text-decoration: underline; text-underline-offset: 3px; }
+
+.regreso { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 12px; color: #174f91; text-decoration: underline; }
+.tema .alcance { color: #405674; font-size: .875rem; font-weight: 600; }
+.manual :is(a,button,input):focus-visible { outline: 3px solid #185c9d; outline-offset: 3px; }
