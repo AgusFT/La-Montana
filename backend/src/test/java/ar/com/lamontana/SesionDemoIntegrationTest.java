@@ -188,6 +188,47 @@ class SesionDemoIntegrationTest {
         assertThat(comprobar(enviar(navegador, guardar),409)).contains("puntos de entrega móviles");
     }
 
+    @Test void tutorialComparteElPedidoYProtegeLosBorradoresPorRol() throws Exception {
+        var navegador = HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+        String ruta = "/api/demo/tutorial";
+        assertThat(get(navegador,ruta).statusCode()).isIn(401,403);
+        comprobar(elegir(navegador,"ADMINISTRADOR",csrf(navegador)),200);
+        assertThat(comprobar(get(navegador,ruta),200)).contains("NUEVO");
+        comprobar(cambiarTutorial(navegador, Map.of("accion","iniciar")),200);
+        assertThat(JSON.readTree(comprobar(cambiarTutorial(navegador, Map.of("accion","ir","paso","calidad")),200))
+                .get("paso").asString()).isEqualTo("tarifa");
+        assertThat(comprobar(cambiarTutorial(navegador,Map.of("accion","tarifa")),200)).contains("\"completados\":[\"tarifa\"]");
+        comprobar(elegir(navegador,"CLIENTE",csrf(navegador)),200);
+        var preparacion=JSON.readTree(comprobar(post(navegador,"/api/cliente/preparaciones","{}",csrf(navegador)),200)).get("codigoPublico").asString();
+        var db=app.getBean(JdbcTemplate.class);
+        var muestra=db.queryForObject("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE estado='CONFIRMADA' ORDER BY id_preparacion LIMIT 1",UUID.class);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","vincular","preparacion",muestra)),409);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","vincular","preparacion",preparacion)),200);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","presupuesto","campos",Map.of("calle","Senderos","numero","23"))),200);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","presupuesto","campos",Map.of("numero",""))),200);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","confirmacion","campos",Map.of("contrasena","privado"))),400);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","archivo","campos",Map.of("opciones","[{\"clave\":\"dato ajeno\"}]"))),400);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","cobro","campos",Map.of("importe","2"))),403);
+        comprobar(cambiarTutorial(navegador, Map.of("accion","pausar")),200);
+        var otra=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+        comprobar(elegir(otra,"EMPLEADO",csrf(otra)),200);
+        String lectura=comprobar(get(otra,ruta),200);
+        assertThat(lectura).contains("PAUSADO",preparacion).doesNotContain("Senderos");
+        comprobar(cambiarTutorial(otra, Map.of("accion","retomar")),200);
+        comprobar(elegir(otra,"CLIENTE",csrf(otra)),200);
+        var finalCliente=JSON.readTree(comprobar(get(otra,ruta),200));
+        assertThat(finalCliente.get("borradores").get("presupuesto").get("calle").asString()).isEqualTo("Senderos");
+        assertThat(finalCliente.get("borradores").get("presupuesto").has("numero")).isFalse();
+        assertThat(finalCliente.get("pedido").isNull()).isTrue();
+        comprobar(post(navegador,"/api/auth/logout","",csrf(navegador)),204);
+        comprobar(post(otra,"/api/auth/logout","",csrf(otra)),204);
+    }
+
+    private HttpResponse<String> cambiarTutorial(HttpClient navegador,Map<String,?> cambio) throws Exception {
+        return enviar(navegador,request("/api/demo/tutorial").header("Content-Type","application/json")
+                .header("X-CSRF-TOKEN",csrf(navegador)).PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(cambio))));
+    }
+
     private String csrf(HttpClient navegador) throws Exception {
         return JSON.readTree(comprobar(get(navegador, "/api/auth/csrf"), 200)).get("token").asString();
     }
