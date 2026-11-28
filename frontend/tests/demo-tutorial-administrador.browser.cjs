@@ -54,6 +54,35 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
     return el;
   }
   async function tap(selector){await (await anchor(selector)).click();}
+  const reviewNext=()=>card.getByRole("button",{name:/^(Siguiente|Terminar revisión)$/});
+  async function advanceReview() {
+    const instruction=await card.locator("#tutorial-indicacion").innerText();
+    const last=(await reviewNext().textContent())==="Terminar revisión";
+    await reviewNext().click();
+    if(last)await expect(reviewNext()).toHaveCount(0);
+    else await expect(card.locator("#tutorial-indicacion")).not.toHaveText(instruction);
+  }
+  async function reviewField(selector) {
+    await anchor(selector);
+    await expect(reviewNext()).toBeEnabled();
+    await advanceReview();
+  }
+  async function finishReview() {
+    while(await reviewNext().isVisible()) {
+      await advanceReview();
+    }
+  }
+  async function calendarInView() {
+    await anchor("#tutorial-calendario-semanal");
+    await expect.poll(()=>card.evaluate(box=>{
+      const text=box.querySelector("#tutorial-indicacion").getBoundingClientRect();
+      const button=box.querySelector(".tutorial-next").getBoundingClientRect();
+      const area=box.getBoundingClientRect();
+      if(text.top>=area.top && text.bottom<=area.bottom && button.top>=area.top && button.bottom<=area.bottom)return "ok";
+      return {text:text.toJSON(),button:button.toJSON(),area:area.toJSON(),contentHeight:box.scrollHeight,
+        target:document.querySelector("#tutorial-calendario-semanal").getBoundingClientRect().toJSON(),scrollY};
+    }),{message:"La explicación y Siguiente deben verse juntos antes de hacer scroll."}).toBe("ok");
+  }
   async function next(title,selector){await heading(title);await anchor(selector);await card.getByRole("button",{name:/^(Continuar|Terminar tutorial)$/}).click();}
   async function selectFirst(selector){const control=await anchor(selector);const option=control.locator('option:not([value=""])').first();await control.selectOption(await option.getAttribute("value"));}
   async function phaseTask(title,number) {
@@ -100,38 +129,34 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   await expect(input).toHaveValue(price);await next("Cambiar el precio por hoja","#tutorial-tarifa-precio input");
   await tap("#tutorial-tarifa-aplicar");await next("Aplicar al borrador","#tutorial-tarifa-aplicar");
   await expect(field("#tutorial-tarifa-resultado")).toContainText("tres hojas");
-  assert.equal((await catalog()).actual.codigoPublico,initial.codigoPublico);await next("Comparar y decidir","#tutorial-tarifa-publicar");
+  assert.equal((await catalog()).actual.codigoPublico,initial.codigoPublico);
+  await reviewField("#tutorial-tarifa-resultado p:first-of-type");await next("Comparar y decidir","#tutorial-tarifa-publicar");
   await next("Consultar papeles","#catalog-papers-tab");await tap("#catalog-services-tab");await next("Consultar servicios","#catalog-services-tab");
   await tap("#historial-comercial tbody tr:first-child button");await next("Comparar versiones",".catalog-history-detail h3");
   await phaseTask("Reconocer la configuración vigente",1);await next("Reconocer la configuración vigente","#config-tour-current h3");
   await tap("#config-tour-resume button");
   await phaseTask("Revisar el modelo de aprobación",2);
   assert.equal((await config()).borrador.codigoPublico,prior);
-  // Con datos precargados se puede conservar directamente la selección. Probar
-  // también el estado que aparece cuando se elige otro modo y falta su condición.
+  // También con un modelo precargado deben verse las opciones antes de guardar.
   const manual=field('input[name=modelo][value=MANUAL]'), conditional=field('input[name=modelo][value=CONDICIONAL]');
   const oldManual=await manual.isChecked(),oldConditional=await conditional.isChecked();
   const oldCriterion=await field("#tutorial-criterios input:checked").getAttribute("value",{timeout:300}).catch(()=>null);
-  if(!oldManual&&!oldConditional){
-    for(const [size,label] of [[desktop,"escritorio"],[mobile,"movil"]]){
-      await page.setViewportSize(size);
-      await expectTutorialAnchor(page,manual,{group:true});
-      await expectTutorialAnchor(page,conditional,{group:true});
-      await picture("modelos-disponibles-"+label);
-    }
-  }else{
-    const modelAction=await field('[data-modelo-guardado="true"]').count()?"#tutorial-modelo-continuar":"#tutorial-modelo-guardar";
-    await page.setViewportSize(desktop);await anchor(modelAction);await picture("modelo-escritorio");
-    await page.setViewportSize(mobile);await anchor(modelAction);await picture("modelo-movil");
-    if(oldConditional)await manual.check();
+  for(const [size,label] of [[desktop,"escritorio"],[mobile,"movil"]]){
+    await page.setViewportSize(size);
+    await expectTutorialAnchor(page,manual,{group:true});
+    await expectTutorialAnchor(page,conditional,{group:true});
+    await picture("modelos-disponibles-"+label);
   }
+  if(oldConditional)await manual.check();
   await conditional.check();
+  await reviewField("#tutorial-modelos");
   const criterion=page.locator("#tutorial-criterios input").nth(1);
   for(const [size,label] of [[desktop,"escritorio"],[mobile,"movil"]]){
     await page.setViewportSize(size);
     await expectTutorialAnchor(page,criterion,{group:true});await picture("criterios-"+label);
   }
   await criterion.check();
+  await reviewField("#tutorial-criterios");
   async function saveSurface(){
     const save=await anchor("#tutorial-modelo-guardar");
     await expect(page.locator(".guided-tour-help:visible")).toHaveCount(0);
@@ -153,6 +178,8 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   if(await field('[data-modelo-guardado="false"]').count())await tap("#tutorial-modelo-guardar");
   await anchor("#tutorial-modelo-continuar");await picture("modelo-guardado");
   await tap("#tutorial-modelo-continuar");await phaseTask("Revisar pagos y seña",3);
+  await reviewField("#tutorial-medios-pago");
+  await finishReview();
   if(await field('[data-pagos-guardados="false"]').count()){
     if(!await field("#tutorial-medios-pago input:checked").count()){
       const transfer=field("#tutorial-medios-pago input");
@@ -166,10 +193,39 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
     await tap("#tutorial-pagos-guardar");
   }
   await tap("#tutorial-pagos-continuar");await phaseTask("Comprobar recursos",4);
+  await reviewField("#config-tour-printers .admin-table-wrap, #config-tour-printers .admin-empty");
+  await reviewField("#config-tour-assignment label:has(input[name=assignment])");
   if(await field('[data-asignacion-guardada="false"]').count())await tap("#tutorial-recursos-guardar");
   await tap("#tutorial-recursos-continuar");await phaseTask("Comprobar horarios y entrega",5);
+  const originalDelivery=(await config()).borrador.entrega;
+  await expect(field("#main-branch")).toHaveValue(originalDelivery.casaMatriz);
+  await reviewField("#main-branch");
+  await reviewField("#schedule-branch");
+  await calendarInView();
+  await card.getByRole("button",{name:"Anterior",exact:true}).click();
+  await reviewField("#schedule-branch");
+  await calendarInView();await picture("horarios-calendario");
+  const calendar=field("#tutorial-calendario-semanal");
+  await expect(calendar.getByRole("combobox",{name:/Estado (Lunes|Martes|Miércoles|Jueves|Viernes|Sábado|Domingo)/})).toHaveCount(7);
+  await expectTutorialAnchor(page,calendar.getByRole("combobox",{name:/Estado Lunes/}),{group:true});
+  await reviewField("#tutorial-calendario-semanal");
+  await anchor("#tutorial-modalidades-entrega");
+  await picture("horarios-modalidades");
+  await expect(field("#tutorial-modalidades-entrega").getByRole("checkbox",{checked:true})).toHaveCount(originalDelivery.modalidades.length);
+  await reviewField("#tutorial-modalidades-entrega");
+  await reviewField("#tutorial-franjas-retiro");
+  await card.getByRole("button",{name:"Pausar",exact:true}).click();
+  await choose();
+  await phaseTask("Comprobar horarios y entrega",5);
+  await reviewField("#preparation-hours");
+  const transferTime=await anchor("#transfer-hours");
+  const trialTransfer=Number(await transferTime.inputValue())===1?"2":"1";
+  await transferTime.fill(trialTransfer);
+  await reviewField("#transfer-hours");
+  assert.deepEqual((await config()).borrador.entrega,originalDelivery);
   const matrix="#config-tour-matrix input[type=checkbox]";if(!(await field(matrix).isChecked()))await tap(matrix);
-  if(!await field("#tutorial-entrega-continuar").isEnabled())await tap("#guardar-horarios");
+  await tap("#guardar-horarios");
+  await expect.poll(async()=>Number((await config()).borrador.entrega.trasladoHoras)).toBe(Number(trialTransfer));
   await tap("#tutorial-entrega-continuar");await phaseTask("Abrir una simulación",6);
   await tap(".optional-simulation summary");await heading("Simular y leer el resultado");
   const sim=field(".review-simulator");
@@ -188,6 +244,8 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   if(!await field(".optional-simulation").evaluate(el=>el.open))await tap(".optional-simulation summary");
   await expect(sim.getByLabel("Páginas del PDF")).toHaveValue("3");await expect(sim.getByLabel("Copias del ejemplo")).toHaveValue("2");
   await tap("#tutorial-simulacion-calcular");await next("Simular y leer el resultado",".review-result h3");
+  await heading("Decidir sobre la activación");
+  await expect(reviewNext()).toBeVisible();await finishReview();
   await next("Decidir sobre la activación","#config-tour-review-actions button:last-child");
   await tap("#config-tour-phases nav button:nth-child(8)");await next("Abrir el historial de versiones",".history-table tbody tr:first-child td:first-child");
   await heading("Reconocer la identidad pública");
@@ -204,6 +262,7 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
     await heading(name);
     const nav=site+` nav button:nth-child(${number})`;
     while(Number(await fase())!==number){
+      await finishReview();
       if(await field(nav).isEnabled())await tap(nav);
       else{
         if((await fase())==="1"){
@@ -212,10 +271,13 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
           }
         }
         const old=await fase();
+        await finishReview();
         await tap("#tutorial-web-continuar");
         await expect(field(site)).not.toHaveAttribute("data-fase-web",old);
       }
     }
+    if(number===6)await reviewField(".web-review-summary");
+    else await finishReview();
     await next(name,dest);
   }
   for(const [title,selector] of [
@@ -236,8 +298,11 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   assert.equal((await config()).borrador.codigoPublico,prior);assert.equal((await catalog()).actual.codigoPublico,initial.codigoPublico);
   await treeButton(page.getByRole("button",{name:/Preparar una tarifa/}));
   await treeButton(page.getByRole("button",{name:"Comparar y decidir"}));
+  await reviewField("#tutorial-tarifa-resultado p:first-of-type");
   await tap("#tutorial-tarifa-publicar");
+  await reviewField("[data-publicacion-practica] .pricing-publish-grid");
   await (await anchor("#catalog-reason")).fill("Verificación de la publicación opcional en base descartable");
+  await reviewField("#catalog-reason");
   const save="#tariff-tour-publish button";await tap(save);
   assert.equal((await catalog()).actual.codigoPublico,initial.codigoPublico);publish=true;await tap(save);
   await anchor('[data-precio-publicado] .save-notice:not(.is-pending) strong');

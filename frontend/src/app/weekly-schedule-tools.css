@@ -8,3 +8,9 @@
 .weekly-schedule-tools .admin-form-grid{margin-bottom:14px}
 .weekly-schedule-tools>.admin-button{margin-top:12px;max-width:100%;white-space:normal}
 @media(max-width:600px){.weekly-schedule-tools{padding:12px}.weekly-schedule-tools .weekly-schedule-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Durante la explicación se puede recorrer toda la semana dentro del área iluminada. */
+:is(#tutorial-calendario-semanal, #tutorial-franjas-retiro)[aria-describedby~="tutorial-indicacion"] {
+  max-height: min(23rem, 38dvh);
+  overflow: auto;
+}

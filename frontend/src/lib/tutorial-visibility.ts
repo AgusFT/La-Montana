@@ -4,6 +4,25 @@ import type { Guide } from "./tutorial-recorridos";
 export const tutorialSessionKey = "demo:tutorial:sesion";
 const guideKey = "demo:tutorial:recorrido";
 const openKey = "demo:tutorial:abierto";
+const reviewKey = "demo:tutorial:revision";
+
+export function readReviewPosition(task: string): number {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(reviewKey) ?? "null");
+    return saved?.task === task && Number.isSafeInteger(saved.position) && saved.position >= 0
+      ? saved.position : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function rememberReviewPosition(task: string, position: number) {
+  try {
+    sessionStorage.setItem(reviewKey, JSON.stringify({ task, position }));
+  } catch {
+    // El recorrido abierto sigue en memoria si la pestaña bloquea el almacenamiento.
+  }
+}
 
 export function tutorialIsOpen() {
   try {

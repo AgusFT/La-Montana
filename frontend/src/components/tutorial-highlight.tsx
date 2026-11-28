@@ -249,6 +249,8 @@ export function TutorialHighlight({
       }
       described = target;
       if (target) {
+        first = true;
+        framed = false;
         const ids = new Set(
           (target.getAttribute("aria-describedby") ?? "")
             .split(/\s+/)
@@ -283,6 +285,13 @@ export function TutorialHighlight({
         bottom: top + (viewport?.height ?? innerHeight),
       };
       const element = selector ? visibleTarget(selector) : undefined;
+      // Calendarios y franjas adquieren su altura de lectura al quedar señalados.
+      // Medir después evita centrar una tabla que todavía ocupa su altura completa.
+      describe(
+        element && document.getElementById("tutorial-indicacion")
+          ? element
+          : undefined,
+      );
       const sidebar = element?.closest(".admin-sidebar,.client-sidebar");
       const bounds = dialog
         ? intersect(screen, dialog.getBoundingClientRect())
@@ -325,21 +334,19 @@ export function TutorialHighlight({
       layoutChanged = false;
       if ((first || displaced) && (element || !selector)) {
         first = false;
-        if (element && !inView)
+        if (element && !inView) {
           element.scrollIntoView({
             block: "center",
             inline: "nearest",
             behavior: "instant",
           });
-        else if (!bounds && !dialog)
+          // El campo acaba de moverse. Ubicar el cuadro con sus nuevas coordenadas.
+          schedule();
+          return;
+        } else if (!bounds && !dialog)
           main.scrollIntoView({ block: "start", behavior: "instant" });
         schedule();
       }
-      describe(
-        element && document.getElementById("tutorial-indicacion")
-          ? element
-          : undefined,
-      );
       if (!bounds || bounds.bottom - bounds.top < 44) {
         setLayout(null);
         return;

@@ -42,7 +42,7 @@ export function ConfigurationPickupSlots({branch,slots,operatingDays,onChange}:{
  return <section className="pickup-slots" aria-label={`Franjas de retiro de ${branch}`}><h4>Franjas y cupos de retiro</h4><p className="admin-note">Estas franjas son para retirar pedidos listos. Pueden estar fuera del horario de producción, incluso en días sin producción, si hay personal para entregar. No suman horas de preparación. Cada cupo corresponde a un pedido completo; cero o deshabilitada no ofrecen plazas. La disponibilidad se verifica al confirmar el pedido.</p>
  <WeeklyScheduleTools kind="pickup" onApply={(selected,start,end,_close,capacity)=>{if(slots.some(s=>s.dia!==null&&selected.includes(s.dia))&&!window.confirm("¿Reemplazar las franjas de retiro de los días elegidos? Las franjas de otros días y los horarios de producción se conservan."))return;onChange(applyPickupWeek(slots,selected,start,end,capacity));}}/>
  {!slots.length&&<p className="admin-empty">Sin franjas de retiro configuradas.</p>}
- {slots.map((s,i)=><fieldset className="pickup-slot" key={i}><legend>Franja {i+1} · {branch}</legend>
+ {slots.length>0&&<div id="tutorial-franjas-retiro" role="region" tabIndex={0} aria-label={`Franjas configuradas de ${branch}`}>{slots.map((s,i)=><fieldset className="pickup-slot" key={i}><legend>Franja {i+1} · {branch}</legend>
  <label>Día<select aria-label={`Día de retiro ${i+1} de ${branch}`} required value={s.dia??""} onChange={e=>change(i,{dia:e.target.value?Number(e.target.value):null})}><option value="">Elegir día</option>{days.map((d,n)=><option value={n+1} key={d}>{d}</option>)}</select></label>
  <label>Desde<input aria-label={`Inicio de retiro ${i+1} de ${branch}`} type="time" step="60" required value={s.apertura} onChange={e=>change(i,{apertura:e.target.value})}/></label>
  <label>Hasta<input aria-label={`Fin de retiro ${i+1} de ${branch}`} type="time" step="60" required value={s.cierre} onChange={e=>change(i,{cierre:e.target.value})}/></label>
@@ -50,6 +50,6 @@ export function ConfigurationPickupSlots({branch,slots,operatingDays,onChange}:{
  <label>Estado<select aria-label={`Estado de retiro ${i+1} de ${branch}`} required value={s.habilitada===null?"":s.habilitada?"HABILITADA":"DESHABILITADA"} onChange={e=>change(i,{habilitada:e.target.value===""?null:e.target.value==="HABILITADA"})}><option value="">Elegir estado</option><option value="HABILITADA">Habilitada</option><option value="DESHABILITADA">Deshabilitada</option></select></label>
  <button type="button" className="admin-button secondary" onClick={()=>onChange(slots.filter((_,n)=>n!==i))}>Quitar franja {i+1}</button>
  {outsideProduction(s)&&<p className="admin-info" role="status" style={{gridColumn:"1 / -1"}}><strong>Producción cerrada · retiros habilitados</strong> en parte o toda esta franja. Confirmá que haya personal para entregar pedidos listos. Este horario no se cuenta para preparación.</p>}
- </fieldset>)}
+ </fieldset>)}</div>}
  <button type="button" className="admin-button secondary" disabled={slots.length>=100} onClick={()=>onChange([...slots,{dia:null,apertura:"",cierre:"",capacidadPedidos:null,habilitada:null}])}>Agregar franja de retiro de {branch}</button></section>;
 }

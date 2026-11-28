@@ -153,9 +153,9 @@ test(
       await expect(panel()).toBeVisible();
       await checkMenu();
     }
-    async function next() {
+    async function next(title) {
       await card()
-        .getByRole("button", { name: /^Continuar con/ })
+        .getByRole("button", { name: "Continuar con " + title, exact: true })
         .click();
     }
     async function expectHint(text) {
@@ -279,7 +279,7 @@ test(
         await (await chooser).setFiles(testPdf);
       }
       await done("archivo");
-      await next();
+      await next("configurar y presupuestar");
       await expectHint(/servicio de impresión/i);
       const area = page.locator("#client-work-options");
       const taskNav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
@@ -332,8 +332,10 @@ test(
       await page.setViewportSize({ width: 1440, height: 960 });
       await panel().getByRole("button", {name:"Calcular el subtotal"}).click();
       await guidedClick(page.locator("#client-budget-action button"));
+      await page.waitForURL(/\/cliente\/preparaciones\/[^/]+$/);
+      await expect(page.locator("#client-budget")).toBeVisible();
       await done("presupuesto");
-      await next();
+      await next("confirmar el pedido");
     });
     async function confirmOrder(guided) {
       async function act(control, action) {
@@ -457,7 +459,7 @@ test(
       await expect(card()).toContainText(/Aplicar dinero a esta cotización/i);
       await submit(form);
       await done("cobro");
-      await next();
+      await next("revisar y aprobar");
     });
     await stage("revision", async () => {
       await expectHint(/registrar revisión/i);
@@ -480,7 +482,7 @@ test(
         await expect(form).toHaveCount(0);
       }
       await done("revision");
-      await next();
+      await next("simular la impresión");
     });
     await stage("produccion y calidad", async () => {
       await expectHint(/iniciar impresión simulada/i);
@@ -515,12 +517,12 @@ test(
         await expect(form).toHaveCount(0);
         if (cmd === "COMPLETAR") {
           await done("produccion");
-          await next();
+          await next("controlar la calidad");
           await expectHint(/controlar calidad/i);
         }
       }
       await done("calidad");
-      await next();
+      await next("entregar y cerrar");
     });
     await stage("entrega", async () => {
       await card()
