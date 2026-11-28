@@ -28,6 +28,8 @@
  */
 //#endregion
 
+import {TutorialProvider} from "./tutorial-context";
+import {TutorialButton,TutorialPanel} from "./demo-tutorial";
 import {NavigationBoundary} from "./navigation-boundary";
 import {DemoSidebarMore} from "./demo-premium-nav";
 import {MountainMark} from "./mountain-brand";
@@ -43,8 +45,9 @@ function AdminIcon({ kind }: { kind: "home" | "catalog" | "people" | "branch" | 
 }
 export async function AdminShell({ title, description, name, children, active="catalogo", userRole="Administración", administration=true }: { title:string; description:string; name:string; userRole?:string; administration?:boolean; children:React.ReactNode; active?:"web"|"dashboard"|"catalogo"|"configuracion"|"puntos"|"operacion"|"sucursales"|"empleados"|"cupos"|"riders" }) {
   const preparation=administration?await getPreparation():null;
-  return <InstallationProvider initial={preparation} enabled={administration}><NavigationBoundary><div className={`admin-layout${active==="configuracion"?" configuration-mode":""}`}>
+  return <TutorialProvider role={administration?"ADMIN_ADMIN":"EMPLEADO"}><InstallationProvider initial={preparation} enabled={administration}><NavigationBoundary><div className={`admin-layout${active==="configuracion"?" configuration-mode":""}`}>
     <aside className="admin-sidebar"><a href={administration?"/administracion":"/operacion"} className="admin-brand"><MountainMark sun/><span>La Montaña<small>IMPRESIONES</small></span></a><p className="admin-nav-label">{administration?"ADMINISTRACIÓN":"OPERACIÓN"}</p>
+      <TutorialButton/>
       <div className="demo-sidebar-tools">
         <DemoSidebarMore>
           {administration && <>
@@ -65,12 +68,14 @@ export async function AdminShell({ title, description, name, children, active="c
         </>}
         <GuidedNavLink area="operacion" href={administration?"/administracion/pedidos":"/operacion"} current={active==="operacion"}><AdminIcon kind="branch"/>Operación y cobros</GuidedNavLink>
         {administration && <a href="/administracion/soporte"><AdminIcon kind="lock"/>Asistencia de YG Soluciones</a>}
+        <a href="/manual-de-usuario"><AdminIcon kind="catalog"/>Manual de usuario</a>
         <a href="/cuenta/seguridad"><AdminIcon kind="lock"/>Seguridad de la cuenta</a>
       </nav>
       <div className="admin-sidebar-pending"><span>CUPS, pagos en línea y reclamos</span><small>En construcción</small></div><ThemeSwitch/><p className="admin-sidebar-version">La Montaña</p>
     </aside>
+    <TutorialPanel/>
     <div className="admin-main"><header className="admin-topbar"><span>{administration?"Administración de la imprenta":"Operación de sucursal"}</span><div className="admin-user"><span className="admin-avatar" aria-hidden="true">{name.slice(0,1).toUpperCase()}</span><div><strong>{name}</strong><small>{userRole}</small></div><LogoutButton/></div></header>
       <main className="admin-content"><p className="admin-breadcrumb"><a href={administration?"/administracion":"/operacion"}>{administration?"Administración":"Operación"}</a><span aria-hidden="true">›</span>{title}</p><div className="admin-title"><AdminIcon kind="catalog"/><div><h1>{title}</h1><p>{description}</p></div></div><InstallationGate area={active}>{children}</InstallationGate></main>
     </div>
-  </div></NavigationBoundary></InstallationProvider>;
+  </div></NavigationBoundary></InstallationProvider></TutorialProvider>;
 }

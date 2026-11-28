@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
+import {useTutorial} from "./tutorial-context";
 import {LegacyQuoteForm} from './legacy-quote-form';
 import {ClientJourney} from './client-journey';
 import {ClientContextTour} from './client-context-tour';
@@ -19,6 +20,7 @@ export function QuoteForm(props:{replaces?:string;inspectedFile?:string;correcti
  return props.replaces?<LegacyQuoteForm {...props}/>:<PrepareWork/>;
 }
 function PrepareWork(){
+ const tutorial=useTutorial(), restored=useRef('');
  const router=useRouter(),[options,setOptions]=useState<QuoteOptions|null>(null),[prep,setPrep]=useState<Preparation|null>(null),[rows,setRows]=useState<Row[]>([]);
  const [activeFile,setActiveFile]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
@@ -43,6 +45,28 @@ function PrepareWork(){
     copies:String(work?.copias??1),double:work?.dobleFaz??false,ends:work?.terminaciones??[]};
   }));
  }
+ const progress=tutorial?.state;
+ const practicing=progress?.estado==='ACTIVO' && ['archivo','presupuesto'].includes(progress.paso);
+ const attached=!!prep && progress?.preparacion===prep.codigoPublico;
+ useEffect(()=>{
+   if(!practicing||!attached||!prep||restored.current===prep.codigoPublico)return;
+   const saved=progress?.borradores.archivo;
+   restored.current=prep.codigoPublico;
+   if(saved?.archivoActivo && prep.archivos.some(f=>f.codigoPublico===saved.archivoActivo))setActiveFile(saved.archivoActivo);
+   try{
+     const work:unknown=JSON.parse(saved?.opciones??'[]');
+     if(Array.isArray(work))setRows(old=>old.map(row=>{
+       const value=work.find(item=>item?.archivo===row.archivo);
+       return value && typeof value.choice==='string' && typeof value.copies==='string' && typeof value.double==='boolean' && Array.isArray(value.ends) && value.ends.every((x:unknown)=>typeof x==='string') ? {...row,choice:value.choice,copies:value.copies,double:value.double,ends:value.ends} : row;
+     }));
+   }catch{/* El documento y las opciones confirmadas se cargan desde la preparación. */}
+ },[practicing,attached,prep,progress?.borradores.archivo]);
+ async function linkPractice(){
+   if(tutorial && prep && practicing && !attached){
+     const linked=await tutorial.command({accion:"vincular",preparacion:prep.codigoPublico});
+     if(linked.preparacion!==prep.codigoPublico)throw Error("No se pudo asociar este trabajo al tutorial.");
+   }
+ }
  async function refresh(){
   if(running.current)return;
   running.current=true;setRefreshing(true);
@@ -64,6 +88,7 @@ function PrepareWork(){
   if(values.some(f=>!f.name.toLowerCase().endsWith('.pdf')||f.size===0||f.size>10*1024*1024)){setError('Seleccioná únicamente PDF de hasta 10 MiB por archivo.');return;}
   let index=0;const uploads=values.map(file=>({file,operation:crypto.randomUUID(),id:undefined as string|undefined}));
   await execute(async()=>{
+   await linkPractice();
    while(index<uploads.length){const u=uploads[index];
     if(!u.id){const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos`,JSON.stringify({operacion:u.operation,nombre:u.file.name}),'application/json');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el intento de carga.');u.id=a.codigoPublico;}
     const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/archivos/${u.id}/contenido`,u.file,'application/pdf','PUT');const a:unknown=await r.json();if(!isFile(a))throw new Error('No se pudo verificar el análisis del PDF.');
@@ -72,7 +97,10 @@ function PrepareWork(){
    await load();
   });
  }
- function update(id:string,change:Partial<Row>){setRows(old=>old.map(r=>r.archivo===id?{...r,...change}:r));}
+ function update(id:string,change:Partial<Row>){
+   const next=rows.map(row=>row.archivo===id?{...row,...change}:row);setRows(next);
+   if(practicing&&attached)tutorial?.draft('archivo',{archivoActivo:id,opciones:JSON.stringify(next)});
+ }
  const choices=Array.from(new Map((options?.combinaciones??[]).map(o=>[key(o),o])).values());
  const names=new Map([...(options?.formatos??[]),...(options?.papeles??[]),...(options?.servicios??[])].map(n=>[n.codigoPublico,n.nombre+(n.gramaje?` · ${n.gramaje} g/m²`:'')+(n.terminacion?` · ${n.terminacion}`:'')]));
  function choose(row:Row,index:number,value:string){
@@ -87,6 +115,8 @@ function PrepareWork(){
  }
  async function submit(e:FormEvent){
   e.preventDefault();if(locked||!prep||!options?.configuracion||!options.revisionComercial)return;
+  if(practicing&&!attached){try{await linkPractice();}catch(e){setError(e instanceof Error?e.message:'No pudimos vincular el trabajo.');return;}}
+  if(practicing){try{await tutorial?.flush();}catch{setError('No se guardó el borrador del tutorial. Reintentá antes de continuar.');return;}}
   const items=[];for(const f of prep.archivos){const row=rows.find(x=>x.archivo===f.codigoPublico),o=choices.find(x=>key(x)===row?.choice),copies=Number(row?.copies);
    if(f.estado!=='VALIDO'||!f.paginas||!row||!o||!Number.isInteger(copies)||copies<1||copies>10000){setActiveFile(f.codigoPublico);setError(`Completá las opciones de ${f.nombre} y verificá su análisis.`);return;}
    const trabajo:WorkItem={servicio:o.servicio,formato:o.formato,papel:o.papel,color:o.color,paginas:f.paginas,copias:copies,dobleFaz:row.double,terminaciones:row.ends};items.push({archivo:f.codigoPublico,trabajo});
@@ -117,7 +147,7 @@ function PrepareWork(){
      <input ref={input} className="workspace-file-input" tabIndex={-1} aria-label="Seleccionar PDF" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/>
      <small>Hasta 10 MiB por archivo · acceso privado</small>
     </div>
-    {!!prep?.archivos.length&&<ul className="workspace-file-list" aria-label="Archivos del trabajo">{prep.archivos.map((f,index)=><li key={f.codigoPublico}><button type="button" className="workspace-file-choice" aria-pressed={selectedFile?.codigoPublico===f.codigoPublico} aria-label={`Configurar PDF ${index+1}: ${f.nombre}`} disabled={locked} data-complete={configured(f.codigoPublico)} onClick={()=>setActiveFile(f.codigoPublico)}><span className="workspace-file-icon" aria-hidden="true">PDF</span><span><strong title={f.nombre}>{f.nombre}</strong><small>{f.estado==='VALIDO'?`${f.paginas} páginas · ${configured(f.codigoPublico)?'Configurado':'Falta configurar'}`:f.estado==='VALIDANDO'?'Analizando seguridad…':'Revisar archivo'}</small></span><span className="workspace-file-status" aria-hidden="true">{configured(f.codigoPublico)?'✓':index+1}</span></button></li>)}</ul>}
+    {!!prep?.archivos.length&&<ul className="workspace-file-list" aria-label="Archivos del trabajo">{prep.archivos.map((f,index)=><li key={f.codigoPublico}><button type="button" className="workspace-file-choice" aria-pressed={selectedFile?.codigoPublico===f.codigoPublico} aria-label={`Configurar PDF ${index+1}: ${f.nombre}`} disabled={locked} data-complete={configured(f.codigoPublico)} onClick={()=>{setActiveFile(f.codigoPublico);if(practicing&&attached)tutorial?.draft('archivo',{archivoActivo:f.codigoPublico});}}><span className="workspace-file-icon" aria-hidden="true">PDF</span><span><strong title={f.nombre}>{f.nombre}</strong><small>{f.estado==='VALIDO'?`${f.paginas} páginas · ${configured(f.codigoPublico)?'Configurado':'Falta configurar'}`:f.estado==='VALIDANDO'?'Analizando seguridad…':'Revisar archivo'}</small></span><span className="workspace-file-status" aria-hidden="true">{configured(f.codigoPublico)?'✓':index+1}</span></button></li>)}</ul>}
     <p className="workspace-files-footer">{prep?.archivos.length?'Seleccioná un archivo para ajustar sus opciones. Podés agregar varios y cotizarlos juntos.':'El servidor analiza la seguridad y cuenta las páginas de cada PDF. No necesitás pagar para cargarlo.'}</p>
    </section>
    <fieldset disabled={locked||!options?.disponible} id="client-work-options" className="workspace-editor"><legend>Opciones del archivo seleccionado</legend>

@@ -63,3 +63,15 @@ Archivo vacío que permite conservar el directorio de recursos públicos en Git.
 ## Manual de la aplicación
 
 La ruta `/manual-de-usuario` incluye el contenido y las capturas de la aplicación principal publicados por YG Soluciones. Para actualizar la copia offline, ejecutá `python3 scripts/sincronizar-manual.py /ruta/al/repositorio/YG-Soluciones` desde esta carpeta. La introducción de Windows, las indicaciones por edición y el regreso al panel se mantienen en la demo.
+
+## Verificar el tutorial del pedido
+
+Corré `node --test tests/demo-tutorial.test.cjs` desde esta carpeta para comprobar los requisitos entre pasos y las rutas de cada rol.
+
+La prueba completa usa la interfaz de una demo local descartable con PostgreSQL recién inicializado, ClamAV y el inspector de PDF activos. Configurá `DEMO_TUTORIAL_E2E_URL` con la URL local del frontend compilado, incluido el puerto. El runner necesita `@playwright/test` disponible en Node y Chromium. Si usás una instalación separada de Playwright, indicá su directorio de módulos con `NODE_PATH`. Podés indicar un Chromium ya instalado con `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.
+
+```sh
+DEMO_TUTORIAL_E2E_URL=http://127.0.0.1:3000 node --test tests/demo-tutorial.browser.cjs
+```
+
+La prueba inicia el tutorial con teclado, verifica la navegación móvil y la recuperación de borradores, y tramita un pedido con Administrador, Cliente y Empleado hasta cerrar la entrega. El pedido de práctica queda registrado en esa base. El resultado de la prueba muestra su identificador.

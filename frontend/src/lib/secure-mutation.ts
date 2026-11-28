@@ -57,5 +57,6 @@ export async function secureMutation(path: string, body?: BodyInit, contentType?
     throw new MutationError(typeof data?.mensaje === "string" ? data.mensaje : "No fue posible completar la operación.", response.status, response.status >= 500, data?.codigo);
   }
   if(typeof window!=="undefined"&&path.startsWith("/api/admin/")&&!path.endsWith("/simular"))window.dispatchEvent(new Event(installationChanged));
+  if(typeof window!=="undefined" && /^\/api\/(cliente|operacion)\/(preparaciones|pedidos|cotizaciones)(\/|$)/.test(path))window.dispatchEvent(new CustomEvent("demo:tutorial:operacion",{detail:{path}}));
   return response;
 }

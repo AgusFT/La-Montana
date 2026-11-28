@@ -1,12 +1,17 @@
 "use client";
 import "@/app/guided-tour.css";
 
+import {useTutorial} from "./tutorial-context";
 import {useCallback,useEffect,useRef,useState} from "react";
 
 export type TourStep={target:string;title:string;description:string;secondaryTarget?:string;secondaryLabel?:string};
 
 /** A small reusable spotlight tour. It never changes the underlying form or navigation. */
 export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√≠a del cat√°logo comercial",onStepChange,onActiveChange}:{steps:TourStep[];storageKey:string;autoStart:boolean;completion?:{title:string;description:string};helpLabel?:string;onStepChange?:(step:number)=>void;onActiveChange?:(active:boolean)=>void}){
+  const tutorial=useTutorial();
+  const waiting=!!tutorial && !tutorial.state && !tutorial.error && tutorial.available;
+  const globalActive=tutorial?.state?.estado==="ACTIVO";
+  const tutorialStarted=!!tutorial?.state && tutorial.state.estado!=="NUEVO";
   const [step,setStep]=useState<number|null>(null);
   const [showSecondary,setShowSecondary]=useState(false);
   const [rect,setRect]=useState<DOMRect|null>(null);
@@ -29,10 +34,11 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√
   },[storageKey]);
 
   useEffect(()=>{
-    if(!autoStart)return;
+    if(globalActive){setStep(null);onActiveChangeRef.current?.(false);return;}
+    if(!autoStart||waiting||tutorialStarted)return;
     try{if(localStorage.getItem(storageKey)==="seen")return;}catch{/* Sin almacenamiento, se ofrece la gu√≠a en esta visita. */}
     begin();
-  },[autoStart,storageKey,begin]);
+  },[autoStart,storageKey,begin,globalActive,waiting,tutorialStarted]);
   useEffect(()=>{
     if(!active)return;
     if(step===steps.length){setRect(null);return;}
@@ -72,6 +78,7 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu√
     left:Math.max(12,Math.min(padded.left,innerWidth-380)),
     top:Math.max(12,Math.min(innerHeight-cardHeight-12,nearBottom?padded.top-cardHeight-14:padded.bottom+14)),
   }:undefined;
+  if(globalActive)return null;
   return <>
     {!active&&<button ref={help} type="button" className="guided-tour-help" aria-label={`Abrir ${helpLabel.toLowerCase()}`} title={helpLabel} onClick={begin}>?</button>}
     {active&&<div className="guided-tour" role="dialog" aria-modal="true" aria-labelledby="guided-tour-title" aria-describedby="guided-tour-description" onKeyDown={event=>{if(event.key!=="Tab")return;const controls=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>(".guided-tour-card button"));if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1)?.focus();}else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0]?.focus();}}}>

@@ -33,6 +33,7 @@
 //#endregion
 
 "use client";
+import {TutorialDraftFields} from "./tutorial-draft-fields";
 import {useEffect,useRef,useState} from "react";
 import {quoteRead,date} from "@/lib/quote-types";
 import {isOrder,orderState,type Order} from "@/lib/order-types";
@@ -73,11 +74,11 @@ export function OrderManagement({order,internal,onSaved}:{order:Order;internal:b
   {loading&&<p role="status">Consultando acciones y observaciones…</p>}
   {internal&&data&&<><div className="client-grid"><section><h3>Cliente</h3><p>{data.cliente}<br/>{data.correo}</p></section><section><h3>Revisión y decisión</h3><p>{data.revisadaEn?`Revisado por ${data.revisor} · ${date(data.revisadaEn)}`:"Sin revisión humana registrada."}</p>{order.aprobadaEn&&<p>Aprobado {data.aprobador?`por ${data.aprobador}`:"según las reglas configuradas"} · {date(order.aprobadaEn)}</p>}</section></div>
    <p><a href="#pedido-pdf">Ver los PDF confirmados</a>. Revisá los PDF privados, las opciones de impresión y los datos de entrega. Aprobar no inicia producción ni registra pagos.</p>
-   <div className="order-decision-grid">{data.acciones.map(a=><div key={a.accion}><button className={`client-button ${a.accion==="APROBAR"?"order-approve":["RECHAZAR","CANCELAR"].includes(a.accion)?"order-danger":"secondary"}`} disabled={locked||!a.habilitada||!!action} onClick={()=>choose(a.accion)}>{labels[a.accion]}</button>{a.motivo&&<p className="client-muted">{a.motivo}</p>}</div>)}</div>
+   <div className="order-decision-grid">{data.acciones.map(a=><div key={a.accion}><button className={`client-button ${a.accion==="APROBAR"?"order-approve":["RECHAZAR","CANCELAR"].includes(a.accion)?"order-danger":"secondary"}`} disabled={locked||!a.habilitada||!!action} data-tutorial-gestion={a.accion} onClick={()=>choose(a.accion)}>{labels[a.accion]}</button>{a.motivo&&<p className="client-muted">{a.motivo}</p>}</div>)}</div>
    <p><a href="#pedido-correcciones">Consultar o solicitar correcciones del trabajo</a>.</p>
   </>}
   {!internal&&<><p>{active?"Podés cancelar este pedido antes de que comience la producción.":["EN_PRODUCCION","LISTO_PARA_ENTREGA"].includes(order.estado)?"La producción ya comenzó. La cancelación directa no está disponible.":"El pedido finalizó su recorrido operativo."}</p><p>{financialNotice}</p>{active&&<button className="client-button order-danger" disabled={locked||!!action} onClick={()=>choose("CANCELAR")}>Cancelar pedido</button>}</>}
-  {action&&<form ref={form} key={action} className="client-form order-decision-form" onSubmit={e=>{e.preventDefault();void save();}}><h3>{labels[action]}</h3><fieldset disabled={locked}>
+  {action&&<form ref={form} key={action} className="client-form order-decision-form" onSubmit={e=>{e.preventDefault();void save();}}><h3>{labels[action]}</h3>{internal && ["REVISAR","APROBAR"].includes(action) && <TutorialDraftFields step="revision" operation={action}/>}<fieldset disabled={locked}>
    {action==="OBSERVAR"&&<><p>Esta nota sólo será visible para el personal autorizado de la sucursal.</p><label>Importancia<select name="importancia" aria-label="Importancia" required defaultValue=""><option value="" disabled>Seleccioná la importancia</option><option value="INFORMATIVA">Informativa</option><option value="RELEVANTE">Relevante</option><option value="CRITICA">Crítica</option></select></label></>}
    <label>{action==="OBSERVAR"?"Observación interna":internal?"Motivo interno (no se muestra al cliente)":"Motivo de cancelación"}<textarea name="motivo" required maxLength={action==="OBSERVAR"?2000:500}/></label>
    {internal&&["CANCELAR","RECHAZAR"].includes(action)&&<label>Mensaje visible al cliente<textarea name="mensajeCliente" required maxLength={500}/></label>}

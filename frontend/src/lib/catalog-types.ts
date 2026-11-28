@@ -87,5 +87,5 @@ export function isCatalogState(value: unknown): value is CatalogState {
     Array.isArray(value.servicios) && value.servicios.every(s=>record(s)&&strings(s,["codigoPublico","codigo","nombre"])&&(s.tipo==="IMPRESION"||s.tipo==="TERMINACION")&&(s.descripcion===null||typeof s.descripcion==="string")&&typeof s.activo==="boolean") &&
     (value.actual===null||isCatalogRevision(value.actual)) && (value.programada===null||isCatalogRevision(value.programada)) && Array.isArray(value.historial) && value.historial.every(summary);
 }
-export function catalogDate(value: string): string { const date=new Date(value); return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short",timeZone:"UTC"}).format(date)+" UTC"; }
+export function catalogDate(value: string): string { const date=new Date(value); return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat("es-AR",{dateStyle:"short",timeStyle:"short",timeZone:"UTC"}).format(date).replace(/[\u00a0\u202f]/g," ")+" UTC"; }
 export function catalogMoney(value: number): string { return new Intl.NumberFormat("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2}).format(value); }
