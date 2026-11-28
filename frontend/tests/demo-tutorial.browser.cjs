@@ -153,7 +153,8 @@ test(
       await expect
         .poll(
           async () =>
-            JSON.parse((await check()).borradores.archivo.opciones)[0].copies,
+            JSON.parse((await check()).borradores.archivo?.opciones || "[]")[0]
+              ?.copies,
         )
         .toBe("3");
       await panel()
@@ -351,6 +352,40 @@ test(
       await expect(
         panel().getByRole("heading", { name: "Pedido completado" }),
       ).toBeVisible();
+      const sidebar = page.locator(".admin-sidebar");
+      const close = panel().getByRole("button", {
+        name: "Cerrar",
+        exact: true,
+      });
+      for (const viewport of [
+        { width: 1440, height: 960 },
+        { width: 390, height: 845 },
+      ]) {
+        await page.setViewportSize(viewport);
+        const tutorialBox = await sidebar
+          .locator(".tutorial-start")
+          .boundingBox();
+        const menuBox = await sidebar
+          .getByRole("button", { name: "Más de la Demo" })
+          .boundingBox();
+        assert.ok(menuBox.y >= tutorialBox.y + tutorialBox.height);
+        const lines = await close.evaluate((button) => {
+          const text = document.createRange();
+          text.selectNodeContents(button);
+          return text.getClientRects().length;
+        });
+        assert.equal(lines, 1);
+        const heights = await sidebar
+          .getByRole("navigation")
+          .getByRole("link")
+          .evaluateAll((links) =>
+            links.map((link) => link.getBoundingClientRect().height),
+          );
+        assert.ok(
+          heights.length > 0 &&
+            heights.every((height) => height > 0 && height <= 60),
+        );
+      }
       const final = await check();
       assert.equal(final.estado, "COMPLETO");
       assert.equal(final.completados.length, 9);
