@@ -39,23 +39,27 @@ export type Command = {
   preparacion?: string;
   campos?: Draft;
 };
-type Hint = readonly [selector: string, text: string];
-type Lesson = { title: string; role: Role; intro: string; hints: Hint[] };
+type Hint = readonly [selector: string, text: string, role?: Role];
+type Lesson = {
+  title: string;
+  role: Role;
+  intro: string;
+  result: string;
+  hints: Hint[];
+};
+
 export const lessons: Record<Step, Lesson> = {
   tarifa: {
     title: "Consultar la tarifa",
     role: "ADMIN_ADMIN",
     intro:
-      "En Administración, revisá el precio vigente de Senderos que usará la cotización.",
+      "Antes de presupuestar un pedido, la imprenta define cuánto cobra por imprimir. En Servicios y precios, cada tarifa vigente combina un papel, un modo de color y un precio.",
+    result:
+      "Tarifa consultada. Ahora podés pasar al rol Cliente y cargar el PDF que vas a cotizar.",
     hints: [
-      [".catalog-current", "Comprobá que haya una configuración vigente."],
       [
-        "[data-tutorial-tarifa]",
-        "Abrí el detalle de la revisión vigente y localizá el precio para el papel y la impresión que vas a usar.",
-      ],
-      [
-        ".catalog-history-detail",
-        "Leé las tarifas y servicios del detalle. Luego confirmá la lectura en el tutorial.",
+        '[data-tutorial-tarifa-leida="true"]',
+        "Leé el importe de «Simple faz» en la tarjeta resaltada. Es el precio de imprimir una cara. Fijate en el papel y el color de esa tarjeta para elegirlos al presupuestar. Pulsá «Confirmar que revisé la tarifa» en esta guía.",
       ],
     ],
   },
@@ -63,15 +67,17 @@ export const lessons: Record<Step, Lesson> = {
     title: "Cargar el PDF",
     role: "CLIENTE",
     intro:
-      "Como cliente vas a preparar el archivo de un pedido nuevo. Podés usar el afiche de práctica o un PDF propio.",
+      "Ahora sos quien encarga las copias. La imprenta necesita el PDF para contar sus páginas y calcular el trabajo. Podés usar el afiche de práctica o un PDF propio.",
+    result:
+      "Tu PDF ya está analizado. Junto al nombre figura la cantidad de páginas que se usará en el presupuesto.",
     hints: [
       [
         "#client-upload .client-dropzone button",
-        "Elegí el PDF. Esperá a que el análisis termine. Si cerraste el selector antes de subirlo, volvé a elegirlo.",
+        "Si vas a usar el afiche, pulsá «Guardar PDF de práctica» en la guía. Después elegí «Seleccionar PDF» en Tus archivos y abrí el archivo que guardaste.",
       ],
       [
         ".workspace-file-choice",
-        "Seleccioná el archivo analizado. Su nombre y cantidad de páginas identifican el trabajo.",
+        "Esperá a que termine el análisis. En Tus archivos, elegí el PDF que vas a imprimir y comprobá su nombre y sus páginas en Detalles de impresión.",
       ],
     ],
   },
@@ -79,31 +85,37 @@ export const lessons: Record<Step, Lesson> = {
     title: "Configurar y presupuestar",
     role: "CLIENTE",
     intro:
-      "Elegí cómo imprimir tu PDF. El presupuesto usa el catálogo vigente.",
+      "Vas a ponerle precio al PDF. Cada elección habilita las opciones compatibles de la siguiente casilla. Para reconocer la tarifa del primer paso, usá el mismo papel y modo de impresión.",
+    result:
+      "Ya tenés el subtotal de impresión. Ahora podés elegir dónde retirar el pedido y cómo pagarlo.",
     hints: [
       [
         '#client-work-options select[aria-label="Servicio de impresión"]',
-        "Elegí el servicio para este PDF.",
+        "En «Servicio de impresión», elegí Impresión para que aparezcan los tamaños que ofrece la imprenta.",
       ],
       [
         '#client-work-options select[aria-label="Tamaño de hoja"]',
-        "Seleccioná el tamaño de hoja.",
+        "Elegí el tamaño de la tarifa que consultaste. En el catálogo de práctica es A4.",
       ],
       [
         '#client-work-options select[aria-label="Papel y gramaje"]',
-        "Elegí un papel disponible.",
+        "Seleccioná el papel de esa tarifa. En el catálogo de práctica es Obra de 80 g/m².",
       ],
       [
         '#client-work-options select[aria-label="Impresión"]',
-        "Seleccioná blanco y negro o color.",
+        "Elegí Blanco y negro o Color según la tarjeta de precios que leíste. Ese valor se usará para calcular tus copias.",
       ],
       [
         '#client-work-options input[aria-label="Copias"]',
-        "Indicá las copias y revisá las caras y terminaciones.",
+        "En «Cantidad de copias», escribí 3 para probar cómo cambia el importe al pedir tres ejemplares del PDF.",
+      ],
+      [
+        '#client-work-options select[aria-label="Caras"]',
+        "Dejá «Simple faz» para imprimir una cara por hoja. Para comparar el precio con la tarifa del primer paso, dejá los adicionales sin marcar.",
       ],
       [
         "#client-budget-action button",
-        "Calculá el presupuesto y comprobá el subtotal.",
+        "Pulsá «Revisar presupuesto». Con el afiche de una página y tres copias a simple faz, el subtotal de impresión corresponde a tres veces la tarifa por hoja.",
       ],
     ],
   },
@@ -111,27 +123,29 @@ export const lessons: Record<Step, Lesson> = {
     title: "Confirmar el pedido",
     role: "CLIENTE",
     intro:
-      "Revisá tu presupuesto, la entrega y el PDF. Para el recorrido más corto usá retiro en Senderos y pago en efectivo si están disponibles.",
+      "Ya conocés el subtotal. Para crear el pedido, la imprenta necesita saber dónde entregarlo, cómo vas a pagar y qué versión del PDF aprobás para imprimir.",
+    result:
+      "Al confirmar aparece el número de pedido. Como empleado vas a reconocer ese mismo número cuando registres el pago.",
     hints: [
       [
         '#client-delivery select[aria-label="Modalidad"]',
-        "Elegí la modalidad de entrega. Si elegís retiro, seleccioná la sucursal.",
+        "Para practicar un retiro en mostrador, elegí retiro en sucursal y seleccioná Senderos en «Destino de retiro». Si elegís envío, completá la dirección y los datos de quien recibe.",
       ],
       [
         '#client-delivery select[aria-label="Medio de pago"]',
-        "Elegí el medio y esperá el cálculo del total.",
+        "Elegí «Efectivo» para practicar un cobro en mostrador. Cuando aparezca «Total de tu pedido», revisá el destino y el importe final.",
       ],
       [
-        "#client-review-files",
-        "Revisá las páginas de cada PDF y aceptalas expresamente.",
+        "#client-review-files button",
+        "Abrí «Revisar archivos» y elegí «Ver páginas» en tu PDF. Recorré todas las páginas, marcá la casilla de lectura, pulsá «Aceptar vista previa» y luego «Volver al resumen».",
       ],
       [
         '#client-create-order input[type="checkbox"]',
-        "Verificá el total, las condiciones y el destino antes de aceptar.",
+        "En «Confirmá tu pedido», comprobá el total, el destino y la estimación. Marcá la casilla de aceptación cuando coincidan con lo que querés pedir.",
       ],
       [
         "#client-create-order button",
-        "Confirmá el pedido. El número quedará asociado a este recorrido.",
+        "Pulsá «Confirmar / Crear pedido» una vez. El pedido conserva el PDF, sus opciones y el precio aceptado.",
       ],
     ],
   },
@@ -139,19 +153,29 @@ export const lessons: Record<Step, Lesson> = {
     title: "Registrar y aplicar el cobro",
     role: "EMPLEADO",
     intro:
-      "Abrí Pagos en el pedido de práctica. La recepción y la aplicación del dinero son operaciones diferentes. Para practicar el ciclo completo podés registrar el total pendiente.",
+      "En Pagos vas a registrar dos hechos. Primero dejás constancia del dinero que recibió la imprenta. Después indicás a qué pedido se destina ese dinero.",
+    result:
+      "El dinero quedó aplicado y el saldo del pedido está cubierto. Ahora podés revisar el trabajo antes de autorizar la impresión.",
     hints: [
       [
         "[data-tutorial-cobrar]",
-        "Elegí recibir el medio usado en el pedido. Consultá el saldo e ingresá importe, referencia y fecha.",
+        "Buscá el saldo pendiente. Si el cliente eligió efectivo, pulsá «Registrar efectivo». Para una transferencia, elegí «Registrar transferencia recibida».",
       ],
       [
-        '.payment-panel form [name="importe"]',
-        "Ingresá el importe y el motivo de prueba. Revisá la referencia y confirmá la recepción.",
+        '[data-tutorial-pago="recibir"] [name="importe"]',
+        "Escribí el saldo pendiente completo en pesos. Ingresá un número de recibo de práctica único (o referencia de la transferencia), la fecha y la hora del movimiento.",
+      ],
+      [
+        '[data-tutorial-pago="recibir"] [name="motivo"]',
+        "En «Motivo / detalle» podés escribir «Cobro del pedido de práctica». Marcá la verificación del dinero y pulsá «Registrar dinero recibido».",
       ],
       [
         "[data-tutorial-aplicar]",
-        "En Dinero recibido, aplicá ese cobro a este trabajo y revisá cuánto queda pendiente.",
+        "Buscá tu recibo en «Dinero recibido y conservado». Si la sección está plegada, abrí «Transferencias, comprobantes e historial de pagos». Pulsá «Aplicar este pago».",
+      ],
+      [
+        '[data-tutorial-pago="aplicar"] [name="importe"]',
+        "Indicá el importe que acabás de recibir y un motivo, por ejemplo «Pago completo del pedido». Pulsá «Aplicar dinero a esta cotización» y revisá el nuevo saldo.",
       ],
     ],
   },
@@ -159,53 +183,73 @@ export const lessons: Record<Step, Lesson> = {
     title: "Revisar y aprobar",
     role: "EMPLEADO",
     intro:
-      "Compará el trabajo solicitado con el PDF. La aprobación respeta el anticipo y los permisos de la sucursal.",
+      "Antes de producir, quien atiende el pedido coteja el PDF, las opciones de impresión y el destino. Después autoriza que el trabajo pase a impresión.",
+    result:
+      "El pedido está aprobado. El empleado ya puede abrir la impresión simulada para este PDF.",
     hints: [
       [
         '[data-tutorial-gestion="REVISAR"]',
-        "Abrí la revisión e indicá qué comprobaste.",
+        "En «Revisión administrativa», comprobá el pedido y el PDF confirmado. Pulsá «Registrar revisión» para dejar constancia de lo que verificaste.",
       ],
       [
-        '.order-decision-form textarea[name="motivo"]',
-        "Explicá el motivo y confirmá tu decisión.",
+        '[data-tutorial-decision="REVISAR"] [name="motivo"]',
+        "En «Motivo interno», anotá qué revisaste, por ejemplo «Coinciden PDF, copias y destino». Marcá la casilla y confirmá la revisión.",
       ],
       [
         '[data-tutorial-gestion="APROBAR"]',
-        "Aprobá el trabajo una vez que estén cumplidas las condiciones vigentes.",
+        "Elegí «Aprobar pedido». Si la acción está deshabilitada, revisá el motivo que figura junto al botón y comprobá el dinero aplicado en Pagos.",
+      ],
+      [
+        '[data-tutorial-decision="APROBAR"] [name="motivo"]',
+        "Anotá por qué autorizás el trabajo, por ejemplo «Archivo y anticipo verificados». Marcá la casilla y confirmá la aprobación.",
       ],
     ],
   },
   produccion: {
     title: "Simular la impresión",
     role: "EMPLEADO",
-    intro: "En Impresión simulada, procesá cada ítem del pedido.",
+    intro:
+      "En producción, cada PDF tiene su propio trabajo. La demo simula el uso de una impresora y registra el inicio y el fin de cada trabajo.",
+    result:
+      "Todas las impresiones están completas. Ahora podés elegir «Controlar calidad» en cada trabajo.",
     hints: [
       [
-        '[data-tutorial-movimiento="INICIAR"]',
-        "Iniciá la simulación de un ítem pendiente.",
+        '[data-tutorial-movimiento="INICIAR"]:enabled',
+        "Buscá el nombre de tu PDF y pulsá «Iniciar impresión simulada» en esa fila.",
       ],
       [
-        'select[aria-label="Impresora o recurso simulado"]',
-        "Elegí una impresora compatible, indicá el motivo y confirmá.",
+        '[data-tutorial-produccion="INICIAR"] select[aria-label="Impresora o recurso simulado"]',
+        "Seleccioná la impresora simulada que ofrece la lista. Anotá el motivo, marcá la confirmación del inicio y pulsá «Confirmar simulación».",
       ],
       [
         '[data-tutorial-movimiento="COMPLETAR"]',
-        "Registrá que terminó la simulación de impresión. Repetilo si el pedido tiene más de un ítem.",
+        "El trabajo ya figura en impresión. Pulsá «Completar impresión simulada» en el mismo PDF cuando quieras registrar el fin de la tirada.",
+      ],
+      [
+        '[data-tutorial-produccion="COMPLETAR"] [name="motivo"]',
+        "Escribí el resultado de la tirada, marcá la casilla y pulsá «Confirmar simulación». Si cargaste más de un PDF, repetí el inicio y el fin para cada uno.",
       ],
     ],
   },
   calidad: {
     title: "Controlar la calidad",
     role: "EMPLEADO",
-    intro: "Verificá el resultado de cada ítem antes de dejar listo el pedido.",
+    intro:
+      "Antes de entregar, compará el resultado simulado con lo que pidió el cliente. La ficha reúne el formato, las caras, la cantidad de copias y los adicionales de cada PDF.",
+    result:
+      "Todos los trabajos tienen la calidad aprobada. El pedido está listo para entregar o despachar según su destino.",
     hints: [
       [
         '[data-tutorial-movimiento="CALIDAD"]',
-        "Abrí el control de calidad para la impresión terminada.",
+        "En el trabajo que acabás de completar, pulsá «Controlar calidad». Leé los detalles del trabajo y abrí el PDF confirmado si necesitás cotejarlo.",
       ],
       [
-        ".production-quality-form, .production-quality-result",
-        "Revisá individualmente impresión, calidad, alineación, orden y terminaciones. Elegí el resultado y confirmá.",
+        ".production-quality-checks",
+        "Revisá y marcá los cinco controles de la lista. Si no pediste terminaciones, comprobá que el trabajo coincida con esa elección y marcá el último control.",
+      ],
+      [
+        '.production-quality-result select[aria-label="Resultado de calidad"]',
+        "Para seguir con la entrega, elegí «Aprobar calidad» si todo coincide. Escribí qué comprobaste, marcá la confirmación del resultado y pulsá «Confirmar simulación». Repetilo para cada PDF.",
       ],
     ],
   },
@@ -213,23 +257,34 @@ export const lessons: Record<Step, Lesson> = {
     title: "Entregar y cerrar",
     role: "EMPLEADO",
     intro:
-      "Primero el cliente presenta su código. Después el empleado lo valida, registra la entrega y cierra el pedido conciliado.",
+      "En el mostrador participan dos personas. El cliente presenta un código para identificar el pedido y el empleado lo valida antes de registrar quién lo recibió.",
+    result:
+      "El pedido figura como cerrado y conserva el registro del cobro y la entrega. Podés volver a su ficha para consultar todo el recorrido.",
     hints: [
       [
         "[data-tutorial-codigo]",
-        "Como cliente, generá el código y tenelo a mano antes de volver a Empleado.",
+        "Pulsá «Generar código de entrega». El código aparece en tu pantalla y vence en 30 minutos. Copialo o anotalo antes de volver al rol Empleado.",
+        "CLIENTE",
+      ],
+      [
+        ".delivery-secret",
+        "Conservá los ocho caracteres tal como aparecen. Elegí «Volver a Empleado para registrar la entrega» en la guía y confirmá el cambio de rol.",
+        "CLIENTE",
       ],
       [
         '[data-tutorial-entrega="VALIDAR"]',
-        "Como empleado, verificá el saldo y validá el código del cliente. Si hay traslado, registrá también los movimientos indicados.",
+        "Si todavía no tenés el código, elegí «Pasar a Cliente para obtener el código» en la guía. Cuando lo tengas, pulsá «Validar código de entrega», ingresá sus ocho caracteres y elegí «Validar código».",
+        "EMPLEADO",
       ],
       [
         '[data-tutorial-entrega="ENTREGAR"]',
-        "Confirmá la entrega con los datos de quien recibe.",
+        "Con el código validado, pulsá «Confirmar entrega física». Revisá el nombre de quien recibe, anotá el motivo, marcá la confirmación y elegí «Confirmar registro». Si elegiste envío, registrá antes los movimientos de traslado que indica la ficha.",
+        "EMPLEADO",
       ],
       [
         '[data-tutorial-entrega="CERRAR"]',
-        "Revisá el total conciliado y los comprobantes antes del cierre.",
+        "En «Cierre administrativo», verificá la entrega y el total conciliado. Abrí el cierre, anotá el motivo, marcá la casilla y elegí «Confirmar registro».",
+        "EMPLEADO",
       ],
     ],
   },
@@ -247,7 +302,7 @@ export function firstRequired(requested: Step, completed: Step[]): Step {
   );
 }
 export function tutorialPath(step: Step, state: Tutorial, role: Role): string {
-  if (step === "tarifa") return "/administracion/catalogo#historial-comercial";
+  if (step === "tarifa") return "/administracion/catalogo#revision-comercial";
   if (
     !state.bloqueo &&
     state.pedido &&

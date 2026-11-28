@@ -30,6 +30,7 @@
 
 "use client";
 import {useInstallation} from "./installation-guide";
+import { useTutorial } from "./tutorial-context";
 import { useEffect, useState } from "react";
 import { readCatalog } from "@/lib/catalog-client";
 import { CatalogMasters } from "@/components/catalog-masters";
@@ -69,7 +70,21 @@ export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourO
   const [block,setBlock]=useState<"papeles"|"servicios">("papeles");
 
   const guide=useInstallation(),firstSetup=guide.enabled&&!guide.data?.activa;
-  function selectTab(id:string){if(!tabAllowed(id))return;setTab(id);window.history.replaceState(null,"",`#${id}`);}
+  const tutorialStep = useTutorial()?.state?.paso;
+  useEffect(() => {
+    if (tutorialStep !== "tarifa") return;
+    const showPrintingRates = () => setTariffBlock("impresion");
+    window.addEventListener("demo:tutorial:abrir", showPrintingRates);
+    return () => window.removeEventListener("demo:tutorial:abrir", showPrintingRates);
+  }, [tutorialStep]);
+  function selectTab(id:string){
+    if(!tabAllowed(id))return;
+    setTab(id);
+    if (location.hash === `#${id}`) return;
+    const oldURL = location.href;
+    window.history.replaceState(null,"",`#${id}`);
+    window.dispatchEvent(new HashChangeEvent("hashchange", { oldURL, newURL: location.href }));
+  }
   const [editorEpoch,setEditorEpoch]=useState(0);
   const [catalog,setCatalog]=useState(initial),[history,setHistory]=useState<CatalogRevision|null>(null),[historyError,setHistoryError]=useState(""),[loadingHistory,setLoadingHistory]=useState(false);
   const papersReady=catalog.papelesHabilitados.some(p=>p.habilitado),servicesReady=catalog.servicios.some(s=>s.activo),baseReady=papersReady&&servicesReady;
@@ -97,8 +112,8 @@ export function CatalogWorkspace({initial,tourOwner}:{initial:CatalogState;tourO
     </div>
     <div id="panel-historial-comercial" role="tabpanel" aria-labelledby="tab-historial-comercial" hidden={tab!=="historial-comercial"}>
     <section id="historial-comercial" className="admin-card"><div className="admin-section-title"><div><h2>Historial de configuraciones</h2><p>Consultá los cambios guardados. Las configuraciones anteriores son de solo lectura.</p></div></div>
-      {catalog.historial.length===0?<p className="admin-empty">Todavía no se guardaron configuraciones comerciales.</p>:<div className="admin-table-wrap" tabIndex={0} aria-label="Historial comercial"><table className="admin-table"><thead><tr><th>Configuración</th><th>Fecha</th><th>Estado</th><th>Responsable</th><th>Motivo</th><th>Detalle</th></tr></thead><tbody>{catalog.historial.map(revision=><tr key={revision.codigoPublico}><td>{revision.numero}</td><td>{catalogDate(revision.creadaEn)}</td><td>{revision.estado}{revision.programadaPara&&<small>{catalogDate(revision.programadaPara)}</small>}</td><td>{revision.actor}</td><td>{revision.motivo}</td><td><button type="button" className="admin-link-button" data-tutorial-tarifa={revision.estado==="VIGENTE"?true:undefined} disabled={loadingHistory} onClick={()=>openHistory(revision.codigoPublico)}>Ver configuración {revision.numero}</button></td></tr>)}</tbody></table></div>}
-      {historyError&&<p role="alert" className="form-message error-message">{historyError}</p>}{history&&<div className="catalog-history-detail" data-tutorial-tarifa-leida={history.estado==="VIGENTE"&&catalog.actual?.codigoPublico===history.codigoPublico}><div className="admin-section-title"><h3>Detalle de solo lectura</h3><button type="button" className="admin-link-button" onClick={()=>setHistory(null)}>Cerrar detalle</button></div><RevisionView catalog={catalog} revision={history}/></div>}
+      {catalog.historial.length===0?<p className="admin-empty">Todavía no se guardaron configuraciones comerciales.</p>:<div className="admin-table-wrap" tabIndex={0} aria-label="Historial comercial"><table className="admin-table"><thead><tr><th>Configuración</th><th>Fecha</th><th>Estado</th><th>Responsable</th><th>Motivo</th><th>Detalle</th></tr></thead><tbody>{catalog.historial.map(revision=><tr key={revision.codigoPublico}><td>{revision.numero}</td><td>{catalogDate(revision.creadaEn)}</td><td>{revision.estado}{revision.programadaPara&&<small>{catalogDate(revision.programadaPara)}</small>}</td><td>{revision.actor}</td><td>{revision.motivo}</td><td><button type="button" className="admin-link-button" disabled={loadingHistory} onClick={()=>openHistory(revision.codigoPublico)}>Ver configuración {revision.numero}</button></td></tr>)}</tbody></table></div>}
+      {historyError&&<p role="alert" className="form-message error-message">{historyError}</p>}{history&&<div className="catalog-history-detail"><div className="admin-section-title"><h3>Detalle de solo lectura</h3><button type="button" className="admin-link-button" onClick={()=>setHistory(null)}>Cerrar detalle</button></div><RevisionView catalog={catalog} revision={history}/></div>}
     </section>
     </div>
     <div className="admin-page-footer"><a href="/administracion">← Volver al dashboard</a><span>Configuraciones comerciales independientes del configurador</span></div>

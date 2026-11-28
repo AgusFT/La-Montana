@@ -168,9 +168,3 @@
 /* Tarjetas del pedido original y aceptación legible antes de continuar. */
 .quote-primary-action .client-check{display:flex;align-items:flex-start;gap:10px;max-width:720px;margin:0 auto 18px;text-align:left}.quote-primary-action .client-check input{flex-shrink:0;width:19px;height:19px;margin-top:3px;accent-color:var(--ui-warning-solid,#f58020)}
 .client-order-summary>.quote-original-bottom{margin-top:18px}.client-order-summary .quote-original-tiles>section{background:var(--ui-info-bg,#edf4fa)}.client-order-summary article+article{border-top:1px solid var(--ui-border,#dce5ef);margin-top:16px;padding-top:16px}.client-order-summary article h4{font-size:14px;margin:8px 0}.client-order-summary a{font-size:14px;line-height:1.6;overflow-wrap:anywhere;color:var(--ui-link,#224d80)}.client-order-history>summary{cursor:pointer;font-weight:600}.client-order-history .order-timeline{margin-top:24px}
-
-@media(min-width:761px){
-  .client-sidebar nav{position:relative}
-  .client-sidebar .demo-menu-trigger{position:absolute;right:0;bottom:calc(100% + 8px)}
-}
-@media(max-width:760px){.client-sidebar .demo-menu-trigger{flex-shrink:0}}

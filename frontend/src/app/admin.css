@@ -152,13 +152,13 @@
 @media(max-width:1250px){.configuration-layout{grid-template-columns:minmax(0,1fr)}.configuration-steps nav{flex-direction:row;overflow:auto}.configuration-steps button{min-width:190px}.configuration-steps h2{font-size:17px}}
 @media(max-width:760px){.configuration-actions{flex-direction:column}.configuration-actions button{width:100%}.configuration-body>h2,.configuration-body>#config-tour-phase-content>h2{font-size:23px}.configuration-layout{gap:20px}.configuration-models{gap:12px}}
 
-/* Escritorio: menú completo adaptado a la altura, sin desplazamiento propio. */
+/* El listado tiene desplazamiento propio para mantener el tutorial y el tema accesibles. */
 @media(min-width:761px){
  .admin-sidebar{height:100dvh;align-self:flex-start;overflow:visible;padding:clamp(10px,2.4dvh,25px) 15px}
  .admin-brand{flex-shrink:0;padding:0 8px clamp(10px,2.6dvh,28px)}
  .admin-nav-label{flex-shrink:0;margin:0 0 10px;line-height:1.2}
- .admin-sidebar nav{flex:1;min-height:0;max-height:530px;display:grid;grid-auto-rows:minmax(0,1fr);gap:clamp(2px,.6dvh,6px)}
- .admin-sidebar nav a{min-height:0;padding:clamp(4px,1.3dvh,13px) 10px;line-height:1.25;font-size:clamp(12px,1.9dvh,14px)}
+ .admin-sidebar nav{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;gap:clamp(2px,.6dvh,6px)}
+ .admin-sidebar nav a{flex-shrink:0;padding:clamp(4px,.7dvh,8px) 10px;line-height:1.25;font-size:clamp(12px,1.9dvh,14px)}
  .admin-sidebar nav svg{flex-shrink:0}
  .admin-sidebar-pending{flex-shrink:0;margin-top:clamp(10px,2dvh,20px);padding:12px 10px 0;font-size:12px;line-height:1.4}
  .admin-sidebar-pending small{margin:0}
@@ -289,7 +289,6 @@
 .admin-sidebar nav a.demo-preview-link{color:#c5cfda}
 .admin-sidebar nav a.demo-preview-link[aria-current=page]{background:#384b5f;color:#fff}
 
-.demo-sidebar-tools{display:flex;justify-content:flex-end;flex:none;margin:2px 0 5px}
 @media(min-width:761px){
-  .admin-sidebar nav[aria-label="Navegación operativa"]{flex:0 1 auto;grid-auto-rows:max-content;align-content:start}
+  .admin-sidebar nav[aria-label="Navegación operativa"]{flex:0 1 auto}
 }

@@ -2,7 +2,8 @@
 // Renderiza el recorrido accesible, la navegación por pasos y las transiciones entre roles.
 //#endregion
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useTutorial } from "./tutorial-context";
 import {
   focusTarget,
@@ -22,10 +23,19 @@ import {
 import type { Role } from "@/lib/roles";
 import "./demo-tutorial.css";
 
-const focusPanel = () =>
-  requestAnimationFrame(() =>
-    document.getElementById("tutorial-titulo")?.focus(),
+function focusPanel() {
+  requestAnimationFrame(() => {
+    const title = document.getElementById("tutorial-titulo");
+    title?.focus({ preventScroll: true });
+    if (matchMedia("(max-width: 1080px)").matches)
+      title?.closest("aside")?.scrollIntoView({ block: "start" });
+  });
+}
+function canGuide(step: Step, role: Role) {
+  return (
+    lessons[step].role === role || (step === "entrega" && role === "CLIENTE")
   );
+}
 export function TutorialButton() {
   const api = useTutorial(),
     [busy, setBusy] = useState(false);
@@ -39,10 +49,19 @@ export function TutorialButton() {
         await api.refresh();
         return;
       }
-      if (state.estado === "NUEVO" || state.estado === "PAUSADO")
-        await api.command({
-          accion: state.estado === "NUEVO" ? "iniciar" : "retomar",
-        });
+      const progress =
+        state.estado === "NUEVO" || state.estado === "PAUSADO"
+          ? await api.command({
+              accion: state.estado === "NUEVO" ? "iniciar" : "retomar",
+            })
+          : state;
+      if (progress.estado === "ACTIVO" && canGuide(progress.paso, api.role)) {
+        const path = tutorialPath(progress.paso, progress, api.role);
+        if (!matchesRoute(path)) {
+          await api.flush();
+          location.assign(path);
+        }
+      }
       window.dispatchEvent(new Event("demo:tutorial:abrir"));
       focusPanel();
     } catch {
@@ -60,13 +79,15 @@ export function TutorialButton() {
         aria-controls="tutorial-panel"
         onClick={() => void open()}
       >
-        {state?.estado === "PAUSADO"
-          ? "Retomar tutorial"
-          : state?.estado === "ACTIVO"
-            ? "Ver tutorial"
-            : state?.estado === "COMPLETO"
-              ? "Ver tutorial completado"
-              : "Iniciar Tutorial"}
+        {!state && api.error
+          ? "Reintentar carga del tutorial"
+          : state?.estado === "PAUSADO"
+            ? "Retomar tutorial"
+            : state?.estado === "ACTIVO"
+              ? "Ver tutorial"
+              : state?.estado === "COMPLETO"
+                ? "Ver tutorial completado"
+                : "Iniciar Tutorial"}
       </button>
       {api.error && state?.estado !== "ACTIVO" && (
         <span className="tutorial-start-error" role="alert">
@@ -84,6 +105,7 @@ function matchesRoute(path: string) {
   );
 }
 export function TutorialPanel() {
+  const pathname = usePathname();
   const api = useTutorial(),
     state = api?.state,
     role = api?.role;
@@ -111,7 +133,15 @@ export function TutorialPanel() {
       (state.estado === "COMPLETO" && completedOpen));
   const step = state?.paso ?? "tarifa",
     lesson = lessons[step],
-    currentHint = lesson.hints[Math.min(hint, lesson.hints.length - 1)];
+    hints = useMemo(
+      () =>
+        lesson.hints.filter(([, , forRole]) => !forRole || forRole === role),
+      [lesson, role],
+    ),
+    hintNumber = Math.min(hint, hints.length - 1),
+    currentHint = hints[hintNumber];
+  const hintSelector = currentHint?.[0];
+  const stepNumber = steps.indexOf(step) + 1;
   useEffect(() => {
     try {
       const pending = sessionStorage.getItem("demo:tutorial:prerrequisito");
@@ -126,6 +156,7 @@ export function TutorialPanel() {
       setHidden(false);
       setCompletedOpen(true);
       setIndex(false);
+      setSwitchTo(null);
       focusPanel();
     };
     const route = () => setNavigation((n) => n + 1);
@@ -154,9 +185,8 @@ export function TutorialPanel() {
     });
     sync();
     return () => observer.disconnect();
-  }, [active, step, navigation]);
-  const capable =
-    role === lesson.role || (step === "entrega" && role === "CLIENTE");
+  }, [active, step, navigation, pathname]);
+  const capable = !!role && canGuide(step, role);
   const href = state && role ? tutorialPath(step, state, role) : "";
   const here =
     active &&
@@ -166,19 +196,84 @@ export function TutorialPanel() {
     matchesRoute(href);
   useEffect(() => {
     if (!here) return;
-    const follow = (event: Event) => {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const found = lesson.hints.findIndex(([selector]) =>
-        target.closest(selector),
-      );
-      if (found >= 0) setHint(found);
+    let observer: MutationObserver | undefined;
+    let frame = 0;
+    function stop() {
+      observer?.disconnect();
+      cancelAnimationFrame(frame);
+    }
+    function track(event: Event) {
+      if (!(event.target instanceof Element)) return;
+      const control = event.target;
+      if (!control.closest(".admin-main,.client-main")) return;
+      const at = hints.findIndex(([selector]) => control.closest(selector));
+      if (event.type === "focusin") {
+        if (at >= 0) setHint(at);
+        return;
+      }
+      const form =
+        event.type === "submit" && control instanceof HTMLFormElement
+          ? control
+          : null;
+      const from = form
+        ? hints.reduce(
+            (last, [selector], i) => (form.querySelector(selector) ? i : last),
+            -1,
+          )
+        : at;
+      if (
+        from < 0 ||
+        !hints[from + 1] ||
+        (!form &&
+          !(
+            (event.type === "click" && control.closest("button,summary")) ||
+            (event.type === "change" &&
+              control.matches("select,input[type=checkbox]"))
+          ))
+      )
+        return;
+      stop();
+      const nextSelector = hints[from + 1][0];
+      const advanceWhenReady = () => {
+        if (form?.getClientRects().length) return;
+        const next = visibleTarget(nextSelector);
+        if (!next || next.matches(":disabled")) return;
+        stop();
+        setHint(from + 1);
+      };
+      observer = new MutationObserver(advanceWhenReady);
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["hidden", "open", "disabled"],
+      });
+      frame = requestAnimationFrame(advanceWhenReady);
+    }
+    for (const type of ["focusin", "click", "change", "submit"])
+      document.addEventListener(type, track);
+    return () => {
+      stop();
+      for (const type of ["focusin", "click", "change", "submit"])
+        document.removeEventListener(type, track);
     };
-    document.addEventListener("focusin", follow);
-    return () => document.removeEventListener("focusin", follow);
-  }, [here, lesson]);
+  }, [here, hints]);
+  const done = !!state?.completados.includes(step);
+  const [away, setAway] = useState(false);
+  useEffect(() => {
+    const panel = document.getElementById("tutorial-panel");
+    if (!active || !panel) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      setAway(entry.boundingClientRect.bottom <= 0);
+    });
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [active]);
+  useEffect(() => {
+    if (active) focusPanel();
+  }, [active, step, here]);
+
   if (!api || !state || !role || !active) return null;
-  const done = state.completados.includes(step);
   async function work(fn: () => Promise<void>) {
     if (startLock.current) return;
     startLock.current = true;
@@ -198,20 +293,20 @@ export function TutorialPanel() {
       setBusy(false);
     }
   }
-  function go(path: string, selector = currentHint[0]) {
+  function go(path: string) {
     if (matchesRoute(path)) {
-      focusTarget(selector);
+      focusPanel();
       return;
     }
     location.assign(path);
   }
   function openFor(target: Step, data: Tutorial) {
     const destinationRole = lessons[target].role;
-    if (role !== destinationRole) {
+    if (role && !canGuide(target, role)) {
       setSwitchTo(destinationRole);
       return;
     }
-    go(tutorialPath(target, data, role!), lessons[target].hints[0][0]);
+    go(tutorialPath(target, data, role!));
   }
   async function select(requested: Step) {
     await work(async () => {
@@ -250,9 +345,10 @@ export function TutorialPanel() {
     });
   }
   function advanceHint(by: number) {
-    const next = Math.max(0, Math.min(lesson.hints.length - 1, hint + by));
+    const next = Math.max(0, Math.min(hints.length - 1, hintNumber + by));
     setHint(next);
-    focusTarget(lesson.hints[next][0]);
+    setNotice("");
+    if (visibleTarget(hints[next][0])) focusTarget(hints[next][0]);
   }
   const next = steps[steps.indexOf(step) + 1];
   return (
@@ -263,10 +359,11 @@ export function TutorialPanel() {
     >
       <header>
         <div>
-          <small>Tutorial de La Montaña</small>
-          <h2 tabIndex={-1} id="tutorial-titulo">
-            {state.estado === "COMPLETO" ? "Pedido completado" : lesson.title}
-          </h2>
+          <small className="tutorial-stage">
+            {state.estado === "COMPLETO"
+              ? "Tutorial de La Montaña"
+              : `Paso ${stepNumber} de ${steps.length} · ${roleNames[step === "entrega" && capable ? role : lesson.role]}`}
+          </small>
         </div>
         <button
           type="button"
@@ -286,6 +383,9 @@ export function TutorialPanel() {
           {state.estado === "COMPLETO" ? "Cerrar" : "Pausar"}
         </button>
       </header>
+      <h2 tabIndex={-1} id="tutorial-titulo">
+        {state.estado === "COMPLETO" ? "Pedido completado" : lesson.title}
+      </h2>
       {state.estado === "COMPLETO" ? (
         <>
           <p>
@@ -301,50 +401,7 @@ export function TutorialPanel() {
         </>
       ) : (
         <>
-          <button
-            type="button"
-            className="tutorial-index-toggle"
-            aria-expanded={index}
-            aria-controls="tutorial-pasos"
-            onClick={() => setIndex((v) => !v)}
-          >
-            {index ? "Ocultar pasos" : "Ver todos los pasos"}
-          </button>
-          <nav
-            id="tutorial-pasos"
-            className={index ? "is-open" : ""}
-            aria-label="Pasos del tutorial"
-          >
-            <ol>
-              {steps.map((id, i) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    aria-current={step === id ? "step" : undefined}
-                    disabled={busy}
-                    onClick={() => void select(id)}
-                  >
-                    <span>
-                      {i + 1}. {lessons[id].title}
-                    </span>
-                    <small>
-                      {state.completados.includes(id)
-                        ? "Completado"
-                        : firstRequired(id, state.completados) !== id
-                          ? "Requiere pasos previos"
-                          : step === id
-                            ? "Actual"
-                            : "Disponible"}
-                    </small>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <p className="tutorial-stage">
-            Paso {steps.indexOf(step) + 1} de {steps.length} ·{" "}
-            {roleNames[lesson.role]}
-          </p>
+          {notice && <p role="status">{notice}</p>}
           {state.bloqueo && <p role="alert">{state.bloqueo}</p>}
           <p>{lesson.intro}</p>
           {switchTo || !capable ? (
@@ -380,61 +437,76 @@ export function TutorialPanel() {
                   Abrir {lesson.title.toLowerCase()}
                 </button>
               )}
-              {step === "archivo" && (
+              {step === "archivo" && !done && (
                 <a href="/tutorial/afiche-senderos.pdf" download>
                   Guardar PDF de práctica
                 </a>
               )}
-              {here &&
-              done &&
-              state.pedido &&
-              ["archivo", "presupuesto", "confirmacion"].includes(step) ? (
-                <p>
-                  Podés consultar el trabajo guardado en la ficha de este
-                  pedido.
+              {here && !done && currentHint && (
+                <>
+                  <div
+                    className="tutorial-instruction"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>
+                      {hints.length > 1
+                        ? `Indicación ${hintNumber + 1} de ${hints.length}`
+                        : "Qué hacer ahora"}
+                    </strong>
+                    <p>{currentHint[1]}</p>
+                  </div>
+                  <div className="tutorial-controls">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (visibleTarget(currentHint[0])) {
+                          setNotice("");
+                          focusTarget(currentHint[0]);
+                        } else {
+                          setNotice(
+                            "El control todavía no está visible. Revisá la indicación anterior y los avisos del formulario.",
+                          );
+                        }
+                      }}
+                    >
+                      Ir al control
+                    </button>
+                    {hints.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={hintNumber === 0}
+                          onClick={() => advanceHint(-1)}
+                        >
+                          Anterior
+                        </button>
+                        <button
+                          type="button"
+                          disabled={hintNumber === hints.length - 1}
+                          onClick={() => advanceHint(1)}
+                        >
+                          Siguiente indicación
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {hintSelector && (
+                    <TutorialHighlight key={step} selector={hintSelector} />
+                  )}
+                </>
+              )}
+              {here && step === "tarifa" && !done && !rateViewed && (
+                <p role="status">
+                  Para confirmar este paso, abrí «Tarifas de impresión» y buscá
+                  una tarjeta con el estado «Guardada · vigente». Si no hay
+                  ninguna habilitada, revisá la configuración del catálogo.
                 </p>
-              ) : (
-                here && (
-                  <>
-                    <p className="tutorial-instruction" aria-live="polite">
-                      {currentHint[1]}
-                    </p>
-                    <div className="tutorial-controls">
-                      <button
-                        type="button"
-                        disabled={hint === 0}
-                        onClick={() => advanceHint(-1)}
-                      >
-                        Anterior
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (visibleTarget(currentHint[0]))
-                            focusTarget(currentHint[0]);
-                          else
-                            setNotice(
-                              "Este control aparece al abrir el formulario o completar la indicación anterior.",
-                            );
-                        }}
-                      >
-                        Ir al control
-                      </button>
-                      <button
-                        type="button"
-                        disabled={hint === lesson.hints.length - 1}
-                        onClick={() => advanceHint(1)}
-                      >
-                        Siguiente indicación
-                      </button>
-                    </div>
-                    <TutorialHighlight selector={currentHint[0]} />
-                  </>
-                )
               )}
               {here && step === "tarifa" && !done && (
                 <button
                   type="button"
+                  className="tutorial-next"
                   disabled={busy || !rateViewed}
                   onClick={() =>
                     void work(async () => {
@@ -446,7 +518,7 @@ export function TutorialPanel() {
                   Confirmar que revisé la tarifa
                 </button>
               )}
-              {step === "entrega" && (
+              {step === "entrega" && !done && (
                 <button
                   type="button"
                   onClick={() =>
@@ -460,6 +532,11 @@ export function TutorialPanel() {
               )}
             </>
           )}
+          {done && (
+            <p className="tutorial-verified" role="status">
+              {lesson.result}
+            </p>
+          )}
           {done && next && (
             <button
               type="button"
@@ -470,16 +547,59 @@ export function TutorialPanel() {
               Continuar con {lessons[next].title.toLowerCase()}
             </button>
           )}
+          <button
+            type="button"
+            className="tutorial-index-toggle"
+            aria-expanded={index}
+            aria-controls="tutorial-pasos"
+            onClick={() => setIndex((v) => !v)}
+          >
+            {index ? "Ocultar pasos" : "Ver todos los pasos"}
+          </button>
+          <nav
+            id="tutorial-pasos"
+            hidden={!index}
+            aria-label="Pasos del tutorial"
+          >
+            <ol>
+              {steps.map((id, i) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    aria-current={step === id ? "step" : undefined}
+                    disabled={busy}
+                    onClick={() => void select(id)}
+                  >
+                    <span>
+                      {i + 1}. {lessons[id].title}
+                    </span>
+                    <small>
+                      {state.completados.includes(id)
+                        ? "Completado"
+                        : firstRequired(id, state.completados) !== id
+                          ? "Requiere pasos previos"
+                          : step === id
+                            ? "Actual"
+                            : "Disponible"}
+                    </small>
+                  </button>
+                </li>
+              ))}
+            </ol>
+          </nav>
           <p className="tutorial-footer" role="status">
             {api.saving
               ? "Guardando borrador…"
-              : done
-                ? "Paso comprobado en la imprenta."
-                : "El tutorial conserva el paso y los campos de práctica editados."}
+              : "Podés pausar y retomar desde este paso."}
           </p>
         </>
       )}
-      {notice && <p role="status">{notice}</p>}
+      {away && (
+        <button type="button" className="tutorial-return" onClick={focusPanel}>
+          Volver a la guía · Paso {stepNumber}
+        </button>
+      )}
+
       {api.error && (
         <p role="alert">
           {api.error}{" "}

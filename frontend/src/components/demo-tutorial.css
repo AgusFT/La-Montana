@@ -31,7 +31,7 @@
   position: sticky;
   top: 0;
   align-self: flex-start;
-  flex: 0 0 clamp(200px, 18vw, 272px);
+  flex: 0 0 clamp(268px, 22vw, 328px);
   min-width: 0;
   max-height: 100dvh;
   overflow-y: auto;
@@ -42,13 +42,13 @@
   box-sizing: border-box;
   line-height: 1.45;
   z-index: 22;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .tutorial-panel header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 0.35rem;
+  align-items: center;
+  gap: 0.5rem;
 }
 .tutorial-panel header .tutorial-pause {
   flex: 0 0 auto;
@@ -60,8 +60,8 @@
   font-size: 0.84rem;
 }
 .tutorial-panel h2 {
-  font-size: 1.16rem;
-  margin: 0.2rem 0 0.4rem;
+  font-size: 1.35rem;
+  margin: 0.6rem 0;
   line-height: 1.25;
 }
 .tutorial-panel p {
@@ -104,18 +104,38 @@
 }
 .tutorial-panel nav button[aria-current="step"],
 .tutorial-panel .tutorial-next {
-  background: #1b584c;
+  background: #185749;
   color: white;
+  border-color: #185749;
+  font-weight: 650;
 }
 .tutorial-panel .tutorial-stage {
   font-weight: bold;
 }
 .tutorial-instruction {
-  border-left: 3px solid #508c78;
-  padding-left: 0.5rem;
+  border-inline-start: 3px solid #da9621;
+  padding: 0.55rem 0.75rem;
+  background: var(--ui-surface-alt, #f1f5f6);
+}
+.tutorial-instruction strong {
+  font-size: 0.84rem;
+}
+.tutorial-panel .tutorial-instruction p {
+  margin: 0.3rem 0 0;
+}
+.tutorial-verified {
+  font-weight: 600;
+}
+.tutorial-panel nav[hidden],
+.tutorial-panel .tutorial-return {
+  display: none;
 }
 .tutorial-panel .tutorial-index-toggle {
-  display: none;
+  display: block;
+  border: none;
+  text-decoration: underline;
+  padding: 0.4rem 0;
+  margin-top: 0.7rem;
 }
 .tutorial-controls {
   display: flex;
@@ -125,25 +145,43 @@
   border-top: 1px solid #94a69f;
   padding-top: 0.5rem;
 }
-.tutorial-highlight {
+.tutorial-highlight-area {
   position: fixed;
-  box-shadow: 0 0 0 9999px rgb(7 21 31 / 0.44);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+.tutorial-highlight {
+  position: absolute;
+  box-shadow: 0 0 0 9999px rgb(7 21 31 / 0.28);
   outline: 3px solid #e4a02a;
   border-radius: 5px;
   pointer-events: none;
   z-index: 20;
 }
 @media (max-width: 1080px) {
+  .tutorial-panel .tutorial-return {
+    position: fixed;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    right: 0.75rem;
+    display: inline-block;
+    z-index: 24;
+    color: white;
+    background: #185749;
+    border: 2px solid white;
+    border-radius: 2rem;
+    padding: 0.6rem 1rem;
+    box-shadow: 0 2px 8px #0004;
+  }
+
   .admin-layout:has(.tutorial-panel),
   .client-app:has(.tutorial-panel) {
     flex-wrap: wrap;
     align-items: flex-start;
   }
-  .tutorial-panel .tutorial-index-toggle {
-    display: inline-block;
-  }
-  .tutorial-panel nav:not(.is-open) {
-    display: none;
+  .admin-layout:has(.tutorial-panel) .demo-locked-nav,
+  .client-app:has(.tutorial-panel) .demo-locked-nav {
+    flex-basis: 100%;
   }
   .tutorial-panel {
     position: relative;

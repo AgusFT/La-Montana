@@ -27,7 +27,7 @@ test(
     });
     t.after(() => browser.close());
     const page = await browser.newPage({
-      viewport: { width: 1440, height: 960 },
+      viewport: { width: 1125, height: 840 },
       reducedMotion: "reduce",
     });
     page.setDefaultTimeout(20000);
@@ -39,6 +39,26 @@ test(
       return await r.json();
     }
     const panel = () => page.locator("#tutorial-panel");
+    async function checkMenu() {
+      const sidebar = page.locator(".admin-sidebar, .client-sidebar");
+      const locked = sidebar.getByRole("group", {
+        name: "Funciones bloqueadas en la demo",
+      });
+      await expect(locked).toHaveCount(1);
+      assert.ok(
+        await locked.evaluate(
+          (group) =>
+            group.parentElement.tagName === "NAV" && !group.nextElementSibling,
+        ),
+        "Los módulos bloqueados cierran la lista del rol.",
+      );
+      await expect(
+        sidebar.getByRole("button", { name: "Más de la Demo" }),
+      ).toHaveCount(0);
+      await expect(
+        sidebar.getByRole("link", { name: "Manual de usuario", exact: true }),
+      ).toHaveCount(1);
+    }
     async function done(s) {
       await expect
         .poll(async () => (await check()).completados.includes(s), {
@@ -67,11 +87,17 @@ test(
         ),
       );
       await expect(panel()).toBeVisible();
+      await checkMenu();
     }
     async function next() {
       await panel()
         .getByRole("button", { name: /^Continuar con/ })
         .click();
+    }
+    async function expectHint(text) {
+      await expect(panel().locator(".tutorial-instruction")).toContainText(
+        text,
+      );
     }
     async function option(loc) {
       await expect.poll(() => loc.locator("option").count()).toBeGreaterThan(1);
@@ -97,6 +123,7 @@ test(
         "NUEVO",
         "Esta prueba requiere una base de demo recién inicializada y descartable.",
       );
+      await checkMenu();
       await expect(
         page.getByRole("link", { name: "Manual de usuario", exact: true }),
       ).toBeVisible();
@@ -107,48 +134,124 @@ test(
         .getByRole("button", { name: "Iniciar Tutorial", exact: true })
         .focus();
       await page.keyboard.press("Enter");
+      await expect(page).toHaveURL(
+        /\/administracion\/catalogo#revision-comercial$/,
+      );
       await expect(
         panel().getByRole("heading", { name: "Consultar la tarifa" }),
       ).toBeVisible();
+      const nav = panel().getByRole("navigation", {
+        name: "Pasos del tutorial",
+      });
+      const toggle = panel().getByRole("button", {
+        name: "Ver todos los pasos",
+      });
+      const confirm = panel().getByRole("button", {
+        name: "Confirmar que revisé la tarifa",
+      });
+      const instruction = panel().locator(".tutorial-instruction");
+      const prices = page
+        .locator('[data-tutorial-tarifa-leida="true"]')
+        .first();
+      await expect(nav).toBeHidden();
+      await expect(panel()).toContainText(/antes de presupuestar/i);
+      await expect(instruction).toContainText(/simple faz/i);
+      await expect(instruction).toContainText(
+        /confirmar que revisé la tarifa/i,
+      );
+      await expect(instruction).toBeInViewport({ ratio: 1 });
+      await expect(prices).toContainText(/simple faz/i);
+      await expect(prices).toContainText(/ARS\s*\d/);
+      await expect(confirm).toBeEnabled();
+      await expect(confirm).toBeInViewport({ ratio: 1 });
+      const highlight = page.locator(".tutorial-highlight-area");
+      await expect(highlight).toBeVisible();
+      const guideBox = await panel().boundingBox();
+      assert.ok(
+        (await highlight.boundingBox()).x >= guideBox.x + guideBox.width - 1,
+        "El sombreado debe limitarse al área de trabajo.",
+      );
+      await toggle.press("Enter");
       await panel()
         .getByRole("button", { name: /9\. Entregar y cerrar/ })
         .click();
-      await expect(page).toHaveURL(/catalogo#historial-comercial/);
+      await expect(page).toHaveURL(/catalogo#revision-comercial/);
       await expect(panel()).toContainText("primero completá");
-      await page.locator("[data-tutorial-tarifa]").click();
-      await panel()
-        .getByRole("button", { name: "Confirmar que revisé la tarifa" })
+      await page.locator("#tariff-services-tab").click();
+      await page.locator("#tab-historial-comercial").click();
+      await expect(page).toHaveURL(/catalogo#historial-comercial/);
+      await page
+        .getByRole("button", { name: "Ver tutorial", exact: true })
         .click();
+      await expect(page).toHaveURL(/catalogo#revision-comercial/);
+      await expect(prices).toBeVisible();
+      await expect(confirm).toBeEnabled();
+      await panel()
+        .getByRole("button", { name: "Pausar", exact: true })
+        .click();
+      await page.goto(root + "/administracion");
+      await page.setViewportSize({ width: 390, height: 845 });
+      await page
+        .getByRole("button", { name: "Retomar tutorial" })
+        .press("Enter");
+      await expect(page).toHaveURL(/catalogo#revision-comercial/);
+      await expect(instruction).toBeInViewport({ ratio: 1 });
+      await expect(confirm).toBeInViewport({ ratio: 1 });
+      assert.ok(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+        "El tutorial debe caber en el ancho móvil.",
+      );
+      await panel()
+        .getByRole("button", { name: "Ir al control" })
+        .press("Enter");
+      await expect(prices).toBeFocused();
+      await expect(prices).toBeInViewport();
+      const backToGuide = page.getByRole("button", {
+        name: /Volver a la guía/,
+      });
+      await expect(backToGuide).toBeInViewport();
+      await backToGuide.press("Enter");
+      await expect(instruction).toBeInViewport({ ratio: 1 });
+      await confirm.press("Enter");
       await done("tarifa");
+      await page.setViewportSize({ width: 1440, height: 960 });
       await next();
       await change("Cliente");
     });
     await stage("archivo y presupuesto", async () => {
-      await expect.poll(() => page.url()).toContain("/cliente");
-      let st = await check();
-      if (st.paso === "tarifa") await next();
-      await page.goto(root + "/cliente/cotizaciones/nueva");
+      await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       const upload = page.locator("#client-upload input[type=file]");
-      if (!st.completados.includes("archivo")) {
-        await expect(upload).toBeEnabled();
-        await expect(panel()).toContainText("PDF de práctica");
-        await upload.setInputFiles(
-          path.resolve(__dirname, "../public/tutorial/afiche-senderos.pdf"),
-        );
-        await done("archivo");
-      }
-      st = await check();
-      if (st.paso === "archivo") {
-        await next();
-      }
+      await expect(upload).toBeEnabled();
+      await expect(panel()).toContainText("PDF de práctica");
+      await expectHint(/seleccionar PDF/i);
+      await upload.setInputFiles(
+        path.resolve(__dirname, "../public/tutorial/afiche-senderos.pdf"),
+      );
+      await done("archivo");
+      await next();
+      await expectHint(/servicio de impresión/i);
       const area = page.locator("#client-work-options");
-      for (const label of [
-        "Servicio de impresión",
-        "Tamaño de hoja",
-        "Papel y gramaje",
-        "Impresión",
-      ])
+      await page.setViewportSize({ width: 820, height: 1180 });
+      await panel()
+        .getByRole("button", { name: "Ir al control" })
+        .press("Enter");
+      await expect(
+        area.getByLabel("Servicio de impresión", { exact: true }),
+      ).toBeFocused();
+      await expect(
+        area.getByLabel("Servicio de impresión", { exact: true }),
+      ).toBeInViewport();
+      for (const [label, nextInstruction] of [
+        ["Servicio de impresión", /elegí el tamaño/i],
+        ["Tamaño de hoja", /seleccioná el papel/i],
+        ["Papel y gramaje", /elegí blanco y negro o color/i],
+        ["Impresión", /cantidad de copias/i],
+      ]) {
         await option(area.getByLabel(label, { exact: true }));
+        await expectHint(nextInstruction);
+      }
       await area.getByLabel("Copias", { exact: true }).fill("3");
       await expect
         .poll(
@@ -184,6 +287,7 @@ test(
       await next();
     });
     await stage("confirmacion", async () => {
+      await expectHint(/retiro en sucursal/i);
       await page
         .getByLabel("Modalidad", { exact: true })
         .selectOption("RETIRO_SUCURSAL");
@@ -215,6 +319,7 @@ test(
       await change("Empleado");
     });
     await stage("cobro", async () => {
+      await expectHint(/registrar efectivo/i);
       const st = await check(),
         fin = await (
           await page.request.get(
@@ -224,6 +329,7 @@ test(
       if (!fin.pagos.length) {
         await page.getByRole("button", { name: "Registrar efectivo" }).click();
         const form = page.locator(".payment-form");
+        await expectHint(/saldo pendiente completo/i);
         await form.locator("[name=importe]").fill(fin.total);
         await form.locator("[name=referencia]").fill("PRACTICA-" + Date.now());
         await form
@@ -260,6 +366,7 @@ test(
       await next();
     });
     await stage("revision", async () => {
+      await expectHint(/registrar revisión/i);
       for (const cmd of ["REVISAR", "APROBAR"]) {
         const btn = page.locator('[data-tutorial-gestion="' + cmd + '"]');
         const st = await check();
@@ -284,6 +391,7 @@ test(
       await next();
     });
     await stage("produccion y calidad", async () => {
+      await expectHint(/iniciar impresión simulada/i);
       for (const cmd of ["INICIAR", "COMPLETAR", "CALIDAD"]) {
         const btn = page
           .locator('[data-tutorial-movimiento="' + cmd + '"]')
@@ -314,6 +422,7 @@ test(
         if (cmd === "COMPLETAR") {
           await done("produccion");
           await next();
+          await expectHint(/controlar calidad/i);
         }
       }
       await done("calidad");
@@ -362,13 +471,7 @@ test(
         { width: 390, height: 845 },
       ]) {
         await page.setViewportSize(viewport);
-        const tutorialBox = await sidebar
-          .locator(".tutorial-start")
-          .boundingBox();
-        const menuBox = await sidebar
-          .getByRole("button", { name: "Más de la Demo" })
-          .boundingBox();
-        assert.ok(menuBox.y >= tutorialBox.y + tutorialBox.height);
+        await checkMenu();
         const lines = await close.evaluate((button) => {
           const text = document.createRange();
           text.selectNodeContents(button);
