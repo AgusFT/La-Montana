@@ -33,12 +33,59 @@ test(
     page.setDefaultTimeout(20000);
     const errores = [];
     page.on("pageerror", (error) => errores.push(error.message));
+    page.on("dialog", async (dialog) => {
+      if (dialog.type() === "beforeunload" ||
+          (dialog.type() === "confirm" && /cambios sin guardar/i.test(dialog.message()))) {
+        await dialog.accept();
+      } else {
+        errores.push(dialog.message());
+        await dialog.dismiss();
+      }
+    });
     async function check() {
       const r = await page.request.get(root + "/api/demo/tutorial");
       if (!r.ok()) throw Error("HTTP " + r.status());
       return await r.json();
     }
     const panel = () => page.locator("#tutorial-panel");
+    const card = () => page.locator(".tutorial-callout:visible");
+    const start = () => page.getByRole("button", { name: "Empezar tutorial", exact: true });
+    const testPdf = path.resolve(__dirname, "fixtures/afiche-dos-paginas.pdf");
+    const fields = ["Servicio de impresión", "Tamaño de hoja", "Papel y gramaje", "Impresión"];
+    async function anchored(target) {
+      await expect(target).toBeInViewport();
+      await expect(card()).toBeInViewport({ ratio: 0.98 });
+      await expect(page.locator(".tutorial-arrow:visible")).toHaveCount(1);
+      const light = page.locator(".tutorial-highlight:visible");
+      await expect(light).toHaveCount(1);
+      await expect(target).toHaveAttribute("aria-describedby", /\btutorial-indicacion\b/);
+      await expect.poll(async () => {
+        const boxes = await Promise.all([target, card(), light].map(el => el.boundingBox()));
+        if (boxes.some(box => !box)) return false;
+        const [field, help, outline] = boxes;
+        const intersects = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x &&
+          a.y < b.y + b.height && a.y + a.height > b.y;
+        return !intersects(field, help) && intersects(field, outline);
+      }, { message: "La tarjeta deja el control libre y el resaltado señala ese control." }).toBe(true);
+      await expect.poll(() => target.evaluate((element) => {
+        const arrow = document.querySelector(".tutorial-arrow line");
+        const svg = arrow?.ownerSVGElement;
+        if (!svg) return false;
+        const bounds = svg.getBoundingClientRect();
+        const field = element.getBoundingClientRect();
+        const x = bounds.x + arrow.x2.baseVal.value;
+        const y = bounds.y + arrow.y2.baseVal.value;
+        return x >= field.left - 12 && x <= field.right + 12 &&
+          y >= field.top - 12 && y <= field.bottom + 12;
+      }), { message: "La punta de la flecha señala el campo." }).toBe(true);
+    }
+    async function closed() {
+      await expect(start()).toBeEnabled();
+      await expect(panel()).toHaveCount(0);
+      await expect(card()).toHaveCount(0);
+      await expect(page.locator(".tutorial-highlight:visible")).toHaveCount(0);
+      await expect(page.locator(".guided-tour[role=dialog]:visible")).toHaveCount(0);
+    }
     async function checkMenu() {
       const sidebar = page.locator(".admin-sidebar, .client-sidebar");
       const locked = sidebar.getByRole("group", {
@@ -71,10 +118,15 @@ test(
       await page.goto(root + "/acceso");
       await page.getByRole("button", { name: role, exact: true }).click();
       await page.waitForURL((u) => !u.pathname.endsWith("/acceso"));
-      await page.waitForSelector(".tutorial-start");
+      await closed();
+    }
+    async function manualRole(role) {
+      await page.getByRole("button", { name: "Cambiar rol", exact: true }).click();
+      await page.waitForURL(/\/acceso$/);
+      await login(role);
     }
     async function change(role) {
-      await panel()
+      await card()
         .getByRole("button", { name: "Confirmar cambio a " + role })
         .click();
       await page.waitForURL((url) =>
@@ -90,14 +142,12 @@ test(
       await checkMenu();
     }
     async function next() {
-      await panel()
+      await card()
         .getByRole("button", { name: /^Continuar con/ })
         .click();
     }
     async function expectHint(text) {
-      await expect(panel().locator(".tutorial-instruction")).toContainText(
-        text,
-      );
+      await expect(card()).toContainText(text);
     }
     async function option(loc) {
       await expect.poll(() => loc.locator("option").count()).toBeGreaterThan(1);
@@ -124,96 +174,47 @@ test(
         "Esta prueba requiere una base de demo recién inicializada y descartable.",
       );
       await checkMenu();
-      await expect(
-        page.getByRole("link", { name: "Manual de usuario", exact: true }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("button", { name: "Iniciar Tutorial", exact: true }),
-      ).toBeEnabled();
-      await page
-        .getByRole("button", { name: "Iniciar Tutorial", exact: true })
-        .focus();
-      await page.keyboard.press("Enter");
-      await expect(page).toHaveURL(
-        /\/administracion\/catalogo#revision-comercial$/,
-      );
-      await expect(
-        panel().getByRole("heading", { name: "Consultar la tarifa" }),
-      ).toBeVisible();
-      const nav = panel().getByRole("navigation", {
-        name: "Pasos del tutorial",
-      });
-      const toggle = panel().getByRole("button", {
-        name: "Ver todos los pasos",
-      });
-      const confirm = panel().getByRole("button", {
-        name: "Confirmar que revisé la tarifa",
-      });
-      const instruction = panel().locator(".tutorial-instruction");
-      const prices = page
-        .locator('[data-tutorial-tarifa-leida="true"]')
-        .first();
-      await expect(nav).toBeHidden();
-      await expect(panel()).toContainText(/antes de presupuestar/i);
-      await expect(instruction).toContainText(/simple faz/i);
-      await expect(instruction).toContainText(
-        /confirmar que revisé la tarifa/i,
-      );
-      await expect(instruction).toBeInViewport({ ratio: 1 });
-      await expect(prices).toContainText(/simple faz/i);
+      await manualRole("Cliente");
+      await page.goto(root + "/cliente/cotizaciones/nueva");
+      await closed();
+      const manualUpload = page.locator("#client-upload input[type=file]");
+      await expect(manualUpload).toBeEnabled();
+      await manualUpload.setInputFiles(testPdf);
+      await expect(page.getByRole("button", { name: /Configurar PDF 1/ })).toBeEnabled({ timeout: 90000 });
+      assert.equal((await check()).preparacion, null);
+      await manualRole("Administrador");
+      await start().press("Enter");
+      await expect(page).toHaveURL(/\/administracion\/catalogo#revision-comercial$/);
+      const nav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
+      await expect(nav).toBeVisible();
+      await expect(nav.locator('[aria-current="step"]')).toContainText(/consultar la tarifa/i);
+      await expect(nav.getByRole("button", { name: /leer el precio por hoja/i })).toBeVisible();
+      const prices = page.locator('[data-tutorial-tarifa-leida="true"]').first();
+      const confirm = card().getByRole("button", { name: "Confirmar que revisé la tarifa" });
+      await expect(card()).toContainText(/calcular los presupuestos/i);
+      await expectHint(/simple faz/i);
       await expect(prices).toContainText(/ARS\s*\d/);
-      await expect(confirm).toBeEnabled();
-      await expect(confirm).toBeInViewport({ ratio: 1 });
-      const highlight = page.locator(".tutorial-highlight-area");
-      await expect(highlight).toBeVisible();
-      const guideBox = await panel().boundingBox();
-      assert.ok(
-        (await highlight.boundingBox()).x >= guideBox.x + guideBox.width - 1,
-        "El sombreado debe limitarse al área de trabajo.",
-      );
-      await toggle.press("Enter");
-      await panel()
-        .getByRole("button", { name: /9\. Entregar y cerrar/ })
-        .click();
+      await anchored(prices);
+      await nav.getByRole("button", { name: /leer el precio por hoja/i }).press("Enter");
+      await expect(card().getByRole("heading", { name: /leer el precio por hoja/i })).toBeVisible();
+      await anchored(prices);
+      await nav.getByRole("button", { name: /9\. Entregar y cerrar/i }).click();
       await expect(page).toHaveURL(/catalogo#revision-comercial/);
-      await expect(panel()).toContainText("primero completá");
-      await page.locator("#tariff-services-tab").click();
-      await page.locator("#tab-historial-comercial").click();
-      await expect(page).toHaveURL(/catalogo#historial-comercial/);
-      await page
-        .getByRole("button", { name: "Ver tutorial", exact: true })
-        .click();
-      await expect(page).toHaveURL(/catalogo#revision-comercial/);
-      await expect(prices).toBeVisible();
-      await expect(confirm).toBeEnabled();
-      await panel()
-        .getByRole("button", { name: "Pausar", exact: true })
-        .click();
+      await expect(page.getByText(/primero completá/i).first()).toBeVisible();
+      await panel().getByRole("button", { name: "Pausar", exact: true }).click();
+      await closed();
       await page.goto(root + "/administracion");
       await page.setViewportSize({ width: 390, height: 845 });
-      await page
-        .getByRole("button", { name: "Retomar tutorial" })
-        .press("Enter");
+      await closed();
+      await start().press("Enter");
       await expect(page).toHaveURL(/catalogo#revision-comercial/);
-      await expect(instruction).toBeInViewport({ ratio: 1 });
+      await anchored(prices);
       await expect(confirm).toBeInViewport({ ratio: 1 });
-      assert.ok(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= innerWidth,
-        ),
-        "El tutorial debe caber en el ancho móvil.",
-      );
-      await panel()
-        .getByRole("button", { name: "Ir al control" })
-        .press("Enter");
-      await expect(prices).toBeFocused();
-      await expect(prices).toBeInViewport();
-      const backToGuide = page.getByRole("button", {
-        name: /Volver a la guía/,
-      });
-      await expect(backToGuide).toBeInViewport();
-      await backToGuide.press("Enter");
-      await expect(instruction).toBeInViewport({ ratio: 1 });
+      await card().getByRole("button", { name: "Ver pasos del tutorial" }).press("Enter");
+      await expect(nav).toBeInViewport();
+      await panel().getByRole("button", { name: "Volver a la indicación" }).press("Enter");
+      await anchored(prices);
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await confirm.press("Enter");
       await done("tarifa");
       await page.setViewportSize({ width: 1440, height: 960 });
@@ -223,26 +224,24 @@ test(
     await stage("archivo y presupuesto", async () => {
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       const upload = page.locator("#client-upload input[type=file]");
-      await expect(upload).toBeEnabled();
-      await expect(panel()).toContainText("PDF de práctica");
-      await expectHint(/seleccionar PDF/i);
-      await upload.setInputFiles(
-        path.resolve(__dirname, "../public/tutorial/afiche-senderos.pdf"),
-      );
+      const consent = page.getByRole("button", { name: "Usar esta preparación en el tutorial" });
+      await expect(consent).toBeEnabled();
+      await expect(upload).toBeDisabled();
+      await anchored(consent);
+      assert.equal((await check()).preparacion, null);
+      await consent.click();
       await done("archivo");
       await next();
       await expectHint(/servicio de impresión/i);
       const area = page.locator("#client-work-options");
+      const taskNav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
+      await expect(area.getByLabel("Copias", { exact: true })).toBeEnabled();
+      await taskNav.getByRole("button", { name: /indicar las copias/i }).press("Enter");
+      await expectHint(/cantidad de copias/i);
+      await taskNav.getByRole("button", { name: /elegir el servicio/i }).press("Enter");
+      await expectHint(/servicio de impresión/i);
       await page.setViewportSize({ width: 820, height: 1180 });
-      await panel()
-        .getByRole("button", { name: "Ir al control" })
-        .press("Enter");
-      await expect(
-        area.getByLabel("Servicio de impresión", { exact: true }),
-      ).toBeFocused();
-      await expect(
-        area.getByLabel("Servicio de impresión", { exact: true }),
-      ).toBeInViewport();
+      await anchored(area.getByLabel("Servicio de impresión", { exact: true }));
       for (const [label, nextInstruction] of [
         ["Servicio de impresión", /elegí el tamaño/i],
         ["Tamaño de hoja", /seleccioná el papel/i],
@@ -260,34 +259,32 @@ test(
               ?.copies,
         )
         .toBe("3");
-      await panel()
-        .getByRole("button", { name: "Pausar", exact: true })
-        .click();
-      await page.reload();
-      await page.getByRole("button", { name: "Retomar tutorial" }).click();
+      const saved = await check();
+      for (const role of ["Administrador", "Empleado", "Cliente"]) {
+        await manualRole(role);
+        const state = await check();
+        assert.equal(state.estado, "ACTIVO");
+        assert.equal(state.paso, saved.paso);
+        assert.equal(state.preparacion, saved.preparacion);
+        if (role === "Cliente") assert.deepEqual(state.borradores, saved.borradores);
+        else assert.equal(state.borradores.archivo, undefined);
+      }
+      await page.goto(root + "/cliente/cotizaciones/nueva");
+      await closed();
+      const existingPreparation = page.getByRole("region", { name: "Preparación en curso" });
+      await expect(existingPreparation).toContainText("Retomaste la preparación abierta del tutorial");
+      await expect(existingPreparation).toContainText(path.basename(testPdf));
+      await expect(area.getByLabel("Copias", { exact: true })).toHaveValue("1");
+      assert.deepEqual((await check()).borradores, saved.borradores);
+      await start().click();
+      await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       await expect(area.getByLabel("Copias", { exact: true })).toHaveValue("3");
-      await page.setViewportSize({ width: 390, height: 845 });
-      await expect(
-        panel().getByRole("button", { name: "Ver todos los pasos" }),
-      ).toBeVisible();
-      await panel()
-        .getByRole("button", { name: "Ver todos los pasos" })
-        .press("Enter");
-      await expect(panel().getByRole("navigation")).toBeVisible();
-
-      if (
-        await page.evaluate(
-          () => document.documentElement.scrollWidth > innerWidth,
-        )
-      )
-        throw Error("Overflow móvil");
       await page.setViewportSize({ width: 1440, height: 960 });
       await page.locator("#client-budget-action button").click();
       await done("presupuesto");
       await next();
     });
-    await stage("confirmacion", async () => {
-      await expectHint(/retiro en sucursal/i);
+    async function confirmOrder(guided) {
       await page
         .getByLabel("Modalidad", { exact: true })
         .selectOption("RETIRO_SUCURSAL");
@@ -302,19 +299,61 @@ test(
         .getByRole("button", { name: /Ver páginas/ })
         .first()
         .click();
-      let acc = dialog
+      const preview = dialog.getByRole("region", { name: "Vista previa del PDF" });
+      const pageNumber = preview.getByRole("spinbutton");
+      await expect(pageNumber).toBeVisible();
+      const totalPages = Number(await pageNumber.getAttribute("max"));
+      assert.equal(totalPages, 2, "Se deben recorrer las dos páginas del PDF de prueba.");
+      for (let number = 1; number < totalPages; number += 1) {
+        await expect(preview).toContainText(number + " de " + totalPages + " páginas abiertas");
+        if (guided) await anchored(preview.locator(".client-actions"));
+        await preview.getByRole("button", { name: "Página siguiente" }).click();
+      }
+      const acc = dialog
         .getByRole("button", { name: /Aceptar vista previa/ })
         .last();
       await expect(dialog.locator("input[type=checkbox]").first()).toBeEnabled({
         timeout: 80000,
       });
+      if (guided) {
+        await expect(dialog.locator(".tutorial-callout")).toBeVisible();
+        await anchored(dialog.locator("input[type=checkbox]").first());
+      }
       await dialog.locator("input[type=checkbox]").first().check();
       await acc.click();
       await expect(dialog).toContainText(/aceptad/i);
       await dialog.getByRole("button", { name: /Volver al resumen/ }).click();
       await page.locator("#client-create-order input[type=checkbox]").check();
       await page.locator("#client-create-order button").click();
+      await page.waitForURL(/\/cliente\/pedidos\/[^/]+/);
+      return new URL(page.url()).pathname.split("/").at(-1);
+    }
+    await stage("confirmacion", async () => {
+      await expectHint(/retiro en sucursal/i);
+      const guidedOrder = await confirmOrder(true);
       await done("confirmacion");
+      const saved = await check();
+      assert.equal(saved.pedido, guidedOrder);
+      await manualRole("Cliente");
+      const area = page.locator("#client-work-options");
+      const upload = page.locator("#client-upload input[type=file]");
+      await page.goto(root + "/cliente/cotizaciones/nueva");
+      await closed();
+      await expect(upload).toBeEnabled();
+      await upload.setInputFiles(testPdf);
+      for (const field of fields) await option(area.getByLabel(field, { exact: true }));
+      await area.getByLabel("Copias", { exact: true }).fill("2");
+      await page.locator("#client-budget-action button").click();
+      await page.waitForURL(/\/cliente\/preparaciones\/[^/]+/);
+      assert.notEqual(new URL(page.url()).pathname.split("/").at(-1), saved.preparacion);
+      await closed();
+      assert.notEqual(await confirmOrder(false), guidedOrder);
+      const after = await check();
+      for (const key of ["estado", "paso", "completados", "preparacion", "cotizacion", "pedido", "borradores"]) {
+        assert.deepEqual(after[key], saved[key], "El pedido normal debe dejar intacto " + key);
+      }
+      await start().press("Enter");
+      await expect(page).toHaveURL(new RegExp("/cliente/pedidos/" + guidedOrder));
       await next();
       await change("Empleado");
     });
@@ -393,6 +432,9 @@ test(
     await stage("produccion y calidad", async () => {
       await expectHint(/iniciar impresión simulada/i);
       for (const cmd of ["INICIAR", "COMPLETAR", "CALIDAD"]) {
+        if (cmd === "COMPLETAR") {
+          await expectHint(/el trabajo ya figura en impresión/i);
+        }
         const btn = page
           .locator('[data-tutorial-movimiento="' + cmd + '"]')
           .first();
@@ -429,7 +471,7 @@ test(
       await next();
     });
     await stage("entrega", async () => {
-      await panel()
+      await card()
         .getByRole("button", { name: "Pasar a Cliente para obtener el código" })
         .click();
       await change("Cliente");
@@ -437,16 +479,25 @@ test(
       const code = await page
         .getByLabel("Código de entrega", { exact: true })
         .innerText();
-      await panel()
+      await card()
         .getByRole("button", {
           name: "Volver a Empleado para registrar la entrega",
         })
         .click();
       await change("Empleado");
       for (const cmd of ["VALIDAR", "ENTREGAR", "CERRAR"]) {
+        if (cmd === "CERRAR") {
+          await expect(card().getByRole("heading", { name: "Abrir el cierre" })).toBeVisible();
+        }
         await page.locator('[data-tutorial-entrega="' + cmd + '"]').click();
         const form = page.locator(".delivery-dialog[open] form");
-        if (cmd === "VALIDAR") await form.locator("[name=codigo]").fill(code);
+        if (cmd === "VALIDAR") {
+          const codeField = form.locator("[name=codigo]");
+          await expect(page.locator(".delivery-dialog[open] .tutorial-callout")).toBeVisible();
+          await anchored(codeField);
+          await codeField.fill(code);
+          await expect(codeField).toBeFocused();
+        }
         else {
           await form
             .locator("[name=motivo]")
@@ -454,12 +505,15 @@ test(
           for (const ch of await form.locator("input[type=checkbox]").all())
             await ch.check();
         }
+        await anchored(form.getByRole("button", {
+          name: cmd === "VALIDAR" ? "Validar código" : "Confirmar registro",
+        }));
         await submit(form);
         await expect(form).toHaveCount(0);
       }
       await done("entrega");
       await expect(
-        panel().getByRole("heading", { name: "Pedido completado" }),
+        page.getByRole("heading", { name: "Pedido completado" }).first(),
       ).toBeVisible();
       const sidebar = page.locator(".admin-sidebar");
       const close = panel().getByRole("button", {
@@ -492,6 +546,10 @@ test(
       const final = await check();
       assert.equal(final.estado, "COMPLETO");
       assert.equal(final.completados.length, 9);
+      await close.click();
+      await closed();
+      await start().press("Enter");
+      await expect(card().getByRole("heading", { name: "Pedido completado" })).toBeVisible();
       t.diagnostic(
         "Pedido de práctica " + final.pedido + " completado en los tres roles.",
       );

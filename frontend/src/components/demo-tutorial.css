@@ -27,169 +27,162 @@
   font-size: 0.85rem;
   color: white;
 }
+
 .tutorial-panel {
   position: sticky;
   top: 0;
   align-self: flex-start;
-  flex: 0 0 clamp(268px, 22vw, 328px);
-  min-width: 0;
+  flex: 0 0 clamp(218px, 19vw, 278px);
   max-height: 100dvh;
   overflow-y: auto;
-  padding: 1rem;
-  background: var(--ui-surface, #f6faf8);
-  color: var(--ui-text, #14342e);
-  border-inline-end: 1px solid #809a91;
   box-sizing: border-box;
-  line-height: 1.45;
+  padding: 1rem 0.8rem;
+  background: var(--ui-surface, #f8fbfa);
+  color: var(--ui-text, #15392f);
+  border-inline-end: 1px solid var(--ui-border, #cadbd4);
   z-index: 22;
-  overflow-wrap: break-word;
+  line-height: 1.35;
 }
-.tutorial-panel header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-.tutorial-panel header .tutorial-pause {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-.tutorial-panel header small,
-.tutorial-stage,
-.tutorial-footer {
-  font-size: 0.84rem;
-}
-.tutorial-panel h2 {
-  font-size: 1.35rem;
-  margin: 0.6rem 0;
-  line-height: 1.25;
-}
-.tutorial-panel p {
-  margin: 0.6rem 0;
-}
-.tutorial-panel button,
-.tutorial-panel a {
-  display: inline-block;
-  font: inherit;
-  font-size: 0.9rem;
-  line-height: 1.3;
-  text-align: left;
-  border: 1px solid #8b9e98;
-  border-radius: 0.35rem;
-  color: inherit;
-  background: transparent;
-  padding: 0.48rem 0.55rem;
-  margin: 0.14rem 0.15rem 0.14rem 0;
-  cursor: pointer;
-}
-.tutorial-panel a {
-  text-decoration: underline;
-}
-.tutorial-panel button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.tutorial-panel nav ol {
-  list-style: none;
-  margin: 0.6rem 0;
-  padding: 0;
-}
-.tutorial-panel nav button {
-  width: 100%;
-  margin: 0.1rem 0;
-}
-.tutorial-panel nav button small {
-  display: block;
-  font-size: 0.72rem;
-}
-.tutorial-panel nav button[aria-current="step"],
-.tutorial-panel .tutorial-next {
-  background: #185749;
-  color: white;
-  border-color: #185749;
-  font-weight: 650;
-}
-.tutorial-panel .tutorial-stage {
-  font-weight: bold;
-}
-.tutorial-instruction {
-  border-inline-start: 3px solid #da9621;
-  padding: 0.55rem 0.75rem;
-  background: var(--ui-surface-alt, #f1f5f6);
-}
-.tutorial-instruction strong {
-  font-size: 0.84rem;
-}
-.tutorial-panel .tutorial-instruction p {
-  margin: 0.3rem 0 0;
-}
-.tutorial-verified {
-  font-weight: 600;
-}
-.tutorial-panel nav[hidden],
-.tutorial-panel .tutorial-return {
-  display: none;
-}
-.tutorial-panel .tutorial-index-toggle {
-  display: block;
-  border: none;
-  text-decoration: underline;
-  padding: 0.4rem 0;
-  margin-top: 0.7rem;
-}
+.tutorial-panel header,
+.tutorial-card-header,
 .tutorial-controls {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+.tutorial-controls {
+  justify-content: flex-start;
   flex-wrap: wrap;
 }
-.tutorial-switch {
-  border-top: 1px solid #94a69f;
-  padding-top: 0.5rem;
+.tutorial-card-header {
+  font-size: 0.78rem;
+  font-weight: 650;
 }
-.tutorial-highlight-area {
-  position: fixed;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 20;
+.tutorial-panel h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.2;
 }
-.tutorial-highlight {
+.tutorial-panel button {
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+.tutorial-panel button:disabled {
+  cursor: default;
+}
+.tutorial-panel .tutorial-pause,
+.tutorial-index-toggle {
+  border: 1px solid var(--ui-border, #c2d4cb);
+  border-radius: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+.tutorial-count {
+  font-size: 0.82rem;
+  margin: 0.5rem 0 0.85rem;
+}
+.tutorial-panel ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.tutorial-branch {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  width: 100%;
+  border: 0;
+  padding: 0.55rem 0.4rem;
+  border-radius: 0.4rem;
+  font-size: 0.9rem;
+}
+.tutorial-branch small {
+  display: block;
+  font-size: 0.73rem;
+  opacity: 0.8;
+}
+.tutorial-branch[aria-current="step"] {
+  background: #195446;
+  color: white;
+}
+.tutorial-step-number {
+  min-width: 1.35rem;
+  text-align: center;
+  font-weight: 700;
+}
+.tutorial-panel .tutorial-subtasks {
+  margin: 0.25rem 0 0.45rem 1.05rem;
+  padding-inline-start: 0.65rem;
+  border-inline-start: 2px solid #82ae9d;
+}
+.tutorial-subtasks button {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-radius: 0.25rem;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.82rem;
+}
+.tutorial-subtasks [aria-current="true"] {
+  background: var(--ui-info-bg, #e3f0e9);
+  font-weight: 700;
+}
+.tutorial-sr {
   position: absolute;
-  box-shadow: 0 0 0 9999px rgb(7 21 31 / 0.28);
-  outline: 3px solid #e4a02a;
-  border-radius: 5px;
-  pointer-events: none;
-  z-index: 20;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.tutorial-index-toggle,
+.tutorial-callout .tutorial-card-index {
+  display: none;
 }
 @media (max-width: 1080px) {
-  .tutorial-panel .tutorial-return {
-    position: fixed;
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    right: 0.75rem;
+  .tutorial-callout .tutorial-card-index {
     display: inline-block;
-    z-index: 24;
-    color: white;
-    background: #185749;
-    border: 2px solid white;
-    border-radius: 2rem;
-    padding: 0.6rem 1rem;
-    box-shadow: 0 2px 8px #0004;
+    margin-inline-start: auto;
   }
-
+  dialog .tutorial-callout .tutorial-card-index,
+  [aria-modal="true"] .tutorial-callout .tutorial-card-index {
+    display: none;
+  }
   .admin-layout:has(.tutorial-panel),
   .client-app:has(.tutorial-panel) {
     flex-wrap: wrap;
     align-items: flex-start;
   }
+  .tutorial-panel {
+    position: relative;
+    width: 100%;
+    flex: 0 0 100%;
+    max-height: none;
+    padding: 0.55rem 1rem;
+    border-inline: 0;
+    border-block: 1px solid var(--ui-border, #cadbd4);
+  }
+  .tutorial-panel nav:not(.is-open) {
+    display: none;
+  }
+  .tutorial-panel nav.is-open {
+    max-height: 45dvh;
+    overflow: auto;
+  }
+  .tutorial-panel .tutorial-count {
+    display: inline;
+    margin-inline-end: 0.6rem;
+  }
+  .tutorial-index-toggle {
+    display: inline-block;
+    margin-block: 0.3rem;
+  }
   .admin-layout:has(.tutorial-panel) .demo-locked-nav,
   .client-app:has(.tutorial-panel) .demo-locked-nav {
     flex-basis: 100%;
-  }
-  .tutorial-panel {
-    position: relative;
-    flex: 0 0 100%;
-    max-height: none;
-    width: 100%;
-    border-inline: 0;
-    border-block: 1px solid #809a91;
   }
   .admin-layout:has(.tutorial-panel) > .admin-sidebar,
   .client-app:has(.tutorial-panel) > .client-sidebar {
@@ -220,9 +213,6 @@
   .admin-layout:has(.tutorial-panel) .admin-sidebar-version,
   .client-app:has(.tutorial-panel) .client-sidebar-note {
     display: none;
-  }
-  .tutorial-panel .tutorial-instruction {
-    margin-block: 0.4rem;
   }
 }
 @media (min-width: 1081px) {

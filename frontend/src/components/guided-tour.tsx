@@ -9,9 +9,8 @@ export type TourStep={target:string;title:string;description:string;secondaryTar
 /** A small reusable spotlight tour. It never changes the underlying form or navigation. */
 export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Guía del catálogo comercial",onStepChange,onActiveChange}:{steps:TourStep[];storageKey:string;autoStart:boolean;completion?:{title:string;description:string};helpLabel?:string;onStepChange?:(step:number)=>void;onActiveChange?:(active:boolean)=>void}){
   const tutorial=useTutorial();
-  const waiting=!!tutorial && !tutorial.state && !tutorial.error && tutorial.available;
-  const globalActive=tutorial?.state?.estado==="ACTIVO";
-  const tutorialStarted=!!tutorial?.state && tutorial.state.estado!=="NUEVO";
+  const globalActive=!!tutorial?.open;
+  const manualHelp=tutorial?.available;
   const [step,setStep]=useState<number|null>(null);
   const [showSecondary,setShowSecondary]=useState(false);
   const [rect,setRect]=useState<DOMRect|null>(null);
@@ -35,10 +34,10 @@ export function GuidedTour({steps,storageKey,autoStart,completion,helpLabel="Gu�
 
   useEffect(()=>{
     if(globalActive){setStep(null);onActiveChangeRef.current?.(false);return;}
-    if(!autoStart||waiting||tutorialStarted)return;
+    if(!autoStart||manualHelp)return;
     try{if(localStorage.getItem(storageKey)==="seen")return;}catch{/* Sin almacenamiento, se ofrece la guía en esta visita. */}
     begin();
-  },[autoStart,storageKey,begin,globalActive,waiting,tutorialStarted]);
+  },[autoStart,storageKey,begin,globalActive,manualHelp]);
   useEffect(()=>{
     if(!active)return;
     if(step===steps.length){setRect(null);return;}

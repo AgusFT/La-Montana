@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from "react";
 import { secureMutation } from "@/lib/secure-mutation";
+import { rememberTutorialOpen, tutorialIsOpen, tutorialSessionKey } from "@/lib/tutorial-visibility";
 import {
   steps,
   type Command,
@@ -23,6 +24,8 @@ import type { Role } from "@/lib/roles";
 
 type Access = {
   state: Tutorial | null;
+  open: boolean;
+  setOpen: (value: boolean) => void;
   role: Role;
   error: string;
   saving: boolean;
@@ -55,6 +58,7 @@ export function TutorialProvider({
   children: ReactNode;
 }) {
   const [state, setState] = useState<Tutorial | null>(null),
+    [open, setVisible] = useState(false),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false),
     [available, setAvailable] = useState(true);
@@ -64,6 +68,23 @@ export function TutorialProvider({
   const pending = useRef(new Map<Step, Draft>()),
     drain = useRef<Promise<void> | null>(null),
     revision = useRef(0);
+  const setOpen = useCallback((value: boolean) => {
+    rememberTutorialOpen(value);
+    setVisible(value);
+  }, []);
+  useEffect(() => {
+    const sync = () => setVisible(tutorialIsOpen());
+    const sessionChanged = (event: StorageEvent) => {
+      if (event.key === tutorialSessionKey || event.key === null) sync();
+    };
+    sync();
+    window.addEventListener("storage", sessionChanged);
+    window.addEventListener("pageshow", sync);
+    return () => {
+      window.removeEventListener("storage", sessionChanged);
+      window.removeEventListener("pageshow", sync);
+    };
+  }, []);
   const accept = useCallback((next: unknown) => {
     if (!valid(next)) throw Error("No pudimos leer el avance del tutorial.");
     if (alive.current) {
@@ -83,6 +104,7 @@ export function TutorialProvider({
       if (!alive.current || sequence !== revision.current) return;
       if ([403, 404].includes(response.status)) {
         setAvailable(false);
+        setOpen(false);
         return;
       }
       if (!response.ok)
@@ -99,7 +121,7 @@ export function TutorialProvider({
           e instanceof Error ? e.message : "No pudimos consultar el tutorial.",
         );
     }
-  }, [accept]);
+  }, [accept, setOpen]);
   const command = useCallback(
     (body: Command) => {
       const next = serial.current.then(async () => {
@@ -156,18 +178,15 @@ export function TutorialProvider({
   }, [command]);
   const draft = useCallback(
     (step: Step, fields: Draft) => {
-      if (latest.current?.estado !== "ACTIVO") return;
+      if (!open || latest.current?.estado !== "ACTIVO") return;
       pending.current.set(step, { ...pending.current.get(step), ...fields });
       void flush().catch(() => {});
     },
-    [flush],
+    [flush, open],
   );
   useEffect(() => {
     alive.current = true;
     void refresh();
-    const changed = () => {
-      if (latest.current?.estado === "ACTIVO") void refresh();
-    };
     const closing = (event: BeforeUnloadEvent) => {
       if (drain.current || pending.current.size) {
         void flush().catch(() => {});
@@ -175,21 +194,31 @@ export function TutorialProvider({
         event.returnValue = "";
       }
     };
-    window.addEventListener(tutorialBusinessChanged, changed);
-    window.addEventListener("focus", changed);
     window.addEventListener("beforeunload", closing);
     return () => {
       alive.current = false;
       revision.current++;
-      window.removeEventListener(tutorialBusinessChanged, changed);
-      window.removeEventListener("focus", changed);
       window.removeEventListener("beforeunload", closing);
     };
   }, [refresh, flush]);
+  useEffect(() => {
+    if (!open) return;
+    const changed = () => {
+      if (latest.current?.estado === "ACTIVO") void refresh();
+    };
+    window.addEventListener(tutorialBusinessChanged, changed);
+    window.addEventListener("focus", changed);
+    return () => {
+      window.removeEventListener(tutorialBusinessChanged, changed);
+      window.removeEventListener("focus", changed);
+    };
+  }, [open, refresh]);
   return (
     <Context.Provider
       value={{
         state,
+        open,
+        setOpen,
         role,
         error,
         saving,

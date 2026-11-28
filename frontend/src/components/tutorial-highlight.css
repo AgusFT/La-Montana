@@ -1,0 +1,111 @@
+.tutorial-overlay.tutorial-highlight-area {
+  position: fixed;
+  z-index: 25;
+  isolation: isolate;
+  overflow: hidden;
+  pointer-events: none;
+}
+.tutorial-overlay .tutorial-highlight {
+  position: absolute;
+  z-index: 0;
+  border-radius: 5px;
+  outline: 3px solid #f4bc45;
+  box-shadow: 0 0 0 9999px rgb(9 24 35 / 32%);
+  pointer-events: none;
+}
+.tutorial-overlay .tutorial-arrow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px #193229);
+}
+.tutorial-arrow line {
+  stroke: #ffcb55;
+  stroke-width: 2.5;
+}
+.tutorial-arrow marker path {
+  fill: #ffcb55;
+}
+.tutorial-overlay .tutorial-callout {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+  color: var(--ui-text, #17372f);
+  background: var(--ui-surface, #fff);
+  border: 2px solid #d89c22;
+  border-radius: 0.75rem;
+  box-shadow: 0 7px 24px rgb(12 33 35 / 28%);
+  line-height: 1.45;
+}
+.tutorial-callout-content {
+  padding: 0.75rem 0.9rem;
+}
+.tutorial-callout :is(h2, h3) {
+  margin: 0;
+  line-height: 1.22;
+  font-size: 1.15rem;
+}
+.tutorial-callout p {
+  margin: 0.45rem 0;
+}
+.tutorial-callout :is(button, a) {
+  display: inline-block;
+  padding: 0.4rem 0.52rem;
+  margin: 0.12rem 0.16rem 0.12rem 0;
+  border-radius: 0.35rem;
+  border: 1px solid #7b928b;
+  background: var(--ui-surface, #fff);
+  color: inherit;
+  font: inherit;
+  font-size: 0.88rem;
+  line-height: 1.25;
+  cursor: pointer;
+}
+.tutorial-callout .tutorial-next {
+  background: #185749;
+  border-color: #185749;
+  color: white;
+  font-weight: 650;
+}
+.tutorial-callout :disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+.tutorial-callout :focus-visible {
+  outline: 3px solid #c98311;
+  outline-offset: 2px;
+}
+@media (forced-colors: active) {
+  .tutorial-overlay .tutorial-highlight,
+  .tutorial-callout :focus-visible {
+    outline-color: Highlight;
+  }
+  .tutorial-arrow line {
+    stroke: Highlight;
+  }
+  .tutorial-arrow marker path {
+    fill: Highlight;
+  }
+}
+
+.tutorial-callout .tutorial-fold {
+  float: right;
+  margin: 0 0 0.25rem 0.4rem;
+  border: 0;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+.tutorial-callout[data-compact="true"] .tutorial-callout-content {
+  padding: 0;
+}
+.tutorial-callout[data-compact="true"] .tutorial-fold {
+  float: none;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem;
+}

@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTutorial} from "./tutorial-context";
+import {TutorialPreparationNotice} from "./tutorial-preparation-notice";
 import {LegacyQuoteForm} from './legacy-quote-form';
 import {ClientJourney} from './client-journey';
 import {ClientContextTour} from './client-context-tour';
@@ -11,7 +12,7 @@ import {useNavigationGuard} from './navigation-boundary';
 import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {isOptions,quoteRead,type QuoteOptions,type WorkItem} from '@/lib/quote-types';
 import {isFile} from '@/lib/file-types';
-import {isPreparation,type Preparation} from '@/lib/prepared-work';
+import {isOpenTutorialPreparation,isPreparation,type Preparation} from '@/lib/prepared-work';
 
 type Row={archivo:string;choice:string;copies:string;double:boolean;ends:string[]};
 type Combination=QuoteOptions['combinaciones'][number];
@@ -27,8 +28,13 @@ function PrepareWork(){
  const running=useRef(false),pending=useRef<null|(()=>Promise<void>)>(null),input=useRef<HTMLInputElement>(null);
  const [refreshing,setRefreshing]=useState(false);
  const readSequence=useRef(0);
- const locked=busy||refreshing||uncertain||fileLocked;
- useNavigationGuard({blocked:locked});
+ const progress=tutorial?.state;
+ const practicing=tutorial?.open && progress?.estado==='ACTIVO' && ['archivo','presupuesto'].includes(progress.paso);
+ const attached=isOpenTutorialPreparation(prep,progress);
+ const needsPracticeConsent=practicing && !attached && !!prep?.archivos.length;
+ const operationLocked=busy||refreshing||uncertain||fileLocked;
+ const locked=operationLocked||needsPracticeConsent;
+ useNavigationGuard({blocked:operationLocked});
  async function load(){
   const sequence=++readSequence.current;
   const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);
@@ -45,11 +51,9 @@ function PrepareWork(){
     copies:String(work?.copias??1),double:work?.dobleFaz??false,ends:work?.terminaciones??[]};
   }));
  }
- const progress=tutorial?.state;
- const practicing=progress?.estado==='ACTIVO' && ['archivo','presupuesto'].includes(progress.paso);
- const attached=!!prep && progress?.preparacion===prep.codigoPublico;
  useEffect(()=>{
-   if(!practicing||!attached||!prep||restored.current===prep.codigoPublico)return;
+   if(!practicing||!attached){restored.current='';return;}
+   if(!prep||restored.current===prep.codigoPublico)return;
    const saved=progress?.borradores.archivo;
    restored.current=prep.codigoPublico;
    if(saved?.archivoActivo && prep.archivos.some(f=>f.codigoPublico===saved.archivoActivo))setActiveFile(saved.archivoActivo);
@@ -132,6 +136,8 @@ function PrepareWork(){
  function configured(id:string){const r=rows.find(x=>x.archivo===id),f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
  const configuredCount=prep?.archivos.filter(f=>configured(f.codigoPublico)).length??0;
  return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>
+  {prep && !tutorial?.open && attached && <TutorialPreparationNotice preparation={prep}/>}
+  {prep && needsPracticeConsent && <TutorialPreparationNotice preparation={prep} busy={operationLocked} onLink={()=>void execute(linkPractice)}/>}
   <p className="client-compact-intro">Agregá tus PDF y configurá cada uno. En el siguiente paso elegís entrega y pago.</p>
   {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
   {options&&!options.disponible&&<p className="client-warning">{options.mensaje}</p>}

@@ -17,6 +17,20 @@ const {
   steps,
   tutorialPath,
 } = require("../src/lib/demo-tutorial.ts");
+const { isOpenTutorialPreparation } = require("../src/lib/prepared-work.ts");
+
+test("se identifica solo el trabajo abierto vinculado a un tutorial activo o pausado", () => {
+  const actual = { codigoPublico: "afiche", estado: "ABIERTA" };
+  const avance = { preparacion: "afiche", estado: "ACTIVO" };
+  assert.ok(isOpenTutorialPreparation(actual, avance));
+  assert.ok(isOpenTutorialPreparation(actual, { ...avance, estado: "PAUSADO" }));
+  for (const estado of ["NUEVO", "COMPLETO"])
+    assert.equal(isOpenTutorialPreparation(actual, { ...avance, estado }), false);
+  assert.equal(isOpenTutorialPreparation(actual, { ...avance, preparacion: "otro" }), false);
+  assert.equal(isOpenTutorialPreparation({ ...actual, estado: "CONFIRMADA" }, avance), false);
+  assert.equal(isOpenTutorialPreparation(actual, null), false);
+  assert.equal(isOpenTutorialPreparation(null, avance), false);
+});
 
 test("saltar a un paso avanzado vuelve al primer requisito que todavía falta", () => {
   assert.equal(firstRequired("calidad", []), "tarifa");

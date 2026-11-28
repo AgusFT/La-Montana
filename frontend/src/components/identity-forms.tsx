@@ -37,6 +37,8 @@ import {useConfirmNavigation} from "@/components/navigation-boundary";
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { clearPreparedFiles } from "@/lib/prepared-files";
+import { resetTutorialSession } from "@/lib/tutorial-visibility";
+import { useTutorial } from "./tutorial-context";
 
 import { secureMutation as post } from "@/lib/secure-mutation";
 import "@/app/access.css";
@@ -57,6 +59,7 @@ export function DemoRoleSelector() {
     setMessage("");
     try {
       await post("/api/demo/sesion", JSON.stringify({ rol }), "application/json");
+      resetTutorialSession();
       window.location.replace("/acceso");
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "No pudimos iniciar sesión.");
@@ -138,13 +141,22 @@ export function InstallationForm() {
 
 export function LogoutButton() {
   const confirmNavigation=useConfirmNavigation();
+  const tutorial=useTutorial();
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
   async function logout() {
     if (busy || !confirmNavigation()) return;
     setBusy(true); setMessage("");
-    try { await post("/api/auth/logout"); clearPreparedFiles(); router.replace("/acceso"); router.refresh(); }
+    try {
+      await tutorial?.flush();
+      await post("/api/auth/logout");
+      resetTutorialSession();
+      tutorial?.setOpen(false);
+      clearPreparedFiles();
+      router.replace("/acceso");
+      router.refresh();
+    }
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cerrar sesión."); }
     finally { setBusy(false); }
   }

@@ -192,6 +192,12 @@ class SesionDemoIntegrationTest {
         var navegador = HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
         String ruta = "/api/demo/tutorial";
         assertThat(get(navegador,ruta).statusCode()).isIn(401,403);
+        comprobar(elegir(navegador,"CLIENTE",csrf(navegador)),200);
+        var preparacion=JSON.readTree(comprobar(post(navegador,"/api/cliente/preparaciones","{}",csrf(navegador)),200)).get("codigoPublico").asString();
+        var db=app.getBean(JdbcTemplate.class);
+        var muestra=db.queryForObject("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE estado='CONFIRMADA' ORDER BY id_preparacion LIMIT 1",UUID.class);
+        UUID pdfPrevio = copiarPdfValidado(db, muestra, UUID.fromString(preparacion));
+
         comprobar(elegir(navegador,"ADMINISTRADOR",csrf(navegador)),200);
         assertThat(comprobar(get(navegador,ruta),200)).contains("NUEVO");
         comprobar(cambiarTutorial(navegador, Map.of("accion","iniciar")),200);
@@ -199,11 +205,12 @@ class SesionDemoIntegrationTest {
                 .get("paso").asString()).isEqualTo("tarifa");
         assertThat(comprobar(cambiarTutorial(navegador,Map.of("accion","tarifa")),200)).contains("\"completados\":[\"tarifa\"]");
         comprobar(elegir(navegador,"CLIENTE",csrf(navegador)),200);
-        var preparacion=JSON.readTree(comprobar(post(navegador,"/api/cliente/preparaciones","{}",csrf(navegador)),200)).get("codigoPublico").asString();
-        var db=app.getBean(JdbcTemplate.class);
-        var muestra=db.queryForObject("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE estado='CONFIRMADA' ORDER BY id_preparacion LIMIT 1",UUID.class);
         comprobar(cambiarTutorial(navegador, Map.of("accion","vincular","preparacion",muestra)),409);
-        comprobar(cambiarTutorial(navegador, Map.of("accion","vincular","preparacion",preparacion)),200);
+        assertThat(comprobar(cambiarTutorial(navegador, Map.of("accion","vincular","preparacion",preparacion)),200))
+                .contains("\"completados\":[\"tarifa\",\"archivo\"]");
+        String quitar = "/api/cliente/preparaciones/" + preparacion + "/archivos/" + pdfPrevio + "/quitar";
+        comprobar(post(navegador, quitar, JSON.writeValueAsString(Map.of("operacion", UUID.randomUUID())), csrf(navegador)),200);
+        assertThat(comprobar(get(navegador, ruta),200)).contains("\"completados\":[\"tarifa\"]");
         comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","presupuesto","campos",Map.of("calle","Senderos","numero","23"))),200);
         comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","presupuesto","campos",Map.of("numero",""))),200);
         comprobar(cambiarTutorial(navegador, Map.of("accion","borrador","paso","confirmacion","campos",Map.of("contrasena","privado"))),400);
@@ -222,6 +229,28 @@ class SesionDemoIntegrationTest {
         assertThat(finalCliente.get("pedido").isNull()).isTrue();
         comprobar(post(navegador,"/api/auth/logout","",csrf(navegador)),204);
         comprobar(post(otra,"/api/auth/logout","",csrf(otra)),204);
+    }
+
+    // Reproduce un PDF ya analizado con los metadatos y tiempos de la muestra original.
+    private UUID copiarPdfValidado(JdbcTemplate db, UUID origen, UUID destino) {
+        UUID archivo = UUID.randomUUID();
+        db.update("""
+                WITH copia AS (
+                    INSERT INTO lamontana.archivo_almacenado(codigo_publico,id_usuario_cargador,id_operacion,nombre_original,
+                        estado,fecha_creacion,cargar_hasta,fecha_inicio,fecha_fin,cantidad_bytes,sha256,cantidad_paginas)
+                    SELECT ?,d.id_usuario,gen_random_uuid(),a.nombre_original,a.estado,a.fecha_creacion,a.cargar_hasta,
+                           a.fecha_inicio,a.fecha_fin,a.cantidad_bytes,a.sha256,a.cantidad_paginas
+                    FROM lamontana.archivo_almacenado a JOIN lamontana.archivo_preparado ap USING(id_archivo_almacenado)
+                    JOIN lamontana.preparacion_cliente o USING(id_preparacion)
+                    JOIN lamontana.preparacion_cliente d ON d.codigo_publico=?
+                    WHERE o.codigo_publico=? AND ap.retirado_en IS NULL AND a.estado='VALIDO'
+                    ORDER BY a.id_archivo_almacenado LIMIT 1 RETURNING id_archivo_almacenado
+                )
+                INSERT INTO lamontana.archivo_preparado(id_archivo_almacenado,id_preparacion)
+                SELECT c.id_archivo_almacenado,d.id_preparacion FROM copia c
+                JOIN lamontana.preparacion_cliente d ON d.codigo_publico=?
+                """, archivo, destino, origen, destino);
+        return archivo;
     }
 
     private HttpResponse<String> cambiarTutorial(HttpClient navegador,Map<String,?> cambio) throws Exception {

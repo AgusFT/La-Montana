@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useTutorial} from "./tutorial-context";
+import {TutorialPreparationNotice} from "./tutorial-preparation-notice";
 import {useRouter} from 'next/navigation';
 import {ClientJourney} from './client-journey';
 import {PreparedFileReview} from './prepared-file-review';
@@ -9,7 +10,7 @@ import {ClientContextTour} from './client-context-tour';
 import {useNavigationGuard} from './navigation-boundary';
 import {secureMutation,MutationError} from '@/lib/secure-mutation';
 import {isOptions,quoteRead,money,date,modeLabels,type QuoteOptions,type Mode,type Address} from '@/lib/quote-types';
-import {isCheckout,type Checkout,type Preparation,type Preferences} from '@/lib/prepared-work';
+import {isCheckout,isOpenTutorialPreparation,type Checkout,type Preparation,type Preferences} from '@/lib/prepared-work';
 import {isOrder} from '@/lib/order-types';
 
 const emptyAddress:Address={calle:'',numero:'',referencias:'',territorio:{codigoPostal:'',localidad:'',provincia:''}};
@@ -31,9 +32,11 @@ export function PreparedCheckout({id}:{id:string}){
   setView(data);setPrep(data.preparacion);
   setAcceptedHash(previous=>previous===data.huella?previous:null);
  }
- const practicing=tutorial?.state?.estado==='ACTIVO' && tutorial.state.preparacion===id;
+ const attached=isOpenTutorialPreparation(prep,tutorial?.state) && prep?.codigoPublico===id;
+ const practicing=tutorial?.open && tutorial.state?.estado==='ACTIVO' && attached;
  useEffect(()=>{
-   if(!practicing||summaryState!=='ready'||restored.current===id)return;
+   if(!practicing){restored.current='';return;}
+   if(summaryState!=='ready'||restored.current===id)return;
    restored.current=id;
    const saved=tutorial?.state?.borradores.presupuesto,recipient=tutorial?.state?.borradores.confirmacion;
    if(saved){
@@ -100,6 +103,7 @@ export function PreparedCheckout({id}:{id:string}){
  const destinations=options?.destinosRetiro??[];
  const accepted=prep?.archivos.filter(f=>!!f.aceptadaEn).length??0;
  return <div className="client-experience client-compact-experience"><ClientJourney part={2}/>
+  {prep && !tutorial?.open && attached && <TutorialPreparationNotice preparation={prep}/>}
   {summaryState==='loading'&&<p role="status">{prep?'Actualizando el resumen de tu pedido…':'Recuperando el resumen de tu trabajo…'}</p>}
   {busy&&<p role="status" className="client-note">Verificando y actualizando tu pedido…</p>}
   {error&&<p className="client-warning" role="alert">{error}</p>}

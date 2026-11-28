@@ -23,13 +23,10 @@ import {
 import type { Role } from "@/lib/roles";
 import "./demo-tutorial.css";
 
-function focusPanel() {
-  requestAnimationFrame(() => {
-    const title = document.getElementById("tutorial-titulo");
-    title?.focus({ preventScroll: true });
-    if (matchMedia("(max-width: 1080px)").matches)
-      title?.closest("aside")?.scrollIntoView({ block: "start" });
-  });
+function focusGuide() {
+  requestAnimationFrame(() =>
+    document.getElementById("tutorial-titulo")?.focus({ preventScroll: true }),
+  );
 }
 function canGuide(step: Step, role: Role) {
   return (
@@ -55,6 +52,7 @@ export function TutorialButton() {
               accion: state.estado === "NUEVO" ? "iniciar" : "retomar",
             })
           : state;
+      api.setOpen(true);
       if (progress.estado === "ACTIVO" && canGuide(progress.paso, api.role)) {
         const path = tutorialPath(progress.paso, progress, api.role);
         if (!matchesRoute(path)) {
@@ -63,7 +61,7 @@ export function TutorialButton() {
         }
       }
       window.dispatchEvent(new Event("demo:tutorial:abrir"));
-      focusPanel();
+      focusGuide();
     } catch {
       /* El mensaje visible permite reintentar. */
     } finally {
@@ -76,20 +74,17 @@ export function TutorialButton() {
         type="button"
         className="tutorial-start"
         disabled={busy || (!state && !api.error)}
+        aria-expanded={api.open}
         aria-controls="tutorial-panel"
         onClick={() => void open()}
       >
         {!state && api.error
           ? "Reintentar carga del tutorial"
-          : state?.estado === "PAUSADO"
-            ? "Retomar tutorial"
-            : state?.estado === "ACTIVO"
-              ? "Ver tutorial"
-              : state?.estado === "COMPLETO"
-                ? "Ver tutorial completado"
-                : "Iniciar Tutorial"}
+          : api.open
+            ? "Ir al tutorial"
+            : "Empezar tutorial"}
       </button>
-      {api.error && state?.estado !== "ACTIVO" && (
+      {api.error && !api.open && (
         <span className="tutorial-start-error" role="alert">
           {api.error}
         </span>
@@ -109,8 +104,7 @@ export function TutorialPanel() {
   const api = useTutorial(),
     state = api?.state,
     role = api?.role;
-  const [hidden, setHidden] = useState(false),
-    [index, setIndex] = useState(false),
+  const [index, setIndex] = useState(false),
     [hint, setHint] = useState(0),
     [switchTo, setSwitchTo] = useState<Role | null>(null);
   const [notice, setNotice] = useState(""),
@@ -118,29 +112,25 @@ export function TutorialPanel() {
     [navigation, setNavigation] = useState(0),
     [rateViewed, setRateViewed] = useState(false);
   const startLock = useRef(false);
-  const [completedOpen, setCompletedOpen] = useState(false),
-    previous = useRef<Tutorial["estado"] | undefined>(undefined);
   useEffect(() => {
-    if (state?.estado === "COMPLETO" && previous.current === "ACTIVO")
-      setCompletedOpen(true);
-    previous.current = state?.estado;
-  }, [state?.estado]);
+    const compact = matchMedia("(max-width: 1080px)");
+    const resetIndex = () => setIndex(false);
+    compact.addEventListener("change", resetIndex);
+    return () => compact.removeEventListener("change", resetIndex);
+  }, []);
   const active =
-    !!state &&
-    !!api?.available &&
-    !hidden &&
-    (state.estado === "ACTIVO" ||
-      (state.estado === "COMPLETO" && completedOpen));
+    api?.available &&
+    api.open &&
+    (state?.estado === "ACTIVO" || state?.estado === "COMPLETO");
   const step = state?.paso ?? "tarifa",
     lesson = lessons[step],
     hints = useMemo(
-      () =>
-        lesson.hints.filter(([, , forRole]) => !forRole || forRole === role),
+      () => lesson.hints.filter((h) => !h.role || h.role === role),
       [lesson, role],
     ),
     hintNumber = Math.min(hint, hints.length - 1),
     currentHint = hints[hintNumber];
-  const hintSelector = currentHint?.[0];
+
   const stepNumber = steps.indexOf(step) + 1;
   useEffect(() => {
     try {
@@ -153,11 +143,10 @@ export function TutorialPanel() {
       /* La navegación funciona sin almacenamiento de navegador. */
     }
     const show = () => {
-      setHidden(false);
-      setCompletedOpen(true);
+      setNavigation((n) => n + 1);
       setIndex(false);
       setSwitchTo(null);
-      focusPanel();
+      focusGuide();
     };
     const route = () => setNavigation((n) => n + 1);
     window.addEventListener("demo:tutorial:abrir", show);
@@ -205,26 +194,47 @@ export function TutorialPanel() {
     function track(event: Event) {
       if (!(event.target instanceof Element)) return;
       const control = event.target;
-      if (!control.closest(".admin-main,.client-main")) return;
-      const at = hints.findIndex(([selector]) => control.closest(selector));
+      if (
+        control.closest(".tutorial-callout") ||
+        !control.closest(".admin-main,.client-main,.workspace-review-dialog")
+      )
+        return;
+      const at = hints.findIndex(({ selector }) => control.closest(selector));
       if (event.type === "focusin") {
         if (at >= 0) setHint(at);
         return;
       }
+      const clickedButton = control.closest("button");
+      if (
+        event.type === "click" &&
+        clickedButton?.type === "submit" &&
+        clickedButton.form
+      )
+        return;
       const form =
         event.type === "submit" && control instanceof HTMLFormElement
           ? control
           : null;
       const from = form
         ? hints.reduce(
-            (last, [selector], i) => (form.querySelector(selector) ? i : last),
+            (last, { selector }, i) =>
+              form.querySelector(selector) ? i : last,
             -1,
           )
         : at;
+      const codeReady =
+        event.type === "input" &&
+        control instanceof HTMLInputElement &&
+        control.matches(
+          '[data-tutorial-dialogo="VALIDAR"] input[name="codigo"]',
+        ) &&
+        control.value.length === control.maxLength &&
+        control.validity.valid;
       if (
         from < 0 ||
         !hints[from + 1] ||
         (!form &&
+          !codeReady &&
           !(
             (event.type === "click" && control.closest("button,summary")) ||
             (event.type === "change" &&
@@ -233,7 +243,7 @@ export function TutorialPanel() {
       )
         return;
       stop();
-      const nextSelector = hints[from + 1][0];
+      const nextSelector = hints[from + 1].selector;
       const advanceWhenReady = () => {
         if (form?.getClientRects().length) return;
         const next = visibleTarget(nextSelector);
@@ -250,29 +260,18 @@ export function TutorialPanel() {
       });
       frame = requestAnimationFrame(advanceWhenReady);
     }
-    for (const type of ["focusin", "click", "change", "submit"])
-      document.addEventListener(type, track);
+    for (const type of ["focusin", "click", "change", "input", "submit"])
+      document.addEventListener(type, track, true);
     return () => {
       stop();
-      for (const type of ["focusin", "click", "change", "submit"])
-        document.removeEventListener(type, track);
+      for (const type of ["focusin", "click", "change", "input", "submit"])
+        document.removeEventListener(type, track, true);
     };
   }, [here, hints]);
   const done = !!state?.completados.includes(step);
-  const [away, setAway] = useState(false);
   useEffect(() => {
-    const panel = document.getElementById("tutorial-panel");
-    if (!active || !panel) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      setAway(entry.boundingClientRect.bottom <= 0);
-    });
-    observer.observe(panel);
-    return () => observer.disconnect();
-  }, [active]);
-  useEffect(() => {
-    if (active) focusPanel();
-  }, [active, step, here]);
-
+    if (active) focusGuide();
+  }, [active, step]);
   if (!api || !state || !role || !active) return null;
   async function work(fn: () => Promise<void>) {
     if (startLock.current) return;
@@ -295,7 +294,7 @@ export function TutorialPanel() {
   }
   function go(path: string) {
     if (matchesRoute(path)) {
-      focusPanel();
+      focusGuide();
       return;
     }
     location.assign(path);
@@ -344,77 +343,194 @@ export function TutorialPanel() {
       location.replace(tutorialPath(step, state!, next));
     });
   }
-  function advanceHint(by: number) {
-    const next = Math.max(0, Math.min(hints.length - 1, hintNumber + by));
-    setHint(next);
-    setNotice("");
-    if (visibleTarget(hints[next][0])) focusTarget(hints[next][0]);
+  function chooseHint(number: number) {
+    let available = number;
+    while (available > 0 && !visibleTarget(hints[available].selector))
+      available--;
+    setNotice(
+      available === number
+        ? ""
+        : `Para «${hints[number].title}», primero completá «${hints[available].title}».`,
+    );
+    setHint(available);
+    setIndex(false);
+    if (visibleTarget(hints[available].selector))
+      focusTarget(hints[available].selector);
   }
-  const next = steps[steps.indexOf(step) + 1];
+  async function closeGuide() {
+    await work(async () => {
+      if (state!.estado === "ACTIVO") await api!.command({ accion: "pausar" });
+      api!.setOpen(false);
+      document.querySelector<HTMLButtonElement>(".tutorial-start")?.focus();
+    });
+  }
+  const complete = state.estado === "COMPLETO";
+  const needsRole = !!switchTo || !capable;
+  const guiding = !complete && !needsRole && here && !done;
+  const next = steps[stepNumber];
+  const heading = complete
+    ? "Pedido completado"
+    : needsRole
+      ? `Continuar como ${roleNames[switchTo ?? lesson.role]}`
+      : done || !here
+        ? lesson.title
+        : (currentHint?.title ?? lesson.title);
+  const progress = `Paso ${stepNumber} de ${steps.length} · ${roleNames[step === "entrega" && capable ? role : lesson.role]}`;
   return (
-    <aside
-      id="tutorial-panel"
-      className="tutorial-panel"
-      aria-label="Tutorial interactivo"
-    >
-      <header>
-        <div>
-          <small className="tutorial-stage">
-            {state.estado === "COMPLETO"
-              ? "Tutorial de La Montaña"
-              : `Paso ${stepNumber} de ${steps.length} · ${roleNames[step === "entrega" && capable ? role : lesson.role]}`}
-          </small>
-        </div>
+    <>
+      <aside
+        id="tutorial-panel"
+        className="tutorial-panel"
+        aria-label="Tutorial interactivo"
+      >
+        <header>
+          <h2>Recorrido del pedido</h2>
+          <button
+            type="button"
+            className="tutorial-pause"
+            onClick={() => void closeGuide()}
+            disabled={busy}
+          >
+            {complete ? "Cerrar" : "Pausar"}
+          </button>
+        </header>
+        <p className="tutorial-count">
+          {state.completados.length} de {steps.length} pasos completados
+        </p>
         <button
           type="button"
-          className="tutorial-pause"
-          disabled={busy}
-          onClick={() =>
-            void work(async () => {
-              if (state.estado === "ACTIVO")
-                await api.command({ accion: "pausar" });
-              setHidden(true);
-              document
-                .querySelector<HTMLButtonElement>(".tutorial-start")
-                ?.focus();
-            })
-          }
+          className="tutorial-index-toggle"
+          aria-controls="tutorial-pasos"
+          aria-expanded={index}
+          onClick={() => setIndex(!index)}
         >
-          {state.estado === "COMPLETO" ? "Cerrar" : "Pausar"}
+          {index ? "Volver a la indicación" : "Ver todos los pasos"}
         </button>
-      </header>
-      <h2 tabIndex={-1} id="tutorial-titulo">
-        {state.estado === "COMPLETO" ? "Pedido completado" : lesson.title}
-      </h2>
-      {state.estado === "COMPLETO" ? (
-        <>
-          <p>
-            Tu pedido y sus operaciones quedaron en la imprenta. Podés volver a
-            consultarlos o practicar las bajas disponibles desde Cupos de la
-            Demo.
-          </p>
-          {state.pedido && (
-            <a href={tutorialPath("entrega", state, role)}>
-              Abrir el pedido de práctica
-            </a>
-          )}
-        </>
-      ) : (
-        <>
+        <nav
+          id="tutorial-pasos"
+          className={index ? "is-open" : ""}
+          aria-label="Pasos del tutorial"
+        >
+          <ol>
+            {steps.map((id, i) => {
+              const selected = step === id;
+              const checked = state.completados.includes(id);
+              const unavailable = firstRequired(id, state.completados) !== id;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    aria-current={selected ? "step" : undefined}
+                    className="tutorial-branch"
+                    disabled={busy || complete}
+                    onClick={() => void select(id)}
+                  >
+                    <span className="tutorial-step-number" aria-hidden="true">
+                      {checked ? "✓" : i + 1}
+                    </span>
+                    <span>
+                      <span className="tutorial-sr">{i + 1}. </span>
+                      {lessons[id].title}
+                      <small>
+                        {checked
+                          ? "Completado"
+                          : selected
+                            ? "Paso actual"
+                            : unavailable
+                              ? "Requiere pasos previos"
+                              : "Disponible"}
+                      </small>
+                    </span>
+                  </button>
+                  {selected && !complete && (
+                    <ol
+                      className="tutorial-subtasks"
+                      aria-label={`Subtareas de ${lesson.title}`}
+                    >
+                      {(capable ? hints : lesson.hints).map((item, n) => (
+                        <li key={item.selector}>
+                          <button
+                            type="button"
+                            aria-current={
+                              guiding && hintNumber === n ? "true" : undefined
+                            }
+                            disabled={busy || !guiding}
+                            onClick={() => chooseHint(n)}
+                          >
+                            {item.title}
+                          </button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      </aside>
+      {!index && (
+        <TutorialHighlight
+          selector={guiding ? currentHint?.selector : undefined}
+          anchorKey={`${step}-${role}-${hintNumber}-${heading}-${navigation}`}
+        >
+          <header className="tutorial-card-header">
+            <span>{complete ? "Tutorial de La Montaña" : progress}</span>
+            <button
+              type="button"
+              className="tutorial-card-index"
+              aria-label="Ver pasos del tutorial"
+              aria-controls="tutorial-pasos"
+              onClick={() => {
+                setIndex(true);
+                requestAnimationFrame(() => {
+                  const toggle = document.querySelector<HTMLButtonElement>(
+                    ".tutorial-index-toggle",
+                  );
+                  toggle?.closest("aside")?.scrollIntoView({ block: "start" });
+                  toggle?.focus({ preventScroll: true });
+                });
+              }}
+            >
+              Pasos
+            </button>
+            <button
+              type="button"
+              className="tutorial-card-dismiss"
+              aria-label={complete ? "Cerrar guía" : "Pausar tutorial"}
+              disabled={busy}
+              onClick={() => void closeGuide()}
+            >
+              {complete ? "Cerrar" : "Pausar"}
+            </button>
+          </header>
+          <h2 id="tutorial-titulo" tabIndex={-1}>
+            {heading}
+          </h2>
           {notice && <p role="status">{notice}</p>}
           {state.bloqueo && <p role="alert">{state.bloqueo}</p>}
-          <p>{lesson.intro}</p>
-          {switchTo || !capable ? (
-            <div className="tutorial-switch">
-              <strong>
-                Continuar como {roleNames[switchTo ?? lesson.role]}
-              </strong>
+          {complete ? (
+            <>
               <p>
-                Este paso se hace desde ese rol. Al confirmar, la demo abrirá su
-                sesión y conservará el pedido del tutorial.
+                Tu pedido y sus operaciones quedaron guardados en la imprenta.
+              </p>
+              {state.pedido && (
+                <a href={tutorialPath("entrega", state, role)}>
+                  Abrir el pedido de práctica
+                </a>
+              )}
+            </>
+          ) : needsRole ? (
+            <>
+              <p>{lesson.intro}</p>
+              <p>
+                Al confirmar abrís la vista de{" "}
+                {roleNames[switchTo ?? lesson.role]} para seguir con este mismo
+                pedido.
               </p>
               <button
                 type="button"
+                className="tutorial-next"
                 disabled={busy}
                 onClick={() => void changeRole(switchTo ?? lesson.role)}
               >
@@ -425,189 +541,126 @@ export function TutorialPanel() {
                   Seguir en mi rol
                 </button>
               )}
-            </div>
-          ) : (
+            </>
+          ) : done ? (
             <>
-              {!here && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void work(async () => go(href))}
-                >
-                  Abrir {lesson.title.toLowerCase()}
-                </button>
-              )}
-              {step === "archivo" && !done && (
-                <a href="/tutorial/afiche-senderos.pdf" download>
-                  Guardar PDF de práctica
-                </a>
-              )}
-              {here && !done && currentHint && (
-                <>
-                  <div
-                    className="tutorial-instruction"
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    <strong>
-                      {hints.length > 1
-                        ? `Indicación ${hintNumber + 1} de ${hints.length}`
-                        : "Qué hacer ahora"}
-                    </strong>
-                    <p>{currentHint[1]}</p>
-                  </div>
-                  <div className="tutorial-controls">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (visibleTarget(currentHint[0])) {
-                          setNotice("");
-                          focusTarget(currentHint[0]);
-                        } else {
-                          setNotice(
-                            "El control todavía no está visible. Revisá la indicación anterior y los avisos del formulario.",
-                          );
-                        }
-                      }}
-                    >
-                      Ir al control
-                    </button>
-                    {hints.length > 1 && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={hintNumber === 0}
-                          onClick={() => advanceHint(-1)}
-                        >
-                          Anterior
-                        </button>
-                        <button
-                          type="button"
-                          disabled={hintNumber === hints.length - 1}
-                          onClick={() => advanceHint(1)}
-                        >
-                          Siguiente indicación
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {hintSelector && (
-                    <TutorialHighlight key={step} selector={hintSelector} />
-                  )}
-                </>
-              )}
-              {here && step === "tarifa" && !done && !rateViewed && (
-                <p role="status">
-                  Para confirmar este paso, abrí «Tarifas de impresión» y buscá
-                  una tarjeta con el estado «Guardada · vigente». Si no hay
-                  ninguna habilitada, revisá la configuración del catálogo.
-                </p>
-              )}
-              {here && step === "tarifa" && !done && (
+              <p className="tutorial-verified" role="status">
+                {lesson.result}
+              </p>
+              {next && (
                 <button
                   type="button"
                   className="tutorial-next"
-                  disabled={busy || !rateViewed}
-                  onClick={() =>
-                    void work(async () => {
-                      await api.command({ accion: "tarifa", paso: "tarifa" });
-                      setNotice("Tarifa vigente revisada.");
-                    })
-                  }
+                  disabled={busy}
+                  onClick={() => void select(next)}
                 >
-                  Confirmar que revisé la tarifa
-                </button>
-              )}
-              {step === "entrega" && !done && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSwitchTo(role === "CLIENTE" ? "EMPLEADO" : "CLIENTE")
-                  }
-                >
-                  {role === "CLIENTE"
-                    ? "Volver a Empleado para registrar la entrega"
-                    : "Pasar a Cliente para obtener el código"}
+                  Continuar con {lessons[next].title.toLowerCase()}
                 </button>
               )}
             </>
+          ) : !here ? (
+            <>
+              <p>{lesson.intro}</p>
+              <button
+                type="button"
+                className="tutorial-next"
+                disabled={busy}
+                onClick={() => void work(async () => go(href))}
+              >
+                Abrir {lesson.title.toLowerCase()}
+              </button>
+            </>
+          ) : (
+            currentHint && (
+              <>
+                {hintNumber === 0 && (
+                  <p className="tutorial-purpose">{lesson.intro}</p>
+                )}
+                <p
+                  className="tutorial-instruction"
+                  id="tutorial-indicacion"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
+                  {currentHint.text}
+                </p>
+                {step === "tarifa" && (
+                  <>
+                    {!rateViewed && (
+                      <p role="status">
+                        Para confirmar, buscá una tarifa de impresión habilitada
+                        con el estado «Guardada · vigente».
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      className="tutorial-next"
+                      disabled={busy || !rateViewed}
+                      onClick={() =>
+                        void work(async () => {
+                          await api.command({
+                            accion: "tarifa",
+                            paso: "tarifa",
+                          });
+                        })
+                      }
+                    >
+                      Confirmar que revisé la tarifa
+                    </button>
+                  </>
+                )}
+                {step === "archivo" && hintNumber === 0 && (
+                  <a href="/tutorial/afiche-senderos.pdf" download>
+                    Guardar PDF de práctica
+                  </a>
+                )}
+                {step === "entrega" &&
+                  (role === "CLIENTE" || hintNumber === 0) && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSwitchTo(role === "CLIENTE" ? "EMPLEADO" : "CLIENTE")
+                      }
+                    >
+                      {role === "CLIENTE"
+                        ? "Volver a Empleado para registrar la entrega"
+                        : "Pasar a Cliente para obtener el código"}
+                    </button>
+                  )}
+                <div className="tutorial-controls">
+                  <button type="button" onClick={() => chooseHint(hintNumber)}>
+                    Ir al control
+                  </button>
+                  {hintNumber > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => chooseHint(hintNumber - 1)}
+                    >
+                      Anterior
+                    </button>
+                  )}
+                  {hintNumber < hints.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => chooseHint(hintNumber + 1)}
+                    >
+                      Siguiente indicación
+                    </button>
+                  )}
+                </div>
+              </>
+            )
           )}
-          {done && (
-            <p className="tutorial-verified" role="status">
-              {lesson.result}
+          {api.error && (
+            <p role="alert">
+              {api.error}{" "}
+              <button type="button" onClick={() => void work(api.refresh)}>
+                Reintentar
+              </button>
             </p>
           )}
-          {done && next && (
-            <button
-              type="button"
-              className="tutorial-next"
-              disabled={busy}
-              onClick={() => void select(next)}
-            >
-              Continuar con {lessons[next].title.toLowerCase()}
-            </button>
-          )}
-          <button
-            type="button"
-            className="tutorial-index-toggle"
-            aria-expanded={index}
-            aria-controls="tutorial-pasos"
-            onClick={() => setIndex((v) => !v)}
-          >
-            {index ? "Ocultar pasos" : "Ver todos los pasos"}
-          </button>
-          <nav
-            id="tutorial-pasos"
-            hidden={!index}
-            aria-label="Pasos del tutorial"
-          >
-            <ol>
-              {steps.map((id, i) => (
-                <li key={id}>
-                  <button
-                    type="button"
-                    aria-current={step === id ? "step" : undefined}
-                    disabled={busy}
-                    onClick={() => void select(id)}
-                  >
-                    <span>
-                      {i + 1}. {lessons[id].title}
-                    </span>
-                    <small>
-                      {state.completados.includes(id)
-                        ? "Completado"
-                        : firstRequired(id, state.completados) !== id
-                          ? "Requiere pasos previos"
-                          : step === id
-                            ? "Actual"
-                            : "Disponible"}
-                    </small>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </nav>
-          <p className="tutorial-footer" role="status">
-            {api.saving
-              ? "Guardando borrador…"
-              : "Podés pausar y retomar desde este paso."}
-          </p>
-        </>
+        </TutorialHighlight>
       )}
-      {away && (
-        <button type="button" className="tutorial-return" onClick={focusPanel}>
-          Volver a la guía · Paso {stepNumber}
-        </button>
-      )}
-
-      {api.error && (
-        <p role="alert">
-          {api.error}{" "}
-          <button type="button" onClick={() => void work(api.refresh)}>
-            Reintentar
-          </button>
-        </p>
-      )}
-    </aside>
+    </>
   );
 }

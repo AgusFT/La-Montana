@@ -62,7 +62,7 @@ export function TutorialDraftFields({
     current = useRef(api);
   current.current = api;
   const active =
-    api?.state?.estado === "ACTIVO" &&
+    api?.open && api.state?.estado === "ACTIVO" &&
     api.role === "EMPLEADO" &&
     !!api.state.pedido &&
     typeof location !== "undefined" &&
