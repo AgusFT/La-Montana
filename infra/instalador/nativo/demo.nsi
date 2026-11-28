@@ -95,6 +95,7 @@ Section "Aplicación web y servicios locales" Programa
   File /oname=actual.gz "${INVENTARIO}"
   File archivos-0.1.5.sha256.gz
   File archivos-0.1.6.sha256.gz
+  File archivos-0.1.7.sha256.gz
   DetailPrint "Preparando los componentes de Windows…"
   nsExec::ExecToLog '"$SYSDIR\tar.exe" -xf "$PLUGINSDIR\contenido.zip" -C "$PLUGINSDIR" node/node.exe'
   Pop $0
@@ -167,10 +168,15 @@ Function .onInit
     ${EndIf}
   ${Else}
     ${If} $0 != '"$Instalada\Desinstalar.exe"'
-    ${OrIf} $1 != "${VERSION}"
+      !insertmacro Fallo "La ubicación no coincide con la instalación registrada para este usuario."
+    ${EndIf}
+    ${If} $1 == "${VERSION}"
+      StrCpy $Inventario "$PLUGINSDIR\actual.gz"
+    ${ElseIf} $1 == "0.1.7"
+      StrCpy $Inventario "$PLUGINSDIR\archivos-0.1.7.sha256.gz"
+    ${Else}
       !insertmacro Fallo "Esta instalación pertenece a otra versión. Usá el instalador que le corresponde."
     ${EndIf}
-    StrCpy $Inventario "$PLUGINSDIR\actual.gz"
   ${EndIf}
   ${If} $Instalada != ""
     StrCpy $INSTDIR $Instalada

@@ -4,7 +4,7 @@ La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como
 
 ## Instalar en Windows 11 x64
 
-Ejecutá `LaMontanaDemo-0.1.7.exe`. En **Examinar** podés elegir otra carpeta para una instalación nueva. Marcá el acceso de escritorio si lo querés. Abrí **La Montaña Demo** desde Inicio o el escritorio. El panel prepara los servicios, abre el selector de roles en tu navegador y se minimiza. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
+Ejecutá `LaMontanaDemo-0.1.8.exe`. En **Examinar** podés elegir otra carpeta para una instalación nueva. Marcá el acceso de escritorio si lo querés. Abrí **La Montaña Demo** desde Inicio o el escritorio. El panel prepara los servicios, abre el selector de roles en tu navegador y se minimiza. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
 
 ## Iniciar desde el código fuente
 

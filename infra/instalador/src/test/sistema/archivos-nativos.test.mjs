@@ -87,7 +87,7 @@ test('un enlace no autoriza retirar contenido de otro directorio', async t=>{
 });
 
 test('los inventarios de las ediciones publicadas tienen el panel, Node y Java; rechaza rutas externas', async()=>{
-  for (const release of ['0.1.5','0.1.6']) {
+  for (const release of ['0.1.5','0.1.6','0.1.7']) {
     const data=await fs.readFile(new URL('../../../nativo/archivos-'+release+'.sha256.gz',import.meta.url));
     const known=inventory(data);
     for (const key of ['panel.jar','node/node.exe','java/bin/javaw.exe']) assert.match(known.get(key),/^[0-9a-f]{64}$/);
