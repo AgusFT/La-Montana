@@ -1,4 +1,6 @@
 import java.awt.Desktop;
+import java.awt.BorderLayout;
+import java.awt.Frame;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
@@ -22,6 +24,8 @@ public final class DemoWindows {
     final JFrame panel = new JFrame("La Montaña Demo · YG Soluciones");
     final JLabel message = new JLabel("Preparando la demo…");
     final JButton open = new JButton("Abrir la demo");
+    final JTextField location = new JTextField();
+    final JButton copy = new JButton("Copiar dirección");
     final boolean browser;
     final Path source;
     Thread actualizacion;
@@ -108,36 +112,66 @@ public final class DemoWindows {
         }
     }
     void display() {
+        panel.setIconImage(new ImageIcon(app.resolve("montana.png").toString()).getImage());
         panel.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         panel.addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
-                closing = true;
+                confirmClose();
             }
         });
-        JPanel body = new JPanel(new java.awt.BorderLayout(14, 14));
+        JPanel body = new JPanel(new BorderLayout(12, 12));
         body.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
+        JLabel explanation = new JLabel("<html><b>La demo se usa en tu navegador.</b><br>Este panel mantiene en marcha la aplicación y la base de datos.<br>Podés minimizarlo. Al apagar la demo, se guardan los datos y se cierran sus servicios.</html>");
+        body.add(explanation, BorderLayout.NORTH);
+        JPanel state = new JPanel(new BorderLayout(4, 4));
+        state.add(message, BorderLayout.NORTH);
+        location.setEditable(false);
+        location.getAccessibleContext().setAccessibleName("Dirección local para abrir en el navegador");
+        state.add(location, BorderLayout.SOUTH);
+        body.add(state, BorderLayout.CENTER);
         var buttons = new JPanel();
         open.setEnabled(false);
         open.addActionListener(e->browse());
         buttons.add(open);
+        copy.setEnabled(false);
+        copy.addActionListener(e->{location.selectAll(); location.copy(); location.requestFocusInWindow();});
+        buttons.add(copy);
         JButton close = new JButton("Cerrar la demo");
-        close.addActionListener(e->closing = true);
+        close.addActionListener(e->confirmClose());
         buttons.add(close);
-        body.add(message, java.awt.BorderLayout.CENTER);
-        body.add(buttons, java.awt.BorderLayout.SOUTH);
+        body.add(buttons, BorderLayout.SOUTH);
         panel.setContentPane(body);
-        panel.setSize(500, 145);
+        panel.pack();
+        panel.setMinimumSize(panel.getPreferredSize());
         panel.setLocationRelativeTo(null);
         panel.setVisible(true);
     }
     void status(String text) {
         SwingUtilities.invokeLater(()->message.setText(text));
     }
+    void confirmClose() {
+        if (closing) return;
+        Object[] choices = {"Seguir usando la demo", "Apagar la demo"};
+        if (JOptionPane.showOptionDialog(panel, "Si apagás la demo, sus páginas dejarán de responder hasta que la abras de nuevo.",
+                "¿Querés apagar La Montaña Demo?", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                null, choices, choices[0]) == 1) {
+            closing = true;
+            open.setEnabled(false);
+            copy.setEnabled(false);
+            status("Cerrando los servicios de la demo…");
+        }
+    }
+    void showPanel() {
+        panel.setExtendedState(panel.getExtendedState() & ~Frame.ICONIFIED);
+        panel.toFront();
+    }
     void browse() {
         try {
             Desktop.getDesktop().browse(address);
+            panel.setExtendedState(panel.getExtendedState() | Frame.ICONIFIED);
         } catch (Exception e) {
-            status("Abrí " + address + " en tu navegador.");
+            showPanel();
+            status("Windows no pudo abrir el navegador. Copiá la dirección o volvé a intentar.");
         }
     }
     void check() throws IOException {
@@ -269,7 +303,7 @@ public final class DemoWindows {
         Set<Integer> used = new HashSet<>();
         int web = port(used, 3200), api = port(used, 8280), pg = port(used, 55433), av = port(used, 13310), smtp = port(used, 11025), inbox = port(used, 8225);
         address = URI.create("http://127.0.0.1:" + web + "/acceso");
-        status("Preparando La Montaña…");
+        status("Preparando el antivirus para revisar los adjuntos…");
         Path db = FirmasWindows.preparar(app, data, source,
                                          (name, dir, seconds, args) -> command(true, name, dir, seconds, args));
         check();
@@ -286,8 +320,9 @@ public final class DemoWindows {
             }
         }, "actualizar-firmas");
         actualizacion.start();
+        status("Iniciando el buzón local de correos de prueba…");
         service("correo", Map.of("MP_SMTP_BIND_ADDR", "127.0.0.1:" + smtp, "MP_UI_BIND_ADDR", "127.0.0.1:" + inbox, "MP_DATABASE", data.resolve("correo.db").toString()), data, mail.toString());
-        status("Preparando la base de datos…");
+        status(Files.isDirectory(cluster) ? "Abriendo tu base de datos local…" : "Creando la base de datos del primer inicio…");
         Path secret = data.resolve("postgres.key");
         if (!Files.exists(secret) && !Files.exists(cluster)) {
             Files.writeString(secret, UUID.randomUUID().toString() + UUID.randomUUID(), CREATE_NEW);
@@ -328,18 +363,21 @@ public final class DemoWindows {
         waitReady(api, "/actuator/health/readiness", 240);
         waitReady(av, "clamd", 240);
         waitReady(smtp, null, 15);
+        status("Preparando la interfaz para abrirla en tu navegador…");
         service("frontend", Map.of("PORT", "" + web, "HOSTNAME", "127.0.0.1", "BACKEND_INTERNAL_URL", "http://127.0.0.1:" + api, "NEXT_TELEMETRY_DISABLED", "1"), app.resolve("web"), node.toString(), "server.js");
         waitReady(web, "/health", 90);
-        status("Demo lista en " + address);
-        SwingUtilities.invokeLater(()->open.setEnabled(true));
-        if (browser) {
-            browse();
-        }
+        SwingUtilities.invokeLater(()->{
+            if (closing) return;
+            message.setText("La demo está lista. Podés volver a abrirla desde este panel.");
+            location.setText(address.toString());
+            open.setEnabled(true);
+            copy.setEnabled(true);
+            if (browser) browse();
+        });
         while (!closing && !Files.exists(data.resolve("cerrar"))) {
             check();
             if (Files.deleteIfExists(data.resolve("mostrar"))) {
-                panel.toFront();
-                browse();
+                SwingUtilities.invokeLater(()->{ if (!closing) { showPanel(); browse(); } });
             }
             Thread.sleep(500);
         }

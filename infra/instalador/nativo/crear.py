@@ -1,5 +1,6 @@
 """Ensambla el instalador sin ejecutar la aplicación ni descargar dependencias."""
 import argparse
+import gzip
 import hashlib
 import json
 import os
@@ -12,7 +13,7 @@ import zipfile
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
-VERSION = '0.1.6'
+VERSION = '0.1.7'
 
 
 def digest(path):
@@ -112,13 +113,26 @@ def build(deps, dest, tmp):
         shutil.copyfile(deps/'avisos'/name,notices/name)
     shutil.copyfile(HERE/'dependencias.sha256',app/'componentes.sha256')
     (app/'version.txt').write_text(VERSION+'\n',encoding='ascii')
+    for icon in ('montana.ico', 'montana.png'):
+        shutil.copyfile(HERE/icon, app/icon)
     content=tmp/'contenido.zip'
+    entries=[]
+    total=0
     with zipfile.ZipFile(content,'w',zipfile.ZIP_DEFLATED,compresslevel=2) as archive:
         for file in sorted(app.rglob('*')):
-            if file.is_file():archive.write(file,file.relative_to(app))
+            if not file.is_file():
+                continue
+            relative=file.relative_to(app).as_posix()
+            archive.write(file,relative)
+            entries.append(digest(file)+'  '+relative+'\n')
+            total+=file.stat().st_size
+    manifest=tmp/'archivos.sha256.gz'
+    manifest.write_bytes(gzip.compress(''.join(entries).encode('utf-8'),mtime=0))
     exe=dest/f'LaMontanaDemo-{VERSION}.exe'
     prefix='/' if os.name=='nt' else '-'
-    subprocess.run(['makensis',prefix+'V2',prefix+'DVERSION='+VERSION,prefix+'DSALIDA='+str(tmp/exe.name),prefix+'DCONTENIDO='+str(content),HERE/'demo.nsi'],check=True)
+    parameters={'VERSION':VERSION,'SALIDA':tmp/exe.name,'CONTENIDO':content,'NODE_SHA256':digest(app/'node/node.exe'),
+                'INVENTARIO':manifest,'TAMANO_BYTES':total,'TAMANO_KIB':(total+1023)//1024}
+    subprocess.run(['makensis',prefix+'V2',*[prefix+'D'+k+'='+str(v) for k,v in parameters.items()],HERE/'demo.nsi'],check=True)
     # Publicar el binario y la suma juntos, también si dos compilaciones terminan a la vez.
     ready = tmp / 'entrega'
     ready.mkdir()

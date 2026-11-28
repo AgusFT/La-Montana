@@ -1,7 +1,30 @@
 ﻿# Ejecutar con el panel nativo abierto. Se descubre la URL a partir del proceso instalado.
-param([string]$Raiz = "$env:LOCALAPPDATA\Programs\YG Soluciones\LaMontanaDemoNativa\app", [string]$Anterior)
+param([string]$Raiz, [string]$Anterior)
 $ErrorActionPreference = 'Stop'
+$registro = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\LaMontanaDemoNativa' -ErrorAction SilentlyContinue
+if (!$Raiz) {
+    $programa = if ($registro.InstallLocation) { $registro.InstallLocation } else { "$env:LOCALAPPDATA\Programs\YG Soluciones\LaMontanaDemoNativa" }
+    $Raiz = Join-Path $programa 'app'
+}
 $Raiz = (Resolve-Path -LiteralPath $Raiz).Path
+$version = [IO.File]::ReadAllText((Join-Path $Raiz 'version.txt')).Trim()
+if ([version]$version -ge [version]'0.1.7') {
+    $icono = Join-Path $Raiz 'montana.ico'
+    $cabecera = [IO.File]::ReadAllBytes($icono)
+    if ($cabecera[2] -ne 1 -or $cabecera[4] -lt 5 -or $registro.DisplayIcon -ne $icono) { throw 'Ícono o registro de la aplicación incorrecto.' }
+    $shell = New-Object -ComObject WScript.Shell
+    $enlaces = @(Join-Path ([Environment]::GetFolderPath('Programs')) 'YG Soluciones\La Montaña Demo.lnk')
+    if ($registro.AccesoEscritorio -eq 1) {
+        $enlaces += Join-Path ([Environment]::GetFolderPath('DesktopDirectory')) 'La Montaña Demo.lnk'
+    }
+    foreach ($archivo in $enlaces) {
+        if (!(Test-Path -LiteralPath $archivo)) { throw "Falta el acceso $archivo." }
+        $enlace = $shell.CreateShortcut($archivo)
+        if ($enlace.TargetPath -ne (Join-Path $Raiz 'java\bin\javaw.exe') -or ($enlace.IconLocation -split ',(?=\s*0$)')[0] -ne $icono) {
+            throw "El destino o el ícono del acceso es incorrecto: $archivo"
+        }
+    }
+}
 $procesos = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($Raiz+'\', [StringComparison]::OrdinalIgnoreCase) })
 foreach ($nombre in 'postgres.exe','clamd.exe','mailpit.exe','java.exe','node.exe') {
     if (!($procesos | Where-Object Name -eq $nombre)) { throw "Falta el proceso nativo $nombre." }
@@ -16,4 +39,4 @@ $modo = (Invoke-RestMethod "$url/api/sistema/entorno" -TimeoutSec 8).modo
 if ($modo -cne 'DEMO') { throw 'Identidad de edición incorrecta.' }
 $inicio = [IO.File]::ReadAllLines((Join-Path $env:ProgramData 'YG-Soluciones\LaMontanaDemo\vigencia\vigencia.txt'))[0]
 if ($Anterior -and (Get-Content -Raw -LiteralPath $Anterior | ConvertFrom-Json).inicio -ne $inicio) { throw 'Cambió el inicio de vigencia.' }
-[ordered]@{version=[IO.File]::ReadAllText("$Raiz\version.txt").Trim();modo=$modo;url=$url;inicio=$inicio;procesos=@($procesos.Name | Sort-Object -Unique);puertos=@($escuchas.LocalPort | Sort-Object -Unique)} | ConvertTo-Json
+[ordered]@{version=$version;modo=$modo;url=$url;inicio=$inicio;procesos=@($procesos.Name | Sort-Object -Unique);puertos=@($escuchas.LocalPort | Sort-Object -Unique)} | ConvertTo-Json

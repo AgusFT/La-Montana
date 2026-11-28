@@ -4,7 +4,7 @@ La Demo abre una imprenta ficticia compartida en este equipo. Podés entrar como
 
 ## Instalar en Windows 11 x64
 
-Ejecutá `LaMontanaDemo-0.1.6.exe` y abrí **La Montaña Demo** desde Inicio. El panel abre el selector de roles en tu navegador. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
+Ejecutá `LaMontanaDemo-0.1.7.exe`. En **Examinar** podés elegir otra carpeta para una instalación nueva. Marcá el acceso de escritorio si lo querés. Abrí **La Montaña Demo** desde Inicio o el escritorio. El panel prepara los servicios, abre el selector de roles en tu navegador y se minimiza. Usá **Cerrar la demo** cuando termines. El instalador incluye los servicios nativos de Windows y la demo conserva sus datos y su vigencia de 360 horas al cerrar o reinstalar. [Instalación y mantenimiento](infra/instalador/nativo/README.md)
 
 ## Iniciar desde el código fuente
 
@@ -39,6 +39,12 @@ Los puertos y el directorio de imágenes se pueden configurar con las variables 
 2. Como **Cliente**, abrí el pedido del afiche «Encuentro de caminantes». Incluye un PDF de una página, tres copias en blanco y negro y un cobro de muestra de $300 ya aplicado.
 3. Usá **Cambiar rol** y elegí **Empleado**. Entrá a **Ver sucursal**, abrí el pedido aprobado y seleccioná **Impresión simulada**. Elegí la impresora de Senderos, completá el motivo y confirmá el inicio. Después podés registrar la finalización y el control de calidad.
 4. Como **Administrador**, consultá el pedido y su historial. Las tres cuentas comparten los datos de esta instalación. Los cambios del visitante y la impresión registrada se conservan al reiniciar.
+
+### Aprender con tu propio pedido
+
+Desde cualquiera de los tres roles, **Iniciar Tutorial** abre el índice a la izquierda. Empezá por revisar la tarifa vigente, guardá el PDF de práctica y acompañá el pedido en Cliente y en la imprenta. El tutorial te pide confirmar cuando corresponde cambiar de rol. Para hacer una pausa, pulsá **Pausar**. La demo conserva el paso, los campos en borrador y el vínculo con los archivos subidos al equipo. Si un archivo solo estaba seleccionado, tendrás que elegirlo otra vez. El pago y los demás movimientos se registran cuando confirmás en el formulario correspondiente.
+
+**Manual de usuario** abre la guía instalada con sus capturas. Podés buscar una tarea, ampliar una imagen y volver al panel. La guía identifica las operaciones propias de la edición completa. El tutorial y el manual funcionan con los mismos permisos y cupos que los módulos de trabajo.
 
 ## Vigencia y funciones disponibles en la Demo
 
