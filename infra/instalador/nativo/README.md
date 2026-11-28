@@ -33,6 +33,6 @@ Para probar las carpetas Unicode y la recuperación de las letras de unidad en W
 
 ```powershell
 $clases = New-Item -ItemType Directory -Path (Join-Path $env:TEMP ([guid]::NewGuid()))
-javac --release 17 -encoding UTF-8 -d $clases.FullName nativo/RutasPostgres.java src/test/sistema/RutasPostgresTest.java
-java -cp $clases.FullName RutasPostgresTest
+javac --release 17 -encoding UTF-8 -d $clases.FullName nativo/RutasNativas.java src/test/sistema/RutasNativasTest.java
+java -cp $clases.FullName RutasNativasTest
 ```

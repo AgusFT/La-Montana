@@ -34,10 +34,12 @@ $pidPg = Join-Path $datos 'postgres\postmaster.pid'
 if ((Test-Path -LiteralPath $marcaPg) -and (Test-Path -LiteralPath $pidPg)) {
     $letra = (Get-Content -Raw -LiteralPath $marcaPg).Trim()
     if ($letra -cnotmatch '^[D-Z]:$') { throw 'Letra temporal de PostgreSQL inválida.' }
-    $ejecutablePg = $letra + '\bin\postgres.exe'
+    $ejecutablePg = $letra + '\pg\bin\postgres.exe'
     $maestro = [int](Get-Content -TotalCount 1 -LiteralPath $pidPg)
     $servidores = @($todos | Where-Object { $_.ExecutablePath -eq $ejecutablePg })
     if ($maestro -in $servidores.ProcessId) { $procesos += $servidores }
+    $pidAntivirus = [int](Get-Content -TotalCount 1 -LiteralPath (Join-Path $datos 'antivirus.pid'))
+    $procesos += @($todos | Where-Object { $_.ExecutablePath -eq ($letra + '\clamav\clamd.exe') -and $_.ProcessId -eq $pidAntivirus })
 }
 foreach ($nombre in 'postgres.exe','clamd.exe','mailpit.exe','java.exe','node.exe') {
     if (!($procesos | Where-Object Name -eq $nombre)) { throw "Falta el proceso nativo $nombre." }

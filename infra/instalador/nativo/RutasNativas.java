@@ -14,27 +14,27 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 /**
  * PostgreSQL para Windows usa la página ANSI en algunas rutas que también envía como SQL UTF-8
  * (initdb inserta la ruta absoluta de sql_features.txt). SUBST da a sus procesos una vista ASCII
- * de las mismas carpetas del usuario. Windows conserva los datos y ACL en su ubicación original.
+ * de las mismas carpetas del usuario para PostgreSQL y los componentes de ClamAV. Windows conserva los datos y ACL en su ubicación original.
  * Solo se usan desde el panel que tiene el bloqueo exclusivo de esta demo.
  */
-final class RutasPostgres implements AutoCloseable {
+final class RutasNativas implements AutoCloseable {
     final Path programa;
     final Path datos;
     private final List<Unidad> propias;
     private record Unidad(Path raiz, Path destino, Path marca) {}
 
-    private RutasPostgres(Path programa, Path datos, List<Unidad> propias) {
+    private RutasNativas(Path programa, Path datos, List<Unidad> propias) {
         this.programa = programa;
         this.datos = datos;
         this.propias = propias;
     }
 
-    static RutasPostgres abrir(Path programa, Path datos) throws Exception {
+    static RutasNativas abrir(Path programa, Path datos) throws Exception {
         var propias = new ArrayList<Unidad>();
         try {
             Path pg = compatible(programa, datos.resolve("unidad-postgres-programa.txt"), propias);
             Path db = compatible(datos, datos.resolve("unidad-postgres-datos.txt"), propias);
-            return new RutasPostgres(pg, db, propias);
+            return new RutasNativas(pg, db, propias);
         } catch (Exception error) {
             for (Unidad unidad : propias) {
                 try { quitar(unidad); } catch (Exception cierre) { error.addSuppressed(cierre); }
@@ -77,12 +77,12 @@ final class RutasPostgres implements AutoCloseable {
             if (subst(nombre, destino.toString()) != 0) continue;
             var unidad = new Unidad(raiz, destino, marca);
             if (!mismoDestino(unidad))
-                throw new IOException("Windows no pudo comprobar la unidad temporal " + nombre + " de PostgreSQL.");
+                throw new IOException("Windows no pudo comprobar la unidad temporal " + nombre + " de la demo.");
             propias.add(unidad);
             return raiz;
         }
         Files.deleteIfExists(marca);
-        throw new IOException("PostgreSQL necesita una letra de unidad libre para usar esta carpeta. Liberá una letra y volvé a abrir la demo.");
+        throw new IOException("La demo necesita una letra de unidad libre para usar esta carpeta. Liberá una letra y volvé a abrir la demo.");
     }
 
     private static boolean mismoDestino(Unidad unidad) throws IOException {
@@ -96,7 +96,7 @@ final class RutasPostgres implements AutoCloseable {
                 .redirectOutput(ProcessBuilder.Redirect.DISCARD).redirectError(ProcessBuilder.Redirect.DISCARD).start();
         try {
             if (!p.waitFor(8, TimeUnit.SECONDS))
-                throw new IOException("Windows no respondió al preparar la unidad temporal para PostgreSQL.");
+                throw new IOException("Windows no respondió al preparar la unidad temporal para la demo.");
             return p.exitValue();
         } finally { if (p.isAlive()) p.destroyForcibly(); }
     }
