@@ -120,14 +120,30 @@ test(
       await page.waitForURL((u) => !u.pathname.endsWith("/acceso"));
       await closed();
     }
+    async function startFull() {
+      await expect(start()).toBeEnabled();
+      await start().press("Enter");
+      const choices = panel().locator(".tutorial-choice strong");
+      await expect(choices).toHaveText(["Tutorial del lado administrador","Tutorial del lado cliente","Tutorial de flujo completo"]);
+      await panel().getByRole("button",{name:/Tutorial de flujo completo/}).press("Enter");
+    }
     async function manualRole(role) {
+      const headerButton=page.getByRole("button",{name:"Cambiar rol",exact:true});
+      if (await headerButton.isDisabled()) {
+        // Salir por el selector conserva el recorrido abierto en la base.
+        await page.getByRole("button",{name:"Ir al tutorial",exact:true}).click();
+        await panel().getByRole("button",{name:"Cerrar",exact:true}).click();
+      }
       await page.getByRole("button", { name: "Cambiar rol", exact: true }).click();
       await page.waitForURL(/\/acceso$/);
       await login(role);
     }
     async function change(role) {
+      const control=page.locator("[data-tutorial-cambiar-rol]");
+      await expect(control).toBeDisabled();
+      await anchored(control);
       await card()
-        .getByRole("button", { name: "Confirmar cambio a " + role })
+        .getByRole("button", { name: "Continuar como " + role })
         .click();
       await page.waitForURL((url) =>
         url.pathname.startsWith(
@@ -138,6 +154,7 @@ test(
               : "/administracion",
         ),
       );
+      assert.equal((await (await page.request.get(root+"/api/auth/me")).json()).rol, role==="Administrador"?"ADMIN_ADMIN":role.toUpperCase());
       await expect(panel()).toBeVisible();
       await checkMenu();
     }
@@ -183,7 +200,7 @@ test(
       await expect(page.getByRole("button", { name: /Configurar PDF 1/ })).toBeEnabled({ timeout: 90000 });
       assert.equal((await check()).preparacion, null);
       await manualRole("Administrador");
-      await start().press("Enter");
+      await startFull();
       await expect(page).toHaveURL(/\/administracion\/catalogo#revision-comercial$/);
       const nav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
       await expect(nav).toBeVisible();
@@ -206,7 +223,7 @@ test(
       await page.goto(root + "/administracion");
       await page.setViewportSize({ width: 390, height: 845 });
       await closed();
-      await start().press("Enter");
+      await startFull();
       await expect(page).toHaveURL(/catalogo#revision-comercial/);
       await anchored(prices);
       await expect(confirm).toBeInViewport({ ratio: 1 });
@@ -217,9 +234,16 @@ test(
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
       await confirm.press("Enter");
       await done("tarifa");
-      await page.setViewportSize({ width: 1440, height: 960 });
-      await next();
+      const before = await check();
+      // Una lectura desactualizada de sesión no permite avanzar ni saltar el archivo.
+      await page.route("**/api/auth/me", async route => {
+        await route.fulfill({json:{rol:"ADMIN_ADMIN"}});
+      },{times:1});
+      await card().getByRole("button",{name:"Continuar como Cliente",exact:true}).click();
+      await expect(card()).toContainText(/no pudimos comprobar el cambio/i);
+      assert.equal((await check()).paso,before.paso);
       await change("Cliente");
+      await page.setViewportSize({ width: 1440, height: 960 });
     });
     await stage("archivo y presupuesto", async () => {
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
@@ -276,7 +300,7 @@ test(
       await expect(existingPreparation).toContainText(path.basename(testPdf));
       await expect(area.getByLabel("Copias", { exact: true })).toHaveValue("1");
       assert.deepEqual((await check()).borradores, saved.borradores);
-      await start().click();
+      await startFull();
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       await expect(area.getByLabel("Copias", { exact: true })).toHaveValue("3");
       await page.setViewportSize({ width: 1440, height: 960 });
@@ -352,9 +376,8 @@ test(
       for (const key of ["estado", "paso", "completados", "preparacion", "cotizacion", "pedido", "borradores"]) {
         assert.deepEqual(after[key], saved[key], "El pedido normal debe dejar intacto " + key);
       }
-      await start().press("Enter");
+      await startFull();
       await expect(page).toHaveURL(new RegExp("/cliente/pedidos/" + guidedOrder));
-      await next();
       await change("Empleado");
     });
     await stage("cobro", async () => {
@@ -548,7 +571,7 @@ test(
       assert.equal(final.completados.length, 9);
       await close.click();
       await closed();
-      await start().press("Enter");
+      await startFull();
       await expect(card().getByRole("heading", { name: "Pedido completado" })).toBeVisible();
       t.diagnostic(
         "Pedido de práctica " + final.pedido + " completado en los tres roles.",

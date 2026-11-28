@@ -90,7 +90,7 @@
 
 .branch-day .branch-copy-hours{grid-column:1/-1;justify-self:start;max-width:100%;white-space:normal;text-align:left;min-height:40px}.branch-copy-notice{margin:0;color:var(--navy);font-size:14px;line-height:1.6}.branch-copy-notice:empty{display:none}@media(max-width:600px){.branch-day .branch-copy-hours{justify-self:stretch;text-align:center}}
 
-.branch-code-field{display:flex;flex-direction:column;gap:9px;min-width:0}.branch-code-control{position:relative}.identity-form .branch-code-control>input,.admin-form .branch-code-control>input{padding-right:48px}.branch-code-info{position:absolute;right:5px;top:3px;width:40px;height:40px;display:grid;place-items:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--navy);cursor:help}.branch-code-info:hover,.branch-code-info[aria-expanded=true]{background:var(--ui-info-bg,#edf5ff)}.branch-code-tooltip{position:absolute;z-index:20;top:100%;left:0;width:100%;box-sizing:border-box;padding:15px;border:1px solid var(--ui-border,#bacddd);border-radius:9px;background:var(--ui-surface,#fff);color:var(--ink);box-shadow:0 8px 24px var(--ui-shadow,#092d4c26);font-size:13px;line-height:1.55;font-weight:400;overflow-wrap:anywhere}.branch-code-tooltip[hidden]{display:none}.branch-code-tooltip p{margin:10px 0 0;font-size:13px;line-height:1.55}.branch-code-tooltip code{white-space:nowrap;color:var(--navy);font-size:12px}
+.branch-code-field{display:flex;flex-direction:column;gap:9px;min-width:0}.branch-code-control{position:relative}.identity-form .branch-code-control>input,.admin-form .branch-code-control>input{padding-inline:48px}.branch-code-info{position:absolute;right:5px;top:3px;width:40px;height:40px;display:grid;place-items:center;padding:0;border:0;border-radius:6px;background:transparent;color:var(--navy);cursor:help}.branch-code-info:hover,.branch-code-info[aria-expanded=true]{background:var(--ui-info-bg,#edf5ff)}.branch-code-tooltip{position:absolute;z-index:20;top:100%;left:0;width:100%;box-sizing:border-box;padding:15px;border:1px solid var(--ui-border,#bacddd);border-radius:9px;background:var(--ui-surface,#fff);color:var(--ink);box-shadow:0 8px 24px var(--ui-shadow,#092d4c26);font-size:13px;line-height:1.55;font-weight:400;overflow-wrap:anywhere}.branch-code-tooltip[hidden]{display:none}.branch-code-tooltip p{margin:10px 0 0;font-size:13px;line-height:1.55}.branch-code-tooltip code{white-space:nowrap;color:var(--navy);font-size:12px}
 
 .entorno-aviso {padding: .65rem 1rem; background: #fff0ca; color: #47371b; border-bottom: 1px solid #cba35c; font-size: .9rem; text-align: center;}
 .support-page {max-width: 850px; margin: 2rem auto; padding: 1.5rem; line-height: 1.6;}
@@ -101,3 +101,30 @@
 .support-page button {padding: .7rem 1rem; cursor: pointer; font: inherit;}
 
 .demo-acceso-bloqueado{max-width:44rem;margin:clamp(3rem,12vh,9rem) auto;padding:0 1.5rem}.demo-acceso-bloqueado h1{line-height:1.15}.demo-acceso-bloqueado p{line-height:1.6;overflow-wrap:anywhere}
+
+/* Alineación de los formularios de la demo, incluidos los que abren en un diálogo. */
+:is(.admin-content, .client-content, .support-page, dialog) form,
+form.identity-form {
+  margin-inline: auto;
+}
+:is(.admin-content, .client-content, .identity-form, .support-page, dialog)
+  :is(label, legend, textarea, select, input:not([type=checkbox], [type=radio], [type=file], [type=color], [type=range])) {
+  text-align: center;
+}
+:is(.admin-content, .client-content, .identity-form, .support-page, dialog)
+  legend {
+  margin-inline: auto;
+}
+:is(.admin-content, .client-content, .identity-form, .support-page, dialog)
+  form label:has(> :is([type=checkbox], [type=radio])) {
+  justify-content: center;
+  text-align: center;
+}
+:is(form.admin-form, form.client-form, form.identity-form, .workspace-preferences, .workspace-confirm, .support-page form)
+  :is(.form-actions, .admin-actions, .client-actions, .form-buttons) {
+  justify-content: center;
+}
+:is(form.admin-form, form.client-form, form.identity-form, .workspace-preferences, .workspace-confirm, .support-page form)
+  :is(h2, h3, p, .form-message, [role=alert]):not(table *) {
+  text-align: center;
+}

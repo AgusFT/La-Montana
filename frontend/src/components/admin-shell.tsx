@@ -28,6 +28,7 @@
  */
 //#endregion
 
+import {RoleTutorialProvider} from "./role-tutorial-context";
 import {TutorialProvider} from "./tutorial-context";
 import {TutorialButton,TutorialPanel} from "./demo-tutorial";
 import {NavigationBoundary} from "./navigation-boundary";
@@ -45,7 +46,7 @@ function AdminIcon({ kind }: { kind: "home" | "catalog" | "people" | "branch" | 
 }
 export async function AdminShell({ title, description, name, children, active="catalogo", userRole="Administración", administration=true }: { title:string; description:string; name:string; userRole?:string; administration?:boolean; children:React.ReactNode; active?:"web"|"dashboard"|"catalogo"|"configuracion"|"puntos"|"operacion"|"sucursales"|"empleados"|"cupos"|"riders" }) {
   const preparation=administration?await getPreparation():null;
-  return <TutorialProvider role={administration?"ADMIN_ADMIN":"EMPLEADO"}><InstallationProvider initial={preparation} enabled={administration}><NavigationBoundary><div className={`admin-layout${active==="configuracion"?" configuration-mode":""}`}>
+  return <TutorialProvider role={administration?"ADMIN_ADMIN":"EMPLEADO"}><RoleTutorialProvider><InstallationProvider initial={preparation} enabled={administration}><NavigationBoundary><div className={`admin-layout${active==="configuracion"?" configuration-mode":""}`}>
     <aside className="admin-sidebar"><a href={administration?"/administracion":"/operacion"} className="admin-brand"><MountainMark sun/><span>La Montaña<small>IMPRESIONES</small></span></a><p className="admin-nav-label">{administration?"ADMINISTRACIÓN":"OPERACIÓN"}</p>
       <TutorialButton/>
       <nav aria-label={administration?"Navegación administrativa":"Navegación operativa"}>
@@ -69,5 +70,5 @@ export async function AdminShell({ title, description, name, children, active="c
     <div className="admin-main"><header className="admin-topbar"><span>{administration?"Administración de la imprenta":"Operación de sucursal"}</span><div className="admin-user"><span className="admin-avatar" aria-hidden="true">{name.slice(0,1).toUpperCase()}</span><div><strong>{name}</strong><small>{userRole}</small></div><LogoutButton/></div></header>
       <main className="admin-content"><p className="admin-breadcrumb"><a href={administration?"/administracion":"/operacion"}>{administration?"Administración":"Operación"}</a><span aria-hidden="true">›</span>{title}</p><div className="admin-title"><AdminIcon kind="catalog"/><div><h1>{title}</h1><p>{description}</p></div></div><InstallationGate area={active}>{children}</InstallationGate></main>
     </div>
-  </div></NavigationBoundary></InstallationProvider></TutorialProvider>;
+  </div></NavigationBoundary></InstallationProvider></RoleTutorialProvider></TutorialProvider>;
 }

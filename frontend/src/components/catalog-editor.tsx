@@ -59,6 +59,7 @@ import {seedRates,expandRates,rateName,type RateDraft} from "@/lib/catalog-rate-
 import {useNavigationGuard} from "@/components/navigation-boundary";
 import {CatalogRateSummary} from "@/components/catalog-rate-summary";
 import {CatalogRateEditor} from "@/components/catalog-rate-editor";
+import {TutorialTarifa} from "./tutorial-tarifa";
 import {CatalogOfferSummary} from "@/components/catalog-offer-summary";
 import {seedOffers,offerSignature,validateOffer,type OfferDraft,type PairDraft} from "@/lib/catalog-offer-draft";
 function rateSignature(rate:RateDraft){const {id,nombrePersonalizado,papeles,...fields}=rate;return JSON.stringify({...fields,papeles:papeles.map(paperKey).sort()});}
@@ -72,6 +73,7 @@ export function CatalogEditor({catalog,onSaved,tourActive=false,activeBlock="imp
   const [base,setBase]=useState(catalog.actual?.codigoPublico??null),[baseNumber,setBaseNumber]=useState(catalog.actual?.numero??null),[reason,setReason]=useState("");
   const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[conflict,setConflict]=useState(false),[message,setMessage]=useState(""),[saved,setSaved]=useState<CatalogRevision|null>(null);
   const [scheduled,setScheduled]=useState(false),[scheduledFor,setScheduledFor]=useState("");
+  const [practicePublication,setPracticePublication]=useState(false);
   const [comparison,setComparison]=useState<CatalogState|null>(null),[checking,setChecking]=useState(false);
   const pending=useRef<NewRevision|null>(null);
   const guide=useInstallation(),firstSetup=guide.enabled&&!guide.data?.activa;
@@ -127,12 +129,13 @@ export function CatalogEditor({catalog,onSaved,tourActive=false,activeBlock="imp
   }
   async function save(event?:FormEvent<HTMLFormElement>){
     event?.preventDefault();if(busy)return;
+    if(practicePublication&&!pending.current&&!window.confirm("¿Confirmás publicar el precio del ejercicio para las próximas cotizaciones de la imprenta, según la vigencia elegida?"))return;
     setMessage("");setSaved(null);setPrepared("");setBusy(true);
     try{
       if(!pending.current)pending.current=payload();
       const response=await secureMutation("/api/admin/catalogo/revisiones",JSON.stringify(pending.current),"application/json");
       const data:unknown=await response.json();if(!isCatalogRevision(data))throw new Error("No pudimos confirmar la configuración recibida.");
-      pending.current=null;setUncertain(false);setConflict(data.estado!=="VIGENTE"&&data.estado!=="PROGRAMADA");setComparison(null);if(data.estado==="VIGENTE"){setBase(data.codigoPublico);setBaseNumber(data.numero);}setReason("");setRates(seedRates(data));setOffers(seedOffers(data));setBaseline(data);setEditingOffer(null);setOfferError("");setEditingRate(null);setRateError("");setSaved(data);onSaved(data);
+      pending.current=null;setPracticePublication(false);setUncertain(false);setConflict(data.estado!=="VIGENTE"&&data.estado!=="PROGRAMADA");setComparison(null);if(data.estado==="VIGENTE"){setBase(data.codigoPublico);setBaseNumber(data.numero);}setReason("");setRates(seedRates(data));setOffers(seedOffers(data));setBaseline(data);setEditingOffer(null);setOfferError("");setEditingRate(null);setRateError("");setSaved(data);onSaved(data);
     }catch(error){
       setMessage(error instanceof Error?catalogConfigurationText(error.message):"No pudimos guardar la configuración.");
       if(error instanceof MutationError&&!error.uncertain){pending.current=null;setUncertain(false);setConflict(error.status===409);}
@@ -145,7 +148,14 @@ export function CatalogEditor({catalog,onSaved,tourActive=false,activeBlock="imp
   const catalogServices=catalog.servicios.filter(s=>s.activo);
   const offeredCount=catalogServices.filter(s=>offers.some(o=>o.id!==editingOffer?.id&&o.servicio===s.codigoPublico&&o.habilitado)).length;
   function paperLabel(formato:string,papel:string){const f=catalog.formatos.find(f=>f.codigoPublico===formato),p=catalog.papeles.find(p=>p.codigoPublico===papel);return `${f?.nombre??"Formato"} · ${p?.gramaje??"?"} g · ${p?.terminacion??"Papel"}`;}
-  return <section id="revision-comercial" className="pricing-editor"><form onSubmit={save} className="admin-form">
+  const canTransfer=!locked&&!conflict&&!dirty&&!reason&&!scheduled&&base===catalog.actual?.codigoPublico;
+  function preparePublication(id:string,price:string){
+    if(!canTransfer || !rates.some(row=>row.id===id))return;
+    changeRate(id,{precio:price});setPracticePublication(true);
+    requestAnimationFrame(()=>document.getElementById("catalog-reason")?.focus());
+  }
+  return <section id="revision-comercial" className="pricing-editor"><TutorialTarifa catalog={catalog} onTransfer={preparePublication} canTransfer={canTransfer}/>
+    <form onSubmit={save} className="admin-form">
     <div className="catalog-editor-heading"><div><h2>Tarifas y servicios</h2><p>{baseNumber===null?"Todavía no hay precios vigentes. Prepará las tarifas y los servicios y guardá la primera configuración.":dirty?`Tenés cambios pendientes sobre la configuración ${baseNumber}. Los precios vigentes se conservan hasta guardar.`:baseline?.estado==="PROGRAMADA"?"Estos precios están guardados y programados; se aplicarán en la fecha elegida.":`Configuración vigente ${baseNumber}. Las tarifas y servicios ya están aplicados. Usá Editar sólo si querés cambiarlos.`}</p></div><span className="pricing-currency">ARS · Pesos argentinos</span></div>
     <div className="pricing-guide"><strong>Configurá en este orden</strong><ol><li><b>1. Tarifas de impresión</b><span>Si ofrecés Impresión, elegí B/N o Color y los papeles cotizados.</span></li><li><b>2. Tarifas de servicios</b><span>Elegí qué otros trabajos ofrecer y configurá sus precios.</span></li><li><b>3. Publicación</b><span>Guardá la configuración completa para aplicar los cambios.</span></li></ol><p>Los servicios creados en Catálogo base pueden permanecer sin ofrecer. Los precios se muestran en ARS.</p></div>
     {dirty&&!locked&&<div className="admin-warning catalog-pending-publication" role="status"><div><strong>Tenés cambios pendientes de publicar</strong><p>Tus tarifas y servicios están preparados en el borrador. Guardá una nueva configuración para aplicarlos.</p></div><button type="button" className="admin-button" onClick={()=>document.getElementById("tariff-tour-publish")?.scrollIntoView({behavior:"smooth",block:"center"})}>Ir a Guardar nueva configuración ↓</button></div>}

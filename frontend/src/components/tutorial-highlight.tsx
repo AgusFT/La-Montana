@@ -244,9 +244,10 @@ export function TutorialHighlight({
         right: left + (viewport?.width ?? innerWidth),
         bottom: top + (viewport?.height ?? innerHeight),
       };
-      const surface = dialog ?? main;
-      const bounds = intersect(screen, surface.getBoundingClientRect());
       const element = selector ? visibleTarget(selector) : undefined;
+      const sidebar = element?.closest(".admin-sidebar,.client-sidebar");
+      const bounds = dialog ? intersect(screen, dialog.getBoundingClientRect())
+        : sidebar ? intersect(screen, sidebar.getBoundingClientRect()) : intersect(screen, main.getBoundingClientRect());
       const rect = element?.getBoundingClientRect();
       if (element && element !== previousTarget) {
         first = true;
@@ -280,7 +281,7 @@ export function TutorialHighlight({
       }
       // Un diálogo nativo queda en la capa superior del navegador. La ayuda se monta
       // dentro de él y puede ocupar el espacio libre de la pantalla a sus lados.
-      const area = box(dialog ? screen : bounds);
+      const area = box(dialog || sidebar ? screen : bounds);
       let clipped = rect && intersect(rect, bounds);
       // Un grupo de casillas puede ser más alto que la pantalla con zoom o con
       // el teclado abierto. Guiar la primera casilla pendiente deja espacio para leer.
@@ -353,6 +354,8 @@ export function TutorialHighlight({
     resizeContent.current = schedule;
     // El PDF rasterizado puede desplazar el paginador sin cambiar el tamaño del botón.
     document.addEventListener("load", schedule, true);
+    document.addEventListener("input", schedule, true);
+    document.addEventListener("change", schedule, true);
     window.addEventListener("scroll", schedule, true);
     const onResize = () => {
       // Un cambio de ancho puede mover la columna de trabajo debajo del menú.
@@ -374,6 +377,8 @@ export function TutorialHighlight({
       resize.disconnect();
       describe();
       document.removeEventListener("load", schedule, true);
+      document.removeEventListener("input", schedule, true);
+      document.removeEventListener("change", schedule, true);
       window.removeEventListener("scroll", schedule, true);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", schedule);
@@ -440,7 +445,7 @@ export function TutorialHighlight({
             aria-controls="tutorial-explicacion"
             onClick={() => setCompact(!compact)}
           >
-            {compact ? "Mostrar explicación" : "Plegar"}
+            {compact ? "Mostrar explicación" : "Minimizar"}
           </button>
           <div id="tutorial-explicacion" hidden={compact}>
             {children}

@@ -10,7 +10,14 @@ import {
   TutorialHighlight,
   visibleTarget,
 } from "./tutorial-highlight";
-import { secureMutation } from "@/lib/secure-mutation";
+import { switchTutorialRole } from "@/lib/tutorial-cambio-rol";
+import {
+  GuideSelector,
+  ChooseAnotherGuide,
+  RolePrompt,
+  RoleGuidePanel,
+} from "./tutorial-selector";
+import { useRoleStore } from "./role-tutorial-context";
 import {
   firstRequired,
   lessons,
@@ -35,35 +42,26 @@ function canGuide(step: Step, role: Role) {
 }
 export function TutorialButton() {
   const api = useTutorial(),
-    [busy, setBusy] = useState(false);
+    store = useRoleStore();
+  const [busy, setBusy] = useState(false),
+    [message, setMessage] = useState("");
   if (!api?.available) return null;
   const state = api.state;
   async function open() {
     if (!api || busy) return;
     setBusy(true);
+    setMessage("");
     try {
-      if (!state) {
-        await api.refresh();
-        return;
-      }
-      const progress =
-        state.estado === "NUEVO" || state.estado === "PAUSADO"
-          ? await api.command({
-              accion: state.estado === "NUEVO" ? "iniciar" : "retomar",
-            })
-          : state;
+      await store?.flush();
+      await api.flush();
+      api.choose(null);
       api.setOpen(true);
-      if (progress.estado === "ACTIVO" && canGuide(progress.paso, api.role)) {
-        const path = tutorialPath(progress.paso, progress, api.role);
-        if (!matchesRoute(path)) {
-          await api.flush();
-          location.assign(path);
-        }
-      }
-      window.dispatchEvent(new Event("demo:tutorial:abrir"));
-      focusGuide();
-    } catch {
-      /* El mensaje visible permite reintentar. */
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No pudimos recuperar el tutorial.",
+      );
     } finally {
       setBusy(false);
     }
@@ -74,19 +72,15 @@ export function TutorialButton() {
         type="button"
         className="tutorial-start"
         disabled={busy || (!state && !api.error)}
-        aria-expanded={api.open}
+        aria-expanded={api.guideOpen}
         aria-controls="tutorial-panel"
         onClick={() => void open()}
       >
-        {!state && api.error
-          ? "Reintentar carga del tutorial"
-          : api.open
-            ? "Ir al tutorial"
-            : "Empezar tutorial"}
+        {api.guideOpen ? "Ir al tutorial" : "Empezar tutorial"}
       </button>
-      {api.error && !api.open && (
+      {(message || api.error) && !api.guideOpen && (
         <span className="tutorial-start-error" role="alert">
-          {api.error}
+          {message || api.error}
         </span>
       )}
     </>
@@ -100,6 +94,15 @@ function matchesRoute(path: string) {
   );
 }
 export function TutorialPanel() {
+  const api = useTutorial();
+  if (!api?.guideOpen) return null;
+  if (!api.guide) return <GuideSelector />;
+  if (api.guide !== "completo")
+    return <RoleGuidePanel key={api.guide} guide={api.guide} />;
+  return <FullTutorialPanel />;
+}
+
+function FullTutorialPanel() {
   const pathname = usePathname();
   const api = useTutorial(),
     state = api?.state,
@@ -112,6 +115,7 @@ export function TutorialPanel() {
     [navigation, setNavigation] = useState(0),
     [rateViewed, setRateViewed] = useState(false);
   const startLock = useRef(false);
+  const [deferredStep, setDeferredStep] = useState<Step | null>(null);
   useEffect(() => {
     const compact = matchMedia("(max-width: 1080px)");
     const resetIndex = () => setIndex(false);
@@ -310,6 +314,13 @@ export function TutorialPanel() {
   async function select(requested: Step) {
     await work(async () => {
       const needed = firstRequired(requested, state!.completados);
+      if (role && !canGuide(needed, role)) {
+        setDeferredStep(needed);
+        setSwitchTo(lessons[needed].role);
+        setIndex(false);
+        return;
+      }
+      setDeferredStep(null);
       const result = await api!.command({ accion: "ir", paso: needed });
       const actual = result.paso;
       setIndex(false);
@@ -333,14 +344,13 @@ export function TutorialPanel() {
   }
   async function changeRole(next: Role) {
     await work(async () => {
-      await secureMutation(
-        "/api/demo/sesion",
-        JSON.stringify({
-          rol: next === "ADMIN_ADMIN" ? "ADMINISTRADOR" : next,
-        }),
-        "application/json",
-      );
-      location.replace(tutorialPath(step, state!, next));
+      await switchTutorialRole(next);
+      const destination = deferredStep ?? automaticHandoff ?? step;
+      const progress =
+        destination === step
+          ? state!
+          : await api!.command({ accion: "ir", paso: destination });
+      location.replace(tutorialPath(progress.paso, progress, next));
     });
   }
   function chooseHint(number: number) {
@@ -365,13 +375,17 @@ export function TutorialPanel() {
     });
   }
   const complete = state.estado === "COMPLETO";
-  const needsRole = !!switchTo || !capable;
-  const guiding = !complete && !needsRole && here && !done;
   const next = steps[stepNumber];
+  const automaticHandoff =
+    !complete && done && next && capable && !canGuide(next, role) ? next : null;
+  const handoffStep = deferredStep ?? automaticHandoff ?? step;
+  const destinationRole = switchTo ?? lessons[handoffStep].role;
+  const needsRole = !!switchTo || !capable || !!automaticHandoff;
+  const guiding = !complete && !needsRole && here && !done;
   const heading = complete
     ? "Pedido completado"
     : needsRole
-      ? `Continuar como ${roleNames[switchTo ?? lesson.role]}`
+      ? `Continuar como ${roleNames[destinationRole]}`
       : done || !here
         ? lesson.title
         : (currentHint?.title ?? lesson.title);
@@ -383,6 +397,7 @@ export function TutorialPanel() {
         className="tutorial-panel"
         aria-label="Tutorial interactivo"
       >
+        <ChooseAnotherGuide />
         <header>
           <h2>Recorrido del pedido</h2>
           <button
@@ -471,7 +486,13 @@ export function TutorialPanel() {
       </aside>
       {!index && (
         <TutorialHighlight
-          selector={guiding ? currentHint?.selector : undefined}
+          selector={
+            needsRole && !complete
+              ? "[data-tutorial-cambiar-rol]"
+              : guiding
+                ? currentHint?.selector
+                : undefined
+          }
           anchorKey={`${step}-${role}-${hintNumber}-${heading}-${navigation}`}
         >
           <header className="tutorial-card-header">
@@ -522,22 +543,28 @@ export function TutorialPanel() {
             </>
           ) : needsRole ? (
             <>
-              <p>{lesson.intro}</p>
-              <p>
-                Al confirmar abrís la vista de{" "}
-                {roleNames[switchTo ?? lesson.role]} para seguir con este mismo
-                pedido.
-              </p>
-              <button
-                type="button"
-                className="tutorial-next"
-                disabled={busy}
-                onClick={() => void changeRole(switchTo ?? lesson.role)}
-              >
-                Confirmar cambio a {roleNames[switchTo ?? lesson.role]}
-              </button>
+              <RolePrompt
+                next={destinationRole}
+                busy={busy}
+                reason={
+                  handoffStep !== step && done
+                    ? lesson.result + " " + lessons[handoffStep].intro
+                    : step === "entrega"
+                      ? destinationRole === "CLIENTE"
+                        ? "El cliente es quien recibe el código del pedido. Abrí su cuenta para obtenerlo."
+                        : "El personal de la imprenta valida el código presentado por el cliente y registra la entrega."
+                      : lessons[handoffStep].intro
+                }
+                onConfirm={() => void changeRole(destinationRole)}
+              />
               {switchTo && capable && (
-                <button type="button" onClick={() => setSwitchTo(null)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSwitchTo(null);
+                    setDeferredStep(null);
+                  }}
+                >
                   Seguir en mi rol
                 </button>
               )}

@@ -228,3 +228,26 @@
     transition: none;
   }
 }
+
+.tutorial-panel .tutorial-choice {
+  display: grid;
+  gap: .35rem;
+  width: 100%;
+  padding: .8rem;
+  margin-top: .65rem;
+  border: 1px solid var(--ui-border, #b9cec6);
+  border-radius: .55rem;
+}
+.tutorial-choice strong { color: var(--ui-text, #173e34); }
+.tutorial-choice span, .tutorial-choice small { font-size: .86rem; }
+.tutorial-choice:hover, .tutorial-choice:focus-visible { background: var(--ui-surface-muted, #e5f2ed); }
+.tutorial-panel .tutorial-back { margin-bottom: .55rem; text-decoration: underline; border: 0; padding: .25rem 0; }
+[data-tutorial-cambiar-rol]:disabled { opacity: .82; cursor: default; }
+
+/* La carga de un pedido puede desplazar la ficha hacia su sección. Durante el
+   relevo, el botón real del encabezado acompaña el cuadro que explica el cambio. */
+body:has([data-tutorial-role-prompt]) :is(.admin-topbar,.client-top) {
+  position: sticky;
+  top: 0;
+  z-index: 23;
+}

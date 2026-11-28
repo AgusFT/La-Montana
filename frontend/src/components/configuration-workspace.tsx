@@ -54,7 +54,8 @@ import {useNavigationGuard,useConfirmNavigation} from "@/components/navigation-b
 import {ConfigurationHelp} from "@/components/configuration-help";
 import {ConfigurationTour} from "@/components/configuration-tour";
 import {ConfigurationHistory} from "@/components/configuration-history";
-import {useRef,useState,type FormEvent} from "react";
+import {useEffect,useRef,useState,type FormEvent} from "react";
+import {useRoleTutorial} from "./role-tutorial-context";
 import {ConfigurationZones} from "@/components/configuration-zones";
 import {ConfigurationSchedulePanel} from "@/components/configuration-schedule-panel";
 import {ConfigurationActivation} from "@/components/configuration-activation";
@@ -86,6 +87,36 @@ export function ConfigurationWorkspace({initial,initialPhase=1,tourOwner}:{initi
   const firstSetup=guide.enabled&&!active&&!guide.data?.activa,phaseLimit=firstSetup?(guide.data?.guia.faseDisponible??1):8;
   const checkingProgress=firstSetup&&(guide.loading||guide.error||!!draft&&guide.data?.guia.versionBorrador!==draft.version);
   const modelDirty=model!==(draft?.modelo??"")||(model==="CONDICIONAL"?criterion:"")!==(draft?.criterio??"");
+  const tutorial=useRoleTutorial("administrador");
+  const practicing=tutorial?.lesson==="configurador";
+  const lastPractice=useRef<string|null>(null);
+  const [practiceError,setPracticeError]=useState("");
+  useEffect(()=>{
+    if(!practicing){lastPractice.current=null;return;}
+    if(!tutorial || locked || checkingProgress)return;
+    const current=JSON.stringify({id:draft?.codigoPublico??"",version:draft?.version??0,fase:phase,modelo:model,criterio:criterion});
+    if(lastPractice.current===null){
+      lastPractice.current=current;
+      try{
+        const saved=JSON.parse(tutorial.draft.fase??"null");
+        if(!saved || !draft || saved.id!==draft.codigoPublico || saved.version!==draft.version)return;
+        const restored=saved.fase===7?6:saved.fase;
+        if(Number.isInteger(restored)&&restored>=1&&restored<=8&&restored!==phase){
+          const button=document.querySelector<HTMLButtonElement>(`#config-tour-phases nav button:nth-child(${restored})`);
+          if(!button || button.disabled)return;
+          button.click();
+        }
+        if(restored===2 && Object.hasOwn(modelLabels,saved.modelo)){
+          setModel(saved.modelo);
+          setCriterion(Object.hasOwn(criterionLabels,saved.criterio)?saved.criterio:"");
+        }
+      }catch{ /* Un registro de una versión anterior se reanuda en la fase vigente. */ }
+      return;
+    }
+    if(lastPractice.current===current)return;
+    lastPractice.current=current;
+    void tutorial.saveDraft({fase:current}).then(()=>setPracticeError("")).catch(()=>setPracticeError("No se pudo conservar la fase del tutorial. Los cambios confirmados siguen en el borrador del Configurador."));
+  },[practicing,tutorial,locked,checkingProgress,draft?.codigoPublico,draft?.version,phase,model,criterion]);
   useNavigationGuard({dirty:phase===2&&modelDirty,blocked:locked});
   const confirmNavigation=useConfirmNavigation();
   function paymentsSaved(data:ConfigurationDraft){if(data.estado==="CANCELADA"){void cancelled(data);return;}loadDraft(data);setPhase(data.modelo?3:2);setMessage("");setSuccess("Pagos y reglas guardados en el borrador. Todavía no están activos.");}
@@ -123,8 +154,9 @@ export function ConfigurationWorkspace({initial,initialPhase=1,tourOwner}:{initi
     }catch(cause){setMessage(cause instanceof Error?cause.message:"No pudimos consultar la configuración.");}finally{setBusy(false);}
   }
   return <>
+    {practiceError&&practicing&&<p className="admin-warning" role="alert">{practiceError}</p>}
     <p className="admin-info">Configurá la operación paso a paso. Guardá cada formulario para conservar tu avance; al final revisarás y autorizarás la activación. En la primera instalación, los pasos posteriores se habilitan al completar los anteriores. Siempre podés volver a corregir datos guardados.</p>
-    <div className="configuration-layout"><aside id="config-tour-phases" className="configuration-steps"><h2>Flujo de configuración</h2><p>Fase {phase} de 8</p><nav ref={stepNavigation} aria-label="Fases del configurador">{phases.map((label,index)=><button key={label} type="button" aria-current={phase===index+1?"step":undefined} disabled={locked||firstSetup&&index+1>phase&&((index+1>phaseLimit&&!(index===6&&activationReview))||checkingProgress)||(!!draft?.copia&&index>=2&&index<=5&&[2,3,4,5].some(f=>f<=index&&!draft.copia!.fasesConfirmadas.includes(f)))||(index===7&&modelDirty)||(index===6&&!activationReview)||(index===1&&!draft)||(index===2&&(!draft?.modelo||modelDirty))||(index===3&&(!draft?.pagos||modelDirty))||(index===4&&(!draft?.recursos.metodoAsignacion||modelDirty))||(index===5&&(!draft?.recursos.metodoAsignacion||modelDirty||(phase===5&&!reviewReady)))} onClick={()=>index===5?void openReview():navigate(index+1)}><span>{String(index+1).padStart(2,"0")}</span><span>{label}{firstSetup&&index+1>phaseLimit&&index!==6&&<small>Completá la fase anterior</small>}</span></button>)}</nav></aside>
+    <div className="configuration-layout" data-fase={phase}><aside id="config-tour-phases" className="configuration-steps"><h2>Flujo de configuración</h2><p>Fase {phase} de 8</p><nav ref={stepNavigation} aria-label="Fases del configurador">{phases.map((label,index)=><button key={label} type="button" aria-current={phase===index+1?"step":undefined} disabled={locked||firstSetup&&index+1>phase&&((index+1>phaseLimit&&!(index===6&&activationReview))||checkingProgress)||(!!draft?.copia&&index>=2&&index<=5&&[2,3,4,5].some(f=>f<=index&&!draft.copia!.fasesConfirmadas.includes(f)))||(index===7&&modelDirty)||(index===6&&!activationReview)||(index===1&&!draft)||(index===2&&(!draft?.modelo||modelDirty))||(index===3&&(!draft?.pagos||modelDirty))||(index===4&&(!draft?.recursos.metodoAsignacion||modelDirty))||(index===5&&(!draft?.recursos.metodoAsignacion||modelDirty||(phase===5&&!reviewReady)))} onClick={()=>index===5?void openReview():navigate(index+1)}><span>{String(index+1).padStart(2,"0")}</span><span>{label}{firstSetup&&index+1>phaseLimit&&index!==6&&<small>Completá la fase anterior</small>}</span></button>)}</nav></aside>
       <div className="configuration-body"><div id="config-tour-phase-help"><ConfigurationHelp phase={phase}/></div>
         {success&&<SaveNotice>{success}</SaveNotice>}
         {firstSetup&&phase>=2&&phase<=6&&<section className="admin-info installation-step-note"><strong>{checkingProgress?"Comprobando el avance guardado…":phase<phaseLimit?"Esta fase está guardada y sus mínimos están completos.":"Completá esta fase para habilitar la siguiente."}</strong><p>Guardar confirma los datos en el borrador. Continuar se habilita sólo cuando están completos. Las simulaciones son opcionales.</p>{phase===phaseLimit&&!!guide.data?.guia.pendientesFase.length&&<ul>{guide.data.guia.pendientesFase.map((text,i)=><li key={i}>{commercialConfigurationText(text)}</li>)}</ul>}</section>}

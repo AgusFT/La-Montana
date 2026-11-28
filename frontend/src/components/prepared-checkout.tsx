@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useTutorial} from "./tutorial-context";
+import {useRoleTutorial} from "./role-tutorial-context";
 import {TutorialPreparationNotice} from "./tutorial-preparation-notice";
 import {useRouter} from 'next/navigation';
 import {ClientJourney} from './client-journey';
@@ -16,6 +17,8 @@ import {isOrder} from '@/lib/order-types';
 const emptyAddress:Address={calle:'',numero:'',referencias:'',territorio:{codigoPostal:'',localidad:'',provincia:''}};
 export function PreparedCheckout({id}:{id:string}){
  const tutorial=useTutorial(),restored=useRef('');
+ const clientGuide=useRoleTutorial('cliente');
+ const [reviewToOrder,setReviewToOrder]=useState(false);
  const router=useRouter(),[prep,setPrep]=useState<Preparation|null>(null),[view,setView]=useState<Checkout|null>(null),[options,setOptions]=useState<QuoteOptions|null>(null);
  const[mode,setMode]=useState<Mode|''>(''),[destination,setDestination]=useState(''),[payment,setPayment]=useState(''),[address,setAddress]=useState(emptyAddress);
  const[contact,setContact]=useState({receptor:'',telefono:''}),[acceptedHash,setAcceptedHash]=useState<string|null>(null),[busy,setBusy]=useState(false),[fileLocked,setFileLocked]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState(''),[calculated,setCalculated]=useState(''),[failedKey,setFailedKey]=useState('');
@@ -34,11 +37,17 @@ export function PreparedCheckout({id}:{id:string}){
  }
  const attached=isOpenTutorialPreparation(prep,tutorial?.state) && prep?.codigoPublico===id;
  const practicing=tutorial?.open && tutorial.state?.estado==='ACTIVO' && attached;
+ const clientAttached=clientGuide?.draft.preparacion===id;
+ const deciding=clientAttached&&clientGuide?.lesson==='decision';
+ useEffect(()=>{if(!deciding)setReviewToOrder(false);},[deciding]);
+ const draftOwner=clientAttached?'cliente':practicing?'completo':'';
  useEffect(()=>{
-   if(!practicing){restored.current='';return;}
-   if(summaryState!=='ready'||restored.current===id)return;
-   restored.current=id;
-   const saved=tutorial?.state?.borradores.presupuesto,recipient=tutorial?.state?.borradores.confirmacion;
+   if(!draftOwner){restored.current='';return;}
+   const owner=draftOwner+':'+id;
+   if(summaryState!=='ready'||restored.current===owner)return;
+   restored.current=owner;
+   const saved=clientAttached?clientGuide?.draft:tutorial?.state?.borradores.presupuesto;
+   const recipient=clientAttached?clientGuide?.draft:tutorial?.state?.borradores.confirmacion;
    if(saved){
     if(saved.modalidad==='RETIRO_SUCURSAL'||saved.modalidad==='ENVIO_DOMICILIO')setMode(saved.modalidad);
     if(saved.destino!==undefined)setDestination(saved.destino);
@@ -46,8 +55,25 @@ export function PreparedCheckout({id}:{id:string}){
     setAddress(old=>({...old,calle:saved.calle??old.calle,numero:saved.numero??old.numero,referencias:saved.referencias??old.referencias,territorio:{codigoPostal:saved.codigoPostal??old.territorio.codigoPostal,localidad:saved.localidad??old.territorio.localidad,provincia:saved.provincia??old.territorio.provincia}}));
    }
    if(recipient)setContact(old=>({receptor:recipient.receptor??old.receptor,telefono:recipient.telefono??old.telefono}));
- },[practicing,summaryState,id,tutorial?.state?.borradores]);
- function remember(step:'presupuesto'|'confirmacion',values:Record<string,string>){if(practicing)tutorial?.draft(step,values);}
+ },[draftOwner,clientAttached,clientGuide?.draft,summaryState,id,tutorial?.state?.borradores]);
+ function remember(step:'presupuesto'|'confirmacion',values:Record<string,string>){
+   if(clientAttached)void clientGuide?.saveDraft(values).catch(e=>setError(e instanceof Error?e.message:'No pudimos guardar tus opciones de práctica.'));
+   if(practicing)tutorial?.draft(step,values);
+ }
+ async function followOrder(order:string,replace=false){
+   if(clientGuide&&clientAttached){
+     await clientGuide.saveDraft({pedido:order});
+     await clientGuide.goTo('ficha');
+   }else if(replace){router.replace(`/cliente/pedidos/${order}`);}
+   else{router.push(`/cliente/pedidos/${order}`);}
+ }
+ async function keepPreparation(){
+   if(!deciding||!clientGuide||running.current||locked)return;
+   running.current=true;setBusy(true);setError('');
+   try{await clientGuide.goTo('seguimiento');}
+   catch(e){setError(e instanceof Error?e.message:'No pudimos abrir el seguimiento. Tu preparación sigue guardada.');}
+   finally{running.current=false;setBusy(false);}
+ }
  async function load(initial=false){
   const sequence=++readSequence.current;
   setSummaryState('loading');setError('');
@@ -55,7 +81,7 @@ export function PreparedCheckout({id}:{id:string}){
    const data=await quoteRead(`/api/cliente/preparaciones/${id}/resumen`,isCheckout);
    if(sequence!==readSequence.current)return;
    const p=data.preparacion;
-   if(p.pedido){router.replace(`/cliente/pedidos/${p.pedido}`);return;}
+   if(p.pedido){await followOrder(p.pedido,true);return;}
    if(p.presupuesto){
     const o=await quoteRead('/api/cliente/cotizaciones/opciones',isOptions);
     if(sequence!==readSequence.current)return;
@@ -80,7 +106,7 @@ export function PreparedCheckout({id}:{id:string}){
   if(running.current)return;if(command)pending.current=command;if(!pending.current)return;
   const c=pending.current;running.current=true;setBusy(true);setError('');
   try{const r=await secureMutation(`/api/cliente/preparaciones/${id}/${c.kind==='quote'?'cotizar':'confirmar'}`,c.body,'application/json');const result:unknown=await r.json();
-   if(c.kind==='confirm'){if(!isOrder(result))throw new Error('No pudimos comprobar el pedido creado. Recuperá la misma operación.');pending.current=null;setUncertain(false);router.push(`/cliente/pedidos/${result.codigoPublico}`);return;}
+   if(c.kind==='confirm'){if(!isOrder(result))throw new Error('No pudimos comprobar el pedido creado. Recuperá la misma operación.');await followOrder(result.codigoPublico);pending.current=null;setUncertain(false);return;}
    if(!isCheckout(result))throw new Error('No pudimos comprobar el total guardado.');received(result);setCalculated(JSON.stringify(JSON.parse(c.body).preferencias));
    pending.current=null;setUncertain(false);setFailedKey('');
   }catch(e){setError(e instanceof Error?e.message:'No pudimos actualizar el resumen.');const retry=!(e instanceof MutationError)||e.uncertain;setUncertain(retry);if(!retry){pending.current=null;if(c.kind==='quote')setFailedKey(JSON.stringify(JSON.parse(c.body).preferencias));if(e.codigo!=='CUPO_DEMO')setCalculated('');}}
@@ -96,7 +122,8 @@ export function PreparedCheckout({id}:{id:string}){
  const quote=view?.cotizacion,revision=view?.revision,summary=quote&&calculated===prefKey?quote.oferta:null;
  const allAccepted=!!prep?.archivos.length&&prep.archivos.every(f=>f.estado==='VALIDO'&&!!f.aceptadaEn);
  const fresh=summaryState==='ready'&&calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
- async function confirm(e:FormEvent){e.preventDefault();if(locked||!prep||!quote||!fresh||!ack||!allAccepted)return;
+ const mayOrder=!clientAttached||deciding&&reviewToOrder;
+ async function confirm(e:FormEvent){e.preventDefault();if(locked||!mayOrder||!prep||!quote||!fresh||!ack||!allAccepted)return;
   await execute({kind:'confirm',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,cotizacion:quote.codigoPublico,huella:view?.huella,condicionesAceptadas:true,contacto:mode==='ENVIO_DOMICILIO'?contact:null})});
  }
  const budget=prep?.presupuesto;
@@ -117,7 +144,7 @@ export function PreparedCheckout({id}:{id:string}){
       <div className="workspace-budget-items" tabIndex={budget.items.length>2?0:undefined} aria-label="Detalle de los archivos presupuestados">{budget.items.map((item,n)=><article key={item.codigoPublico}><h3>PDF {n+1} · {item.documento.nombre}</h3><p>{item.trabajo.paginas} páginas · {item.trabajo.copias} copia(s) · {item.trabajo.dobleFaz?'Doble faz':'Simple faz'}</p><p>{item.formato} · {item.papel} · {item.trabajo.color==='COLOR'?'Color':'Blanco y negro'}</p><strong>{money(item.precio.subtotal)}</strong><details><summary>Servicios incluidos</summary><p>{item.precio.lineas.filter(l=>l.servicio!==item.trabajo.servicio).map(l=>l.nombre).join(' · ')||'Sin servicios adicionales'}</p></details></article>)}</div>
       {budget.items.length>2&&<p className="workspace-files-footer">Desplazate dentro del listado para consultar los {budget.items.length} archivos.</p>}
      </section>
-     <form id="client-delivery" className="workspace-preferences" onSubmit={e=>{e.preventDefault();if(pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
+     <form id="client-delivery" className="workspace-preferences" data-destino-listo={mode==='RETIRO_SUCURSAL'?!!destination:mode==='ENVIO_DOMICILIO'&&[address.calle,address.numero,...Object.values(address.territorio)].every(s=>s.trim())} data-total-vigente={!!summary&&!!view?.huella} onSubmit={e=>{e.preventDefault();if(pref&&prep)void execute({kind:'quote',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,preferencias:pref})});}}>
       <fieldset disabled={locked||!options?.disponible}>
        <section className="workspace-panel"><h2>Entrega</h2>
         <label>Modalidad<select aria-label="Modalidad" required value={mode} onChange={e=>{setAcceptedHash(null);setMode(e.target.value as Mode);setDestination('');remember('presupuesto',{modalidad:e.target.value,destino:''});}}><option value="">Elegí una modalidad</option>{options?.modalidades.filter(m=>m!=='RETIRO_PUNTO_ENTREGA').map(m=><option key={m} value={m}>{modeLabels[m]}</option>)}</select></label>
@@ -132,7 +159,7 @@ export function PreparedCheckout({id}:{id:string}){
        <div className="workspace-recalculate"><p>{summary?'Entrega y total actualizados. El cupo se reserva al crear el pedido.':busy?'Actualizando entrega y total…':'Elegí entrega y pago. El total se actualizará automáticamente.'}</p><button className="client-button secondary" disabled={!valid}>Actualizar entrega y total</button></div>
       </fieldset>
      </form>
-     <section id="client-review-files" className="workspace-panel"><PreparedFileReview quote={id} version={prep.version} total={prep.archivos.length} accepted={accepted} disabled={locked} onChange={()=>void load()} onLockChange={setFileLocked}/></section>
+     <section id="client-review-files" className="workspace-panel" data-aceptados={allAccepted}><PreparedFileReview quote={id} version={prep.version} total={prep.archivos.length} accepted={accepted} disabled={locked} onChange={()=>void load()} onLockChange={setFileLocked}/></section>
     </div>
     <aside className="workspace-checkout-aside" aria-label="Total y confirmación">
      <section className="workspace-panel workspace-price" aria-live="polite"><h2>{summary?'Total de tu pedido':'Subtotal de tu trabajo'}</h2>
@@ -146,10 +173,16 @@ export function PreparedCheckout({id}:{id:string}){
       </>:<p>{busy?'Recalculando en el servidor…':'Falta elegir entrega y pago para conocer el total final.'}</p>}
      </section>
      <form id="client-create-order" onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>Confirmá tu pedido</h2>
-      {mode==='ENVIO_DOMICILIO'&&<div className="workspace-contact"><label>Quién recibe<input required maxLength={140} disabled={locked} value={contact.receptor} onChange={e=>{setContact({...contact,receptor:e.target.value});remember('confirmacion',{receptor:e.target.value});}}/></label><label>Teléfono<input required maxLength={40} disabled={locked} value={contact.telefono} onChange={e=>{setContact({...contact,telefono:e.target.value});remember('confirmacion',{telefono:e.target.value});}}/></label></div>}
-      <label className="client-check"><input type="checkbox" checked={ack} disabled={locked||!fresh||!allAccepted} onChange={e=>setAcceptedHash(e.target.checked?view?.huella??null:null)}/>Revisé y acepto los archivos, el total final, el destino, la estimación y las condiciones vigentes.</label>
+      {deciding&&!reviewToOrder&&<div data-tutorial-decision-cliente>
+       <p>Podés terminar la práctica con tus PDF y opciones guardados, o crear este pedido y usar una de las 20 plazas de la demo.</p>
+       <button type="button" className="client-button secondary" disabled={locked} onClick={()=>void keepPreparation()}>Conservar la preparación y ver el seguimiento</button>
+       <button type="button" className="client-button" disabled={locked} onClick={()=>setReviewToOrder(true)}>Revisar para crear este pedido</button>
+      </div>}
+      {deciding&&reviewToOrder&&<button type="button" className="client-button secondary" disabled={locked} onClick={()=>{setReviewToOrder(false);setAcceptedHash(null);}}>Volver a las dos opciones</button>}
+      {mode==='ENVIO_DOMICILIO'&&<div className="workspace-contact"><label>Quién recibe<input required maxLength={140} data-tutorial-decision-cliente={deciding&&reviewToOrder&&!contact.receptor||undefined} disabled={locked} value={contact.receptor} onChange={e=>{setContact({...contact,receptor:e.target.value});remember('confirmacion',{receptor:e.target.value});}}/></label><label>Teléfono<input required maxLength={40} data-tutorial-decision-cliente={deciding&&reviewToOrder&&!!contact.receptor&&!contact.telefono||undefined} disabled={locked} value={contact.telefono} onChange={e=>{setContact({...contact,telefono:e.target.value});remember('confirmacion',{telefono:e.target.value});}}/></label></div>}
+      <label className="client-check"><input type="checkbox" checked={ack} data-tutorial-decision-cliente={deciding&&reviewToOrder&&!ack&&(mode!=='ENVIO_DOMICILIO'||!!contact.receptor&&!!contact.telefono)||undefined} disabled={locked||!mayOrder||!fresh||!allAccepted} onChange={e=>setAcceptedHash(e.target.checked?view?.huella??null:null)}/>Revisé y acepto los archivos, el total final, el destino, la estimación y las condiciones vigentes.</label>
       {!allAccepted&&<p className="client-note"><a href="#client-review-files">Revisá y aceptá tus PDF</a> para habilitar la confirmación.</p>}
-      <button className="client-button" disabled={locked||!fresh||!allAccepted||!ack}>Confirmar / Crear pedido →</button>
+      <button className="client-button" data-tutorial-decision-cliente={deciding&&reviewToOrder&&ack||undefined} disabled={locked||!mayOrder||!fresh||!allAccepted||!ack}>Confirmar / Crear pedido →</button>
       <p className="workspace-confirm-note">Después de crearlo, los cambios y la cancelación siguen las reglas del pedido.</p>
      </form>
     </aside>

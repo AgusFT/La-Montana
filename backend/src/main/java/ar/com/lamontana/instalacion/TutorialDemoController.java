@@ -97,6 +97,72 @@ public class TutorialDemoController {
         return vista(actor, hechos(actor));
     }
 
+    public record Avance(String lesson, int task, int reached, boolean complete, Map<String,String> draft) {}
+    public record CambioRecorrido(@NotBlank String recorrido, @Size(max=48) String lesson, Integer task,
+            Integer reached, Boolean complete, @Size(max=16) Map<String,String> draft) {}
+    private static final Set<String> CAMPOS_CLIENTE = Set.of("preparacion","pedido","archivoActivo","opciones","modalidad",
+            "destino","medio","calle","numero","referencias","codigoPostal","localidad","provincia","receptor","telefono");
+
+    @GetMapping("/recorridos")
+    @Transactional(readOnly=true)
+    public Map<String,Avance> recorridos(Principal sesion) {
+        return avances(actor(sesion));
+    }
+
+    private Map<String,Avance> avances(Actor actor) {
+        Map<String,Avance> lista = new LinkedHashMap<>();
+        db.query("""
+                SELECT recorrido, leccion, tarea, alcanzada, completo,
+                       CASE WHEN recorrido=? THEN borrador::text ELSE '{}' END AS campos
+                FROM lamontana.tutorial_recorrido
+                """, rs -> {
+            lista.put(rs.getString(1), new Avance(rs.getString(2),rs.getInt(3),rs.getInt(4),rs.getBoolean(5),
+                    json.readValue(rs.getString(6),TEXTO)));
+        }, switch(actor.rol()) { case "ADMIN_ADMIN" -> "administrador"; case "CLIENTE" -> "cliente"; default -> ""; });
+        return lista;
+    }
+
+    @PutMapping("/recorridos")
+    @Transactional
+    public Map<String,Avance> cambiarRecorrido(@Valid @RequestBody CambioRecorrido cambio, Principal sesion) {
+        Actor actor = actor(sesion);
+        boolean admin = "administrador".equals(cambio.recorrido());
+        if (!admin && !"cliente".equals(cambio.recorrido())) throw invalido("Recorrido desconocido.");
+        exigirRol(actor, admin ? "ADMIN_ADMIN" : "CLIENTE");
+        if ((cambio.lesson()==null)!=(cambio.task()==null) ||
+                cambio.lesson()!=null && !cambio.lesson().matches("[a-z0-9-]{1,48}") ||
+                cambio.task()!=null && (cambio.task()<0 || cambio.task()>100) ||
+                cambio.reached()!=null && (cambio.reached()<0 || cambio.reached()>500))
+            throw invalido("La posición del tutorial es inválida.");
+        var campos = new LinkedHashMap<String,String>();
+        if (cambio.draft()!=null) cambio.draft().forEach((clave, valor) -> {
+            var permitidos = admin ? Set.of("tarifa","fase","simulacion") : CAMPOS_CLIENTE;
+            int limite = clave.equals("simulacion") ? 8192 : clave.equals("fase") ? 512 : clave.equals("tarifa") ? 40960 : clave.equals("opciones") ? 32000 : 1000;
+            if ((!permitidos.contains(clave) && !clave.equals("repaso")) || valor==null || valor.length()>limite)
+                throw invalido("Revisá los campos del borrador.");
+            if (!valor.isEmpty()) {
+                if (Set.of("preparacion","pedido","archivoActivo").contains(clave) && !esId(valor))
+                    throw invalido("El identificador del trabajo es inválido.");
+                if (clave.equals("opciones")) validarOpciones(valor);
+                if (clave.equals("repaso") && !valor.equals("si")) throw invalido("El estado del repaso es inválido.");
+                if (admin && !clave.equals("repaso")) {
+                    try {
+                        if (!json.readTree(valor).isObject()) throw invalido("Los datos de la práctica son inválidos.");
+                    } catch (tools.jackson.core.JacksonException ex) { throw invalido("Los datos de la práctica son inválidos."); }
+                }
+            }
+            campos.put(clave,valor.isEmpty() ? null : valor);
+        });
+        db.update("""
+                UPDATE lamontana.tutorial_recorrido
+                SET leccion=coalesce(?,leccion), tarea=coalesce(?,tarea),
+                    alcanzada=greatest(alcanzada,coalesce(?,0)), completo=completo OR coalesce(?,false),
+                    borrador=jsonb_strip_nulls(borrador || ?::jsonb)
+                WHERE recorrido=?
+                """,cambio.lesson(),cambio.task(),cambio.reached(),cambio.complete(),json.writeValueAsString(campos),cambio.recorrido());
+        return avances(actor);
+    }
+
     private Actor actor(Principal sesion) {
         // El selector crea tres sesiones distintas. Un cliente registrado por separado conserva su privacidad.
         return db.query("""

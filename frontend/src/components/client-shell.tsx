@@ -23,6 +23,7 @@
 //#endregion
 
 import "@/app/client-experience.css";
+import {RoleTutorialProvider} from "./role-tutorial-context";
 import {TutorialProvider} from "./tutorial-context";
 import {TutorialButton,TutorialPanel} from "./demo-tutorial";
 import {NavigationBoundary} from "./navigation-boundary";
@@ -33,7 +34,7 @@ import "@/app/client.css";
 
 export function ClientShell({name,title,description,active,children}:{name:string;title:string;description:string;active:"home"|"quotes"|"new"|"orders";children:React.ReactNode}){
  const brand=<span className="client-brand"><MountainMark/><span>La Montaña<small>impresiones</small></span></span>;
- return <TutorialProvider role="CLIENTE"><NavigationBoundary><div className="client-app"><aside className="client-sidebar"><a href="/cliente" className="client-logo">{brand}</a><TutorialButton/><nav aria-label="Navegación de cliente">
+ return <TutorialProvider role="CLIENTE"><RoleTutorialProvider><NavigationBoundary><div className="client-app"><aside className="client-sidebar"><a href="/cliente" className="client-logo">{brand}</a><TutorialButton/><nav aria-label="Navegación de cliente">
    <a href="/cliente" aria-current={active==="home"?"page":undefined}>⌂ Inicio</a>
    <a href="/cliente/cotizaciones" aria-current={active==="quotes"?"page":undefined}>▤ Mis cotizaciones</a>
    <a href="/cliente/cotizaciones/nueva" aria-current={active==="new"?"page":undefined}>⊕ Crear pedido</a>
@@ -42,5 +43,5 @@ export function ClientShell({name,title,description,active,children}:{name:strin
    <a href="/cuenta/seguridad">Seguridad de la cuenta</a>
    <span>Reclamos <small>En construcción</small></span>
    <DemoLockedNav/>
- </nav><p className="client-sidebar-note">Piloto v0.1<br/>Clientes particulares</p></aside><TutorialPanel/><div className="client-main"><header className="client-top"><a href="/cliente" className="client-logo">{brand}</a><div><span>{name}</span><LogoutButton/></div></header><main className="client-content"><div className="client-title"><h1>{title}</h1><p>{description}</p></div>{children}</main><footer className="client-footer">La Montaña impresiones · Piloto local v0.1</footer></div></div></NavigationBoundary></TutorialProvider>;
+ </nav><p className="client-sidebar-note">Piloto v0.1<br/>Clientes particulares</p></aside><TutorialPanel/><div className="client-main"><header className="client-top"><a href="/cliente" className="client-logo">{brand}</a><div><span>{name}</span><LogoutButton/></div></header><main className="client-content"><div className="client-title"><h1>{title}</h1><p>{description}</p></div>{children}</main><footer className="client-footer">La Montaña impresiones · Piloto local v0.1</footer></div></div></NavigationBoundary></RoleTutorialProvider></TutorialProvider>;
 }

@@ -12,7 +12,13 @@ import {
   type ReactNode,
 } from "react";
 import { secureMutation } from "@/lib/secure-mutation";
-import { rememberTutorialOpen, tutorialIsOpen, tutorialSessionKey } from "@/lib/tutorial-visibility";
+import {
+  rememberTutorialOpen,
+  tutorialIsOpen,
+  tutorialSessionKey,
+  rememberGuide,
+  selectedGuide,
+} from "@/lib/tutorial-visibility";
 import {
   steps,
   type Command,
@@ -20,11 +26,15 @@ import {
   type Step,
   type Tutorial,
 } from "@/lib/demo-tutorial";
+import type { Guide } from "@/lib/tutorial-recorridos";
 import type { Role } from "@/lib/roles";
 
 type Access = {
   state: Tutorial | null;
   open: boolean;
+  guideOpen: boolean;
+  guide: Guide | null;
+  choose: (guide: Guide | null) => void;
   setOpen: (value: boolean) => void;
   role: Role;
   error: string;
@@ -58,7 +68,8 @@ export function TutorialProvider({
   children: ReactNode;
 }) {
   const [state, setState] = useState<Tutorial | null>(null),
-    [open, setVisible] = useState(false),
+    [guideOpen, setVisible] = useState(false),
+    [guide, setGuide] = useState<Guide | null>(null),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false),
     [available, setAvailable] = useState(true);
@@ -68,12 +79,24 @@ export function TutorialProvider({
   const pending = useRef(new Map<Step, Draft>()),
     drain = useRef<Promise<void> | null>(null),
     revision = useRef(0);
-  const setOpen = useCallback((value: boolean) => {
-    rememberTutorialOpen(value);
-    setVisible(value);
+  const open = guideOpen && guide === "completo";
+  const choose = useCallback((value: Guide | null) => {
+    rememberGuide(value);
+    setGuide(value);
   }, []);
+  const setOpen = useCallback(
+    (value: boolean) => {
+      rememberTutorialOpen(value);
+      setVisible(value);
+      if (!value) choose(null);
+    },
+    [choose],
+  );
   useEffect(() => {
-    const sync = () => setVisible(tutorialIsOpen());
+    const sync = () => {
+      setVisible(tutorialIsOpen());
+      setGuide(selectedGuide());
+    };
     const sessionChanged = (event: StorageEvent) => {
       if (event.key === tutorialSessionKey || event.key === null) sync();
     };
@@ -218,6 +241,9 @@ export function TutorialProvider({
       value={{
         state,
         open,
+        guideOpen,
+        guide,
+        choose,
         setOpen,
         role,
         error,

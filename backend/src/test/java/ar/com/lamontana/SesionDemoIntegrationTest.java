@@ -253,6 +253,38 @@ class SesionDemoIntegrationTest {
         return archivo;
     }
 
+    @Test
+    void cadaRecorridoConservaSuAvanceYProtegeLosBorradoresDelOtroRol() throws Exception {
+        var n=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+        String ruta="/api/demo/tutorial/recorridos";
+        assertThat(get(n,ruta).statusCode()).isIn(401,403);
+        comprobar(elegir(n,"ADMINISTRADOR",csrf(n)),200);
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","lesson","tarifas","task",1,"reached",2,
+                "draft",Map.of("tarifa","{\"precio\":25}"))),200);
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","draft",Map.of("fase","{\"numero\":2}"))),200);
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","draft",Map.of("contrasena","x"))),400);
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","cliente","lesson","inicio","task",0)),403);
+        comprobar(elegir(n,"CLIENTE",csrf(n)),200);
+        var cliente=JSON.readTree(comprobar(cambiarRecorrido(n,Map.of("recorrido","cliente","lesson","archivo","task",1,"reached",3,
+                "draft",Map.of("calle","Ejemplo"))),200));
+        assertThat(cliente.get("administrador").get("draft").size()).isZero();
+        assertThat(cliente.get("cliente").get("draft").get("calle").asString()).isEqualTo("Ejemplo");
+        comprobar(elegir(n,"EMPLEADO",csrf(n)),200);
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","complete",true)),403);
+        assertThat(JSON.readTree(comprobar(get(n,ruta),200)).get("cliente").get("draft").size()).isZero();
+        comprobar(elegir(n,"ADMINISTRADOR",csrf(n)),200);
+        var admin=JSON.readTree(comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","lesson","tablero","task",0,"reached",0)),200))
+                .get("administrador");
+        assertThat(admin.get("reached").asInt()).isEqualTo(2);
+        assertThat(admin.get("draft").size()).isEqualTo(2);
+        assertThat(admin.get("draft").get("tarifa").asString()).contains("25");
+    }
+
+    private HttpResponse<String> cambiarRecorrido(HttpClient n,Map<String,?> valores) throws Exception {
+        return enviar(n,request("/api/demo/tutorial/recorridos").header("Content-Type","application/json")
+                .header("X-CSRF-TOKEN",csrf(n)).PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(valores))));
+    }
+
     private HttpResponse<String> cambiarTutorial(HttpClient navegador,Map<String,?> cambio) throws Exception {
         return enviar(navegador,request("/api/demo/tutorial").header("Content-Type","application/json")
                 .header("X-CSRF-TOKEN",csrf(navegador)).PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(cambio))));

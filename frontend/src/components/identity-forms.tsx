@@ -34,10 +34,10 @@
 "use client";
 import {useConfirmNavigation} from "@/components/navigation-boundary";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { clearPreparedFiles } from "@/lib/prepared-files";
-import { resetTutorialSession } from "@/lib/tutorial-visibility";
+import { resetTutorialSession, selectedGuide } from "@/lib/tutorial-visibility";
 import { useTutorial } from "./tutorial-context";
 
 import { secureMutation as post } from "@/lib/secure-mutation";
@@ -142,11 +142,26 @@ export function InstallationForm() {
 export function LogoutButton() {
   const confirmNavigation=useConfirmNavigation();
   const tutorial=useTutorial();
+  const standalone = tutorial === null;
+  const [outsideGuide, setOutsideGuide] = useState(false);
+  useEffect(() => {
+    if (!standalone) return;
+    // Seguridad de la cuenta tiene su propio marco, pero comparte la sesión.
+    const sync = () => setOutsideGuide(!!selectedGuide());
+    sync();
+    window.addEventListener("pageshow", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("pageshow", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [standalone]);
+  const lockedByGuide = !!tutorial?.guide || (standalone && outsideGuide);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const router = useRouter();
   async function logout() {
-    if (busy || !confirmNavigation()) return;
+    if (busy || lockedByGuide || (standalone && selectedGuide()) || !confirmNavigation()) return;
     setBusy(true); setMessage("");
     try {
       await tutorial?.flush();
@@ -160,5 +175,5 @@ export function LogoutButton() {
     catch (error) { setMessage(error instanceof Error ? error.message : "No pudimos cerrar sesión."); }
     finally { setBusy(false); }
   }
-  return <div><button className="refresh" onClick={logout} disabled={busy}>{busy ? "Cerrando sesión…" : "Cambiar rol"}</button>{message && <p className="form-message error-message" role="alert">{message}</p>}</div>;
+  return <div><button className="refresh" data-tutorial-cambiar-rol onClick={logout} disabled={busy || lockedByGuide}>{busy ? "Cerrando sesión…" : "Cambiar rol"}</button>{standalone && outsideGuide && <p>Volvé a tu espacio para pausar el tutorial antes de cambiar de rol.</p>}{message && <p className="form-message error-message" role="alert">{message}</p>}</div>;
 }

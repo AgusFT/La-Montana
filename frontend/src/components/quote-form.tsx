@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import {useTutorial} from "./tutorial-context";
+import {useRoleTutorial} from "./role-tutorial-context";
 import {TutorialPreparationNotice} from "./tutorial-preparation-notice";
 import {LegacyQuoteForm} from './legacy-quote-form';
 import {ClientJourney} from './client-journey';
@@ -22,6 +23,7 @@ export function QuoteForm(props:{replaces?:string;inspectedFile?:string;correcti
 }
 function PrepareWork(){
  const tutorial=useTutorial(), restored=useRef('');
+ const clientGuide=useRoleTutorial('cliente');
  const router=useRouter(),[options,setOptions]=useState<QuoteOptions|null>(null),[prep,setPrep]=useState<Preparation|null>(null),[rows,setRows]=useState<Row[]>([]);
  const [activeFile,setActiveFile]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
@@ -31,7 +33,12 @@ function PrepareWork(){
  const progress=tutorial?.state;
  const practicing=tutorial?.open && progress?.estado==='ACTIVO' && ['archivo','presupuesto'].includes(progress.paso);
  const attached=isOpenTutorialPreparation(prep,progress);
- const needsPracticeConsent=practicing && !attached && !!prep?.archivos.length;
+ const clientPractice=clientGuide?.lesson==='archivo'||clientGuide?.lesson==='presupuesto'||clientGuide?.lesson==='decision';
+ const clientAttached=!!prep&&clientGuide?.draft.preparacion===prep.codigoPublico;
+ const needsPracticeConsent=!!prep&&(
+   (practicing&&!attached&&!!prep.archivos.length)||
+   (clientPractice&&!clientAttached&&(attached||!!prep.archivos.length||!!prep.presupuesto))
+ );
  const operationLocked=busy||refreshing||uncertain||fileLocked;
  const locked=operationLocked||needsPracticeConsent;
  useNavigationGuard({blocked:operationLocked});
@@ -51,11 +58,14 @@ function PrepareWork(){
     copies:String(work?.copias??1),double:work?.dobleFaz??false,ends:work?.terminaciones??[]};
   }));
  }
+ const draftOwner=clientPractice&&clientAttached?'cliente':practicing&&attached?'completo':'';
+ const savedFileDraft=draftOwner==='cliente'?clientGuide?.draft:progress?.borradores.archivo;
  useEffect(()=>{
-   if(!practicing||!attached){restored.current='';return;}
-   if(!prep||restored.current===prep.codigoPublico)return;
-   const saved=progress?.borradores.archivo;
-   restored.current=prep.codigoPublico;
+   if(!draftOwner||!prep){restored.current='';return;}
+   const key=draftOwner+':'+prep.codigoPublico;
+   if(restored.current===key)return;
+   const saved=savedFileDraft;
+   restored.current=key;
    if(saved?.archivoActivo && prep.archivos.some(f=>f.codigoPublico===saved.archivoActivo))setActiveFile(saved.archivoActivo);
    try{
      const work:unknown=JSON.parse(saved?.opciones??'[]');
@@ -64,12 +74,23 @@ function PrepareWork(){
        return value && typeof value.choice==='string' && typeof value.copies==='string' && typeof value.double==='boolean' && Array.isArray(value.ends) && value.ends.every((x:unknown)=>typeof x==='string') ? {...row,choice:value.choice,copies:value.copies,double:value.double,ends:value.ends} : row;
      }));
    }catch{/* El documento y las opciones confirmadas se cargan desde la preparación. */}
- },[practicing,attached,prep,progress?.borradores.archivo]);
+ },[draftOwner,prep,savedFileDraft]);
  async function linkPractice(){
-   if(tutorial && prep && practicing && !attached){
+   if(clientPractice&&clientGuide&&prep&&!clientAttached){
+     const preferences=prep.preferencias, address=preferences?.direccion;
+     await clientGuide.saveDraft({preparacion:prep.codigoPublico,pedido:'',archivoActivo:'',opciones:'[]',
+       modalidad:preferences?.modalidad??'',destino:preferences?.destinoRetiro??'',medio:preferences?.medioPago??'',
+       calle:address?.calle??'',numero:address?.numero??'',referencias:address?.referencias??'',
+       codigoPostal:address?.territorio.codigoPostal??'',localidad:address?.territorio.localidad??'',provincia:address?.territorio.provincia??'',
+       receptor:'',telefono:''});
+   }else if(tutorial && prep && practicing && !attached){
      const linked=await tutorial.command({accion:"vincular",preparacion:prep.codigoPublico});
      if(linked.preparacion!==prep.codigoPublico)throw Error("No se pudo asociar este trabajo al tutorial.");
    }
+ }
+ function rememberFile(fields:Record<string,string>){
+   if(clientPractice&&clientAttached)void clientGuide?.saveDraft(fields).catch(e=>setError(e instanceof Error?e.message:'No pudimos guardar el borrador de práctica.'));
+   if(practicing&&attached)tutorial?.draft('archivo',fields);
  }
  async function refresh(){
   if(running.current)return;
@@ -103,7 +124,7 @@ function PrepareWork(){
  }
  function update(id:string,change:Partial<Row>){
    const next=rows.map(row=>row.archivo===id?{...row,...change}:row);setRows(next);
-   if(practicing&&attached)tutorial?.draft('archivo',{archivoActivo:id,opciones:JSON.stringify(next)});
+   rememberFile({archivoActivo:id,opciones:JSON.stringify(next)});
  }
  const choices=Array.from(new Map((options?.combinaciones??[]).map(o=>[key(o),o])).values());
  const names=new Map([...(options?.formatos??[]),...(options?.papeles??[]),...(options?.servicios??[])].map(n=>[n.codigoPublico,n.nombre+(n.gramaje?` · ${n.gramaje} g/m²`:'')+(n.terminacion?` · ${n.terminacion}`:'')]));
@@ -127,7 +148,10 @@ function PrepareWork(){
   }
   if(!items.length)return;
   const body=JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,configuracion:options.configuracion,revisionComercial:options.revisionComercial,items});
-  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');router.push(`/cliente/preparaciones/${p.codigoPublico}`);});
+  await execute(async()=>{const r=await secureMutation(`/api/cliente/preparaciones/${prep.codigoPublico}/presupuesto`,body,'application/json');const p:unknown=await r.json();if(!isPreparation(p)||!p.presupuesto)throw new Error('No se pudo verificar el presupuesto.');
+   if(clientPractice&&clientGuide){await clientGuide.goTo('presupuesto');return;}
+   router.push(`/cliente/preparaciones/${p.codigoPublico}`);
+  });
  }
  const selectedFile=prep?.archivos.find(f=>f.codigoPublico===activeFile)??prep?.archivos[0];
  const row=rows.find(r=>r.archivo===selectedFile?.codigoPublico)??{archivo:selectedFile?.codigoPublico??'',choice:'',copies:'1',double:false,ends:[]};
@@ -136,7 +160,7 @@ function PrepareWork(){
  function configured(id:string){const r=rows.find(x=>x.archivo===id),f=prep?.archivos.find(x=>x.codigoPublico===id),copies=Number(r?.copies);return f?.estado==='VALIDO'&&!!f.paginas&&choices.some(x=>key(x)===r?.choice)&&Number.isInteger(copies)&&copies>=1&&copies<=10000;}
  const configuredCount=prep?.archivos.filter(f=>configured(f.codigoPublico)).length??0;
  return <div className="client-experience client-compact-experience"><ClientJourney part={1}/>
-  {prep && !tutorial?.open && attached && <TutorialPreparationNotice preparation={prep}/>}
+  {prep && !tutorial?.open && !needsPracticeConsent && attached && <TutorialPreparationNotice preparation={prep}/>}
   {prep && needsPracticeConsent && <TutorialPreparationNotice preparation={prep} busy={operationLocked} onLink={()=>void execute(linkPractice)}/>}
   <p className="client-compact-intro">Agregá tus PDF y configurá cada uno. En el siguiente paso elegís entrega y pago.</p>
   {!prep&&!error&&<p role="status">Recuperando tu trabajo…</p>}
@@ -145,7 +169,7 @@ function PrepareWork(){
   {error&&<p className="client-warning" role="alert">{error}</p>}
   {uncertain?<button type="button" className="client-button" disabled={busy} onClick={()=>void execute()}>Recuperar la misma operación</button>:error&&<button type="button" className="client-button secondary" disabled={locked} onClick={()=>void refresh()}>{refreshing?'Actualizando…':'Actualizar datos'}</button>}
   <form onSubmit={submit} className="client-workspace">
-   <section id="client-upload" className="workspace-panel workspace-files" data-has-files={!!prep?.archivos.length}>
+   <section id="client-upload" className="workspace-panel workspace-files" data-has-files={!!prep?.archivos.length} data-practica-pdf={clientAttached&&prep?.archivos.some(file=>file.estado==='VALIDO')?'listo':undefined}>
     <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">1</span><h2>Tus archivos</h2><small>{prep?.archivos.length??0} / 20</small></header>
     <div className="client-dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void files(e.dataTransfer.files);}}>
      <span aria-hidden="true">⇧</span><strong>Arrastrá tus PDF acá</strong>
@@ -153,7 +177,7 @@ function PrepareWork(){
      <input ref={input} className="workspace-file-input" tabIndex={-1} aria-label="Seleccionar PDF" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/>
      <small>Hasta 10 MiB por archivo · acceso privado</small>
     </div>
-    {!!prep?.archivos.length&&<ul className="workspace-file-list" aria-label="Archivos del trabajo">{prep.archivos.map((f,index)=><li key={f.codigoPublico}><button type="button" className="workspace-file-choice" aria-pressed={selectedFile?.codigoPublico===f.codigoPublico} aria-label={`Configurar PDF ${index+1}: ${f.nombre}`} disabled={locked} data-complete={configured(f.codigoPublico)} onClick={()=>{setActiveFile(f.codigoPublico);if(practicing&&attached)tutorial?.draft('archivo',{archivoActivo:f.codigoPublico});}}><span className="workspace-file-icon" aria-hidden="true">PDF</span><span><strong title={f.nombre}>{f.nombre}</strong><small>{f.estado==='VALIDO'?`${f.paginas} páginas · ${configured(f.codigoPublico)?'Configurado':'Falta configurar'}`:f.estado==='VALIDANDO'?'Analizando seguridad…':'Revisar archivo'}</small></span><span className="workspace-file-status" aria-hidden="true">{configured(f.codigoPublico)?'✓':index+1}</span></button></li>)}</ul>}
+    {!!prep?.archivos.length&&<ul className="workspace-file-list" aria-label="Archivos del trabajo">{prep.archivos.map((f,index)=><li key={f.codigoPublico}><button type="button" className="workspace-file-choice" aria-pressed={selectedFile?.codigoPublico===f.codigoPublico} aria-label={`Configurar PDF ${index+1}: ${f.nombre}`} disabled={locked} data-complete={configured(f.codigoPublico)} onClick={()=>{setActiveFile(f.codigoPublico);rememberFile({archivoActivo:f.codigoPublico});}}><span className="workspace-file-icon" aria-hidden="true">PDF</span><span><strong title={f.nombre}>{f.nombre}</strong><small>{f.estado==='VALIDO'?`${f.paginas} páginas · ${configured(f.codigoPublico)?'Configurado':'Falta configurar'}`:f.estado==='VALIDANDO'?'Analizando seguridad…':'Revisar archivo'}</small></span><span className="workspace-file-status" aria-hidden="true">{configured(f.codigoPublico)?'✓':index+1}</span></button></li>)}</ul>}
     <p className="workspace-files-footer">{prep?.archivos.length?'Seleccioná un archivo para ajustar sus opciones. Podés agregar varios y cotizarlos juntos.':'El servidor analiza la seguridad y cuenta las páginas de cada PDF. No necesitás pagar para cargarlo.'}</p>
    </section>
    <fieldset disabled={locked||!options?.disponible} id="client-work-options" className="workspace-editor"><legend>Opciones del archivo seleccionado</legend>
