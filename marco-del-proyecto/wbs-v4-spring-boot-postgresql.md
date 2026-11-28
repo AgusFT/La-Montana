@@ -142,3 +142,18 @@ Sistema de Imprenta
 - Las flechas conectan el nodo principal, las cinco categorias y los elementos internos de cada columna.
 - Se conservan las ramas documentales y funcionales vigentes.
 - Los componentes del backend se expresan con Spring Boot, PostgreSQL, API REST, permisos backend y gestion de archivos desde backend.
+
+## Ampliación textual de planificación — 18/09/2026
+
+Esta ampliación conserva el SVG y Lucid V4 como evidencia histórica; no afirma que sus diagramas externos se hayan actualizado.
+
+| Rama WBS | Entregable incorporado | Seguimiento |
+|---|---|---|
+| Marco / Análisis | Definición y trazabilidad del producto configurable | M15, E18 #200 |
+| Diseño Front / UX/UI | Motor de configuración, ocho fases | M16, E19 #197 |
+| Diseño Front / UX/UI | Disponibilidad operativa | M16, E20 #199 |
+| Diseño Front / UX/UI | Cotización y continuidad cliente | M16, E21 #198 |
+| Diseño Front / UX/UI | Operación administrativa: pedidos, producción, calidad y entregas | M16, E22 #228 |
+| Desarrollo Web | Refinar continuidad de implementación del producto configurable, reutilización y pendientes E06/E07 | Pendiente con Agustín; no acredita implementación |
+
+Evidencia: `diseño/Front/ux-ui/vistas-web-mockups/administrador/operacion-administrativa/README.md`. Pendiente actualizar representación gráfica WBS y validar alcance de entrega; seguimiento #209.
