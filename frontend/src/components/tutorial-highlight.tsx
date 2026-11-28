@@ -19,7 +19,8 @@ export function visibleTarget(selector: string) {
   return [...scope.querySelectorAll<HTMLElement>(selector)].find(
     (element) =>
       element.getClientRects().length > 0 &&
-      !element.closest(".tutorial-callout"),
+      getComputedStyle(element).visibility === "visible" &&
+      !element.closest(".tutorial-overlay"),
   );
 }
 export function focusTarget(selector: string) {
@@ -62,6 +63,32 @@ function intersect(a: Rect, b: Rect): Rect | undefined {
   if (right > left && bottom > top) return { left, right, top, bottom };
 }
 
+// El visor PDF y algunos paneles desplazan su contenido de forma independiente.
+function visibleBounds(element: HTMLElement, bounds: Rect): Rect | undefined {
+  let result: Rect | undefined = bounds;
+  for (
+    let parent = element.parentElement;
+    result && parent && parent !== document.body;
+    parent = parent.parentElement
+  ) {
+    const style = getComputedStyle(parent);
+    if (style.overflowX === "visible" && style.overflowY === "visible")
+      continue;
+    const rect = parent.getBoundingClientRect();
+    const x = rect.left + parent.clientLeft,
+      y = rect.top + parent.clientTop;
+    result = intersect(result, {
+      left: style.overflowX === "visible" ? result.left : x,
+      right:
+        style.overflowX === "visible" ? result.right : x + parent.clientWidth,
+      top: style.overflowY === "visible" ? result.top : y,
+      bottom:
+        style.overflowY === "visible" ? result.bottom : y + parent.clientHeight,
+    });
+  }
+  return result;
+}
+
 // Las coordenadas de la tarjeta y de la flecha son relativas a la superficie visible.
 function position(
   area: Box,
@@ -71,7 +98,7 @@ function position(
 ) {
   const inset = 10,
     gap = 24;
-  const width = Math.min(
+  let width = Math.min(
     compact ? 154 : 352,
     Math.max(1, area.width - 2 * inset),
   );
@@ -94,16 +121,22 @@ function position(
     const left = cx < area.width / 2 ? area.width - width - inset : inset;
     const top = cy < area.height / 2 ? area.height - height - inset : inset;
     const belowTarget = top >= bottom;
-    return {
-      card: { left, top, width, maxHeight: area.height - 2 * inset },
-      arrow: [
-        {
-          x: clamp(cx, left + 8, left + width - 8),
-          y: belowTarget ? top : top + height,
-        },
-        { x: cx, y: belowTarget ? bottom + 2 : target.top - 2 },
-      ] as [Point, Point],
-    };
+    if (
+      left + width <= target.left ||
+      left >= right ||
+      top + height <= target.top ||
+      top >= bottom
+    )
+      return {
+        card: { left, top, width, maxHeight: area.height - 2 * inset },
+        arrow: [
+          {
+            x: clamp(cx, left + 8, left + width - 8),
+            y: belowTarget ? top : top + height,
+          },
+          { x: cx, y: belowTarget ? bottom + 2 : target.top - 2 },
+        ] as [Point, Point],
+      };
   }
   const above = target.top - gap - inset,
     below = area.height - bottom - gap - inset;
@@ -113,13 +146,15 @@ function position(
     top = alignY,
     maxHeight = area.height - 2 * inset;
   let start: Point, end: Point;
+  const spaceRight = area.width - right - gap - inset;
+  const spaceLeft = target.left - gap - inset;
   if (
     above < height &&
     below < height &&
-    (area.width - right >= width + gap + inset ||
-      target.left >= width + gap + inset)
+    Math.max(spaceRight, spaceLeft) >= Math.min(width, 224)
   ) {
-    const onRight = area.width - right >= width + gap + inset;
+    const onRight = spaceRight >= spaceLeft;
+    width = Math.min(width, onRight ? spaceRight : spaceLeft);
     left = onRight ? right + gap : target.left - gap - width;
     start = {
       x: onRight ? left : left + width,
@@ -199,6 +234,9 @@ export function TutorialHighlight({
     let previousTarget: HTMLElement | undefined;
     let observedDialog: HTMLElement | undefined;
     let described: HTMLElement | undefined;
+    let followingLayout = true;
+    let layoutChanged = false;
+    let wasInView = false;
     function describe(target?: HTMLElement) {
       if (target === described) return;
       if (described) {
@@ -246,21 +284,48 @@ export function TutorialHighlight({
       };
       const element = selector ? visibleTarget(selector) : undefined;
       const sidebar = element?.closest(".admin-sidebar,.client-sidebar");
-      const bounds = dialog ? intersect(screen, dialog.getBoundingClientRect())
-        : sidebar ? intersect(screen, sidebar.getBoundingClientRect()) : intersect(screen, main.getBoundingClientRect());
+      const bounds = dialog
+        ? intersect(screen, dialog.getBoundingClientRect())
+        : sidebar
+          ? intersect(screen, sidebar.getBoundingClientRect())
+          : intersect(screen, main.getBoundingClientRect());
+      const clip = element && bounds ? visibleBounds(element, bounds) : bounds;
       const rect = element?.getBoundingClientRect();
-      if (element && element !== previousTarget) {
+      if (element !== previousTarget) {
+        if (previousTarget) resize.unobserve(previousTarget);
+        if (element) resize.observe(element);
         first = true;
         framed = false;
+        followingLayout = true;
+        wasInView = false;
       }
       previousTarget = element;
-      if (first && (element || !selector)) {
+      const inView = !!(
+        rect &&
+        clip &&
+        rect.top >= clip.top - 1 &&
+        rect.bottom <= clip.bottom + 1 &&
+        rect.left >= clip.left - 1 &&
+        rect.right <= clip.right + 1
+      );
+      const active = document.activeElement;
+      const editingElsewhere =
+        active?.matches(
+          'input:not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable=true]',
+        ) && active !== element;
+      // Una respuesta del servidor puede insertar contenido encima de un botón ya señalado.
+      const outOfView = !rect || !clip || !intersect(rect, clip);
+      const displaced =
+        followingLayout &&
+        layoutChanged &&
+        !inView &&
+        (wasInView || outOfView) &&
+        !editingElsewhere;
+      wasInView = inView;
+      layoutChanged = false;
+      if ((first || displaced) && (element || !selector)) {
         first = false;
-        if (
-          element &&
-          rect &&
-          (!bounds || rect.top < bounds.top || rect.bottom > bounds.bottom)
-        )
+        if (element && !inView)
           element.scrollIntoView({
             block: "center",
             inline: "nearest",
@@ -282,28 +347,32 @@ export function TutorialHighlight({
       // Un diálogo nativo queda en la capa superior del navegador. La ayuda se monta
       // dentro de él y puede ocupar el espacio libre de la pantalla a sus lados.
       const area = box(dialog || sidebar ? screen : bounds);
-      let clipped = rect && intersect(rect, bounds);
-      // Un grupo de casillas puede ser más alto que la pantalla con zoom o con
-      // el teclado abierto. Guiar la primera casilla pendiente deja espacio para leer.
-      const anchorHeight = Math.max(30, area.height * 0.42);
-      if (clipped && element && clipped.bottom - clipped.top > anchorHeight) {
-        const field = element.querySelector<HTMLElement>(
-          "input:not(:checked):enabled,select:enabled,textarea:enabled,button:enabled",
-        );
-        const fieldRect =
-          field && intersect(field.getBoundingClientRect(), clipped);
-        clipped = fieldRect ?? {
+      let clipped = rect && clip && intersect(rect, clip);
+      // Un grupo de opciones es un destino completo. Solo para un bloque de lectura
+      // que llenaría la pantalla, señalar su encabezado o el comienzo visible.
+      if (
+        clipped &&
+        element &&
+        clipped.bottom - clipped.top > area.height - 130 &&
+        Math.max(
+          clipped.left - area.left,
+          area.left + area.width - clipped.right,
+        ) < 260
+      ) {
+        const heading = element.querySelector("legend,h2,h3,h4");
+        clipped = (heading &&
+          intersect(heading.getBoundingClientRect(), clipped)) ?? {
           ...clipped,
-          bottom: clipped.top + anchorHeight,
+          bottom: Math.min(clipped.bottom, clipped.top + area.height * 0.42),
         };
       }
       const target = clipped
-        ? {
+        ? box({
             left: Math.max(0, clipped.left - area.left - 3),
             top: Math.max(0, clipped.top - area.top - 3),
-            width: clipped.right - clipped.left + 6,
-            height: clipped.bottom - clipped.top + 6,
-          }
+            right: Math.min(area.width, clipped.right - area.left + 3),
+            bottom: Math.min(area.height, clipped.bottom - area.top + 3),
+          })
         : undefined;
       const naturalHeight =
         card.current?.firstElementChild?.getBoundingClientRect().height ?? 260;
@@ -332,31 +401,80 @@ export function TutorialHighlight({
     function schedule() {
       if (!frame) frame = requestAnimationFrame(measure);
     }
+    function contentChanged() {
+      layoutChanged = true;
+      schedule();
+    }
+    function manualScroll() {
+      followingLayout = false;
+    }
+    function scrollKey(event: KeyboardEvent) {
+      if (
+        [
+          "PageUp",
+          "PageDown",
+          "Home",
+          "End",
+          "ArrowDown",
+          "ArrowUp",
+          " ",
+        ].includes(event.key)
+      )
+        manualScroll();
+    }
+    function afterFormAction(event: Event) {
+      const source = event.target;
+      if (source instanceof Element && !source.closest(".tutorial-overlay")) {
+        const submitted =
+          event.type === "click" && source.closest("button,summary");
+        const selected =
+          event.type === "change" &&
+          source.matches('select,input[type="radio"],input[type="checkbox"]');
+        // Cambiar de modelo puede desplazar el mismo botón varios cientos de píxeles.
+        if (submitted || selected) {
+          first = true;
+          framed = false;
+          followingLayout = true;
+        }
+      }
+      schedule();
+    }
     const observer = new MutationObserver((changes) => {
       if (
         changes.some(
-          ({ target }) =>
+          ({ target, attributeName }) =>
+            attributeName !== "aria-describedby" &&
             !(target instanceof Element && target.closest(".tutorial-overlay")),
         )
       )
-        schedule();
+        contentChanged();
     });
     observer.observe(document.body, {
       subtree: true,
       childList: true,
       attributes: true,
-      attributeFilter: ["hidden", "open", "class", "disabled", "aria-expanded"],
     });
-    const resize = new ResizeObserver(schedule);
+    const resize = new ResizeObserver(contentChanged);
     const main = document.querySelector(".admin-main,.client-main");
     if (main) resize.observe(main);
     // El contenido puede ensancharse, plegarse o cambiar de rol sin un cambio de selector.
     resizeContent.current = schedule;
     // El PDF rasterizado puede desplazar el paginador sin cambiar el tamaño del botón.
-    document.addEventListener("load", schedule, true);
+    document.addEventListener("load", contentChanged, true);
     document.addEventListener("input", schedule, true);
-    document.addEventListener("change", schedule, true);
+    document.addEventListener("change", afterFormAction, true);
+    document.addEventListener("click", afterFormAction, true);
+    document.addEventListener("focusin", schedule, true);
     window.addEventListener("scroll", schedule, true);
+    document.addEventListener("wheel", manualScroll, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener("touchmove", manualScroll, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener("keydown", scrollKey, true);
     const onResize = () => {
       // Un cambio de ancho puede mover la columna de trabajo debajo del menú.
       // El teclado virtual suele cambiar solo la altura.
@@ -376,10 +494,15 @@ export function TutorialHighlight({
       observer.disconnect();
       resize.disconnect();
       describe();
-      document.removeEventListener("load", schedule, true);
+      document.removeEventListener("load", contentChanged, true);
       document.removeEventListener("input", schedule, true);
-      document.removeEventListener("change", schedule, true);
+      document.removeEventListener("change", afterFormAction, true);
+      document.removeEventListener("click", afterFormAction, true);
+      document.removeEventListener("focusin", schedule, true);
       window.removeEventListener("scroll", schedule, true);
+      document.removeEventListener("wheel", manualScroll, true);
+      document.removeEventListener("touchmove", manualScroll, true);
+      document.removeEventListener("keydown", scrollKey, true);
       window.removeEventListener("resize", onResize);
       window.visualViewport?.removeEventListener("resize", schedule);
       window.visualViewport?.removeEventListener("scroll", schedule);

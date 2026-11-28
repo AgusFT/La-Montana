@@ -86,7 +86,7 @@ export function DemoQuotas({ initialGroup }: { initialGroup: Group }) {
 
   return <div className="demo-quotas">
     {quotas.length > 0 && <div className="demo-quota-cards" role="group" aria-label="Elegir un recurso">
-      {quotas.map(item => <button key={item.tipo} type="button" aria-pressed={selected === item.tipo} disabled={busy}
+      {quotas.map(item => <button key={item.tipo} type="button" data-recurso={item.tipo} aria-pressed={selected === item.tipo} disabled={busy}
         onClick={() => { setSelected(item.tipo); setPending(null); setNotice(""); }}>
         <strong>{groups[item.tipo].title}</strong>
         <span>{item.usados} de {item.limite} en uso</span>

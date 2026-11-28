@@ -5,6 +5,10 @@
   overflow: hidden;
   pointer-events: none;
 }
+/* Al pausar el tutorial de la demo vuelve a estar disponible la ayuda de la sección. */
+body:has(.tutorial-highlight-area) .guided-tour-help {
+  visibility: hidden;
+}
 .tutorial-overlay .tutorial-highlight {
   position: absolute;
   z-index: 0;

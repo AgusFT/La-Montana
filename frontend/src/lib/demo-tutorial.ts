@@ -39,7 +39,13 @@ export type Command = {
   preparacion?: string;
   campos?: Draft;
 };
-type Hint = { selector: string; title: string; text: string; role?: Role };
+type Hint = {
+  selector: string;
+  title: string;
+  text: string;
+  role?: Role;
+  mode?: "RETIRO_SUCURSAL" | "ENVIO_DOMICILIO";
+};
 type Lesson = {
   title: string;
   role: Role;
@@ -47,6 +53,14 @@ type Lesson = {
   result: string;
   hints: Hint[];
 };
+
+const readingPdf = '[data-tutorial-revision="paginas"]';
+const pdfPageAction = [
+  `${readingPdf}[data-pdf-visto="true"][data-pdf-pendientes-delante="true"] [data-tutorial-pdf="siguiente-pagina"]:enabled`,
+  `${readingPdf}[data-pdf-visto="true"][data-pdf-pendientes-delante="false"] [data-tutorial-pdf="pagina-anterior"]:enabled`,
+  `${readingPdf}[data-pdf-visto="false"] [data-tutorial-pdf="numero-pagina"]`,
+  '[data-tutorial-revision="leida"] [data-tutorial-pdf="lectura"]',
+].join(", ");
 
 export const lessons: Record<Step, Lesson> = {
   tarifa: {
@@ -141,15 +155,34 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '#client-delivery select[aria-label="Modalidad"]',
         title: "Indicar la entrega",
-        text: "Para practicar un retiro en mostrador, elegí retiro en sucursal y seleccioná Senderos en «Destino de retiro». Si elegís envío, completá la dirección y los datos de quien recibe.",
+        text: "Elegí «Retiro en sucursal» para practicar la entrega en mostrador. Si elegís envío a domicilio, la guía te pedirá la dirección de entrega.",
       },
+      {
+        selector: '#client-delivery select[aria-label="Destino de retiro"]',
+        mode: "RETIRO_SUCURSAL",
+        title: "Elegir dónde retirar",
+        text: "Seleccioná la sucursal de Senderos donde el cliente retirará las copias. El destino permite calcular el traslado.",
+      },
+      ...([
+        ["calle", "Indicar la calle", "Escribí la calle de entrega. Usá datos ficticios para la práctica."],
+        ["numero", "Indicar la altura", "Escribí el número de la calle donde entregar el pedido."],
+        ["codigoPostal", "Indicar el código postal", "Escribí el código postal del domicilio de entrega."],
+        ["localidad", "Indicar la localidad", "Escribí la localidad del domicilio."],
+        ["provincia", "Indicar la provincia", "Completá la provincia para que la imprenta pueda calcular el envío."],
+        ["referencias", "Añadir una referencia", "Podés indicar el piso o una referencia del lugar. Si no hace falta, continuá con el medio de pago."],
+      ] as const).map(([name, title, text]) => ({
+        selector: `#client-delivery input[name="${name}"]`,
+        title,
+        text,
+        mode: "ENVIO_DOMICILIO" as const,
+      })),
       {
         selector: '#client-delivery select[aria-label="Medio de pago"]',
         title: "Elegir el medio de pago",
         text: "Elegí «Efectivo» para practicar un cobro en mostrador. Cuando aparezca «Total de tu pedido», revisá el destino y el importe final.",
       },
       {
-        selector: "#client-review-files button",
+        selector: '#client-review-files[data-aceptados="false"] button',
         title: "Abrir la revisión del PDF",
         text: "Pulsá «Revisar archivos» para ver qué PDF se enviará a impresión.",
       },
@@ -159,10 +192,9 @@ export const lessons: Record<Step, Lesson> = {
         text: "Elegí «Ver páginas» en el PDF que vas a aceptar. Así podés cotejar el contenido exacto que recibirá la imprenta.",
       },
       {
-        selector:
-          '.workspace-review-dialog [data-tutorial-revision="paginas"] .client-actions, .workspace-review-dialog [data-tutorial-revision="leida"] input[type=checkbox]',
+        selector: pdfPageAction,
         title: "Revisar las páginas",
-        text: "Recorré las páginas con «Página siguiente». Al llegar a la última, marcá la casilla si el contenido coincide con lo que querés imprimir.",
+        text: "Recorré las hojas con «Página siguiente». Si saltaste alguna, usá «Página anterior» para verla. Al terminar, marcá la casilla si el contenido coincide con lo que querés imprimir.",
       },
       {
         selector: '[data-tutorial-pdf="aceptar"]',
@@ -173,6 +205,18 @@ export const lessons: Record<Step, Lesson> = {
         selector: '[data-tutorial-pdf="volver"]',
         title: "Volver al resumen",
         text: "Ya aceptaste todos los PDF. Pulsá «Volver al resumen» para comprobar los datos finales.",
+      },
+      {
+        selector: '#client-create-order input[name="receptor"]',
+        mode: "ENVIO_DOMICILIO",
+        title: "Identificar al destinatario",
+        text: "Escribí el nombre de quien recibirá las copias en el domicilio.",
+      },
+      {
+        selector: '#client-create-order input[name="telefono"]',
+        mode: "ENVIO_DOMICILIO",
+        title: "Indicar un teléfono",
+        text: "Ingresá un teléfono de práctica para el contacto de entrega.",
       },
       {
         selector: '#client-create-order input[type="checkbox"]',
@@ -201,8 +245,8 @@ export const lessons: Record<Step, Lesson> = {
       },
       {
         selector: '[data-tutorial-pago="recibir"] [name="importe"]',
-        title: "Ingresar importe y referencia",
-        text: "Escribí el saldo pendiente completo en pesos. Ingresá un número de recibo de práctica único (o referencia de la transferencia), la fecha y la hora del movimiento.",
+        title: "Indicar el importe recibido",
+        text: "Escribí el saldo pendiente completo en pesos para que el pedido quede cubierto cuando le apliques este pago.",
       },
       {
         selector: '[data-tutorial-pago="recibir"] [name="referencia"]',
@@ -217,7 +261,7 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-pago="recibir"] [name="motivo"]',
         title: "Confirmar la recepción",
-        text: "En «Motivo / detalle» podés escribir «Cobro del pedido de práctica». Marcá la verificación del dinero y pulsá «Registrar dinero recibido».",
+        text: "Describí por qué recibiste el dinero. En «Motivo / detalle» podés escribir «Cobro del pedido de práctica».",
       },
       {
         title: "Verificar el dinero",
@@ -230,14 +274,14 @@ export const lessons: Record<Step, Lesson> = {
         text: "Pulsá «Registrar dinero recibido» después de verificar el importe y la referencia. El siguiente paso aplica ese dinero al pedido.",
       },
       {
-        selector: "[data-tutorial-aplicar]",
+        selector: ".payment-history-details:not([open]) > summary, [data-tutorial-aplicar]",
         title: "Elegir el pago recibido",
         text: "Buscá tu recibo en «Dinero recibido y conservado». Si la sección está plegada, abrí «Transferencias, comprobantes e historial de pagos». Pulsá «Aplicar este pago».",
       },
       {
         selector: '[data-tutorial-pago="aplicar"] [name="importe"]',
         title: "Aplicar el importe",
-        text: "Indicá el importe que acabás de recibir y un motivo, por ejemplo «Pago completo del pedido». Pulsá «Aplicar dinero a esta cotización» y revisá el nuevo saldo.",
+        text: "Indicá cuánto del dinero recibido vas a asignar a este pedido. Para cubrir el saldo, usá el importe pendiente.",
       },
       {
         title: "Indicar a qué se aplica",
@@ -267,7 +311,7 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-decision="REVISAR"] [name="motivo"]',
         title: "Registrar lo revisado",
-        text: "En «Motivo interno», anotá qué revisaste, por ejemplo «Coinciden PDF, copias y destino». Marcá la casilla y confirmá la revisión.",
+        text: "En «Motivo interno», anotá qué revisaste, por ejemplo «Coinciden PDF, copias y destino».",
       },
       {
         title: "Confirmar la revisión",
@@ -278,7 +322,7 @@ export const lessons: Record<Step, Lesson> = {
         selector:
           '[data-tutorial-decision="REVISAR"] button:not([type="button"])',
         title: "Guardar la revisión",
-        text: "Marcá que cotejaste el PDF y el destino. Confirmá la revisión para habilitar la aprobación.",
+        text: "Guardá la revisión con el botón señalado para habilitar la aprobación del pedido.",
       },
       {
         selector: '[data-tutorial-gestion="APROBAR"]',
@@ -288,7 +332,7 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-decision="APROBAR"] [name="motivo"]',
         title: "Autorizar la impresión",
-        text: "Anotá por qué autorizás el trabajo, por ejemplo «Archivo y anticipo verificados». Marcá la casilla y confirmá la aprobación.",
+        text: "Anotá por qué autorizás el trabajo, por ejemplo «Archivo y anticipo verificados».",
       },
       {
         title: "Verificar antes de aprobar",
@@ -299,7 +343,7 @@ export const lessons: Record<Step, Lesson> = {
         selector:
           '[data-tutorial-decision="APROBAR"] button:not([type="button"])',
         title: "Guardar la aprobación",
-        text: "Marcá la verificación y confirmá que el pedido puede pasar a impresión.",
+        text: "Confirmá la aprobación para que el pedido quede disponible en producción.",
       },
     ],
   },
@@ -320,7 +364,7 @@ export const lessons: Record<Step, Lesson> = {
         selector:
           '[data-tutorial-produccion="INICIAR"] select[aria-label="Impresora o recurso simulado"]',
         title: "Elegir la impresora",
-        text: "Seleccioná la impresora simulada que ofrece la lista. Anotá el motivo, marcá la confirmación del inicio y pulsá «Confirmar simulación».",
+        text: "Seleccioná el recurso simulado que imprimirá este PDF. Su nombre quedará registrado en el historial.",
       },
       {
         selector: '[data-tutorial-produccion="INICIAR"] [name="motivo"]',
@@ -330,13 +374,13 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-produccion="INICIAR"] [name="confirmacion"]',
         title: "Confirmar el inicio",
-        text: "Marcá la casilla y pulsá «Confirmar simulación». El trabajo pasará a impresión.",
+        text: "Marcá la casilla cuando hayas verificado el archivo y el recurso que seleccionaste.",
       },
       {
         selector:
           '[data-tutorial-produccion="INICIAR"] button:not([type="button"])',
         title: "Guardar el inicio",
-        text: "Una vez elegida la impresora, completá el motivo y la casilla de verificación. Pulsá «Confirmar simulación».",
+        text: "Pulsá «Confirmar simulación» para registrar el inicio. A partir de ese momento el trabajo figura en impresión.",
       },
       {
         selector: '[data-tutorial-movimiento="COMPLETAR"]',
@@ -346,13 +390,13 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-produccion="COMPLETAR"] [name="motivo"]',
         title: "Confirmar el resultado",
-        text: "Escribí el resultado de la tirada, marcá la casilla y pulsá «Confirmar simulación». Si cargaste más de un PDF, repetí el inicio y el fin para cada uno.",
+        text: "Anotá el resultado de esta tirada. Por ejemplo, «Se imprimieron todas las copias del PDF».",
       },
       {
         selector:
           '[data-tutorial-produccion="COMPLETAR"] [name="confirmacion"]',
         title: "Registrar el fin de la tirada",
-        text: "Marcá la casilla si finalizó la tirada. Pulsá «Confirmar simulación» para registrar el resultado.",
+        text: "Marcá la casilla si finalizó la impresión de este archivo.",
       },
       {
         selector:
@@ -375,16 +419,22 @@ export const lessons: Record<Step, Lesson> = {
         title: "Abrir el control",
         text: "En el trabajo que acabás de completar, pulsá «Controlar calidad». Leé los detalles del trabajo y abrí el PDF confirmado si necesitás cotejarlo.",
       },
-      {
-        selector: ".production-quality-checks",
-        title: "Comprobar la impresión",
-        text: "Revisá y marcá los cinco controles de la lista. Si no pediste terminaciones, comprobá que el trabajo coincida con esa elección y marcá el último control.",
-      },
+      ...([
+        ["impresionCompleta","Comprobar la impresión completa","Cotejá el número de páginas y las copias con la ficha del pedido. Marcá la primera casilla si la tirada está completa."],
+        ["calidadCorrecta","Revisar la calidad de impresión","Verificá que el texto y las imágenes salieron legibles y marcá esta casilla."],
+        ["alineacionCorrecta","Revisar la alineación","Comprobá que las páginas estén bien orientadas y alineadas antes de marcar la casilla."],
+        ["ordenCorrecto","Comprobar el orden","Cotejá el orden de las páginas con el PDF aprobado y confirmalo."],
+        ["terminacionesCorrectas","Revisar los opcionales","Cotejá las terminaciones con las opciones del pedido. Si el cliente no pidió ninguna, verificá que se respetó esa elección y marcá la casilla."],
+      ] as const).map(([name, title, text]) => ({
+        selector: `.production-quality-checks input[name="${name}"]`,
+        title,
+        text,
+      })),
       {
         selector:
           '.production-quality-result select[aria-label="Resultado de calidad"]',
         title: "Aprobar la calidad",
-        text: "Para seguir con la entrega, elegí «Aprobar calidad» si todo coincide. Escribí qué comprobaste, marcá la confirmación del resultado y pulsá «Confirmar simulación». Repetilo para cada PDF.",
+        text: "Elegí «Aprobar calidad» si las copias coinciden con el pedido y pueden pasar a entrega.",
       },
       {
         selector: '[data-tutorial-produccion="CALIDAD"] [name="motivo"]',
@@ -394,7 +444,7 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-produccion="CALIDAD"] [name="confirmacion"]',
         title: "Guardar el control",
-        text: "Marcá la confirmación y pulsá «Confirmar simulación». Cada PDF queda con su resultado de calidad.",
+        text: "Marcá la casilla si el resultado refleja el control que acabás de hacer.",
       },
       {
         selector:
@@ -427,13 +477,13 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-entrega="VALIDAR"]',
         title: "Abrir la validación",
-        text: "Si todavía no tenés el código, elegí «Pasar a Cliente para obtener el código» en la guía. Cuando lo tengas, pulsá «Validar código de entrega», ingresá sus ocho caracteres y elegí «Validar código».",
+        text: "Pulsá «Validar código de entrega» para abrir la comprobación del código que presenta el cliente.",
         role: "EMPLEADO",
       },
       {
         selector: '.delivery-dialog [name="codigo"]',
         title: "Ingresar el código",
-        text: "Escribí los ocho caracteres que mostró el cliente y pulsá «Validar código». La validación permite registrar la entrega física.",
+        text: "Escribí los ocho caracteres que te mostró el cliente. El código identifica este pedido al entregarlo.",
         role: "EMPLEADO",
       },
       {
@@ -452,7 +502,7 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '.delivery-dialog [name="receptor"]',
         title: "Identificar a quien recibe",
-        text: "Comprobá el nombre de quien recibe el pedido. Anotá el motivo, marcá la confirmación de entrega y pulsá «Confirmar registro».",
+        text: "Comprobá el nombre de quien recibe el pedido. Corregilo si la persona que lo retira es otra.",
         role: "EMPLEADO",
       },
       {
@@ -464,7 +514,7 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-dialogo="ENTREGAR"] [name="confirmado"]',
         title: "Confirmar la recepción física",
-        text: "Marcá la casilla de entrega y pulsá «Confirmar registro».",
+        text: "Marcá esta casilla cuando hayas entregado las copias a la persona que figura en el registro.",
         role: "EMPLEADO",
       },
       {
@@ -477,19 +527,19 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-entrega="CERRAR"]',
         title: "Abrir el cierre",
-        text: "En «Cierre administrativo», verificá la entrega y el total conciliado. Abrí el cierre, anotá el motivo, marcá la casilla y elegí «Confirmar registro».",
+        text: "En «Cierre administrativo», abrí el cierre del pedido que ya entregaste y cobraste.",
         role: "EMPLEADO",
       },
       {
         selector: '[data-tutorial-dialogo="CERRAR"] [name="motivo"]',
         title: "Confirmar el cierre",
-        text: "Comprobá el total conciliado, escribí el motivo y marcá la casilla. Pulsá «Confirmar registro» para cerrar el pedido.",
+        text: "Anotá por qué podés cerrar el pedido. Por ejemplo, «Copias entregadas y pago conciliado».",
         role: "EMPLEADO",
       },
       {
         selector: '[data-tutorial-dialogo="CERRAR"] [name="confirmado"]',
         title: "Guardar el cierre",
-        text: "Marcá que verificaste la entrega y la conciliación. Pulsá «Confirmar registro» para terminar el recorrido.",
+        text: "Marcá que verificaste la entrega y la conciliación del pago.",
         role: "EMPLEADO",
       },
       {

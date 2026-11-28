@@ -40,6 +40,11 @@ function canGuide(step: Step, role: Role) {
     lessons[step].role === role || (step === "entrega" && role === "CLIENTE")
   );
 }
+function selectedDeliveryMode() {
+  return (
+    document.querySelector<HTMLSelectElement>('#client-delivery select[aria-label="Modalidad"]')?.value ?? ""
+  );
+}
 export function TutorialButton() {
   const api = useTutorial(),
     store = useRoleStore();
@@ -110,6 +115,7 @@ function FullTutorialPanel() {
   const [index, setIndex] = useState(false),
     [hint, setHint] = useState(0),
     [switchTo, setSwitchTo] = useState<Role | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState("");
   const [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [navigation, setNavigation] = useState(0),
@@ -188,6 +194,18 @@ function FullTutorialPanel() {
     typeof location !== "undefined" &&
     matchesRoute(href);
   useEffect(() => {
+    if (!here || step !== "confirmacion") return;
+    const read = () => setDeliveryMode(selectedDeliveryMode());
+    const observer = new MutationObserver(read);
+    observer.observe(document.body, { childList: true, subtree: true });
+    document.addEventListener("change", read);
+    read();
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("change", read);
+    };
+  }, [here, step]);
+  useEffect(() => {
     if (!here) return;
     let observer: MutationObserver | undefined;
     let frame = 0;
@@ -242,25 +260,30 @@ function FullTutorialPanel() {
           !(
             (event.type === "click" && control.closest("button,summary")) ||
             (event.type === "change" &&
-              control.matches("select,input[type=checkbox]"))
+              control.matches("select:valid,input:valid,textarea:valid") &&
+              (!control.matches('input[type="checkbox"]') || control.matches(":checked")))
           ))
       )
         return;
       stop();
-      const nextSelector = hints[from + 1].selector;
       const advanceWhenReady = () => {
         if (form?.getClientRects().length) return;
-        const next = visibleTarget(nextSelector);
+        const mode = selectedDeliveryMode();
+        const following = hints.findIndex(
+          (hint, i) => i > from && (!hint.mode || hint.mode === mode),
+        );
+        if (following < 0) return;
+        const next = visibleTarget(hints[following].selector);
         if (!next || next.matches(":disabled")) return;
         stop();
-        setHint(from + 1);
+        setHint(following);
       };
       observer = new MutationObserver(advanceWhenReady);
       observer.observe(document.body, {
         subtree: true,
         childList: true,
         attributes: true,
-        attributeFilter: ["hidden", "open", "disabled"],
+        attributeFilter: ["hidden", "open", "disabled", "data-tutorial-revision", "data-tutorial-pdf", "data-aceptados"],
       });
       frame = requestAnimationFrame(advanceWhenReady);
     }
@@ -382,6 +405,11 @@ function FullTutorialPanel() {
   const destinationRole = switchTo ?? lessons[handoffStep].role;
   const needsRole = !!switchTo || !capable || !!automaticHandoff;
   const guiding = !complete && !needsRole && here && !done;
+  const activeHints = hints
+    .map((item, n) => ({ item, n }))
+    .filter(({ item }) => !item.mode || item.mode === deliveryMode);
+  const previousHint = activeHints.filter(({ n }) => n < hintNumber).at(-1);
+  const followingHint = activeHints.find(({ n }) => n > hintNumber);
   const heading = complete
     ? "Pedido completado"
     : needsRole
@@ -462,7 +490,7 @@ function FullTutorialPanel() {
                       className="tutorial-subtasks"
                       aria-label={`Subtareas de ${lesson.title}`}
                     >
-                      {(capable ? hints : lesson.hints).map((item, n) => (
+                      {(capable ? activeHints : lesson.hints.map((item, n) => ({ item, n }))).map(({ item, n }) => (
                         <li key={item.selector}>
                           <button
                             type="button"
@@ -658,18 +686,18 @@ function FullTutorialPanel() {
                   <button type="button" onClick={() => chooseHint(hintNumber)}>
                     Ir al control
                   </button>
-                  {hintNumber > 0 && (
+                  {previousHint && (
                     <button
                       type="button"
-                      onClick={() => chooseHint(hintNumber - 1)}
+                      onClick={() => chooseHint(previousHint.n)}
                     >
                       Anterior
                     </button>
                   )}
-                  {hintNumber < hints.length - 1 && (
+                  {followingHint && (
                     <button
                       type="button"
-                      onClick={() => chooseHint(hintNumber + 1)}
+                      onClick={() => chooseHint(followingHint.n)}
                     >
                       Siguiente indicación
                     </button>

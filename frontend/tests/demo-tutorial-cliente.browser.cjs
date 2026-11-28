@@ -2,16 +2,20 @@
 const {test} = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
 const url = process.env.DEMO_CLIENTE_E2E_URL;
 
 test("el cliente conserva su preparación o confirma un único pedido y puede seguirlo", {skip:!url}, async t => {
   const endpoint = new URL(url);
+  const fourPages=process.env.DEMO_CLIENTE_PDF_CUATRO_PAGINAS;
+  const fixture=fourPages||path.resolve(__dirname,"fixtures/afiche-dos-paginas.pdf");
   assert.ok(endpoint.protocol === "http:" && ["127.0.0.1","localhost","[::1]"].includes(endpoint.hostname) && endpoint.port,
     "Esta prueba requiere una instancia local descartable.");
   const {chromium, expect} = require("@playwright/test");
   const browser = await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined});
   t.after(()=>browser.close());
-  const page = await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:"reduce"});
+  const viewport=process.env.DEMO_CLIENTE_VENTANA==="compacta" ? {width:1125,height:940} : {width:1440,height:1000};
+  const page = await browser.newPage({viewport,reducedMotion:"reduce"});
   const errors = [];
   page.on("pageerror",error=>errors.push(error.message));
   page.on("dialog",async dialog => {
@@ -51,24 +55,51 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
     await page.getByRole("button",{name:"Empezar tutorial",exact:true}).click();
     await panel.getByRole("button",{name:/Tutorial del lado cliente/}).click();
   }
+  async function clickControl(control, options) {
+    await expectTutorialAnchor(page,control,options);
+    await control.click();
+  }
+  async function selectControl(control,option) {
+    await clickControl(control);
+    await control.press("Escape");
+    await control.selectOption(option);
+  }
   async function reviewPdf() {
-    await page.getByRole("button",{name:/Revisar archivos/}).click();
+    await clickControl(page.getByRole("button",{name:/Revisar archivos/}));
     const dialog=page.locator(".workspace-review-dialog[open]");
-    await dialog.getByRole("button",{name:/Ver páginas/}).first().click();
+    await clickControl(dialog.getByRole("button",{name:/Ver páginas/}).first());
     const pdf=dialog.getByRole("region",{name:"Vista previa del PDF"});
-    await expect(pdf).toContainText("1 de 2 páginas abiertas",{timeout:45000});
-    await pdf.getByRole("button",{name:"Página siguiente"}).click();
+    await expect(pdf).toContainText("1 de "+(fourPages?4:2)+" páginas abiertas",{timeout:45000});
+    const nextPage=pdf.getByRole("button",{name:"Página siguiente"});
+    if(fourPages){
+      // La persona puede saltar páginas usando el número del visor. La guía debe recuperar las pendientes.
+      await expectTutorialAnchor(page,nextPage);
+      await pdf.getByRole("spinbutton",{name:"Página",exact:true}).fill("4");
+      const previous=pdf.getByRole("button",{name:"Página anterior"});
+      await expect(pdf).toContainText("2 de 4 páginas abiertas",{timeout:45000});
+      await clickControl(previous);
+      await expect(pdf).toContainText("3 de 4 páginas abiertas",{timeout:45000});
+      await clickControl(previous);
+    }else{
+      await clickControl(nextPage);
+    }
     const ack=pdf.getByRole("checkbox");
     await expect(ack).toBeEnabled({timeout:45000});
-    await ack.check();
-    await pdf.getByRole("button",{name:"Aceptar vista previa"}).click();
+    await clickControl(ack);
+    await expect(ack).toBeChecked();
+    await clickControl(pdf.getByRole("button",{name:"Aceptar vista previa"}));
     await expect(dialog.locator('[data-tutorial-pdf="volver"]')).toBeEnabled();
-    await dialog.getByRole("button",{name:/Volver al resumen/}).click();
+    await clickControl(dialog.getByRole("button",{name:/Volver al resumen/}));
   }
   async function expectOrderSections(){
     for(const section of ["Reconocer el estado y la reserva","Consultar los PDF","Leer los pagos","Consultar correcciones","Revisar la fecha","Leer la entrega"]){
       await heading(section);
       await expect(page.locator(".tutorial-highlight:visible")).toHaveCount(1);
+      if(section==="Consultar los PDF"){
+        await clickControl(page.getByRole("button",{name:"Ver páginas del pedido"}));
+        const pdf=page.getByRole("region",{name:"Vista previa del PDF"});
+        await clickControl(pdf.getByRole("button",{name:"Página siguiente"}));
+      }
       await next(section);
     }
   }
@@ -80,10 +111,23 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   const before=await orderCount();
   const slots=await usedQuota();
   assert.ok(before>0,"Se necesita un pedido precargado para consultar.");
-  await page.goto(root+"/cliente/cotizaciones/nueva");
+  await start();
+  await next("Leer el pedido actual");
+  await next("Interpretar el resumen");
+  await next("Distinguir una cotización de un pedido");
+  await heading("Ubicar el comienzo del trabajo");
+  await clickControl(page.getByRole("link",{name:"Preparar un pedido",exact:true}));
+  await heading("Cargar o retomar el archivo");
+  const picker=page.getByRole("button",{name:"Seleccionar PDF",exact:true});
+  await expectTutorialAnchor(page,picker);
+  const [chooser]=await Promise.all([page.waitForEvent("filechooser"),picker.click()]);
+  await chooser.setFiles([]);
+  await expect(card.getByRole("button",{name:"Continuar",exact:true})).toBeDisabled();
+  assert.equal((await progress()).draft.preparacion,undefined);
+  await card.getByRole("button",{name:"Pausar",exact:true}).click();
   const file=page.locator("#client-upload input[type=file]");
   await expect(file).toBeEnabled();
-  await file.setInputFiles(path.resolve(__dirname,"fixtures/afiche-dos-paginas.pdf"));
+  await file.setInputFiles(fixture);
   await expect(page.getByRole("button",{name:/Configurar PDF 1/})).toBeEnabled({timeout:80000});
   // Simula una instalación con un recorrido completo anterior y una preparación en curso.
   const api="/api/demo/tutorial";
@@ -95,25 +139,30 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   const otherBefore=await mutate(page.request,"PUT",api,{accion:"borrador",paso:"archivo",campos:{archivoActivo:existing.archivos[0].codigoPublico}});
   await page.goto(root+"/cliente");
   await start();
-  await next("Leer el pedido actual");
-  await next("Interpretar el resumen");
-  await next("Distinguir una cotización de un pedido");
-  await next("Ubicar el comienzo del trabajo");
   await heading("Cargar o retomar el archivo");
   await expect(card.getByRole("button",{name:"Continuar",exact:true})).toBeDisabled();
-  await expect(page.getByRole("region",{name:"Preparación en curso"})).toContainText("afiche-dos-paginas.pdf");
+  await expect(page.getByRole("region",{name:"Preparación en curso"})).toContainText(path.basename(fixture));
   assert.equal((await progress()).draft.preparacion,undefined);
-  await page.getByRole("button",{name:"Usar esta preparación en el tutorial"}).click();
+  await clickControl(page.getByRole("button",{name:"Usar esta preparación en el tutorial"}));
+  await expectTutorialAnchor(page,page.getByRole("button",{name:/Configurar PDF 1/}));
   await next("Cargar o retomar el archivo");
   assert.equal((await progress()).draft.preparacion,otherBefore.preparacion);
   const print=page.locator("#client-work-options");
   for(const [field,label] of [["Servicio de impresión","Elegir el servicio"],["Tamaño de hoja","Elegir el tamaño"],["Papel y gramaje","Elegir el papel"],["Impresión","Elegir la impresión"]]){
     await heading(label);
-    await print.getByRole("combobox",{name:field,exact:true}).selectOption({index:1});
+    await selectControl(print.getByRole("combobox",{name:field,exact:true}),{index:1});
     await next(label);
   }
   await heading("Ajustar las copias y las caras");
-  await print.getByLabel("Copias",{exact:true}).fill("3");
+  const copies=print.getByLabel("Copias",{exact:true}), sides=print.getByRole("combobox",{name:"Caras"});
+  await clickControl(copies);
+  await copies.fill("3");
+  await expectTutorialAnchor(page,copies);
+  await copies.press("Tab");
+  const sidesIndex=(await sides.locator("option").count())>1 ? 1 : 0;
+  await selectControl(sides,{index:sidesIndex});
+  const extras=print.locator(".workspace-additions-list input[type=checkbox]");
+  if(sidesIndex>0 && await extras.count()) await clickControl(extras.first(),{group:true});
   await card.getByRole("button",{name:"Pausar",exact:true}).click();
   await page.reload();
   await expect(card).toHaveCount(0);
@@ -122,14 +171,26 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   await expect(print.getByLabel("Copias",{exact:true})).toHaveValue("3");
   await next("Ajustar las copias y las caras");
   await heading("Calcular el presupuesto");
-  await page.locator("#client-budget-action button").click();
+  await clickControl(page.locator("#client-budget-action button"));
   await next("Leer el subtotal");
   await heading("Elegir cómo recibirlo");
-  await page.getByLabel("Modalidad",{exact:true}).selectOption("RETIRO_SUCURSAL");
-  await page.getByLabel("Destino de retiro",{exact:true}).selectOption({index:1});
+  const shipping=process.env.DEMO_CLIENTE_ENTREGA==="domicilio";
+  const mode=page.getByRole("combobox",{name:"Modalidad",exact:true});
+  await selectControl(mode,shipping?"ENVIO_DOMICILIO":"RETIRO_SUCURSAL");
+  if(shipping){
+    for(const [name,value] of Object.entries({calle:"Calle de ensayo",numero:"109",codigoPostal:"1407",localidad:"CAPITAL FEDERAL",provincia:"CABA",referencias:"Piso 2"})){
+      const field=page.locator('#client-delivery input[name="'+name+'"]');
+      await clickControl(field);
+      await field.fill(value);
+      await expectTutorialAnchor(page,field);
+      await field.press("Tab");
+    }
+  }else{
+    await selectControl(page.getByLabel("Destino de retiro",{exact:true}),{index:1});
+  }
   await next("Elegir cómo recibirlo");
   await heading("Elegir el medio de pago");
-  await page.getByLabel("Medio de pago",{exact:true}).selectOption("EFECTIVO");
+  await selectControl(page.getByLabel("Medio de pago",{exact:true}),"EFECTIVO");
   await next("Elegir el medio de pago");
   await heading("Revisar todas las páginas");
   assert.ok(await page.locator("#client-create-order input[type=checkbox]").isDisabled());
@@ -137,25 +198,38 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   await next("Revisar todas las páginas");
   await heading("Elegir cómo terminar la práctica");
   const prepared=(await progress()).draft.preparacion;
-  await page.getByRole("button",{name:"Conservar la preparación y ver el seguimiento"}).click();
+  await expectTutorialAnchor(page,page.getByRole("button",{name:"Revisar para crear este pedido"}),{group:true});
+  await clickControl(page.getByRole("button",{name:"Conservar la preparación y ver el seguimiento"}),{group:true});
   await heading("Consultar la lista");
   assert.equal(await orderCount(),before);
   assert.equal(await usedQuota(),slots);
   const preserved=await read("/api/cliente/preparaciones/"+prepared+"/resumen");
   assert.ok(preserved.preparacion.presupuesto);
   assert.equal(preserved.preparacion.pedido,null);
+  await clickControl(page.getByRole("combobox",{name:"Filtrar por estado"}));
+  await page.keyboard.press("Escape");
   await next("Consultar la lista");
-  await page.locator("[data-tutorial-consultar-pedido]").first().click();
+  await clickControl(page.locator("[data-tutorial-consultar-pedido]").first());
   await heading("Reconocer el estado y la reserva");
 
   // Volver al punto de decisión usa exactamente el trabajo que acabamos de conservar.
   await panel.getByRole("button",{name:/Decidir si crear el pedido/}).click();
   await heading("Elegir cómo terminar la práctica");
   const form=page.locator("#client-create-order");
-  await form.getByRole("button",{name:"Revisar para crear este pedido"}).click();
+  await clickControl(form.getByRole("button",{name:"Revisar para crear este pedido"}),{group:true});
+  if(shipping){
+    for(const [name,value] of Object.entries({receptor:"Cliente de ensayo",telefono:"1100000000"})){
+      const field=form.locator('input[name="'+name+'"]');
+      await clickControl(field);
+      await field.fill(value);
+      await expectTutorialAnchor(page,field);
+      await field.press("Tab");
+    }
+  }
   await expect(form.getByRole("checkbox")).toBeEnabled();
-  await form.getByRole("checkbox").check();
-  await form.getByRole("button",{name:/Confirmar \/ Crear pedido/}).click();
+  await clickControl(form.getByRole("checkbox"));
+  await expect(form.getByRole("checkbox")).toBeChecked();
+  await clickControl(form.getByRole("button",{name:/Confirmar \/ Crear pedido/}));
   await expectOrderSections();
   const created=(await progress()).draft.pedido;
   assert.ok(created);

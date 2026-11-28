@@ -76,7 +76,7 @@ function PriceExercise({catalog, initial, save, canTransfer, onTransfer, resumeF
     {applied&&selected&&<div id="tutorial-tarifa-resultado" className="admin-info"><strong>Presupuesto de prueba · tres hojas simple faz</strong>
       <p>Con la tarifa vigente: {total(selected.rate)}. Con tu borrador: 3 × {ars(parseAmount(form.precio,"Nuevo precio"))} = <strong>{ars(3*parseAmount(form.precio,"Nuevo precio"))}</strong>.</p>
       <p>Podés seguir con el tutorial. Si querés publicar, llevá este precio al formulario comercial y revisá las {selected.rate.papeles.length} variantes de «{selected.rate.nombre}». Al publicar cambia el precio de esa tarifa para futuras cotizaciones.</p>
-      <button type="button" className="admin-button secondary" disabled={!canTransfer} onClick={()=>onTransfer(selected.rate.id,form.precio)}>Preparar publicación opcional</button>
+      <button id="tutorial-tarifa-publicar" type="button" className="admin-button secondary" disabled={!canTransfer} onClick={()=>onTransfer(selected.rate.id,form.precio)}>Preparar publicación opcional</button>
       {!canTransfer&&<p>Revisá los cambios pendientes o la configuración programada en el formulario comercial antes de preparar otra publicación.</p>}
     </div>}
     {failure&&<p role="alert" className="admin-warning">{failure} <button type="button" onClick={()=>persist(form)}>Reintentar</button></p>}

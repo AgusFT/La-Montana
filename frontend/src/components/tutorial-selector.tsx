@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useTutorial } from "./tutorial-context";
 import {
   guideRole,
@@ -252,30 +252,84 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
     window.addEventListener("hashchange", sync);
     return () => window.removeEventListener("hashchange", sync);
   }, []);
+  const [currentCue, setCurrentCue] = useState<{
+    task: typeof task;
+    index: number;
+  } | null>(null);
+  const cue =
+    (currentCue?.task === task && task.indicaciones?.[currentCue.index]) ||
+    task;
+  const nativeNext = useEffectEvent(() => {
+    void next(true);
+  });
   useEffect(() => {
-    if (!sameRole || !here) {
-      setReady(false);
-      return;
-    }
-    const sync = () =>
+    if (!sameRole || !here || complete || !saved || index) return;
+    let frame = 0;
+    let awaitingNativeResult = false;
+    const sync = () => {
+      frame = 0;
+      const selected =
+        task.indicaciones?.findIndex(
+          ({ when, selector }) =>
+            document.querySelector(when) && visibleTarget(selector),
+        ) ?? -1;
+      setCurrentCue((previous) =>
+        previous?.task === task && previous.index === selected
+          ? previous
+          : { task, index: selected },
+      );
       setReady(
         !task.readySelector || !!document.querySelector(task.readySelector),
       );
-    sync();
-    const observer = new MutationObserver(sync);
+      if (
+        awaitingNativeResult &&
+        task.advanceOnClick &&
+        document.querySelector(task.advanceOnClick.readySelector)
+      ) {
+        awaitingNativeResult = false;
+        nativeNext();
+      }
+    };
+    function schedule() {
+      if (!frame) frame = requestAnimationFrame(sync);
+    }
+    function click(event: Event) {
+      if (
+        task.advanceOnClick &&
+        event.target instanceof Element &&
+        event.target.closest(task.advanceOnClick.selector)
+      ) {
+        awaitingNativeResult = true;
+      }
+      schedule();
+    }
+    const observer = new MutationObserver((changes) => {
+      if (
+        changes.some(
+          ({ target, attributeName }) =>
+            attributeName !== "aria-describedby" &&
+            !(target instanceof Element && target.closest(".tutorial-overlay")),
+        )
+      )
+        schedule();
+    });
     observer.observe(document.body, {
       subtree: true,
       childList: true,
       attributes: true,
     });
-    document.addEventListener("input", sync, true);
-    document.addEventListener("change", sync, true);
+    for (const event of ["input", "change", "focusin"])
+      document.addEventListener(event, schedule, true);
+    document.addEventListener("click", click, true);
+    sync();
     return () => {
       observer.disconnect();
-      document.removeEventListener("input", sync, true);
-      document.removeEventListener("change", sync, true);
+      cancelAnimationFrame(frame);
+      for (const event of ["input", "change", "focusin"])
+        document.removeEventListener(event, schedule, true);
+      document.removeEventListener("click", click, true);
     };
-  }, [here, sameRole, task, hash]);
+  }, [here, sameRole, complete, !!saved, task, hash, index]);
   if (!api || !store) return null;
   const work = async (action: () => Promise<unknown>) => {
     if (lock.current) return;
@@ -305,9 +359,13 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
         document.querySelector<HTMLButtonElement>(".tutorial-start")?.focus(),
       );
     });
-  const next = () =>
+  const next = (nativeConfirmed = false) =>
     work(async () => {
-      if (task.readySelector && !document.querySelector(task.readySelector))
+      if (
+        !nativeConfirmed &&
+        task.readySelector &&
+        !document.querySelector(task.readySelector)
+      )
         return;
       if (taskIndex + 1 < lesson.tasks.length)
         await store.go(guide, lesson.id, taskIndex + 1);
@@ -427,7 +485,7 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
             !sameRole
               ? "[data-tutorial-cambiar-rol]"
               : here && !complete
-                ? task.selector
+                ? cue.selector
                 : undefined
           }
           anchorKey={
@@ -510,7 +568,7 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
           ) : (
             <>
               <p id="tutorial-indicacion" aria-live="polite">
-                {task.text}
+                {cue.text}
               </p>
               {task.download && (
                 <a download href={task.download.href}>
@@ -535,8 +593,7 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
                 <button
                   type="button"
                   onClick={() => {
-                    if (visibleTarget(task.selector))
-                      focusTarget(task.selector);
+                    if (visibleTarget(cue.selector)) focusTarget(cue.selector);
                   }}
                 >
                   Ir al control

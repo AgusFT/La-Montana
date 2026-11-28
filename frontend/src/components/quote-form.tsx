@@ -26,6 +26,7 @@ function PrepareWork(){
  const clientGuide=useRoleTutorial('cliente');
  const router=useRouter(),[options,setOptions]=useState<QuoteOptions|null>(null),[prep,setPrep]=useState<Preparation|null>(null),[rows,setRows]=useState<Row[]>([]);
  const [activeFile,setActiveFile]=useState('');
+ const [quantityEdited,setQuantityEdited]=useState(''),[sidesEdited,setSidesEdited]=useState('');
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[uncertain,setUncertain]=useState(false),[fileLocked,setFileLocked]=useState(false);
  const running=useRef(false),pending=useRef<null|(()=>Promise<void>)>(null),input=useRef<HTMLInputElement>(null);
  const [refreshing,setRefreshing]=useState(false);
@@ -109,7 +110,7 @@ function PrepareWork(){
   finally{running.current=false;setBusy(false);}
  }
  async function files(list:FileList|null){
-  if(!list||locked||!prep)return;const values=Array.from(list);if(prep.archivos.length+values.length>20){setError('Podés preparar hasta 20 PDF.');return;}
+  if(!list?.length||locked||!prep)return;const values=Array.from(list);if(prep.archivos.length+values.length>20){setError('Podés preparar hasta 20 PDF.');return;}
   if(values.some(f=>!f.name.toLowerCase().endsWith('.pdf')||f.size===0||f.size>10*1024*1024)){setError('Seleccioná únicamente PDF de hasta 10 MiB por archivo.');return;}
   let index=0;const uploads=values.map(file=>({file,operation:crypto.randomUUID(),id:undefined as string|undefined}));
   await execute(async()=>{
@@ -174,19 +175,19 @@ function PrepareWork(){
     <div className="client-dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void files(e.dataTransfer.files);}}>
      <span aria-hidden="true">⇧</span><strong>Arrastrá tus PDF acá</strong>
      <button type="button" className="client-button secondary" disabled={locked||!prep||!options?.disponible} onClick={()=>input.current?.click()}>{prep?.archivos.length?'Agregar PDF':'Seleccionar PDF'}</button>
-     <input ref={input} className="workspace-file-input" tabIndex={-1} aria-label="Seleccionar PDF" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/>
+     <input ref={input} className="workspace-file-input" tabIndex={-1} aria-hidden="true" type="file" accept=".pdf,application/pdf" multiple disabled={locked||!prep||!options?.disponible} onChange={e=>{void files(e.target.files);e.target.value='';}}/>
      <small>Hasta 10 MiB por archivo · acceso privado</small>
     </div>
     {!!prep?.archivos.length&&<ul className="workspace-file-list" aria-label="Archivos del trabajo">{prep.archivos.map((f,index)=><li key={f.codigoPublico}><button type="button" className="workspace-file-choice" aria-pressed={selectedFile?.codigoPublico===f.codigoPublico} aria-label={`Configurar PDF ${index+1}: ${f.nombre}`} disabled={locked} data-complete={configured(f.codigoPublico)} onClick={()=>{setActiveFile(f.codigoPublico);rememberFile({archivoActivo:f.codigoPublico});}}><span className="workspace-file-icon" aria-hidden="true">PDF</span><span><strong title={f.nombre}>{f.nombre}</strong><small>{f.estado==='VALIDO'?`${f.paginas} páginas · ${configured(f.codigoPublico)?'Configurado':'Falta configurar'}`:f.estado==='VALIDANDO'?'Analizando seguridad…':'Revisar archivo'}</small></span><span className="workspace-file-status" aria-hidden="true">{configured(f.codigoPublico)?'✓':index+1}</span></button></li>)}</ul>}
     <p className="workspace-files-footer">{prep?.archivos.length?'Seleccioná un archivo para ajustar sus opciones. Podés agregar varios y cotizarlos juntos.':'El servidor analiza la seguridad y cuenta las páginas de cada PDF. No necesitás pagar para cargarlo.'}</p>
    </section>
-   <fieldset disabled={locked||!options?.disponible} id="client-work-options" className="workspace-editor"><legend>Opciones del archivo seleccionado</legend>
+   <fieldset disabled={locked||!options?.disponible} id="client-work-options" data-copias-editadas={!!selectedFile&&quantityEdited===selectedFile.codigoPublico} data-caras-editadas={!!selectedFile&&sidesEdited===selectedFile.codigoPublico} className="workspace-editor"><legend>Opciones del archivo seleccionado</legend>
     {selectedFile?<><section className="workspace-panel">
      <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">2</span><h2>Detalles de impresión</h2></header>
      <div className="workspace-selected-file"><div><strong>{selectedFile.nombre}</strong><small>{selectedFile.estado==='VALIDO'?`✓ PDF analizado · ${selectedFile.paginas} páginas · ${((selectedFile.bytes??0)/1024).toLocaleString('es-AR',{maximumFractionDigits:1})} KiB`:selectedFile.estado==='VALIDANDO'?'Analizando seguridad y páginas…':selectedFile.mensaje??'Carga pendiente. Quitalo y volvé a seleccionarlo si no terminó.'}</small></div><button type="button" disabled={selectedFile.estado==='VALIDANDO'} onClick={()=>void remove(selectedFile.codigoPublico)}>Quitar</button></div>
      <div className="workspace-print-fields">{['Servicio de impresión','Tamaño de hoja','Papel y gramaje','Impresión'].map((label,n)=><label key={label}>{label}<select aria-label={label} required disabled={selectedFile.estado!=='VALIDO'||n>0&&!parts[n-1]} value={parts[n]??''} onChange={e=>choose(row,n,e.target.value)}><option value="">Elegí una opción</option>{lists[n].map(v=><option key={v} value={v}>{n===3?(v==='COLOR'?'Color':'Blanco y negro'):names.get(v)??v}</option>)}</select></label>)}
-      <label>Cantidad de copias<input aria-label="Copias" type="number" required min={1} max={10000} step={1} value={row.copies} onChange={e=>update(selectedFile.codigoPublico,{copies:e.target.value})}/></label>
-      <label>Caras<select aria-label="Caras" disabled={!selected} value={row.double?'doble':'simple'} onChange={e=>update(selectedFile.codigoPublico,{double:e.target.value==='doble'})}><option value="simple">Simple faz</option>{selected?.dobleFaz&&<option value="doble">Doble faz</option>}</select></label>
+      <label>Cantidad de copias<input aria-label="Copias" type="number" required min={1} max={10000} step={1} value={row.copies} onBlur={()=>setQuantityEdited(selectedFile.codigoPublico)} onChange={e=>{setQuantityEdited(selectedFile.codigoPublico);setSidesEdited('');update(selectedFile.codigoPublico,{copies:e.target.value});}}/></label>
+      <label>Caras<select aria-label="Caras" disabled={!selected} onBlur={()=>setSidesEdited(selectedFile.codigoPublico)} value={row.double?'doble':'simple'} onChange={e=>{setSidesEdited(selectedFile.codigoPublico);update(selectedFile.codigoPublico,{double:e.target.value==='doble'});}}><option value="simple">Simple faz</option>{selected?.dobleFaz&&<option value="doble">Doble faz</option>}</select></label>
      </div>
     </section><section className="workspace-panel workspace-additions">
      <header className="workspace-heading"><span className="workspace-step" aria-hidden="true">3</span><h2>Adicionales</h2></header>

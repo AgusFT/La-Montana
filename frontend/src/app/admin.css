@@ -292,3 +292,10 @@
 @media(min-width:761px){
   .admin-sidebar nav[aria-label="Navegación operativa"]{flex:0 1 auto}
 }
+
+/* Agrupar las dos opciones activas permite señalarlas juntas en la práctica. */
+.configuration-models > #tutorial-modelos { display: contents; }
+.guided-model-choices { grid-template-columns: minmax(0,1fr); }
+.guided-model-choices > #tutorial-modelos { display: grid; gap: .5rem; grid-template-columns: repeat(auto-fit,minmax(min(100%,10rem),1fr)); }
+.guided-model-choices #tutorial-modelos .configuration-option { display: flex !important; align-items: center; justify-content: center; padding: .65rem; min-height: 44px; }
+#tutorial-criterios { display: grid; gap: .4rem; }

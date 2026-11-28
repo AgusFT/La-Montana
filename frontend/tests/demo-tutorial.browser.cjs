@@ -50,34 +50,28 @@ test(
     const panel = () => page.locator("#tutorial-panel");
     const card = () => page.locator(".tutorial-callout:visible");
     const start = () => page.getByRole("button", { name: "Empezar tutorial", exact: true });
-    const testPdf = path.resolve(__dirname, "fixtures/afiche-dos-paginas.pdf");
+    const existingFile = process.env.DEMO_TUTORIAL_E2E_ARCHIVO !== "nuevo";
+    // Un PDF de tres o más páginas permite probar el salto directo al final.
+    const testPdf = process.env.DEMO_TUTORIAL_E2E_PDF ||
+      path.resolve(__dirname, "fixtures/afiche-dos-paginas.pdf");
     const fields = ["Servicio de impresión", "Tamaño de hoja", "Papel y gramaje", "Impresión"];
-    async function anchored(target) {
-      await expect(target).toBeInViewport();
-      await expect(card()).toBeInViewport({ ratio: 0.98 });
-      await expect(page.locator(".tutorial-arrow:visible")).toHaveCount(1);
-      const light = page.locator(".tutorial-highlight:visible");
-      await expect(light).toHaveCount(1);
-      await expect(target).toHaveAttribute("aria-describedby", /\btutorial-indicacion\b/);
-      await expect.poll(async () => {
-        const boxes = await Promise.all([target, card(), light].map(el => el.boundingBox()));
-        if (boxes.some(box => !box)) return false;
-        const [field, help, outline] = boxes;
-        const intersects = (a, b) => a.x < b.x + b.width && a.x + a.width > b.x &&
-          a.y < b.y + b.height && a.y + a.height > b.y;
-        return !intersects(field, help) && intersects(field, outline);
-      }, { message: "La tarjeta deja el control libre y el resaltado señala ese control." }).toBe(true);
-      await expect.poll(() => target.evaluate((element) => {
-        const arrow = document.querySelector(".tutorial-arrow line");
-        const svg = arrow?.ownerSVGElement;
-        if (!svg) return false;
-        const bounds = svg.getBoundingClientRect();
-        const field = element.getBoundingClientRect();
-        const x = bounds.x + arrow.x2.baseVal.value;
-        const y = bounds.y + arrow.y2.baseVal.value;
-        return x >= field.left - 12 && x <= field.right + 12 &&
-          y >= field.top - 12 && y <= field.bottom + 12;
-      }), { message: "La punta de la flecha señala el campo." }).toBe(true);
+    const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
+    const anchored = (target) => expectTutorialAnchor(page, target);
+    async function guidedClick(target) {
+      await anchored(target);
+      await target.click();
+    }
+    async function guidedEdit(target, value) {
+      await anchored(target);
+      await target.fill(value);
+      await page.keyboard.press("Tab");
+    }
+    async function guidedCheck(target) {
+      await anchored(target);
+      await target.check();
+    }
+    async function nextHint() {
+      await card().getByRole("button", {name:"Siguiente indicación"}).click();
     }
     async function closed() {
       await expect(start()).toBeEnabled();
@@ -174,7 +168,7 @@ test(
       await loc.selectOption(v);
     }
     async function submit(form) {
-      await form.locator("button:not([type=button])").last().click();
+      await guidedClick(form.locator("button:not([type=button])").last());
     }
     async function stage(s, f) {
       try {
@@ -191,15 +185,17 @@ test(
         "Esta prueba requiere una base de demo recién inicializada y descartable.",
       );
       await checkMenu();
-      await manualRole("Cliente");
-      await page.goto(root + "/cliente/cotizaciones/nueva");
-      await closed();
-      const manualUpload = page.locator("#client-upload input[type=file]");
-      await expect(manualUpload).toBeEnabled();
-      await manualUpload.setInputFiles(testPdf);
-      await expect(page.getByRole("button", { name: /Configurar PDF 1/ })).toBeEnabled({ timeout: 90000 });
-      assert.equal((await check()).preparacion, null);
-      await manualRole("Administrador");
+      if (existingFile) {
+        await manualRole("Cliente");
+        await page.goto(root + "/cliente/cotizaciones/nueva");
+        await closed();
+        const manualUpload = page.locator("#client-upload input[type=file]");
+        await expect(manualUpload).toBeEnabled();
+        await manualUpload.setInputFiles(testPdf);
+        await expect(page.getByRole("button", { name: /Configurar PDF 1/ })).toBeEnabled({ timeout: 90000 });
+        assert.equal((await check()).preparacion, null);
+        await manualRole("Administrador");
+      }
       await startFull();
       await expect(page).toHaveURL(/\/administracion\/catalogo#revision-comercial$/);
       const nav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
@@ -249,11 +245,19 @@ test(
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       const upload = page.locator("#client-upload input[type=file]");
       const consent = page.getByRole("button", { name: "Usar esta preparación en el tutorial" });
-      await expect(consent).toBeEnabled();
-      await expect(upload).toBeDisabled();
-      await anchored(consent);
-      assert.equal((await check()).preparacion, null);
-      await consent.click();
+      if (existingFile) {
+        await expect(consent).toBeEnabled();
+        await expect(upload).toBeDisabled();
+        await anchored(consent);
+        assert.equal((await check()).preparacion, null);
+        await consent.click();
+      } else {
+        const selectFile = page.getByRole("button", { name: "Seleccionar PDF", exact: true });
+        await anchored(selectFile);
+        const chooser = page.waitForEvent("filechooser");
+        await selectFile.press("Enter");
+        await (await chooser).setFiles(testPdf);
+      }
       await done("archivo");
       await next();
       await expectHint(/servicio de impresión/i);
@@ -272,10 +276,12 @@ test(
         ["Papel y gramaje", /elegí blanco y negro o color/i],
         ["Impresión", /cantidad de copias/i],
       ]) {
+        await anchored(area.getByLabel(label, { exact: true }));
         await option(area.getByLabel(label, { exact: true }));
         await expectHint(nextInstruction);
       }
-      await area.getByLabel("Copias", { exact: true }).fill("3");
+      await guidedEdit(area.getByLabel("Copias", { exact: true }), "3");
+      await anchored(area.getByLabel("Caras", { exact: true }));
       await expect
         .poll(
           async () =>
@@ -304,34 +310,46 @@ test(
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       await expect(area.getByLabel("Copias", { exact: true })).toHaveValue("3");
       await page.setViewportSize({ width: 1440, height: 960 });
-      await page.locator("#client-budget-action button").click();
+      await panel().getByRole("button", {name:"Calcular el subtotal"}).click();
+      await guidedClick(page.locator("#client-budget-action button"));
       await done("presupuesto");
       await next();
     });
     async function confirmOrder(guided) {
-      await page
-        .getByLabel("Modalidad", { exact: true })
-        .selectOption("RETIRO_SUCURSAL");
-      await option(page.getByLabel("Destino de retiro", { exact: true }));
-      await page
-        .getByLabel("Medio de pago", { exact: true })
-        .selectOption("EFECTIVO");
-      await page.locator("#client-review-files button").first().click();
+      async function act(control, action) {
+        if (guided) await anchored(control);
+        await action(control);
+      }
+      const click = (control) => act(control, (target) => target.click());
+      const checkBox = (control) => act(control, (target) => target.check());
+      const select = (control, value) =>
+        act(control, (target) => target.selectOption(value));
+      await select(page.getByLabel("Modalidad", { exact: true }), "RETIRO_SUCURSAL");
+      await act(page.getByLabel("Destino de retiro", { exact: true }), option);
+      await select(page.getByLabel("Medio de pago", { exact: true }), "EFECTIVO");
+      await click(page.locator("#client-review-files button").first());
       const dialog = page.getByRole("dialog");
 
-      await dialog
-        .getByRole("button", { name: /Ver páginas/ })
-        .first()
-        .click();
+      await click(dialog.getByRole("button", {name:/Ver páginas/}).first());
       const preview = dialog.getByRole("region", { name: "Vista previa del PDF" });
       const pageNumber = preview.getByRole("spinbutton");
       await expect(pageNumber).toBeVisible();
       const totalPages = Number(await pageNumber.getAttribute("max"));
-      assert.equal(totalPages, 2, "Se deben recorrer las dos páginas del PDF de prueba.");
-      for (let number = 1; number < totalPages; number += 1) {
-        await expect(preview).toContainText(number + " de " + totalPages + " páginas abiertas");
-        if (guided) await anchored(preview.locator(".client-actions"));
-        await preview.getByRole("button", { name: "Página siguiente" }).click();
+      assert.ok(totalPages >= 2, "El PDF de prueba debe tener al menos dos páginas.");
+      if (guided && totalPages > 2) {
+        // Un usuario puede saltar por número aunque la guía señale la página siguiente.
+        await expect(preview).toContainText("1 de " + totalPages + " páginas abiertas");
+        await anchored(preview.getByRole("button", { name: "Página siguiente" }));
+        await pageNumber.fill(String(totalPages));
+        for (let seen = 2; seen < totalPages; seen += 1) {
+          await expect(preview).toContainText(seen + " de " + totalPages + " páginas abiertas");
+          await guidedClick(preview.getByRole("button", { name: "Página anterior" }));
+        }
+      } else {
+        for (let seen = 1; seen < totalPages; seen += 1) {
+          await expect(preview).toContainText(seen + " de " + totalPages + " páginas abiertas");
+          await click(preview.getByRole("button", { name: "Página siguiente" }));
+        }
       }
       const acc = dialog
         .getByRole("button", { name: /Aceptar vista previa/ })
@@ -339,16 +357,13 @@ test(
       await expect(dialog.locator("input[type=checkbox]").first()).toBeEnabled({
         timeout: 80000,
       });
-      if (guided) {
-        await expect(dialog.locator(".tutorial-callout")).toBeVisible();
-        await anchored(dialog.locator("input[type=checkbox]").first());
-      }
-      await dialog.locator("input[type=checkbox]").first().check();
-      await acc.click();
+      if (guided) await expect(dialog.locator(".tutorial-callout")).toBeVisible();
+      await checkBox(dialog.locator("input[type=checkbox]").first());
+      await click(acc);
       await expect(dialog).toContainText(/aceptad/i);
-      await dialog.getByRole("button", { name: /Volver al resumen/ }).click();
-      await page.locator("#client-create-order input[type=checkbox]").check();
-      await page.locator("#client-create-order button").click();
+      await click(dialog.getByRole("button", { name: /Volver al resumen/ }));
+      await checkBox(page.locator("#client-create-order input[type=checkbox]"));
+      await click(page.locator("#client-create-order button"));
       await page.waitForURL(/\/cliente\/pedidos\/[^/]+/);
       return new URL(page.url()).pathname.split("/").at(-1);
     }
@@ -389,40 +404,37 @@ test(
           )
         ).json();
       if (!fin.pagos.length) {
-        await page.getByRole("button", { name: "Registrar efectivo" }).click();
+        await guidedClick(page.getByRole("button", { name: "Registrar efectivo" }));
         const form = page.locator(".payment-form");
         await expectHint(/saldo pendiente completo/i);
-        await form.locator("[name=importe]").fill(fin.total);
-        await form.locator("[name=referencia]").fill("PRACTICA-" + Date.now());
-        await form
-          .locator("[name=fecha]")
-          .fill(
+        await guidedEdit(form.locator("[name=importe]"),fin.total);
+        await guidedEdit(form.locator("[name=referencia]"),"PRACTICA-" + Date.now());
+        await guidedEdit(form.locator("[name=fecha]"),
             new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
               .toISOString()
               .slice(0, 16),
           );
-        await form
-          .locator("[name=motivo]")
-          .fill("Recibo del pedido del tutorial");
+        await guidedEdit(form.locator("[name=motivo]"),"Recibo del pedido del tutorial");
         await expect
           .poll(async () => (await check()).borradores.cobro?.observacion)
           .toBe("Recibo del pedido del tutorial");
         await page.reload();
-        await page.getByRole("button", { name: "Registrar efectivo" }).click();
+        await guidedClick(page.getByRole("button", { name: "Registrar efectivo" }));
         await expect(form.locator("[name=importe]")).toHaveValue(fin.total);
         await expect(form.locator("[name=motivo]")).toHaveValue(
           "Recibo del pedido del tutorial",
         );
-        await form.locator("input[type=checkbox]").check();
+        await panel().getByRole("button",{name:"Verificar el dinero",exact:true}).click();
+        await guidedCheck(form.locator("input[type=checkbox]"));
         await submit(form);
         await expect(form).toHaveCount(0);
       }
       const form = page.locator(".payment-form");
-      await page.locator("[data-tutorial-aplicar]").first().click();
-      await form.locator("[name=importe]").fill(fin.total);
-      await form
-        .locator("[name=motivo]")
-        .fill("Aplicar al trabajo de práctica");
+      await guidedClick(page.locator("[data-tutorial-aplicar]").first());
+      await guidedEdit(form.locator("[name=importe]"),fin.total);
+      await guidedEdit(form.locator("[name=motivo]"),"Aplicar al trabajo de práctica");
+      // «Volver sin guardar» comparte la fila con el botón de confirmación.
+      await expect(card()).toContainText(/Aplicar dinero a esta cotización/i);
       await submit(form);
       await done("cobro");
       await next();
@@ -439,13 +451,11 @@ test(
         ).json();
         if (!ops.acciones.find((a) => a.accion === cmd)?.habilitada) continue;
         await expect(btn).toBeEnabled();
-        await btn.click();
+        await guidedClick(btn);
         const form = page.locator(".order-decision-form");
-        await form
-          .locator("[name=motivo]")
-          .fill("Verifiqué los detalles del pedido de práctica");
+        await guidedEdit(form.locator("[name=motivo]"),"Verifiqué los detalles del pedido de práctica");
         for (const ch of await form.locator("input[type=checkbox]").all())
-          await ch.check();
+          await guidedCheck(ch);
         await submit(form);
         await expect(form).toHaveCount(0);
       }
@@ -461,10 +471,11 @@ test(
         const btn = page
           .locator('[data-tutorial-movimiento="' + cmd + '"]')
           .first();
-        await btn.click();
+        await guidedClick(btn);
         const form = page.locator(".production-form");
         if (cmd === "INICIAR") {
           const s = form.getByLabel("Impresora o recurso simulado");
+          await anchored(s);
           const v = await s
             .locator("option")
             .evaluateAll(
@@ -473,15 +484,13 @@ test(
           await s.selectOption(v);
         }
         if (cmd === "CALIDAD") {
-          await form
-            .getByLabel("Resultado de calidad")
-            .selectOption("APROBADO");
+          for (const ch of await form.locator(".production-quality-checks input").all()) await guidedCheck(ch);
+          const result = form.getByLabel("Resultado de calidad");
+          await anchored(result);
+          await result.selectOption("APROBADO");
         }
-        await form
-          .locator("[name=motivo]")
-          .fill("Operación simulada según el pedido de práctica");
-        for (const ch of await form.locator("input[type=checkbox]").all())
-          await ch.check();
+        await guidedEdit(form.locator("[name=motivo]"),"Operación simulada según el pedido de práctica");
+        await guidedCheck(form.locator("[name=confirmacion]"));
         await submit(form);
         await expect(form).toHaveCount(0);
         if (cmd === "COMPLETAR") {
@@ -498,7 +507,8 @@ test(
         .getByRole("button", { name: "Pasar a Cliente para obtener el código" })
         .click();
       await change("Cliente");
-      await page.locator("[data-tutorial-codigo]").click();
+      await guidedClick(page.locator("[data-tutorial-codigo]"));
+      await anchored(page.locator(".delivery-secret"));
       const code = await page
         .getByLabel("Código de entrega", { exact: true })
         .innerText();
@@ -512,7 +522,7 @@ test(
         if (cmd === "CERRAR") {
           await expect(card().getByRole("heading", { name: "Abrir el cierre" })).toBeVisible();
         }
-        await page.locator('[data-tutorial-entrega="' + cmd + '"]').click();
+        await guidedClick(page.locator('[data-tutorial-entrega="' + cmd + '"]'));
         const form = page.locator(".delivery-dialog[open] form");
         if (cmd === "VALIDAR") {
           const codeField = form.locator("[name=codigo]");
@@ -522,11 +532,12 @@ test(
           await expect(codeField).toBeFocused();
         }
         else {
-          await form
-            .locator("[name=motivo]")
-            .fill("Entrega del pedido de práctica verificada");
-          for (const ch of await form.locator("input[type=checkbox]").all())
-            await ch.check();
+          if(cmd==="ENTREGAR") {
+            await anchored(form.locator("[name=receptor]"));
+            await nextHint();
+          }
+          await guidedEdit(form.locator("[name=motivo]"),"Entrega del pedido de práctica verificada");
+          await guidedCheck(form.locator("[name=confirmado]"));
         }
         await anchored(form.getByRole("button", {
           name: cmd === "VALIDAR" ? "Validar código" : "Confirmar registro",
