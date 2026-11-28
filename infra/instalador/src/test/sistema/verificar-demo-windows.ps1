@@ -25,7 +25,20 @@ if ([version]$version -ge [version]'0.1.7') {
         }
     }
 }
-$procesos = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($Raiz+'\', [StringComparison]::OrdinalIgnoreCase) })
+$todos = @(Get-CimInstance Win32_Process)
+$procesos = @($todos | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($Raiz+'\', [StringComparison]::OrdinalIgnoreCase) })
+# En rutas Unicode, Windows informa la letra temporal del binario de PostgreSQL.
+$datos = Join-Path $env:LOCALAPPDATA 'YG-Soluciones\LaMontanaDemo\nativa'
+$marcaPg = Join-Path $datos 'unidad-postgres-programa.txt'
+$pidPg = Join-Path $datos 'postgres\postmaster.pid'
+if ((Test-Path -LiteralPath $marcaPg) -and (Test-Path -LiteralPath $pidPg)) {
+    $letra = (Get-Content -Raw -LiteralPath $marcaPg).Trim()
+    if ($letra -cnotmatch '^[D-Z]:$') { throw 'Letra temporal de PostgreSQL inválida.' }
+    $ejecutablePg = $letra + '\bin\postgres.exe'
+    $maestro = [int](Get-Content -TotalCount 1 -LiteralPath $pidPg)
+    $servidores = @($todos | Where-Object { $_.ExecutablePath -eq $ejecutablePg })
+    if ($maestro -in $servidores.ProcessId) { $procesos += $servidores }
+}
 foreach ($nombre in 'postgres.exe','clamd.exe','mailpit.exe','java.exe','node.exe') {
     if (!($procesos | Where-Object Name -eq $nombre)) { throw "Falta el proceso nativo $nombre." }
 }

@@ -29,6 +29,7 @@ public final class DemoWindows {
     final boolean browser;
     final Path source;
     Thread actualizacion;
+    RutasPostgres rutasPg;
     boolean postgres;
     volatile boolean closing;
     URI address;
@@ -48,7 +49,11 @@ public final class DemoWindows {
             for (int i = 0; i < 120; i++) {
                 try (var lock = channel.tryLock()) {
                     if (lock != null) {
+                        if (Files.exists(cluster.resolve("postmaster.pid")) || RutasPostgres.tieneMarcas(data)) {
+                            rutasPg = RutasPostgres.abrir(app.resolve("pg"), data);
+                        }
                         recuperarServicios();
+                        if (rutasPg != null) rutasPg.close();
                         return 0;
                     }
                 }
@@ -121,7 +126,9 @@ public final class DemoWindows {
         });
         JPanel body = new JPanel(new BorderLayout(12, 12));
         body.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
-        JLabel explanation = new JLabel("<html><b>La demo se usa en tu navegador.</b><br>Este panel mantiene en marcha la aplicación y la base de datos.<br>Podés minimizarlo. Al apagar la demo, se guardan los datos y se cierran sus servicios.</html>");
+        String unidades = RutasPostgres.necesitaUnidad(app) || RutasPostgres.necesitaUnidad(data)
+                ? "<br>Como la ruta usa caracteres especiales, podés ver letras de unidad temporales.<br>Apuntan a las mismas carpetas y se retiran al apagar la demo." : "";
+        JLabel explanation = new JLabel("<html><b>La demo se usa en tu navegador.</b><br>Este panel mantiene en marcha la aplicación y la base de datos.<br>Podés minimizarlo. Al apagar la demo, se guardan los datos y se cierran sus servicios." + unidades + "</html>");
         body.add(explanation, BorderLayout.NORTH);
         JPanel state = new JPanel(new BorderLayout(4, 4));
         state.add(message, BorderLayout.NORTH);
@@ -287,7 +294,7 @@ public final class DemoWindows {
         recover("antivirus", app.resolve("clamav/clamd.exe"));
         recover("correo", app.resolve("correo/mailpit.exe"));
         if (Files.exists(cluster.resolve("postmaster.pid"))) {
-            Process probe = start("postgres", List.of(pgCtl(), "status", "-D", cluster.toString()), Map.of(), data);
+            Process probe = start("postgres", List.of(pgCtl(), "status", "-D", clusterPg()), Map.of(), rutasPg.datos);
             if (!probe.waitFor(10, TimeUnit.SECONDS)) {
                 probe.destroyForcibly();
                 throw new IOException("PostgreSQL no respondió.");
@@ -298,6 +305,7 @@ public final class DemoWindows {
         }
     }
     void run() throws Exception {
+        rutasPg = RutasPostgres.abrir(app.resolve("pg"), data);
         recuperarServicios();
         Path java = app.resolve("java/bin/java.exe"), node = app.resolve("node/node.exe"), clam = app.resolve("clamav/clamd.exe"), mail = app.resolve("correo/mailpit.exe");
         Set<Integer> used = new HashSet<>();
@@ -331,13 +339,17 @@ public final class DemoWindows {
         if (!Files.isDirectory(cluster)) {
             Path temp = Files.createTempDirectory(data, "pg-nuevo-");
             try {
-                command("initdb", data, 120, app.resolve("pg/bin/initdb.exe").toString(), "-D", temp.toString(), "-L", app.resolve("pg/share").toString(), "-U", "lamontana_demo", "--pwfile=" + secret, "-A", "scram-sha-256", "--encoding=UTF8", "--locale=C");
+                command("initdb", rutasPg.datos, 120, rutasPg.programa.resolve("bin/initdb.exe").toString(),
+                        "-D", rutasPg.datos.resolve(temp.getFileName()).toString(), "-L", rutasPg.programa.resolve("share").toString(),
+                        "-U", "lamontana_demo", "--pwfile=" + rutasPg.datos.resolve(secret.getFileName()),
+                        "-A", "scram-sha-256", "--encoding=UTF8", "--locale=C");
                 Files.move(temp, cluster, ATOMIC_MOVE);
             } finally {
                 FirmasWindows.limpiar(temp);
             }
         }
-        command("postgres", data, 90, pgCtl(), "start", "-w", "-t", "75", "-D", cluster.toString(), "-l", log.resolve("servidor-pg.log").toString(), "-o", "-h 127.0.0.1 -p " + pg);
+        command("postgres", rutasPg.datos, 90, pgCtl(), "start", "-w", "-t", "75", "-D", clusterPg(),
+                "-l", rutasPg.datos.resolve("registros/servidor-pg.log").toString(), "-o", "-h 127.0.0.1 -p " + pg);
         postgres = true;
         status("Iniciando La Montaña…");
         Path entrada = Files.createDirectories(data.resolve("entrada"));
@@ -383,10 +395,13 @@ public final class DemoWindows {
         }
     }
     String pgCtl() {
-        return app.resolve("pg/bin/pg_ctl.exe").toString();
+        return rutasPg.programa.resolve("bin/pg_ctl.exe").toString();
+    }
+    String clusterPg() {
+        return rutasPg.datos.resolve(cluster.getFileName()).toString();
     }
     void stopPg() throws Exception {
-        command("postgres", data, 40, pgCtl(), "stop", "-w", "-t", "30", "-m", "fast", "-D", cluster.toString());
+        command("postgres", rutasPg.datos, 40, pgCtl(), "stop", "-w", "-t", "30", "-m", "fast", "-D", clusterPg());
     }
     void stop() throws Exception {
         status("Cerrando la demo…");
@@ -408,6 +423,8 @@ public final class DemoWindows {
             if (postgres) {
                 stopPg();
             }
+            // Si el proceso quedó vivo tras agotarse el tiempo, el siguiente inicio recupera sus letras.
+            if (rutasPg != null && !Files.exists(cluster.resolve("postmaster.pid"))) rutasPg.close();
         }
     }
 }
