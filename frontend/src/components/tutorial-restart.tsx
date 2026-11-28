@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { roleHome } from "@/lib/roles";
 import { roleNames, tutorialPath } from "@/lib/demo-tutorial";
 import { switchTutorialRole } from "@/lib/tutorial-cambio-rol";
@@ -15,31 +15,36 @@ import { useTutorial } from "./tutorial-context";
 export function RestartTutorialButton({
   open,
   disabled,
+  label = "Reiniciar tutorial",
 }: {
   open: () => void;
   disabled: boolean;
+  label?: string;
 }) {
   return (
     <button
       type="button"
       className="tutorial-restart-button"
       aria-haspopup="dialog"
-      aria-controls="tutorial-restart-dialog"
       disabled={disabled}
       onClick={open}
     >
-      Reiniciar tutorial
+      {label}
     </button>
   );
 }
 
 export function RestartTutorialDialog({
   guide,
-  dialog,
+  onClose,
 }: {
   guide: Guide;
-  dialog: RefObject<HTMLDialogElement | null>;
+  onClose: () => void;
 }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useLayoutEffect(() => {
+    dialog.current?.showModal();
+  }, []);
   const full = useTutorial(),
     roles = useRoleStore();
   const confirmNavigation = useConfirmNavigation();
@@ -79,6 +84,7 @@ export function RestartTutorialDialog({
       setBusy(false);
       dialog.current?.close();
       allowDeparture();
+      full.choose(guide);
       if (
         location.pathname === destination.pathname &&
         location.search === destination.search
@@ -117,6 +123,7 @@ export function RestartTutorialDialog({
           allowDeparture();
           location.reload();
         }
+        onClose();
       }}
     >
       <h2 id="tutorial-restart-title">

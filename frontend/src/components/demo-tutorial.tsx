@@ -19,6 +19,7 @@ import {
 } from "./tutorial-selector";
 import { useRoleStore } from "./role-tutorial-context";
 import { RestartTutorialButton, RestartTutorialDialog } from "./tutorial-restart";
+import type { Guide } from "@/lib/tutorial-recorridos";
 import {
   firstRequired,
   lessons,
@@ -101,15 +102,21 @@ function matchesRoute(path: string) {
 }
 export function TutorialPanel() {
   const api = useTutorial();
-  const dialog = useRef<HTMLDialogElement>(null);
+  const [restartGuide, setRestartGuide] = useState<Guide | null>(null);
   if (!api?.guideOpen) return null;
-  if (!api.guide) return <GuideSelector />;
-  const openRestart = () => dialog.current?.showModal();
+  const guide = api.guide;
   return (
     <>
-      {api.guide === "completo" ? <FullTutorialPanel openRestart={openRestart} /> :
-        <RoleGuidePanel key={api.guide} guide={api.guide} openRestart={openRestart} />}
-      <RestartTutorialDialog key={`restart-${api.guide}`} guide={api.guide} dialog={dialog} />
+      {!guide ? (
+        <GuideSelector openRestart={setRestartGuide} />
+      ) : guide === "completo" ? (
+        <FullTutorialPanel openRestart={() => setRestartGuide(guide)} />
+      ) : (
+        <RoleGuidePanel key={guide} guide={guide} openRestart={() => setRestartGuide(guide)} />
+      )}
+      {restartGuide && (
+        <RestartTutorialDialog guide={restartGuide} onClose={() => setRestartGuide(null)} />
+      )}
     </>
   );
 }

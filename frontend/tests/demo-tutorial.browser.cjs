@@ -5,7 +5,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
-const { restartDialog } = require("./helpers/tutorial-restart.cjs");
+const { restartDialog, tutorialChoice } = require("./helpers/tutorial-restart.cjs");
 const endpoint = process.env.DEMO_TUTORIAL_E2E_URL;
 test(
   "tutorial del pedido completo con teclado, pausa y cambio de rol",
@@ -118,9 +118,9 @@ test(
     async function startFull() {
       await expect(start()).toBeEnabled();
       await start().press("Enter");
-      const choices = panel().locator(".tutorial-choice strong");
+      const choices = panel().getByRole("heading",{level:3});
       await expect(choices).toHaveText(["Tutorial del lado administrador","Tutorial del lado cliente","Tutorial de flujo completo"]);
-      await panel().getByRole("button",{name:/Tutorial de flujo completo/}).press("Enter");
+      await tutorialChoice(page,"Tutorial de flujo completo").getByRole("button",{name:"Iniciar",exact:true}).press("Enter");
     }
     async function manualRole(role) {
       const headerButton=page.getByRole("button",{name:"Cambiar rol",exact:true});
@@ -249,7 +249,10 @@ test(
       const active=await check();
       await restartDialog(page,card(),"flujo completo","cancelar");
       assert.deepEqual(await check(),active);
-      await restartDialog(page,card(),"flujo completo","reiniciar");
+      await page.getByRole("button",{name:"Ir al tutorial",exact:true}).click();
+      await restartDialog(page,tutorialChoice(page,"Tutorial de flujo completo"),"flujo completo","reiniciar",{
+        triggerName:"Reiniciar datos",
+      });
       await change("Administrador");
       await expect(page).toHaveURL(/catalogo#revision-comercial$/);
       const restarted=await check();
@@ -615,6 +618,16 @@ test(
       await change("Administrador");
       await page.reload();
       await expect(card().getByRole("button",{name:"Confirmar que revisé la tarifa"})).toBeEnabled();
+      await manualRole("Empleado");
+      await start().press("Enter");
+      const clientChoice=tutorialChoice(page,"Tutorial del lado cliente");
+      const savedFlow=await check();
+      await restartDialog(page,clientChoice,"cliente","cancelar",{triggerName:"Reiniciar datos"});
+      assert.equal((await (await page.request.get(root+"/api/auth/me")).json()).rol,"EMPLEADO");
+      await restartDialog(page,clientChoice,"cliente","reiniciar",{triggerName:"Reiniciar datos"});
+      await expect(card().getByRole("heading",{name:"Leer el pedido actual"})).toBeVisible();
+      assert.equal((await (await page.request.get(root+"/api/auth/me")).json()).rol,"CLIENTE");
+      assert.deepEqual(await check(),savedFlow);
       t.diagnostic(
         "Pedido de práctica " + final.pedido + " completado en los tres roles.",
       );

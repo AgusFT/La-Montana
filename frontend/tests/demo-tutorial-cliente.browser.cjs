@@ -3,7 +3,7 @@ const {test} = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
-const {restartDialog} = require("./helpers/tutorial-restart.cjs");
+const {restartDialog, tutorialChoice} = require("./helpers/tutorial-restart.cjs");
 const url = process.env.DEMO_CLIENTE_E2E_URL;
 
 test("el cliente conserva su preparación o confirma un único pedido y puede seguirlo", {skip:!url}, async t => {
@@ -40,6 +40,7 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   }
   const card = page.locator(".tutorial-callout:visible");
   const panel = page.locator("#tutorial-panel");
+  const choice = tutorialChoice(page,"Tutorial del lado cliente");
   const read = async route => {
     const response = await page.request.get(root + route);
     assert.ok(response.ok(), route + " HTTP " + response.status());
@@ -54,7 +55,7 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   }
   async function start(){
     await page.getByRole("button",{name:"Empezar tutorial",exact:true}).click();
-    await panel.getByRole("button",{name:/Tutorial del lado cliente/}).click();
+    await choice.getByRole("button",{name:"Iniciar",exact:true}).click();
   }
   async function clickControl(control, options) {
     await expectTutorialAnchor(page,control,options);
@@ -260,7 +261,10 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   assert.equal(otherAfter.preparacion,otherBefore.preparacion);
   assert.deepEqual(otherAfter.borradores,otherBefore.borradores);
   const completed=await progress();
-  await restartDialog(page,card,"cliente","reiniciar",{lostResponse:"**/api/demo/tutorial/recorridos"});
+  await page.getByRole("button",{name:"Ir al tutorial",exact:true}).click();
+  await restartDialog(page,choice,"cliente","reiniciar",{
+    triggerName:"Reiniciar datos",lostResponse:"**/api/demo/tutorial/recorridos",
+  });
   await heading("Leer el pedido actual");
   await page.reload();
   await heading("Leer el pedido actual");

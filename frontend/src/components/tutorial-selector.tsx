@@ -97,7 +97,7 @@ export function ChooseAnotherGuide() {
   );
 }
 
-export function GuideSelector() {
+export function GuideSelector({ openRestart }: { openRestart: (guide: Guide) => void }) {
   const api = useTutorial(),
     store = useRoleStore();
   const [busy, setBusy] = useState(false),
@@ -174,6 +174,7 @@ export function GuideSelector() {
         </button>
       </header>
       {(["administrador", "cliente", "completo"] as const).map((id) => {
+        const disabled = busy || (id === "completo" ? !api.state : !store.data);
         const saved = id === "completo" ? null : store.data?.[id];
         const lesson =
           id === "completo"
@@ -187,21 +188,30 @@ export function GuideSelector() {
               : roleLessons[id].find((item) => item.id === saved?.lesson)
                   ?.title;
         return (
-          <button
+          <section
             key={id}
-            type="button"
             className="tutorial-choice"
-            disabled={busy || (id === "completo" ? !api.state : !store.data)}
-            onClick={() => void select(id)}
+            aria-labelledby={`tutorial-choice-${id}`}
           >
-            <strong>{guideNames[id]}</strong>
-            <span>{introductions[id]}</span>
+            <h3 id={`tutorial-choice-${id}`}>{guideNames[id]}</h3>
+            <p>{introductions[id]}</p>
             {lesson && (
               <small>
                 {lesson === "Completado" ? lesson : "Retomar · " + lesson}
               </small>
             )}
-          </button>
+            <div className="tutorial-choice-actions">
+              <button
+                type="button"
+                className="tutorial-choice-start"
+                disabled={disabled}
+                onClick={() => void select(id)}
+              >
+                Iniciar
+              </button>
+              <RestartTutorialButton label="Reiniciar datos" open={() => openRestart(id)} disabled={disabled} />
+            </div>
+          </section>
         );
       })}
       {(error || store.error || api.error) && (

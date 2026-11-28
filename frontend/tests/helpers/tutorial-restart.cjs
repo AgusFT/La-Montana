@@ -1,12 +1,14 @@
 const assert = require("node:assert/strict");
 
-async function restartDialog(page, scope, tutorial, action, { lostResponse } = {}) {
+async function restartDialog(page, scope, tutorial, action, { lostResponse, triggerName = "Reiniciar tutorial" } = {}) {
   const { expect } = require("@playwright/test");
   await expect(scope).toBeVisible();
-  const button = { name: "Reiniciar tutorial", exact: true };
+  const button = { name: triggerName, exact: true };
   const fromCard = scope.getByRole("button", button);
   const trigger = await fromCard.count() ? fromCard : page.locator("#tutorial-panel").getByRole("button", button);
   await expect(trigger).toBeEnabled();
+  await expect(trigger).toHaveCSS("text-decoration-line", "none");
+  await expect(trigger).toHaveCSS("border-top-style", "solid");
   await trigger.press("Enter");
   const dialog = page.getByRole("dialog", { name: new RegExp(tutorial, "i") });
   await expect(dialog).toBeVisible();
@@ -43,4 +45,8 @@ async function restartDialog(page, scope, tutorial, action, { lostResponse } = {
   await expect(dialog).toHaveCount(0);
 }
 
-module.exports = { restartDialog };
+function tutorialChoice(page, title) {
+  return page.locator("#tutorial-panel").getByRole("region", { name: title, exact: true });
+}
+
+module.exports = { restartDialog, tutorialChoice };

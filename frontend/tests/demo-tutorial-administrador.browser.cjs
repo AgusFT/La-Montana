@@ -1,7 +1,7 @@
 const {test} = require("node:test");
 const assert = require("node:assert/strict");
 const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
-const {restartDialog} = require("./helpers/tutorial-restart.cjs");
+const {restartDialog, tutorialChoice} = require("./helpers/tutorial-restart.cjs");
 const endpoint = process.env.DEMO_ADMIN_E2E_URL;
 
 // Este recorrido publica una tarifa al final. Usar una demo local descartable.
@@ -32,7 +32,11 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
     if(await index.isVisible()&&!await button.isVisible())await index.click();
     await button.click();
   }
-  async function choose(){await page.getByRole("button",{name:"Empezar tutorial",exact:true}).click();await page.getByRole("button",{name:/Tutorial del lado administrador/}).click();}
+  const choice=tutorialChoice(page,"Tutorial del lado administrador");
+  async function choose(){
+    await page.getByRole("button",{name:"Empezar tutorial",exact:true}).click();
+    await choice.getByRole("button",{name:"Iniciar",exact:true}).click();
+  }
   async function heading(text){await expect(card.getByRole("heading",{name:text,exact:true})).toBeVisible();}
   async function anchor(selector){
     const el=field(selector);
@@ -242,7 +246,10 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   const published=(await catalog()).actual.codigoPublico;
   const completed=await read(rolesPath);
   assert.equal(completed.administrador.complete,true);
-  await restartDialog(page,card,"administrador","reiniciar");
+  await page.getByRole("button",{name:"Ir al tutorial",exact:true}).click();
+  await restartDialog(page,choice,"administrador","escape",{triggerName:"Reiniciar datos"});
+  assert.deepEqual(await read(rolesPath),completed);
+  await restartDialog(page,choice,"administrador","reiniciar",{triggerName:"Reiniciar datos"});
   await heading("Leer un indicador");
   progress=await read(rolesPath);
   assert.deepEqual(progress.administrador,{
