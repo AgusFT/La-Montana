@@ -50,6 +50,10 @@
   align-items: flex-start;
   gap: 0.35rem;
 }
+.tutorial-panel header .tutorial-pause {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .tutorial-panel header small,
 .tutorial-stage,
 .tutorial-footer {

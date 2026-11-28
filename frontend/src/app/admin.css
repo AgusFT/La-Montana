@@ -289,7 +289,7 @@
 .admin-sidebar nav a.demo-preview-link{color:#c5cfda}
 .admin-sidebar nav a.demo-preview-link[aria-current=page]{background:#384b5f;color:#fff}
 
-.demo-sidebar-tools{position:relative}
-.demo-sidebar-tools .demo-menu-trigger{position:absolute;right:0;bottom:5px}
-@media(max-width:760px){.demo-sidebar-tools .demo-menu-trigger{bottom:20px}}
-@media(min-width:761px) and (max-height:480px){.demo-sidebar-tools{position:static}.demo-sidebar-tools .demo-menu-trigger{bottom:3px;right:15px}}
+.demo-sidebar-tools{display:flex;justify-content:flex-end;flex:none;margin:2px 0 5px}
+@media(min-width:761px){
+  .admin-sidebar nav[aria-label="Navegación operativa"]{flex:0 1 auto;grid-auto-rows:max-content;align-content:start}
+}
