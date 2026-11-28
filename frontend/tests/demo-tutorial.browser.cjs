@@ -5,6 +5,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const { restartDialog } = require("./helpers/tutorial-restart.cjs");
 const endpoint = process.env.DEMO_TUTORIAL_E2E_URL;
 test(
   "tutorial del pedido completo con teclado, pausa y cambio de rol",
@@ -243,6 +244,22 @@ test(
     });
     await stage("archivo y presupuesto", async () => {
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
+      const rolesPath=root+"/api/demo/tutorial/recorridos";
+      const independent=await (await page.request.get(rolesPath)).json();
+      const active=await check();
+      await restartDialog(page,card(),"flujo completo","cancelar");
+      assert.deepEqual(await check(),active);
+      await restartDialog(page,card(),"flujo completo","reiniciar");
+      await change("Administrador");
+      await expect(page).toHaveURL(/catalogo#revision-comercial$/);
+      const restarted=await check();
+      assert.equal(restarted.paso,"tarifa");
+      assert.equal(restarted.intento,active.intento+1);
+      assert.deepEqual(restarted.completados,[]);
+      assert.deepEqual(restarted.borradores,{});
+      assert.deepEqual(await (await page.request.get(rolesPath)).json(),independent);
+      await card().getByRole("button",{name:"Confirmar que revisé la tarifa"}).click();
+      await change("Cliente");
       const upload = page.locator("#client-upload input[type=file]");
       const consent = page.getByRole("button", { name: "Usar esta preparación en el tutorial" });
       if (existingFile) {
@@ -584,6 +601,20 @@ test(
       await closed();
       await startFull();
       await expect(card().getByRole("heading", { name: "Pedido completado" })).toBeVisible();
+      await restartDialog(page,card(),"flujo completo","reiniciar");
+      const fresh=await check();
+      assert.equal(fresh.intento,final.intento+1);
+      assert.equal(fresh.paso,"tarifa");
+      assert.equal(fresh.estado,"ACTIVO");
+      assert.equal(fresh.preparacion,null);
+      assert.equal(fresh.pedido,null);
+      assert.deepEqual(fresh.borradores,{});
+      assert.deepEqual(fresh.completados,[]);
+      const delivery=await page.request.get(root+"/api/operacion/pedidos/"+final.pedido+"/produccion");
+      assert.equal(delivery.status(),200,"El pedido completado sigue accesible.");
+      await change("Administrador");
+      await page.reload();
+      await expect(card().getByRole("button",{name:"Confirmar que revisé la tarifa"})).toBeEnabled();
       t.diagnostic(
         "Pedido de práctica " + final.pedido + " completado en los tres roles.",
       );

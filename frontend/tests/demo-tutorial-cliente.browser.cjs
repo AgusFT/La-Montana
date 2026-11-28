@@ -3,6 +3,7 @@ const {test} = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
+const {restartDialog} = require("./helpers/tutorial-restart.cjs");
 const url = process.env.DEMO_CLIENTE_E2E_URL;
 
 test("el cliente conserva su preparación o confirma un único pedido y puede seguirlo", {skip:!url}, async t => {
@@ -70,6 +71,8 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
     await clickControl(dialog.getByRole("button",{name:/Ver páginas/}).first());
     const pdf=dialog.getByRole("region",{name:"Vista previa del PDF"});
     await expect(pdf).toContainText("1 de "+(fourPages?4:2)+" páginas abiertas",{timeout:45000});
+    await restartDialog(page,dialog.locator(".tutorial-callout"),"cliente","escape");
+    await expect(pdf).toBeVisible();
     const nextPage=pdf.getByRole("button",{name:"Página siguiente"});
     if(fourPages){
       // La persona puede saltar páginas usando el número del visor. La guía debe recuperar las pendientes.
@@ -145,6 +148,18 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   assert.equal((await progress()).draft.preparacion,undefined);
   await clickControl(page.getByRole("button",{name:"Usar esta preparación en el tutorial"}));
   await expectTutorialAnchor(page,page.getByRole("button",{name:/Configurar PDF 1/}));
+  const linked=await progress();
+  await restartDialog(page,card,"cliente","reiniciar");
+  await heading("Leer el pedido actual");
+  assert.equal((await progress()).intento,linked.intento+1);
+  assert.deepEqual((await progress()).draft,{});
+  assert.deepEqual((await read(api)).borradores,otherBefore.borradores);
+  assert.equal((await read(api)).preparacion,existing.codigoPublico);
+  await next("Leer el pedido actual");
+  await next("Interpretar el resumen");
+  await next("Distinguir una cotización de un pedido");
+  await clickControl(page.getByRole("link",{name:"Preparar un pedido",exact:true}));
+  await clickControl(page.getByRole("button",{name:"Usar esta preparación en el tutorial"}));
   await next("Cargar o retomar el archivo");
   assert.equal((await progress()).draft.preparacion,otherBefore.preparacion);
   const print=page.locator("#client-work-options");
@@ -244,5 +259,17 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   const otherAfter=await read(api);
   assert.equal(otherAfter.preparacion,otherBefore.preparacion);
   assert.deepEqual(otherAfter.borradores,otherBefore.borradores);
+  const completed=await progress();
+  await restartDialog(page,card,"cliente","reiniciar",{lostResponse:"**/api/demo/tutorial/recorridos"});
+  await heading("Leer el pedido actual");
+  await page.reload();
+  await heading("Leer el pedido actual");
+  assert.deepEqual(await progress(),{
+    lesson:"inicio",task:0,reached:0,complete:false,draft:{},intento:completed.intento+1,
+  });
+  assert.equal((await read("/api/cliente/preparaciones/"+prepared+"/resumen")).preparacion.pedido,created);
+  assert.equal(await usedQuota(),slots+1);
+  assert.equal(await orderCount(),before+1);
+  assert.equal((await read(api)).preparacion,otherBefore.preparacion);
   assert.deepEqual(errors,[]);
 });

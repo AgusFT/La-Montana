@@ -32,6 +32,34 @@ class MigracionesDeInstalacionTest {
     }
 
     @Test
+    void conservaElIntentoExistenteAlHabilitarElReinicioDeLosTutoriales() throws Exception {
+        try (var pg = EmbeddedPostgres.builder().start()) {
+            var ds = pg.getPostgresDatabase();
+            var config = Flyway.configure().dataSource(ds).schemas("lamontana").defaultSchema("lamontana")
+                    .locations("classpath:db/migration", "classpath:db/imprenta").target("55");
+            new MigracionesDeInstalacion("DEMO").customize(config);
+            config.load().migrate();
+            var db = new JdbcTemplate(ds);
+            db.update("""
+                    UPDATE lamontana.tutorial_recorrido SET leccion='archivo', tarea=2, alcanzada=5,
+                        borrador='{"calle":"Ejemplo"}' WHERE recorrido='cliente'
+                    """);
+            db.update("""
+                    UPDATE lamontana.tutorial_demo SET estado='PAUSADO', paso='archivo', tarifa_revisada=true,
+                        inicio=now(), preparacion=(SELECT codigo_publico FROM lamontana.preparacion_cliente LIMIT 1)
+                    """);
+            var recorrido = db.queryForMap("SELECT * FROM lamontana.tutorial_recorrido WHERE recorrido='cliente'");
+            var flujo = db.queryForMap("SELECT * FROM lamontana.tutorial_demo");
+            assertThat(flujo.get("preparacion")).isNotNull();
+            config.target("56").load().migrate();
+            assertThat(db.queryForMap("SELECT * FROM lamontana.tutorial_recorrido WHERE recorrido='cliente'"))
+                    .containsAllEntriesOf(recorrido).containsEntry("intento",0L);
+            assertThat(db.queryForMap("SELECT * FROM lamontana.tutorial_demo"))
+                    .containsAllEntriesOf(flujo).containsEntry("intento",0L);
+        }
+    }
+
+    @Test
     void conservaElHistorialDePuntosAlActualizarLaDemoYRechazaOperacionesNuevas() throws Exception {
         try (var pg = EmbeddedPostgres.builder().start()) {
             var ds = pg.getPostgresDatabase();

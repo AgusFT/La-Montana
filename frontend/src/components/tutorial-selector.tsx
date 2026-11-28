@@ -27,6 +27,7 @@ import {
   focusTarget,
 } from "./tutorial-highlight";
 import type { Role } from "@/lib/roles";
+import { RestartTutorialButton } from "./tutorial-restart";
 
 const introductions: Record<Guide, string> = {
   administrador: "Aprendé a preparar precios y configurar la imprenta.",
@@ -221,7 +222,7 @@ export function GuideSelector() {
   );
 }
 
-export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
+export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openRestart: () => void }) {
   const api = useTutorial(),
     store = useRoleStore();
   const saved = store?.data?.[guide],
@@ -431,6 +432,7 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
             ? "Recorrido completado"
             : `Paso ${lessonIndex + 1} de ${lessons.length}`}
         </p>
+        <RestartTutorialButton open={openRestart} disabled={busy} />
         <button
           type="button"
           className="tutorial-index-toggle"
@@ -609,6 +611,7 @@ export function RoleGuidePanel({ guide }: { guide: RoleGuide }) {
               </button>
             </p>
           )}
+          <RestartTutorialButton open={openRestart} disabled={busy} />
         </TutorialHighlight>
       )}
     </>

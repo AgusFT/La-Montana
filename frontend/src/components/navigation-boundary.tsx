@@ -40,12 +40,13 @@
 import {createContext,useCallback,useContext,useEffect,useId,useRef,type ReactNode} from "react";
 
 type Guard={dirty?:boolean;blocked?:boolean};
-type Navigation={register:(id:string,guard:Guard)=>()=>void;confirm:()=>boolean};
-const NavigationContext=createContext<Navigation>({register:()=>()=>{},confirm:()=>true});
+type Navigation={register:(id:string,guard:Guard)=>()=>void;confirm:()=>boolean;allowConfirmedDeparture:()=>void};
+const NavigationContext=createContext<Navigation>({register:()=>()=>{},confirm:()=>true,allowConfirmedDeparture:()=>{}});
 
 /** Keeps ordinary links, logout, phase changes and browser departures aware of active forms. */
 export function NavigationBoundary({children}:{children:ReactNode}){
   const guards=useRef(new Map<string,Guard>()),acceptedDeparture=useRef(false);
+  const allowConfirmedDeparture=useCallback(()=>{acceptedDeparture.current=true;},[]);
   const register=useCallback((id:string,guard:Guard)=>{guards.current.set(id,guard);acceptedDeparture.current=false;return()=>{guards.current.delete(id);};},[]);
   const confirm=useCallback(()=>{
     const values=[...guards.current.values()];
@@ -60,12 +61,12 @@ export function NavigationBoundary({children}:{children:ReactNode}){
       if(!link||link.target&&link.target!=="_self"||link.hasAttribute("download"))return;
       const destination=new URL(link.href,location.href);
       if(destination.pathname===location.pathname&&destination.search===location.search&&destination.hash)return;
-      if(!confirm()){event.preventDefault();event.stopPropagation();}else acceptedDeparture.current=true;
+      if(!confirm()){event.preventDefault();event.stopPropagation();}else allowConfirmedDeparture();
     }
     window.addEventListener("beforeunload",beforeUnload);document.addEventListener("click",followLink,true);
     return()=>{window.removeEventListener("beforeunload",beforeUnload);document.removeEventListener("click",followLink,true);};
-  },[confirm]);
-  return <NavigationContext.Provider value={{register,confirm}}>{children}</NavigationContext.Provider>;
+  },[confirm,allowConfirmedDeparture]);
+  return <NavigationContext.Provider value={{register,confirm,allowConfirmedDeparture}}>{children}</NavigationContext.Provider>;
 }
 
 export function useNavigationGuard({dirty=false,blocked=false}:Guard){
@@ -73,3 +74,4 @@ export function useNavigationGuard({dirty=false,blocked=false}:Guard){
   useEffect(()=>register(id,{dirty,blocked}),[id,register,dirty,blocked]);
 }
 export function useConfirmNavigation(){return useContext(NavigationContext).confirm;}
+export function useAllowConfirmedDeparture(){return useContext(NavigationContext).allowConfirmedDeparture;}

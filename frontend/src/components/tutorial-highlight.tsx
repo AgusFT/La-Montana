@@ -10,7 +10,7 @@ const dialogs =
   'dialog[open], [role="dialog"][aria-modal="true"]:not([hidden])';
 function openDialog() {
   return [...document.querySelectorAll<HTMLElement>(dialogs)]
-    .filter((dialog) => dialog.getClientRects().length > 0)
+    .filter((dialog) => dialog.id !== "tutorial-restart-dialog" && dialog.getClientRects().length > 0)
     .at(-1);
 }
 

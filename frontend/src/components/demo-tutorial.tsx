@@ -18,6 +18,7 @@ import {
   RoleGuidePanel,
 } from "./tutorial-selector";
 import { useRoleStore } from "./role-tutorial-context";
+import { RestartTutorialButton, RestartTutorialDialog } from "./tutorial-restart";
 import {
   firstRequired,
   lessons,
@@ -100,14 +101,20 @@ function matchesRoute(path: string) {
 }
 export function TutorialPanel() {
   const api = useTutorial();
+  const dialog = useRef<HTMLDialogElement>(null);
   if (!api?.guideOpen) return null;
   if (!api.guide) return <GuideSelector />;
-  if (api.guide !== "completo")
-    return <RoleGuidePanel key={api.guide} guide={api.guide} />;
-  return <FullTutorialPanel />;
+  const openRestart = () => dialog.current?.showModal();
+  return (
+    <>
+      {api.guide === "completo" ? <FullTutorialPanel openRestart={openRestart} /> :
+        <RoleGuidePanel key={api.guide} guide={api.guide} openRestart={openRestart} />}
+      <RestartTutorialDialog key={`restart-${api.guide}`} guide={api.guide} dialog={dialog} />
+    </>
+  );
 }
 
-function FullTutorialPanel() {
+function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
   const pathname = usePathname();
   const api = useTutorial(),
     state = api?.state,
@@ -440,6 +447,7 @@ function FullTutorialPanel() {
         <p className="tutorial-count">
           {state.completados.length} de {steps.length} pasos completados
         </p>
+        <RestartTutorialButton open={openRestart} disabled={busy} />
         <button
           type="button"
           className="tutorial-index-toggle"
@@ -714,6 +722,7 @@ function FullTutorialPanel() {
               </button>
             </p>
           )}
+          <RestartTutorialButton open={openRestart} disabled={busy} />
         </TutorialHighlight>
       )}
     </>

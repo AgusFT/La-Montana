@@ -1,6 +1,7 @@
 const {test} = require("node:test");
 const assert = require("node:assert/strict");
 const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
+const {restartDialog} = require("./helpers/tutorial-restart.cjs");
 const endpoint = process.env.DEMO_ADMIN_E2E_URL;
 
 // Este recorrido publica una tarifa al final. Usar una demo local descartable.
@@ -70,6 +71,19 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   const prior=(await config()).borrador.codigoPublico;
   await page.goto(root+"/administracion"); await choose();
   await treeButton(page.locator(".tutorial-branch",{hasText:"Interpretar el tablero"}));
+  await next("Leer un indicador",'.dashboard-metric strong[aria-label^="Pendientes de revisión"]');
+  await heading("Comparar las bandejas");
+  const rolesPath="/api/demo/tutorial/recorridos";
+  const active=await read(rolesPath);
+  await restartDialog(page,card,"administrador","cancelar");
+  assert.deepEqual(await read(rolesPath),active);
+  await restartDialog(page,card,"administrador","reiniciar");
+  await heading("Leer un indicador");
+  await page.reload();
+  await heading("Leer un indicador");
+  let progress=await read(rolesPath);
+  assert.equal(progress.administrador.intento,active.administrador.intento+1);
+  assert.deepEqual(progress.cliente,active.cliente);
   await next("Leer un indicador",'.dashboard-metric strong[aria-label^="Pendientes de revisión"]');
   await next("Comparar las bandejas",'.dashboard-queue[aria-label="Pendientes de revisión"] header h2');
   await heading("Elegir el servicio");await expect(field("#tutorial-tarifa-servicio")).toBeVisible();
@@ -225,5 +239,17 @@ test("el administrador sigue cada control, retoma el borrador y decide si public
   await anchor('[data-precio-publicado] .save-notice:not(.is-pending) strong');
   await expect.poll(async()=>(await catalog()).actual.codigoPublico).not.toBe(initial.codigoPublico);
   assert.ok((await catalog()).actual.tarifas.some(row=>Number(row.precio)===Number(price)));
+  const published=(await catalog()).actual.codigoPublico;
+  const completed=await read(rolesPath);
+  assert.equal(completed.administrador.complete,true);
+  await restartDialog(page,card,"administrador","reiniciar");
+  await heading("Leer un indicador");
+  progress=await read(rolesPath);
+  assert.deepEqual(progress.administrador,{
+    lesson:"tablero",task:0,reached:0,complete:false,draft:{},intento:completed.administrador.intento+1,
+  });
+  assert.deepEqual(progress.cliente,completed.cliente);
+  assert.equal((await catalog()).actual.codigoPublico,published);
+  assert.equal((await config()).borrador.codigoPublico,prior);
   assert.deepEqual(errors,[]);
 });

@@ -244,6 +244,50 @@
 .tutorial-panel .tutorial-back { margin-bottom: .55rem; text-decoration: underline; border: 0; padding: .25rem 0; }
 [data-tutorial-cambiar-rol]:disabled { opacity: .82; cursor: default; }
 
+.tutorial-panel .tutorial-restart-button,
+.tutorial-callout .tutorial-restart-button {
+  margin: 0 0 .4rem;
+  padding: .35rem .15rem;
+  border: 0;
+  font-size: .85rem;
+  text-decoration: underline;
+}
+.tutorial-callout .tutorial-restart-button { display: none; }
+:is(dialog, [aria-modal="true"]) .tutorial-callout .tutorial-restart-button {
+  display: inline-block;
+}
+@media (max-width: 1080px) {
+  .tutorial-callout .tutorial-restart-button { display: inline-block; }
+}
+.tutorial-restart-dialog {
+  box-sizing: border-box;
+  width: min(27rem, calc(100% - 2rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 1.25rem;
+  border: 1px solid var(--ui-border, #b9cec6);
+  border-radius: .75rem;
+  background: var(--ui-surface, #fff);
+  color: var(--ui-text, #173e34);
+}
+.tutorial-restart-dialog::backdrop { background: rgb(9 24 35 / 60%); }
+.tutorial-restart-dialog h2 { margin: 0; font-size: 1.2rem; }
+.tutorial-restart-dialog p { margin: .75rem 0 1rem; line-height: 1.5; }
+.tutorial-restart-dialog [role="alert"] { font-weight: 650; }
+.tutorial-restart-actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+.tutorial-restart-actions button {
+  min-height: 2.75rem;
+  padding: .4rem .8rem;
+  border: 1px solid #70877e;
+  border-radius: .4rem;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.tutorial-restart-actions button:last-child { color: #fff; background: #185749; }
+.tutorial-restart-actions button:focus-visible { outline: 3px solid #c38313; outline-offset: 2px; }
+.tutorial-restart-actions button:disabled { opacity: .65; cursor: wait; }
+
 /* La carga de un pedido puede desplazar la ficha hacia su sección. Durante el
    relevo, el botón real del encabezado acompaña el cuadro que explica el cambio. */
 body:has([data-tutorial-role-prompt]) :is(.admin-topbar,.client-top) {

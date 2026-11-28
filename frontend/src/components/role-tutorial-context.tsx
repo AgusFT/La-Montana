@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { secureMutation } from "@/lib/secure-mutation";
+import { MutationError, secureMutation } from "@/lib/secure-mutation";
 import { adminLessons } from "@/lib/tutorial-administrador";
 import { clientLessons } from "@/lib/tutorial-cliente";
 import {
@@ -42,6 +42,7 @@ type Store = {
   error: string;
   refresh: () => Promise<void>;
   write: (guide: RoleGuide, patch: Patch) => Promise<RoleProgressList>;
+  restart: (guide: RoleGuide) => Promise<RoleProgressList>;
   flush: () => Promise<void>;
   go: (guide: RoleGuide, lesson: string, task?: number) => Promise<void>;
 };
@@ -68,14 +69,33 @@ export function RoleTutorialProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
   const queue = useRef<Promise<unknown>>(Promise.resolve());
   const pending = useRef(0);
+  const readVersion = useRef(0);
+  const restarting = useRef<
+    Partial<Record<RoleGuide, Promise<RoleProgressList>>>
+  >({});
+  const retryRestart = useRef<Partial<Record<RoleGuide, number>>>({});
   const alive = useRef(true);
   const latest = useRef<RoleProgressList | null>(null);
   const failedDrafts = useRef<
-    Partial<Record<RoleGuide, Record<string, string>>>
+    Partial<
+      Record<RoleGuide, { intento: number; campos: Record<string, string> }>
+    >
   >({});
   const accept = useCallback((next: RoleProgressList) => {
-    if (!next?.administrador?.draft || !next?.cliente?.draft)
-      throw Error("El avance recibido está incompleto.");
+    for (const guide of ["administrador", "cliente"] as const) {
+      const received = next?.[guide];
+      if (
+        !received?.draft ||
+        !Number.isSafeInteger(received.intento) ||
+        received.intento < 0
+      )
+        throw Error("El avance recibido está incompleto.");
+      const previous = latest.current?.[guide];
+      if (previous && previous.intento > received.intento)
+        next = { ...next, [guide]: previous };
+      if (previous && previous.intento < received.intento)
+        delete failedDrafts.current[guide];
+    }
     latest.current = next;
     if (alive.current) {
       setData(next);
@@ -84,6 +104,7 @@ export function RoleTutorialProvider({ children }: { children: ReactNode }) {
     return next;
   }, []);
   const refresh = useCallback(async () => {
+    const sequence = ++readVersion.current;
     try {
       const r = await fetch(endpoint, {
         cache: "no-store",
@@ -91,9 +112,10 @@ export function RoleTutorialProvider({ children }: { children: ReactNode }) {
       });
       if (!r.ok)
         throw Error("No pudimos cargar los recorridos de esta instalación.");
-      accept(await r.json());
+      const result = await r.json();
+      if (alive.current && sequence === readVersion.current) accept(result);
     } catch (e) {
-      if (alive.current)
+      if (alive.current && sequence === readVersion.current)
         setError(e instanceof Error ? e.message : "No pudimos leer el avance.");
     }
   }, [accept]);
@@ -102,27 +124,49 @@ export function RoleTutorialProvider({ children }: { children: ReactNode }) {
     if (enabled) void refresh();
     return () => {
       alive.current = false;
+      ++readVersion.current;
     };
   }, [enabled, refresh]);
+  const adminAttempt = data?.administrador.intento,
+    clientAttempt = data?.cliente.intento;
   const write = useCallback(
     (guide: RoleGuide, patch: Patch) => {
+      const intento = guide === "administrador" ? adminAttempt : clientAttempt;
+      if (
+        intento === undefined ||
+        latest.current?.[guide].intento !== intento ||
+        restarting.current[guide]
+      )
+        return Promise.reject(
+          Error("Volvé al paso actual del tutorial para continuar."),
+        );
       pending.current++;
       const run = queue.current.then(async () => {
-        const oldDraft = failedDrafts.current[guide];
+        ++readVersion.current;
+        const failed = failedDrafts.current[guide];
+        const oldDraft =
+          failed?.intento === intento ? failed.campos : undefined;
         const draft =
           oldDraft || patch.draft ? { ...oldDraft, ...patch.draft } : undefined;
         try {
           const r = await secureMutation(
             endpoint,
-            JSON.stringify({ ...patch, draft, recorrido: guide }),
+            JSON.stringify({ ...patch, draft, recorrido: guide, intento }),
             "application/json",
             "PUT",
           );
-          const next = accept(await r.json());
+          const result = await r.json();
+          ++readVersion.current;
+          const next = accept(result);
           delete failedDrafts.current[guide];
+          const retriedAttempt = retryRestart.current[guide];
+          if (retriedAttempt !== undefined && intento > retriedAttempt)
+            delete retryRestart.current[guide];
           return next;
         } catch (e) {
-          if (draft) failedDrafts.current[guide] = draft;
+          if (draft && latest.current?.[guide].intento === intento)
+            failedDrafts.current[guide] = { intento, campos: draft };
+          if (e instanceof MutationError && e.status === 409) void refresh();
           if (alive.current)
             setError(
               e instanceof Error ? e.message : "No pudimos guardar el avance.",
@@ -135,7 +179,55 @@ export function RoleTutorialProvider({ children }: { children: ReactNode }) {
       queue.current = run.catch(() => {});
       return run;
     },
-    [accept],
+    [accept, refresh, adminAttempt, clientAttempt],
+  );
+  const restart = useCallback(
+    (guide: RoleGuide) => {
+      const active = restarting.current[guide];
+      if (active) return active;
+      const expected =
+        retryRestart.current[guide] ??
+        (guide === "administrador" ? adminAttempt : clientAttempt);
+      if (expected === undefined)
+        return Promise.reject(Error("Esperá a que cargue el tutorial."));
+      retryRestart.current[guide] = expected;
+      pending.current++;
+      const run = queue.current
+        .then(async () => {
+          ++readVersion.current;
+          const response = await secureMutation(
+            endpoint,
+            JSON.stringify({
+              recorrido: guide,
+              accion: "reiniciar",
+              intento: expected,
+            }),
+            "application/json",
+            "PUT",
+          );
+          const result = await response.json();
+          ++readVersion.current;
+          const next = accept(result);
+          delete failedDrafts.current[guide];
+          delete retryRestart.current[guide];
+          return next;
+        })
+        .catch((error) => {
+          if (error instanceof MutationError && !error.uncertain)
+            delete retryRestart.current[guide];
+          if (error instanceof MutationError && error.status === 409)
+            void refresh();
+          throw error;
+        })
+        .finally(() => {
+          pending.current--;
+          delete restarting.current[guide];
+        });
+      restarting.current[guide] = run;
+      queue.current = run.catch(() => {});
+      return run;
+    },
+    [accept, refresh, adminAttempt, clientAttempt],
   );
   const flush = useCallback(async () => {
     await queue.current;
@@ -172,12 +264,15 @@ export function RoleTutorialProvider({ children }: { children: ReactNode }) {
         reached: taskNumber(lessons, id, task),
         draft: latest.current?.[guide].complete ? { repaso: "si" } : undefined,
       });
-      if (!matchesTutorialPath(path)) location.assign(path);
+      if (!restarting.current[guide] && !matchesTutorialPath(path))
+        location.assign(path);
     },
     [flush, write],
   );
   return (
-    <StoreContext.Provider value={{ data, error, write, refresh, flush, go }}>
+    <StoreContext.Provider
+      value={{ data, error, write, refresh, flush, go, restart }}
+    >
       {children}
     </StoreContext.Provider>
   );

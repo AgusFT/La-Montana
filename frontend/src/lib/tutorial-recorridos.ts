@@ -22,6 +22,7 @@ export type RoleLesson = {
   tasks: RoleTask[];
 };
 export type RoleProgress = {
+  intento: number;
   lesson: string;
   task: number;
   reached: number;

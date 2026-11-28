@@ -2,6 +2,7 @@ package ar.com.lamontana.instalacion;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.regex.Pattern;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -45,12 +47,14 @@ public class TutorialDemoController {
     public TutorialDemoController(JdbcTemplate db) { this.db = db; }
 
     public record Cambio(@NotBlank @Size(max=16) String accion, @Size(max=20) String paso,
-                         UUID preparacion, UUID pedido, @Size(max=12) Map<String,String> campos) {}
+                         UUID preparacion, UUID pedido, @Size(max=12) Map<String,String> campos,
+                         @PositiveOrZero Long intento) {}
     public record Vista(String estado, String paso, List<String> completados, UUID preparacion,
-                        UUID cotizacion, UUID pedido, UUID destino, Map<String,Map<String,String>> borradores, String bloqueo) {}
+                        UUID cotizacion, UUID pedido, UUID destino, Map<String,Map<String,String>> borradores, String bloqueo,
+                        long intento) {}
     private record Actor(long id, String rol) {}
     private record Hechos(String estado, String paso, UUID preparacion, UUID cotizacion, UUID pedido, UUID destino,
-                         List<String> completos, boolean inactivo) {
+                         List<String> completos, boolean inactivo, long intento) {
         String accesible(String solicitado) {
             for (String paso : PASOS) {
                 if (paso.equals(solicitado) || !completos.contains(paso)) return paso;
@@ -60,7 +64,7 @@ public class TutorialDemoController {
     }
 
     @GetMapping
-    @Transactional(readOnly=true)
+    @Transactional(readOnly=true, isolation=Isolation.REPEATABLE_READ)
     public Vista consultar(Principal sesion) {
         Actor actor = actor(sesion);
         return vista(actor, hechos(actor));
@@ -72,6 +76,19 @@ public class TutorialDemoController {
         Actor actor = actor(sesion);
         db.queryForObject("SELECT unico FROM lamontana.tutorial_demo WHERE unico FOR UPDATE", Boolean.class);
         Hechos actual = hechos(actor);
+        if ("reiniciar".equals(cambio.accion())) {
+            if (debeReiniciar(cambio.intento(),actual.intento())) {
+                db.update("""
+                        UPDATE lamontana.tutorial_demo
+                        SET intento=intento+1, estado='ACTIVO', paso=DEFAULT,
+                            tarifa_revisada=DEFAULT, inicio=clock_timestamp(), preparacion=NULL
+                        WHERE unico
+                        """);
+                db.update("DELETE FROM lamontana.tutorial_borrador");
+            }
+            return vista(actor, hechos(actor));
+        }
+        exigirIntento(cambio.intento(),actual.intento());
         switch (cambio.accion()) {
             case "iniciar", "retomar" -> db.update("UPDATE lamontana.tutorial_demo SET estado='ACTIVO', inicio=coalesce(inicio,clock_timestamp())");
             case "pausar" -> db.update("UPDATE lamontana.tutorial_demo SET estado='PAUSADO' WHERE estado='ACTIVO'");
@@ -97,9 +114,10 @@ public class TutorialDemoController {
         return vista(actor, hechos(actor));
     }
 
-    public record Avance(String lesson, int task, int reached, boolean complete, Map<String,String> draft) {}
+    public record Avance(String lesson, int task, int reached, boolean complete, Map<String,String> draft, long intento) {}
     public record CambioRecorrido(@NotBlank String recorrido, @Size(max=48) String lesson, Integer task,
-            Integer reached, Boolean complete, @Size(max=16) Map<String,String> draft) {}
+            Integer reached, Boolean complete, @Size(max=16) Map<String,String> draft,
+            @Size(max=16) String accion, @PositiveOrZero Long intento) {}
     private static final Set<String> CAMPOS_CLIENTE = Set.of("preparacion","pedido","archivoActivo","opciones","modalidad",
             "destino","medio","calle","numero","referencias","codigoPostal","localidad","provincia","receptor","telefono");
 
@@ -113,11 +131,11 @@ public class TutorialDemoController {
         Map<String,Avance> lista = new LinkedHashMap<>();
         db.query("""
                 SELECT recorrido, leccion, tarea, alcanzada, completo,
-                       CASE WHEN recorrido=? THEN borrador::text ELSE '{}' END AS campos
+                       CASE WHEN recorrido=? THEN borrador::text ELSE '{}' END AS campos, intento
                 FROM lamontana.tutorial_recorrido
                 """, rs -> {
             lista.put(rs.getString(1), new Avance(rs.getString(2),rs.getInt(3),rs.getInt(4),rs.getBoolean(5),
-                    json.readValue(rs.getString(6),TEXTO)));
+                    json.readValue(rs.getString(6),TEXTO),rs.getLong(7)));
         }, switch(actor.rol()) { case "ADMIN_ADMIN" -> "administrador"; case "CLIENTE" -> "cliente"; default -> ""; });
         return lista;
     }
@@ -129,6 +147,19 @@ public class TutorialDemoController {
         boolean admin = "administrador".equals(cambio.recorrido());
         if (!admin && !"cliente".equals(cambio.recorrido())) throw invalido("Recorrido desconocido.");
         exigirRol(actor, admin ? "ADMIN_ADMIN" : "CLIENTE");
+        if (cambio.accion()!=null) {
+            if (!"reiniciar".equals(cambio.accion())) throw invalido("Acción desconocida.");
+            long actual=db.queryForObject("SELECT intento FROM lamontana.tutorial_recorrido WHERE recorrido=? FOR UPDATE",
+                    Long.class,cambio.recorrido());
+            if (debeReiniciar(cambio.intento(),actual)) {
+                db.update("""
+                        UPDATE lamontana.tutorial_recorrido
+                        SET intento=intento+1, leccion=?, tarea=DEFAULT, alcanzada=DEFAULT,
+                            completo=DEFAULT, borrador=DEFAULT WHERE recorrido=?
+                        """,admin ? "tablero" : "inicio",cambio.recorrido());
+            }
+            return avances(actor);
+        }
         if ((cambio.lesson()==null)!=(cambio.task()==null) ||
                 cambio.lesson()!=null && !cambio.lesson().matches("[a-z0-9-]{1,48}") ||
                 cambio.task()!=null && (cambio.task()<0 || cambio.task()>100) ||
@@ -153,13 +184,15 @@ public class TutorialDemoController {
             }
             campos.put(clave,valor.isEmpty() ? null : valor);
         });
-        db.update("""
+        int actualizados=db.update("""
                 UPDATE lamontana.tutorial_recorrido
                 SET leccion=coalesce(?,leccion), tarea=coalesce(?,tarea),
                     alcanzada=greatest(alcanzada,coalesce(?,0)), completo=completo OR coalesce(?,false),
                     borrador=jsonb_strip_nulls(borrador || ?::jsonb)
-                WHERE recorrido=?
-                """,cambio.lesson(),cambio.task(),cambio.reached(),cambio.complete(),json.writeValueAsString(campos),cambio.recorrido());
+                WHERE recorrido=? AND intento=?
+                """,cambio.lesson(),cambio.task(),cambio.reached(),cambio.complete(),json.writeValueAsString(campos),
+                cambio.recorrido(),intentoEscritura(cambio.intento()));
+        if (actualizados==0) throw intentoDistinto();
         return avances(actor);
     }
 
@@ -177,7 +210,7 @@ public class TutorialDemoController {
 
     private Hechos hechos(Actor actor) {
         return db.query("""
-                SELECT t.* FROM lamontana.tutorial_progreso t WHERE
+                SELECT t.*, d.intento FROM lamontana.tutorial_progreso t CROSS JOIN lamontana.tutorial_demo d WHERE
                 (t.id_usuario IS NULL OR ? <> 'CLIENTE' OR t.id_usuario=?)
                 AND (t.id_sucursal IS NULL OR ? <> 'EMPLEADO' OR EXISTS
                     (SELECT FROM lamontana.usuario_sucursal us JOIN lamontana.sucursal s USING(id_sucursal)
@@ -190,7 +223,7 @@ public class TutorialDemoController {
                     }
                     return new Hechos(rs.getString("estado"), rs.getString("paso"), rs.getObject("preparacion",UUID.class),
                             rs.getObject("cotizacion",UUID.class), rs.getObject("pedido",UUID.class), rs.getObject("destino",UUID.class),
-                            List.copyOf(completos), baja);
+                            List.copyOf(completos), baja, rs.getLong("intento"));
                 }, actor.rol(),actor.id(),actor.rol(),actor.id()).stream().findFirst()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN,"Este pedido está fuera de tu ámbito de trabajo."));
     }
@@ -202,7 +235,7 @@ public class TutorialDemoController {
         },actor.id());
         String estado = h.completos().size()==PASOS.size() ? "COMPLETO" : h.estado();
         String bloqueo = h.inactivo() ? "El pedido anterior está cancelado o dado de baja. Abrí una preparación nueva como Cliente para continuar." : null;
-        return new Vista(estado,h.accesible(h.paso()),h.completos(),h.preparacion(),h.cotizacion(),h.pedido(),h.destino(),borradores,bloqueo);
+        return new Vista(estado,h.accesible(h.paso()),h.completos(),h.preparacion(),h.cotizacion(),h.pedido(),h.destino(),borradores,bloqueo,h.intento());
     }
 
     private void vincular(Actor actor, UUID id, Hechos h) {
@@ -270,6 +303,23 @@ public class TutorialDemoController {
         }
     }
     private static boolean esId(String texto) { return IDENTIFICADOR.matcher(texto).matches(); }
+
+    // Los clientes anteriores a V56 pertenecen al intento 0.
+    private static long intentoEscritura(Long intento) { return intento==null ? 0L : intento; }
+
+    private static ResponseStatusException intentoDistinto() {
+        return conflicto("El tutorial se reinició en otra pestaña. Volvé a abrirlo para usar el avance actual.");
+    }
+    private static void exigirIntento(Long solicitado,long actual) {
+        if (intentoEscritura(solicitado)!=actual) throw intentoDistinto();
+    }
+    private static boolean debeReiniciar(Long solicitado,long actual) {
+        if (solicitado==null) throw invalido("Indicá el intento que querés reiniciar.");
+        // Si se perdió la respuesta al primer reinicio, devolver el nuevo intento tal como está.
+        if (actual>0 && solicitado==actual-1) return false;
+        exigirIntento(solicitado,actual);
+        return true;
+    }
 
     private static void exigirPaso(String paso) {
         if (paso==null || !PASOS.contains(paso)) throw invalido("Paso desconocido.");

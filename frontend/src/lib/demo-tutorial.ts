@@ -17,6 +17,7 @@ export const steps = [
 export type Step = (typeof steps)[number];
 export type Draft = Record<string, string>;
 export type Tutorial = {
+  intento: number;
   estado: "NUEVO" | "ACTIVO" | "PAUSADO" | "COMPLETO";
   paso: Step;
   completados: Step[];

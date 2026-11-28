@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -55,6 +56,14 @@ class SesionDemoIntegrationTest {
         } finally {
             if (postgres != null) postgres.close();
         }
+    }
+
+    @BeforeEach void limpiarSesionesYAvancesDeEnsayo() {
+        var db=app.getBean(JdbcTemplate.class);
+        db.update("DELETE FROM lamontana.sesion_http");
+        db.update("DELETE FROM lamontana.tutorial_borrador");
+        db.update("UPDATE lamontana.tutorial_demo SET intento=DEFAULT,estado=DEFAULT,paso=DEFAULT,inicio=NULL,preparacion=NULL,tarifa_revisada=DEFAULT");
+        db.update("UPDATE lamontana.tutorial_recorrido SET intento=DEFAULT,leccion=DEFAULT,tarea=DEFAULT,alcanzada=DEFAULT,completo=DEFAULT,borrador=DEFAULT");
     }
 
     @Test void seleccionaIdentidadesFijasRotaSesionYCambiaPermisosHastaCerrar() throws Exception {
@@ -283,6 +292,121 @@ class SesionDemoIntegrationTest {
     private HttpResponse<String> cambiarRecorrido(HttpClient n,Map<String,?> valores) throws Exception {
         return enviar(n,request("/api/demo/tutorial/recorridos").header("Content-Type","application/json")
                 .header("X-CSRF-TOKEN",csrf(n)).PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(valores))));
+    }
+
+    @Test void reiniciarCadaTutorialProtegeLosOtrosAvancesYLaPreparacionCompartida() throws Exception {
+        var db=app.getBean(JdbcTemplate.class);
+        var n=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+        String flujo="/api/demo/tutorial", roles=flujo+"/recorridos";
+        var reiniciarAdmin=Map.of("recorrido","administrador","accion","reiniciar","intento",0);
+        var reiniciarCliente=Map.of("recorrido","cliente","accion","reiniciar","intento",0);
+        var reiniciarFlujo=Map.of("accion","reiniciar","intento",0);
+
+        comprobar(elegir(n,"ADMINISTRADOR",csrf(n)),200);
+        comprobar(cambiarTutorial(n,Map.of("accion","iniciar")),200);
+        comprobar(cambiarTutorial(n,Map.of("accion","tarifa")),200);
+        var tarifa=Map.of("recorrido","administrador","lesson","tarifas","task",2,"reached",4,
+                "complete",true,"draft",Map.of("tarifa","{\"precio\":25}"));
+        comprobar(cambiarRecorrido(n,tarifa),200);
+        comprobar(elegir(n,"CLIENTE",csrf(n)),200);
+        UUID prep=UUID.fromString(JSON.readTree(comprobar(post(n,"/api/cliente/preparaciones","{}",csrf(n)),200)).get("codigoPublico").asString());
+        UUID muestra=db.queryForObject("SELECT codigo_publico FROM lamontana.preparacion_cliente WHERE estado='CONFIRMADA' ORDER BY id_preparacion LIMIT 1",UUID.class);
+        UUID archivo=copiarPdfValidado(db,muestra,prep);
+        comprobar(cambiarTutorial(n,Map.of("accion","vincular","preparacion",prep)),200);
+        comprobar(cambiarTutorial(n,Map.of("accion","borrador","paso","presupuesto","campos",Map.of("numero","31"))),200);
+        var cliente=Map.of("recorrido","cliente","lesson","archivo","task",1,"reached",3,"complete",true,"draft",Map.of("preparacion",prep.toString()));
+        var anterior=JSON.readTree(comprobar(cambiarRecorrido(n,cliente),200)).get("cliente");
+        comprobar(cambiarRecorrido(n,reiniciarAdmin),403);
+        comprobar(elegir(n,"EMPLEADO",csrf(n)),200);
+        comprobar(cambiarTutorial(n,Map.of("accion","borrador","paso","cobro","campos",Map.of("importe","70"))),200);
+        comprobar(cambiarRecorrido(n,reiniciarCliente),403);
+
+        comprobar(elegir(n,"ADMINISTRADOR",csrf(n)),200);
+        var sinCsrf=request(roles).header("Content-Type","application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(reiniciarAdmin)));
+        comprobar(enviar(n,sinCsrf),403);
+        assertThat(JSON.readTree(comprobar(get(n,roles),200)).get("administrador").get("complete").asBoolean()).isTrue();
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","accion","reiniciar")),400);
+        var admin=JSON.readTree(comprobar(cambiarRecorrido(n,reiniciarAdmin),200)).get("administrador");
+        comprobarReinicio(admin,"tablero");
+        comprobar(cambiarRecorrido(n,tarifa),409);
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","administrador","intento",1,"lesson","catalogo","task",0)),200);
+        var repetido=JSON.readTree(comprobar(cambiarRecorrido(n,reiniciarAdmin),200)).get("administrador");
+        assertThat(repetido.get("lesson").asString()).isEqualTo("catalogo");
+        assertThat(repetido.get("intento").asLong()).isEqualTo(1);
+
+        comprobar(elegir(n,"CLIENTE",csrf(n)),200);
+        assertThat(JSON.readTree(comprobar(get(n,roles),200)).get("cliente")).isEqualTo(anterior);
+        assertThat(JSON.readTree(comprobar(get(n,flujo),200)).get("borradores").get("presupuesto").get("numero").asString()).isEqualTo("31");
+        comprobarReinicio(JSON.readTree(comprobar(cambiarRecorrido(n,reiniciarCliente),200)).get("cliente"),"inicio");
+        // La práctica de cliente vuelve a adoptar la preparación también usada por el flujo completo.
+        comprobar(cambiarRecorrido(n,Map.of("recorrido","cliente","intento",1,"draft",Map.of("preparacion",prep.toString()))),200);
+
+        var negocio=estadoNegocio(db);
+        comprobar(enviar(n,request(flujo).header("Content-Type","application/json")
+                .PUT(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(reiniciarFlujo)))),403);
+        var nuevo=JSON.readTree(comprobar(cambiarTutorial(n,reiniciarFlujo),200));
+        assertThat(nuevo.get("intento").asLong()).isEqualTo(1);
+        assertThat(nuevo.get("estado").asString()).isEqualTo("ACTIVO");
+        assertThat(nuevo.get("paso").asString()).isEqualTo("tarifa");
+        assertThat(nuevo.get("preparacion").isNull()).isTrue();
+        assertThat(nuevo.get("completados").size()).isZero();
+        assertThat(nuevo.get("borradores").size()).isZero();
+        comprobar(cambiarTutorial(n,Map.of("accion","borrador","paso","presupuesto","campos",Map.of("numero","anterior"))),409);
+        var despues=JSON.readTree(comprobar(get(n,roles),200));
+        assertThat(despues.get("cliente").get("draft").get("preparacion").asString()).isEqualTo(prep.toString());
+        assertThat(despues.get("administrador").get("lesson").asString()).isEqualTo("catalogo");
+        comprobar(elegir(n,"EMPLEADO",csrf(n)),200);
+        assertThat(JSON.readTree(comprobar(get(n,flujo),200)).get("borradores").size()).isZero();
+        comprobar(elegir(n,"ADMINISTRADOR",csrf(n)),200);
+        comprobar(cambiarTutorial(n,Map.of("accion","tarifa","intento",1)),200);
+        var repetidoFlujo=JSON.readTree(comprobar(cambiarTutorial(n,reiniciarFlujo),200));
+        assertThat(repetidoFlujo.get("intento").asLong()).isEqualTo(1);
+        assertThat(repetidoFlujo.get("completados").get(0).asString()).isEqualTo("tarifa");
+        comprobar(elegir(n,"CLIENTE",csrf(n)),200);
+        assertThat(comprobar(cambiarTutorial(n,Map.of("accion","vincular","preparacion",prep,"intento",1)),200)).contains("\"archivo\"");
+        assertThat(db.queryForObject("SELECT estado FROM lamontana.archivo_almacenado WHERE codigo_publico=?",String.class,archivo)).isEqualTo("VALIDO");
+        assertThat(estadoNegocio(db)).isEqualTo(negocio);
+        comprobar(post(n,"/api/cliente/preparaciones/"+prep+"/archivos/"+archivo+"/quitar",
+                JSON.writeValueAsString(Map.of("operacion",UUID.randomUUID())),csrf(n)),200);
+    }
+
+    private void comprobarReinicio(tools.jackson.databind.JsonNode avance,String leccion) {
+        assertThat(avance.get("intento").asLong()).isEqualTo(1L);
+        assertThat(avance.get("lesson").asString()).isEqualTo(leccion);
+        assertThat(avance.get("task").asInt()).isZero();
+        assertThat(avance.get("reached").asInt()).isZero();
+        assertThat(avance.get("complete").asBoolean()).isFalse();
+        assertThat(avance.get("draft").size()).isZero();
+    }
+
+    private Map<String,Object> estadoNegocio(JdbcTemplate db) {
+        return db.queryForMap("""
+                SELECT (SELECT count(*) FROM lamontana.pedido) AS pedidos,
+                    (SELECT count(*) FROM lamontana.pago) AS pagos,
+                    (SELECT count(*) FROM lamontana.tarifa_impresion) AS tarifas,
+                    (SELECT count(*) FROM lamontana.demo_cupo_registro WHERE baja_en IS NULL) AS cupos
+                """);
+    }
+
+    @Test void dosReiniciosConcurrentesYUnGuardadoAnteriorDejanUnSoloIntentoNuevo() throws Exception {
+        var n=HttpClient.newBuilder().cookieHandler(new CookieManager(null,CookiePolicy.ACCEPT_ALL)).build();
+        comprobar(elegir(n,"CLIENTE",csrf(n)),200);
+        String token=csrf(n);
+        var ruta="/api/demo/tutorial/recorridos";
+        var reset=request(ruta).header("Content-Type","application/json").header("X-CSRF-TOKEN",token)
+                .PUT(HttpRequest.BodyPublishers.ofString("{\"recorrido\":\"cliente\",\"accion\":\"reiniciar\",\"intento\":0}")).build();
+        var guardado=request(ruta).header("Content-Type","application/json").header("X-CSRF-TOKEN",token)
+                .PUT(HttpRequest.BodyPublishers.ofString("{\"recorrido\":\"cliente\",\"intento\":0,\"draft\":{\"calle\":\"Primer intento\"}}")).build();
+        var respuesta=HttpResponse.BodyHandlers.ofString();
+        var anterior=n.sendAsync(guardado,respuesta);
+        var primero=n.sendAsync(reset,respuesta);
+        var segundo=n.sendAsync(reset,respuesta);
+        assertThat(anterior.join().statusCode()).isIn(200,409);
+        comprobarReinicio(JSON.readTree(comprobar(primero.join(),200)).get("cliente"),"inicio");
+        comprobarReinicio(JSON.readTree(comprobar(segundo.join(),200)).get("cliente"),"inicio");
+        comprobarReinicio(JSON.readTree(comprobar(get(n,ruta),200)).get("cliente"),"inicio");
+        comprobar(n.send(guardado,respuesta),409);
     }
 
     private HttpResponse<String> cambiarTutorial(HttpClient navegador,Map<String,?> cambio) throws Exception {

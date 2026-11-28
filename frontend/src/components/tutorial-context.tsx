@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { secureMutation } from "@/lib/secure-mutation";
+import { MutationError, secureMutation } from "@/lib/secure-mutation";
 import {
   rememberTutorialOpen,
   tutorialIsOpen,
@@ -41,6 +41,7 @@ type Access = {
   saving: boolean;
   available: boolean;
   command: (body: Command) => Promise<Tutorial>;
+  restart: () => Promise<Tutorial>;
   refresh: () => Promise<void>;
   draft: (step: Step, fields: Draft) => void;
   flush: () => Promise<void>;
@@ -52,6 +53,8 @@ function valid(value: unknown): value is Tutorial {
   if (!value || typeof value !== "object") return false;
   const v = value as Tutorial;
   return (
+    Number.isSafeInteger(v.intento) &&
+    v.intento >= 0 &&
     ["NUEVO", "ACTIVO", "PAUSADO", "COMPLETO"].includes(v.estado) &&
     steps.includes(v.paso) &&
     Array.isArray(v.completados) &&
@@ -76,9 +79,11 @@ export function TutorialProvider({
   const latest = useRef<Tutorial | null>(null),
     alive = useRef(true),
     serial = useRef<Promise<unknown>>(Promise.resolve());
-  const pending = useRef(new Map<Step, Draft>()),
+  const pending = useRef(new Map<Step, { intento: number; campos: Draft }>()),
     drain = useRef<Promise<void> | null>(null),
     revision = useRef(0);
+  const restarting = useRef<Promise<Tutorial> | null>(null);
+  const retryRestart = useRef<number | null>(null);
   const open = guideOpen && guide === "completo";
   const choose = useCallback((value: Guide | null) => {
     rememberGuide(value);
@@ -110,6 +115,9 @@ export function TutorialProvider({
   }, []);
   const accept = useCallback((next: unknown) => {
     if (!valid(next)) throw Error("No pudimos leer el avance del tutorial.");
+    const previous = latest.current;
+    if (previous && next.intento < previous.intento) return previous;
+    if (previous && next.intento > previous.intento) pending.current.clear();
     if (alive.current) {
       latest.current = next;
       setState(next);
@@ -145,21 +153,29 @@ export function TutorialProvider({
         );
     }
   }, [accept, setOpen]);
-  const command = useCallback(
-    (body: Command) => {
+  const send = useCallback(
+    (body: Command | { accion: "reiniciar" }, intento: number) => {
       const next = serial.current.then(async () => {
         ++revision.current;
         try {
           const response = await secureMutation(
             "/api/demo/tutorial",
-            JSON.stringify(body),
+            JSON.stringify({ ...body, intento }),
             "application/json",
             "PUT",
           );
           const data = await response.json();
           ++revision.current;
-          return accept(data);
+          const saved = accept(data);
+          if (
+            body.accion !== "reiniciar" &&
+            retryRestart.current !== null &&
+            intento > retryRestart.current
+          )
+            retryRestart.current = null;
+          return saved;
         } catch (e) {
+          if (e instanceof MutationError && e.status === 409) void refresh();
           if (alive.current)
             setError(
               e instanceof Error
@@ -172,23 +188,42 @@ export function TutorialProvider({
       serial.current = next.catch(() => {});
       return next;
     },
-    [accept],
+    [accept, refresh],
+  );
+  const intento = state?.intento;
+  const command = useCallback(
+    (body: Command) => {
+      if (
+        intento === undefined ||
+        intento !== latest.current?.intento ||
+        restarting.current
+      )
+        return Promise.reject(
+          Error("Volvé al paso actual del tutorial para continuar."),
+        );
+      return send(body, intento);
+    },
+    [send, intento],
   );
   const flush = useCallback((): Promise<void> => {
     if (drain.current) return drain.current;
     if (!pending.current.size) return Promise.resolve();
     if (alive.current) setSaving(true);
     const run = async () => {
-      while (pending.current.size) {
-        const [paso, campos] = pending.current.entries().next().value!;
+      while (pending.current.size && !restarting.current) {
+        const [paso, batch] = pending.current.entries().next().value!;
         pending.current.delete(paso);
         try {
-          await command({ accion: "borrador", paso, campos });
+          await send(
+            { accion: "borrador", paso, campos: batch.campos },
+            batch.intento,
+          );
         } catch (e) {
-          pending.current.set(paso, {
-            ...campos,
-            ...pending.current.get(paso),
-          });
+          if (batch.intento === latest.current?.intento)
+            pending.current.set(paso, {
+              intento: batch.intento,
+              campos: { ...batch.campos, ...pending.current.get(paso)?.campos },
+            });
           throw e;
         }
       }
@@ -198,15 +233,55 @@ export function TutorialProvider({
       if (alive.current) setSaving(false);
     });
     return drain.current;
-  }, [command]);
+  }, [send]);
   const draft = useCallback(
     (step: Step, fields: Draft) => {
-      if (!open || latest.current?.estado !== "ACTIVO") return;
-      pending.current.set(step, { ...pending.current.get(step), ...fields });
+      if (
+        !open ||
+        latest.current?.estado !== "ACTIVO" ||
+        restarting.current ||
+        intento === undefined ||
+        intento !== latest.current.intento
+      )
+        return;
+      pending.current.set(step, {
+        intento,
+        campos: { ...pending.current.get(step)?.campos, ...fields },
+      });
       void flush().catch(() => {});
     },
-    [flush, open],
+    [flush, open, intento],
   );
+  const restart = useCallback(() => {
+    if (restarting.current) return restarting.current;
+    if (intento === undefined)
+      return Promise.reject(Error("Esperá a que cargue el tutorial."));
+    const expected = retryRestart.current ?? intento;
+    retryRestart.current = expected;
+    // El servidor descarta los guardados del intento anterior. Si se interrumpe la
+    // respuesta del reinicio, repetir el mismo intento permite conocer su resultado.
+    const run = send({ accion: "reiniciar" }, expected)
+      .then((next) => {
+        pending.current.clear();
+        retryRestart.current = null;
+        try {
+          sessionStorage.removeItem("demo:tutorial:prerrequisito");
+        } catch {
+          // El reinicio ya quedó guardado en el servidor.
+        }
+        return next;
+      })
+      .catch((error) => {
+        if (error instanceof MutationError && !error.uncertain)
+          retryRestart.current = null;
+        throw error;
+      })
+      .finally(() => {
+        restarting.current = null;
+      });
+    restarting.current = run;
+    return run;
+  }, [send, intento]);
   useEffect(() => {
     alive.current = true;
     void refresh();
@@ -250,6 +325,7 @@ export function TutorialProvider({
         saving,
         available,
         command,
+        restart,
         refresh,
         draft,
         flush,
