@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const {expectTutorialAnchor} = require("./helpers/tutorial-anchor.cjs");
 const {restartDialog, tutorialChoice} = require("./helpers/tutorial-restart.cjs");
+const {openGuideIndex, orderReview, reviewFields} = require("./helpers/tutorial-review.cjs");
 const url = process.env.DEMO_CLIENTE_E2E_URL;
 
 test("el cliente conserva su preparación o confirma un único pedido y puede seguirlo", {skip:!url}, async t => {
@@ -15,7 +16,8 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   const {chromium, expect} = require("@playwright/test");
   const browser = await chromium.launch({executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined});
   t.after(()=>browser.close());
-  const viewport=process.env.DEMO_CLIENTE_VENTANA==="compacta" ? {width:1125,height:940} : {width:1440,height:1000};
+  const viewport=process.env.DEMO_E2E_MOVIL ? {width:390,height:844} :
+    process.env.DEMO_CLIENTE_VENTANA==="compacta" ? {width:1125,height:940} : {width:1440,height:1000};
   const page = await browser.newPage({viewport,reducedMotion:"reduce"});
   const errors = [];
   page.on("pageerror",error=>errors.push(error.message));
@@ -229,19 +231,26 @@ test("el cliente conserva su preparación o confirma un único pedido y puede se
   await heading("Reconocer el estado y la reserva");
 
   // Volver al punto de decisión usa exactamente el trabajo que acabamos de conservar.
+  await openGuideIndex(page);
   await panel.getByRole("button",{name:/Decidir si crear el pedido/}).click();
   await heading("Elegir cómo terminar la práctica");
   const form=page.locator("#client-create-order");
   await clickControl(form.getByRole("button",{name:"Revisar para crear este pedido"}),{group:true});
-  if(shipping){
-    for(const [name,value] of Object.entries({receptor:"Cliente de ensayo",telefono:"1100000000"})){
-      const field=form.locator('input[name="'+name+'"]');
-      await clickControl(field);
-      await field.fill(value);
-      await expectTutorialAnchor(page,field);
-      await field.press("Tab");
+  await reviewFields(page,orderReview(shipping),{capture:"pedido",
+    async inspect(target,selector) {
+      if(selector.includes("budget-items")) await expect(target).toContainText(path.basename(fixture));
+      if(selector.includes("Medio de pago")) await expect(target).toHaveValue("EFECTIVO");
+      if(selector.endsWith(".workspace-contact")) {
+        for(const [name,value] of Object.entries({receptor:"Cliente de ensayo",telefono:"1100000000"})){
+          const field=target.locator('input[name="'+name+'"]');
+          await expectTutorialAnchor(page,field,{group:true});
+          await field.fill(value);
+        }
+      }
     }
-  }
+  });
+  assert.equal(await orderCount(),before);
+  assert.equal(await usedQuota(),slots);
   await expect(form.getByRole("checkbox")).toBeEnabled();
   await clickControl(form.getByRole("checkbox"));
   await expect(form.getByRole("checkbox")).toBeChecked();

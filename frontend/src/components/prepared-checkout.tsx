@@ -123,6 +123,7 @@ export function PreparedCheckout({id}:{id:string}){
  const allAccepted=!!prep?.archivos.length&&prep.archivos.every(f=>f.estado==='VALIDO'&&!!f.aceptadaEn);
  const fresh=summaryState==='ready'&&calculated===prefKey&&!!view?.huella&&!!summary&&!!revision?.franja&&!!quote&&Date.parse(quote.vigenteHasta)>Date.now();
  const mayOrder=!clientAttached||deciding&&reviewToOrder;
+ const reviewingOrder=fresh&&allAccepted&&((deciding&&reviewToOrder)||(practicing&&tutorial?.state?.paso==='confirmacion'));
  async function confirm(e:FormEvent){e.preventDefault();if(locked||!mayOrder||!prep||!quote||!fresh||!ack||!allAccepted)return;
   await execute({kind:'confirm',body:JSON.stringify({operacion:crypto.randomUUID(),version:prep.version,cotizacion:quote.codigoPublico,huella:view?.huella,condicionesAceptadas:true,contacto:mode==='ENVIO_DOMICILIO'?contact:null})});
  }
@@ -164,15 +165,17 @@ export function PreparedCheckout({id}:{id:string}){
     <aside className="workspace-checkout-aside" aria-label="Total y confirmación">
      <section className="workspace-panel workspace-price" aria-live="polite"><h2>{summary?'Total de tu pedido':'Subtotal de tu trabajo'}</h2>
       <dl><div><dt>Impresión y servicios</dt><dd>{money(summary?.subtotal??budget.subtotal)}</dd></div><div><dt>Entrega</dt><dd>{summary?money(summary.costoEntrega):'A calcular'}</dd></div>{summary&&<div className="workspace-grand-total"><dt>Total final</dt><dd>{money(summary.total)}</dd></div>}</dl>
-      {summary?<><div className="workspace-delivery-summary"><p><strong>Destino:</strong> {summary.destino}</p><p><strong>Estimación:</strong> {revision?.franja?date(revision.franja.desde)+' – '+date(revision.franja.hasta):date(summary.entrega.disponibleDesde)} · {summary.entrega.zonaHoraria}</p></div>
+      {summary?<><div className="workspace-delivery-summary"><p><strong>Modalidad:</strong> {modeLabels[summary.modalidad]}</p><p><strong>Destino:</strong> {summary.destino}</p><p><strong>Estimación:</strong> {revision?.franja?date(revision.franja.desde)+' – '+date(revision.franja.hasta):date(summary.entrega.disponibleDesde)} · {summary.entrega.zonaHoraria}</p></div>
        {summary.entrega.advertencias.map((s,i)=><p key={i} className="client-note">{s}</p>)}
+       <div id="client-order-conditions" role="region" aria-label="Condiciones del pedido">
        <p>{(revision?.condiciones?.revisionHumana??summary.condiciones.revisionHumana)?'Requiere revisión y aprobación humana.':'La aprobación se evalúa con las reglas configuradas.'}</p>
        {summary.condiciones.pagoPrevioRequerido!=='0.00'&&<p><strong>Pago previo para habilitar aprobación/producción:</strong> {money(summary.condiciones.pagoPrevioRequerido)}</p>}
        {summary.condiciones.senaRequerida!=='0.00'&&<p><strong>Seña requerida:</strong> {money(summary.condiciones.senaRequerida)}</p>}
        <details><summary>Ver condiciones del pedido</summary><p>Se verifican las condiciones cotizadas y los requisitos operativos vigentes antes de crear el pedido.</p>{Array.from(new Set([...summary.condiciones.instrucciones,...(revision?.condiciones?.actuales.instrucciones??[])])).map((s,i)=><p key={i}>{s}</p>)}<p>Las fechas son estimadas. La disponibilidad real se informa en el seguimiento.</p></details>
+       </div>
       </>:<p>{busy?'Recalculando en el servidor…':'Falta elegir entrega y pago para conocer el total final.'}</p>}
      </section>
-     <form id="client-create-order" data-decision-confirmar={deciding&&reviewToOrder||undefined} onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>Confirmá tu pedido</h2>
+     <form id="client-create-order" data-decision-confirmar={deciding&&reviewToOrder||undefined} data-revision-pedido={reviewingOrder||undefined} onSubmit={confirm} className="workspace-panel workspace-confirm"><h2>Confirmá tu pedido</h2>
       {deciding&&!reviewToOrder&&<div>
        <p>Podés terminar la práctica con tus PDF y opciones guardados, o crear este pedido y usar una de las 20 plazas de la demo.</p>
        <div className="client-actions" data-tutorial-decision-cliente data-decision-opciones><button type="button" className="client-button secondary" disabled={locked} onClick={()=>void keepPreparation()}>Conservar la preparación y ver el seguimiento</button>
@@ -182,7 +185,7 @@ export function PreparedCheckout({id}:{id:string}){
       {mode==='ENVIO_DOMICILIO'&&<div className="workspace-contact"><label>Quién recibe<input name="receptor" required maxLength={140} data-tutorial-decision-cliente={deciding&&reviewToOrder&&!contact.receptor||undefined} disabled={locked} value={contact.receptor} onChange={e=>{setContact({...contact,receptor:e.target.value});remember('confirmacion',{receptor:e.target.value});}}/></label><label>Teléfono<input name="telefono" required maxLength={40} data-tutorial-decision-cliente={deciding&&reviewToOrder&&!!contact.receptor&&!contact.telefono||undefined} disabled={locked} value={contact.telefono} onChange={e=>{setContact({...contact,telefono:e.target.value});remember('confirmacion',{telefono:e.target.value});}}/></label></div>}
       <label className="client-check"><input type="checkbox" checked={ack} data-tutorial-decision-cliente={deciding&&reviewToOrder&&!ack&&(mode!=='ENVIO_DOMICILIO'||!!contact.receptor&&!!contact.telefono)||undefined} disabled={locked||!mayOrder||!fresh||!allAccepted} onChange={e=>setAcceptedHash(e.target.checked?view?.huella??null:null)}/>Revisé y acepto los archivos, el total final, el destino, la estimación y las condiciones vigentes.</label>
       {!allAccepted&&<p className="client-note"><a href="#client-review-files">Revisá y aceptá tus PDF</a> para habilitar la confirmación.</p>}
-      <button className="client-button" data-tutorial-decision-cliente={deciding&&reviewToOrder&&ack||undefined} disabled={locked||!mayOrder||!fresh||!allAccepted||!ack}>Confirmar / Crear pedido →</button>
+      <button type="submit" className="client-button" data-tutorial-decision-cliente={deciding&&reviewToOrder&&ack||undefined} disabled={locked||!mayOrder||!fresh||!allAccepted||!ack}>Confirmar / Crear pedido →</button>
       <p className="workspace-confirm-note">Después de crearlo, los cambios y la cancelación siguen las reglas del pedido.</p>
      </form>
     </aside>

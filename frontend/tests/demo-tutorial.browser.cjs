@@ -6,6 +6,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const { restartDialog, tutorialChoice } = require("./helpers/tutorial-restart.cjs");
+const { openGuideIndex, orderReview, reviewFields } = require("./helpers/tutorial-review.cjs");
 const endpoint = process.env.DEMO_TUTORIAL_E2E_URL;
 test(
   "tutorial del pedido completo con teclado, pausa y cambio de rol",
@@ -27,8 +28,10 @@ test(
       executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined,
     });
     t.after(() => browser.close());
+    const mobile = !!process.env.DEMO_E2E_MOVIL;
+    const viewport = mobile ? {width:390,height:844} : {width:1440,height:960};
     const page = await browser.newPage({
-      viewport: { width: 1125, height: 840 },
+      viewport: mobile ? viewport : { width: 1125, height: 840 },
       reducedMotion: "reduce",
     });
     page.setDefaultTimeout(20000);
@@ -200,18 +203,22 @@ test(
       await startFull();
       await expect(page).toHaveURL(/\/administracion\/catalogo#revision-comercial$/);
       const nav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
+      await openGuideIndex(page);
       await expect(nav).toBeVisible();
       await expect(nav.locator('[aria-current="step"]')).toContainText(/consultar la tarifa/i);
       await expect(nav.getByRole("button", { name: /leer el precio por hoja/i })).toBeVisible();
+      if (mobile) await panel().getByRole("button",{name:"Volver a la indicación"}).click();
       const prices = page.locator('[data-tutorial-tarifa-leida="true"]').first();
       const confirm = card().getByRole("button", { name: "Confirmar que revisé la tarifa" });
       await expect(card()).toContainText(/calcular los presupuestos/i);
       await expectHint(/simple faz/i);
       await expect(prices).toContainText(/ARS\s*\d/);
       await anchored(prices);
+      await openGuideIndex(page);
       await nav.getByRole("button", { name: /leer el precio por hoja/i }).press("Enter");
       await expect(card().getByRole("heading", { name: /leer el precio por hoja/i })).toBeVisible();
       await anchored(prices);
+      await openGuideIndex(page);
       await nav.getByRole("button", { name: /9\. Entregar y cerrar/i }).click();
       await expect(page).toHaveURL(/catalogo#revision-comercial/);
       await expect(page.getByText(/primero completá/i).first()).toBeVisible();
@@ -240,7 +247,7 @@ test(
       await expect(card()).toContainText(/no pudimos comprobar el cambio/i);
       assert.equal((await check()).paso,before.paso);
       await change("Cliente");
-      await page.setViewportSize({ width: 1440, height: 960 });
+      await page.setViewportSize(viewport);
     });
     await stage("archivo y presupuesto", async () => {
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
@@ -284,11 +291,13 @@ test(
       const area = page.locator("#client-work-options");
       const taskNav = panel().getByRole("navigation", { name: "Pasos del tutorial" });
       await expect(area.getByLabel("Copias", { exact: true })).toBeEnabled();
+      await openGuideIndex(page);
       await taskNav.getByRole("button", { name: /indicar las copias/i }).press("Enter");
       await expectHint(/cantidad de copias/i);
+      await openGuideIndex(page);
       await taskNav.getByRole("button", { name: /elegir el servicio/i }).press("Enter");
       await expectHint(/servicio de impresión/i);
-      await page.setViewportSize({ width: 820, height: 1180 });
+      if (!mobile) await page.setViewportSize({ width: 820, height: 1180 });
       await anchored(area.getByLabel("Servicio de impresión", { exact: true }));
       for (const [label, nextInstruction] of [
         ["Servicio de impresión", /elegí el tamaño/i],
@@ -329,7 +338,8 @@ test(
       await startFull();
       await expect(page).toHaveURL(/\/cliente\/cotizaciones\/nueva/);
       await expect(area.getByLabel("Copias", { exact: true })).toHaveValue("3");
-      await page.setViewportSize({ width: 1440, height: 960 });
+      await page.setViewportSize(viewport);
+      await openGuideIndex(page);
       await panel().getByRole("button", {name:"Calcular el subtotal"}).click();
       await guidedClick(page.locator("#client-budget-action button"));
       await page.waitForURL(/\/cliente\/preparaciones\/[^/]+$/);
@@ -384,6 +394,10 @@ test(
       await click(acc);
       await expect(dialog).toContainText(/aceptad/i);
       await click(dialog.getByRole("button", { name: /Volver al resumen/ }));
+      if (guided) {
+        await reviewFields(page,orderReview(false),{capture:"pedido"});
+        assert.equal((await check()).pedido,null);
+      }
       await checkBox(page.locator("#client-create-order input[type=checkbox]"));
       await click(page.locator("#client-create-order button"));
       await page.waitForURL(/\/cliente\/pedidos\/[^/]+/);
@@ -402,6 +416,7 @@ test(
       await closed();
       await expect(upload).toBeEnabled();
       await upload.setInputFiles(testPdf);
+      await expect(page.getByRole("button", { name: /Configurar PDF 1/ })).toBeEnabled({ timeout: 90000 });
       for (const field of fields) await option(area.getByLabel(field, { exact: true }));
       await area.getByLabel("Copias", { exact: true }).fill("2");
       await page.locator("#client-budget-action button").click();
@@ -418,14 +433,15 @@ test(
       await change("Empleado");
     });
     await stage("cobro", async () => {
-      await expectHint(/registrar efectivo/i);
-      const st = await check(),
-        fin = await (
-          await page.request.get(
-            root + "/api/operacion/cotizaciones/" + st.cotizacion + "/pagos",
-          )
-        ).json();
+      const st = await check();
+      const payments = async () => (await page.request.get(root+"/api/operacion/cotizaciones/"+st.cotizacion+"/pagos")).json();
+      const fin = await payments();
       if (!fin.pagos.length) {
+        await reviewFields(page, [
+          ".order-detail-heading h2",
+          "#pedido-pagos [data-tutorial-cotizacion-cobro]",
+          "#pedido-pagos .payment-pending",
+        ], { capture: "saldo" });
         await guidedClick(page.getByRole("button", { name: "Registrar efectivo" }));
         const form = page.locator(".payment-form");
         await expectHint(/saldo pendiente completo/i);
@@ -446,19 +462,30 @@ test(
         await expect(form.locator("[name=motivo]")).toHaveValue(
           "Recibo del pedido del tutorial",
         );
+        await openGuideIndex(page);
         await panel().getByRole("button",{name:"Verificar el dinero",exact:true}).click();
         await guidedCheck(form.locator("input[type=checkbox]"));
+        const receiptFields = ["[data-tutorial-medio-cobro]", "[name=importe]", "[name=referencia]", "[name=fecha]"];
+        await reviewFields(page, receiptFields.map(field => '[data-tutorial-pago="recibir"] ' + field), { capture: "recibo" });
+        assert.equal((await payments()).pagos.length, 0);
         await submit(form);
         await expect(form).toHaveCount(0);
+        assert.equal((await payments()).pagos.length, 1);
       }
       const form = page.locator(".payment-form");
       await guidedClick(page.locator("[data-tutorial-aplicar]").first());
       await guidedEdit(form.locator("[name=importe]"),fin.total);
       await guidedEdit(form.locator("[name=motivo]"),"Aplicar al trabajo de práctica");
-      // «Volver sin guardar» comparte la fila con el botón de confirmación.
-      await expect(card()).toContainText(/Aplicar dinero a esta cotización/i);
+      const applicationFields = ["[data-tutorial-recibo]", "[data-tutorial-destino-cobro]", "[name=importe]", "[name=motivo]"];
+      await reviewFields(page, applicationFields.map(field => '[data-tutorial-pago="aplicar"] ' + field), { capture: "aplicar-cobro" });
+      const beforeApplication = await payments();
+      assert.equal(Number(beforeApplication.aplicado), 0);
       await submit(form);
       await done("cobro");
+      const afterApplication = await payments();
+      assert.equal(afterApplication.pagos.length, beforeApplication.pagos.length);
+      assert.equal(Number(afterApplication.aplicado), Number(fin.total));
+      assert.equal(afterApplication.pagos[0].aplicaciones.length, 1);
       await next("revisar y aprobar");
     });
     await stage("revision", async () => {
@@ -540,9 +567,17 @@ test(
         })
         .click();
       await change("Empleado");
+      const deliveryUrl = root+"/api/operacion/pedidos/"+(await check()).pedido+"/entrega";
       for (const cmd of ["VALIDAR", "ENTREGAR", "CERRAR"]) {
         if (cmd === "CERRAR") {
           await expect(card().getByRole("heading", { name: "Abrir el cierre" })).toBeVisible();
+        }
+        if (cmd === "ENTREGAR") {
+          await reviewFields(page, [
+            "#pedido-entrega [data-tutorial-destino-entrega]",
+            "#pedido-entrega .delivery-summary .client-state",
+            "#pedido-entrega .delivery-code .client-success",
+          ], { capture: "entrega" });
         }
         await guidedClick(page.locator('[data-tutorial-entrega="' + cmd + '"]'));
         const form = page.locator(".delivery-dialog[open] form");
@@ -560,12 +595,23 @@ test(
           }
           await guidedEdit(form.locator("[name=motivo]"),"Entrega del pedido de práctica verificada");
           await guidedCheck(form.locator("[name=confirmado]"));
+          if (cmd === "ENTREGAR") {
+            const deliveryFields = [".order-management-heading", "[name=receptor]", "[name=motivo]"];
+            await reviewFields(page, deliveryFields.map(field => '[data-tutorial-dialogo="ENTREGAR"] ' + field), { capture: "confirmar-entrega" });
+            assert.ok(!(await check()).completados.includes("entrega"));
+            assert.equal((await (await page.request.get(deliveryUrl)).json()).entrega, null);
+          }
         }
         await anchored(form.getByRole("button", {
           name: cmd === "VALIDAR" ? "Validar código" : "Confirmar registro",
         }));
         await submit(form);
         await expect(form).toHaveCount(0);
+        if (cmd === "ENTREGAR") {
+          const result = await (await page.request.get(deliveryUrl)).json();
+          assert.ok(result.entrega?.codigoPublico);
+          assert.equal(result.entrega.motivo,"Entrega del pedido de práctica verificada");
+        }
       }
       await done("entrega");
       await expect(

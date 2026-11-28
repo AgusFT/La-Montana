@@ -8,7 +8,7 @@ const reviewKey = "demo:tutorial:revision";
 
 export function readReviewPosition(task: string): number {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(reviewKey) ?? "null");
+    const saved = JSON.parse(sessionStorage.getItem(reviewSlot(task)) ?? sessionStorage.getItem(reviewKey) ?? "null");
     return saved?.task === task && Number.isSafeInteger(saved.position) && saved.position >= 0
       ? saved.position : 0;
   } catch {
@@ -18,10 +18,14 @@ export function readReviewPosition(task: string): number {
 
 export function rememberReviewPosition(task: string, position: number) {
   try {
-    sessionStorage.setItem(reviewKey, JSON.stringify({ task, position }));
+    sessionStorage.setItem(reviewSlot(task), JSON.stringify({ task, position }));
   } catch {
     // El recorrido abierto sigue en memoria si la pestaña bloquea el almacenamiento.
   }
+}
+
+function reviewSlot(task: string) {
+  return reviewKey + ":" + task.split(":", 1)[0];
 }
 
 export function tutorialIsOpen() {

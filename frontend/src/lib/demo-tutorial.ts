@@ -2,6 +2,8 @@
 // Describe los nueve pasos, sus requisitos, los roles y las rutas del pedido.
 //#endregion
 import type { Role } from "./roles";
+import { orderReview } from "./tutorial-revision-pedido";
+import type { ReviewField } from "./tutorial-recorridos";
 
 export const steps = [
   "tarifa",
@@ -44,6 +46,7 @@ type Hint = {
   selector: string;
   title: string;
   text: string;
+  revision?: ReviewField[];
   role?: Role;
   mode?: "RETIRO_SUCURSAL" | "ENVIO_DOMICILIO";
 };
@@ -222,11 +225,13 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '#client-create-order input[type="checkbox"]',
         title: "Aceptar las condiciones",
-        text: "En «Confirmá tu pedido», comprobá el total, el destino y la estimación. Marcá la casilla de aceptación cuando coincidan con lo que querés pedir.",
+        revision: orderReview,
+        text: "Si los datos que revisaste coinciden con el pedido que querés hacer, marcá esta casilla para aceptar la oferta.",
       },
       {
-        selector: "#client-create-order button",
+        selector: '#client-create-order button[type="submit"]',
         title: "Crear el pedido",
+        revision: orderReview,
         text: "Pulsá «Confirmar / Crear pedido» una vez. El pedido conserva el PDF, sus opciones y el precio aceptado.",
       },
     ],
@@ -242,7 +247,12 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: "[data-tutorial-cobrar]",
         title: "Abrir el registro del cobro",
-        text: "Buscá el saldo pendiente. Si el cliente eligió efectivo, pulsá «Registrar efectivo». Para una transferencia, elegí «Registrar transferencia recibida».",
+        text: "Abrí el formulario del medio que recibiste. Para practicar en efectivo, pulsá «Registrar efectivo». Para una acreditación bancaria, elegí «Registrar transferencia recibida».",
+        revision: [
+          {selector: ".order-detail-heading h2", text: "Buscá el número PED del pedido que atendés. Debe coincidir con el del trabajo que el cliente viene a pagar."},
+          {selector: "#pedido-pagos [data-tutorial-cotizacion-cobro]", text: "En Pagos, esta línea identifica la cotización COT de ese pedido, el cliente y la sucursal. Comprobá los tres datos antes de tomar el cobro."},
+          {selector: "#pedido-pagos .payment-pending", text: "Leé el importe que todavía falta cubrir. En este ejercicio vas a recibir ese importe y después vas a aplicarlo al pedido."},
+        ],
       },
       {
         selector: '[data-tutorial-pago="recibir"] [name="importe"]',
@@ -272,7 +282,13 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-pago="recibir"] button:not([type="button"])',
         title: "Guardar el recibo",
-        text: "Pulsá «Registrar dinero recibido» después de verificar el importe y la referencia. El siguiente paso aplica ese dinero al pedido.",
+        text: "Si los datos coinciden con el movimiento, pulsá «Registrar dinero recibido». Vas a obtener un recibo. En el paso siguiente vas a aplicar ese dinero al pedido.",
+        revision: [
+          {selector: '[data-tutorial-pago="recibir"] [data-tutorial-medio-cobro]', text: "Este es el medio que elegiste. Si corresponde a una transferencia, comprobá la acreditación en el banco. Si fue en efectivo, comprobá el dinero recibido."},
+          {selector: '[data-tutorial-pago="recibir"] [name="importe"]', text: "Cotejá el importe en pesos con el dinero que efectivamente recibiste. Podés corregir el campo."},
+          {selector: '[data-tutorial-pago="recibir"] [name="referencia"]', text: "Leé la referencia que va a identificar este recibo. Comprobá que corresponda al movimiento de este cliente."},
+          {selector: '[data-tutorial-pago="recibir"] [name="fecha"]', text: "Verificá el día y la hora en que recibiste el dinero. La fecha se muestra en la hora local de este dispositivo."},
+        ],
       },
       {
         selector: ".payment-history-details:not([open]) > summary, [data-tutorial-aplicar]",
@@ -292,7 +308,13 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-pago="aplicar"] button:not([type="button"])',
         title: "Guardar la aplicación",
-        text: "Pulsá «Aplicar dinero a esta cotización» y comprobá el saldo actualizado.",
+        text: "Si el recibo, el destino y el importe son los de este pedido, pulsá «Aplicar dinero a esta cotización». Después vas a ver el saldo actualizado.",
+        revision: [
+          {selector: '[data-tutorial-pago="aplicar"] [data-tutorial-recibo]', text: "Localizá la referencia del recibo que elegiste. Esta línea distingue el dinero recibido, el que ya se aplicó o devolvió y el que queda disponible."},
+          {selector: '[data-tutorial-pago="aplicar"] [data-tutorial-destino-cobro]', text: "Leé el número COT al que vas a asignar el dinero. Comprobá el saldo pendiente y el máximo aplicable que indica el formulario."},
+          {selector: '[data-tutorial-pago="aplicar"] [name="importe"]', text: "Revisá cuántos pesos de ese recibo vas a aplicar. Para cubrir el pedido de práctica, el importe debe coincidir con su saldo pendiente."},
+          {selector: '[data-tutorial-pago="aplicar"] [name="motivo"]', text: "Leé el detalle que quedará junto a la aplicación. Tiene que explicar por qué asignás ese recibo a este trabajo."},
+        ],
       },
     ],
   },
@@ -497,7 +519,12 @@ export const lessons: Record<Step, Lesson> = {
       {
         selector: '[data-tutorial-entrega="ENTREGAR"]',
         title: "Registrar la entrega",
-        text: "Con el código validado, pulsá «Confirmar entrega física». Revisá el nombre de quien recibe, anotá el motivo, marcá la confirmación y elegí «Confirmar registro». Si elegiste envío, registrá antes los movimientos de traslado que indica la ficha.",
+        text: "Pulsá «Confirmar entrega física» para abrir el formulario. Ahí vas a identificar a quien recibió las copias y dejar constancia de la entrega.",
+        revision: [
+          {selector: "#pedido-entrega [data-tutorial-destino-entrega]", text: "Comprobá la modalidad, el destino y la franja acordada. Si es un envío, cotejá también el domicilio y la persona de contacto que figuran en el pedido."},
+          {selector: "#pedido-entrega .delivery-summary .client-state", text: "Leé en qué etapa logística está el trabajo. Si es un envío, registrá los movimientos de traslado que correspondan antes de marcar la entrega física."},
+          {selector: "#pedido-entrega .delivery-code .client-success", text: "Esta confirmación indica hasta cuándo tu sesión está autorizada a registrar la entrega de este pedido. Si vence, volvé a validar el código que presentó el cliente."},
+        ],
         role: "EMPLEADO",
       },
       {
@@ -523,6 +550,11 @@ export const lessons: Record<Step, Lesson> = {
           '[data-tutorial-dialogo="ENTREGAR"] button:not([type="button"])',
         title: "Guardar la entrega",
         text: "Pulsá «Confirmar registro» para dejar asentado quién recibió el pedido.",
+        revision: [
+          {selector: '[data-tutorial-dialogo="ENTREGAR"] .order-management-heading', text: "Comprobá el número PED del formulario. Tiene que ser el mismo que figura en el trabajo que entregaste."},
+          {selector: '[data-tutorial-dialogo="ENTREGAR"] [name="receptor"]', text: "Este nombre quedará como receptor. Confirmá que sea la persona que recibió las copias, aun si el formulario ya trajo un nombre."},
+          {selector: '[data-tutorial-dialogo="ENTREGAR"] [name="motivo"]', text: "Releé la observación antes de registrar la entrega. Tiene que describir lo que pasó al entregar el pedido completo."},
+        ],
         role: "EMPLEADO",
       },
       {

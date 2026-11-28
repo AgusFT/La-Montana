@@ -2,7 +2,7 @@
 // Renderiza el recorrido accesible, la navegación por pasos y las transiciones entre roles.
 //#endregion
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTutorial } from "./tutorial-context";
 import {
@@ -19,6 +19,7 @@ import {
 } from "./tutorial-selector";
 import { useRoleStore } from "./role-tutorial-context";
 import { RestartTutorialButton, RestartTutorialDialog } from "./tutorial-restart";
+import { TutorialReviewButtons, useTutorialReview } from "./tutorial-review";
 import type { Guide } from "@/lib/tutorial-recorridos";
 import {
   firstRequired,
@@ -207,6 +208,17 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
     !!href &&
     typeof location !== "undefined" &&
     matchesRoute(href);
+  const done = !!state?.completados.includes(step);
+  const fields = currentHint?.revision;
+  // La casilla de aceptación y el botón final pueden compartir una misma lectura.
+  const firstReviewHint = fields ? hints.findIndex((item) => item.revision === fields) : -1;
+  const review = useTutorialReview(
+    `completo:${state?.intento}:${state?.pedido ?? state?.preparacion ?? ""}:${step}:${role}:${firstReviewHint}`,
+    here && !done && !index && !switchTo ? fields : undefined,
+  );
+  const exploringField = useEffectEvent((control: Element) =>
+    !!review.field && !!visibleTarget(review.field.selector)?.contains(control),
+  );
   useEffect(() => {
     if (!here || step !== "confirmacion") return;
     const read = () => setDeliveryMode(selectedDeliveryMode());
@@ -232,7 +244,8 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
       const control = event.target;
       if (
         control.closest(".tutorial-callout") ||
-        !control.closest(".admin-main,.client-main,.workspace-review-dialog")
+        !control.closest(".admin-main,.client-main,.workspace-review-dialog") ||
+        (event.type !== "submit" && exploringField(control))
       )
         return;
       const at = hints.findIndex(({ selector }) => control.closest(selector));
@@ -309,7 +322,6 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
         document.removeEventListener(type, track, true);
     };
   }, [here, hints]);
-  const done = !!state?.completados.includes(step);
   useEffect(() => {
     if (active) focusGuide();
   }, [active, step]);
@@ -401,7 +413,8 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
     );
     setHint(available);
     setIndex(false);
-    if (visibleTarget(hints[available].selector))
+    if (hints[available].revision) focusGuide();
+    else if (visibleTarget(hints[available].selector))
       focusTarget(hints[available].selector);
   }
   async function closeGuide() {
@@ -532,8 +545,8 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
           selector={
             needsRole && !complete
               ? "[data-tutorial-cambiar-rol]"
-              : guiding
-                ? currentHint?.selector
+              : guiding && !review.waiting
+                ? review.field?.selector ?? currentHint?.selector
                 : undefined
           }
           anchorKey={`${step}-${role}-${hintNumber}-${heading}-${navigation}`}
@@ -652,7 +665,8 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
                   aria-live="polite"
                   aria-atomic="true"
                 >
-                  {currentHint.text}
+                  {review.label && <strong>{review.label}</strong>}
+                  {review.waiting ? "Buscando los datos de este paso…" : review.field?.text ?? currentHint.text}
                 </p>
                 {step === "tarifa" && (
                   <>
@@ -697,11 +711,16 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
                         : "Pasar a Cliente para obtener el código"}
                     </button>
                   )}
-                <div className="tutorial-controls">
-                  <button type="button" onClick={() => chooseHint(hintNumber)}>
+                {!review.waiting && <div className="tutorial-controls">
+                  <TutorialReviewButtons review={review} />
+                  <button type="button" onClick={() => {
+                    if (review.field) focusTarget(review.field.selector);
+                    else if (currentHint.revision) focusTarget(currentHint.selector);
+                    else chooseHint(hintNumber);
+                  }}>
                     Ir al control
                   </button>
-                  {previousHint && (
+                  {!review.field && previousHint && (
                     <button
                       type="button"
                       onClick={() => chooseHint(previousHint.n)}
@@ -709,7 +728,7 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
                       Anterior
                     </button>
                   )}
-                  {followingHint && (
+                  {!review.field && followingHint && (
                     <button
                       type="button"
                       onClick={() => chooseHint(followingHint.n)}
@@ -717,7 +736,7 @@ function FullTutorialPanel({ openRestart }: { openRestart: () => void }) {
                       Siguiente indicación
                     </button>
                   )}
-                </div>
+                </div>}
               </>
             )
           )}

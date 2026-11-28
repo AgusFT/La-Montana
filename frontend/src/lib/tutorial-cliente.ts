@@ -1,4 +1,5 @@
 import type { RoleLesson } from "./tutorial-recorridos";
+import { orderReview } from "./tutorial-revision-pedido";
 
 const prepare = "/cliente/cotizaciones/nueva";
 const checkout = "/cliente/preparaciones/:preparacion";
@@ -88,10 +89,10 @@ export const clientLessons: RoleLesson[] = [
     title: "Decidir si crear el pedido",
     path: checkout,
     tasks: [
-      { title: "Elegir cómo terminar la práctica", selector: "[data-tutorial-decision-cliente]", external: true, indicaciones: [
+      { title: "Elegir cómo terminar la práctica", selector: "[data-tutorial-decision-cliente]", external: true, revision: orderReview, indicaciones: [
         point('#client-create-order[data-decision-confirmar] input[name="receptor"]:is([data-tutorial-decision-cliente],:focus)', "Escribí el nombre de la persona que recibirá el envío. Para esta práctica podés usar un nombre ficticio."),
         point('#client-create-order[data-decision-confirmar] input[name="telefono"]:is([data-tutorial-decision-cliente],:focus)', "Indicá un teléfono ficticio para la recepción de esta entrega de práctica."),
-        point('input[type="checkbox"][data-tutorial-decision-cliente]', "Leé el total final, los datos de entrega y las condiciones. Si coinciden con tu pedido, marcá esta casilla."),
+        point('input[type="checkbox"][data-tutorial-decision-cliente]', "Si los datos que revisaste coinciden con el pedido que querés hacer, marcá esta casilla para aceptar la oferta."),
         point('button[data-tutorial-decision-cliente]', "Pulsá «Confirmar / Crear pedido» para registrarlo una sola vez, reservar una de las veinte plazas y abrir el seguimiento de tu pedido."),
       ], text: "Elegí uno de los dos botones. «Conservar la preparación» guarda tu trabajo y permite consultar un pedido existente sin ocupar cupo. «Revisar para crear este pedido» te lleva a la confirmación de un pedido propio." },
     ],

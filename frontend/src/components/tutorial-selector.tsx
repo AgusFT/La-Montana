@@ -28,7 +28,7 @@ import {
 } from "./tutorial-highlight";
 import type { Role } from "@/lib/roles";
 import { RestartTutorialButton } from "./tutorial-restart";
-import { readReviewPosition, rememberReviewPosition } from "@/lib/tutorial-visibility";
+import { TutorialReviewButtons, useTutorialReview } from "./tutorial-review";
 
 const introductions: Record<Guide, string> = {
   administrador: "Aprendé a preparar precios y configurar la imprenta.",
@@ -267,26 +267,14 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
   const [currentCue, setCurrentCue] = useState<{
     task: typeof task;
     index: number;
-    visibleReviews: number[];
-    position: number;
   } | null>(null);
-  const reviewKey = `${guide}:${saved?.intento}:${lesson.id}:${taskIndex}`;
-  const [reading, setReading] = useState<{ key: string; position: number } | null>(null);
   const current = currentCue?.task === task ? currentCue : null;
-  const waitingForReview = !!task.revision && !current;
-  const visibleReviews = current?.visibleReviews ?? [];
-  const review = visibleReviews.find((i) => i >= (current?.position ?? 0));
-  const reviewNumber = review === undefined ? -1 : visibleReviews.indexOf(review);
-  const cue = (review !== undefined && task.revision?.[review])
+  const review = useTutorialReview(
+    `${guide}:${saved?.intento}:${lesson.id}:${taskIndex}`,
+    sameRole && here && !complete && !index ? task.revision : undefined,
+  );
+  const cue = review.field
     || (current && task.indicaciones?.[current.index]) || task;
-  function showReview(position: number) {
-    rememberReviewPosition(reviewKey, position);
-    setReading({ key: reviewKey, position });
-    requestAnimationFrame(() => {
-      if (document.activeElement === document.body)
-        document.getElementById("tutorial-titulo")?.focus({ preventScroll: true });
-    });
-  }
   const nativeNext = useEffectEvent(() => {
     void next(true);
   });
@@ -294,9 +282,6 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
     if (!sameRole || !here || complete || !saved || index) return;
     let frame = 0;
     let awaitingNativeResult = false;
-    const position = task.revision
-      ? reading?.key === reviewKey ? reading.position : readReviewPosition(reviewKey)
-      : 0;
     const sync = () => {
       frame = 0;
       const selected =
@@ -304,14 +289,10 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
           ({ when, selector }) =>
             document.querySelector(when) && visibleTarget(selector),
         ) ?? -1;
-      const visibleReviews = (task.revision ?? []).flatMap(({ when, selector }, i) =>
-        (!when || document.querySelector(when)) && visibleTarget(selector) ? [i] : [],
-      );
       setCurrentCue((previous) =>
-        previous?.task === task && previous.index === selected && previous.position === position
-          && previous.visibleReviews.join() === visibleReviews.join()
+        previous?.task === task && previous.index === selected
           ? previous
-          : { task, index: selected, visibleReviews, position },
+          : { task, index: selected },
       );
       setReady(
         !task.readySelector || !!document.querySelector(task.readySelector),
@@ -364,7 +345,7 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
         document.removeEventListener(event, schedule, true);
       document.removeEventListener("click", click, true);
     };
-  }, [here, sameRole, complete, !!saved, task, hash, index, reviewKey, reading]);
+  }, [here, sameRole, complete, !!saved, task, hash, index]);
   if (!api || !store) return null;
   const work = async (action: () => Promise<unknown>) => {
     if (lock.current) return;
@@ -520,7 +501,7 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
           selector={
             !sameRole
               ? "[data-tutorial-cambiar-rol]"
-              : here && !complete && !waitingForReview
+              : here && !complete && !review.waiting
                 ? cue.selector
                 : undefined
           }
@@ -604,28 +585,16 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
           ) : (
             <>
               <p id="tutorial-indicacion" aria-live="polite">
-                {review !== undefined && <strong>Revisión {reviewNumber + 1} de {visibleReviews.length}. </strong>}
-                {waitingForReview ? "Buscando los datos de este paso…" : cue.text}
+                {review.label && <strong>{review.label}</strong>}
+                {review.waiting ? "Buscando los datos de este paso…" : cue.text}
               </p>
               {task.download && (
                 <a download href={task.download.href}>
                   {task.download.label}
                 </a>
               )}
-              {!waitingForReview && <div className="tutorial-controls">
-                {review !== undefined && (
-                  <>
-                    {reviewNumber > 0 && (
-                      <button type="button" onClick={() => showReview(visibleReviews[reviewNumber - 1])}>
-                        Anterior
-                      </button>
-                    )}
-                    <button type="button" className="tutorial-next" onClick={() => showReview(review + 1)}>
-                      {reviewNumber === visibleReviews.length - 1 ? "Terminar revisión" : "Siguiente"}
-                    </button>
-                  </>
-                )}
-                {review === undefined && !task.external && (
+              {!review.waiting && <div className="tutorial-controls">
+                {!review.field && !task.external && (
                   <button
                     type="button"
                     className="tutorial-next"
@@ -639,9 +608,7 @@ export function RoleGuidePanel({ guide, openRestart }: { guide: RoleGuide; openR
                         : "Continuar")}
                   </button>
                 )}
-                {review === undefined && visibleReviews.length > 0 && (
-                  <button type="button" onClick={() => showReview(visibleReviews[0])}>Volver a revisar</button>
-                )}
+                <TutorialReviewButtons review={review} />
                 <button
                   type="button"
                   onClick={() => {

@@ -1,12 +1,13 @@
 export type RoleGuide = "administrador" | "cliente";
 export type Guide = RoleGuide | "completo";
+export type ReviewField = { selector: string; text: string; when?: string };
 
 export type RoleTask = {
   title: string;
   text: string;
   selector: string;
   // Lecturas guiadas de los datos antes de señalar la acción de esta subtarea.
-  revision?: { selector: string; text: string; when?: string }[];
+  revision?: ReviewField[];
   // La primera condición con un destino visible guía la acción dentro de esta subtarea guardada.
   indicaciones?: { when: string; selector: string; text: string }[];
   // El botón de la aplicación puede avanzar la guía una vez que aparece el resultado esperado.

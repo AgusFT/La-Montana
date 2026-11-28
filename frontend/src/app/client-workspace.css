@@ -138,6 +138,7 @@
 .workspace-price .workspace-delivery-summary{padding-top:12px;border-top:1px solid var(--ui-border,#dce5ef)}
 .workspace-price details{font-size:12px;line-height:1.6;margin-top:14px;border-top:1px solid var(--ui-border,#dce5ef);padding-top:12px}
 .workspace-price summary{cursor:pointer;font-weight:600}
+#client-order-conditions[aria-describedby~="tutorial-indicacion"]{max-height:38dvh;overflow:auto}
 .workspace-confirm h2{font-size:17px;margin:0 0 12px}
 .workspace-confirm p{font-size:12px;line-height:1.6}
 .workspace-confirm .client-check{display:flex;align-items:flex-start;gap:10px;margin:14px 0}
